@@ -1,4 +1,4 @@
-_ = require('./utils')
+_ = require('./util')
 
 Model = module.exports = ->
   self = this
@@ -14,38 +14,39 @@ Model = module.exports = ->
   
   self.get = (path) -> _lookup(path).obj
   
-  set = (path, value) ->
+  self._set = (path, value) ->
     out = _lookup path, isSet: true
     try
       out.return = out.obj[out.prop] = value
     catch err
       throw new Error 'Model set failed on: ' + path
-    out
+    return out
   
-  message = (method, path, args) ->
-    JSON.stringify [method, path, args]
-  
-  if _.onServer
-    self._send = (message) ->
-      if self._socket then self._socket.broadcast message
-    self._initSocket = (socket) ->
-      socket.on 'connection', (client) ->
-        client.on 'message', (message) ->
-          [method, path, args] = JSON.parse message
-          # TODO: Handle message from client
-  else
-    self._send = (message) ->
-      if self._socket then self._socket.send message
-    self._initSocket = (socket) ->
-      socket.connect()
-      socket.on 'message', (message) ->
-        [method, path, args] = JSON.parse message
-        # TODO: Handle message from server
+  # message = (method, path, args) ->
+  #   JSON.stringify [method, path, args]
+  # 
+  # if _.onServer
+  #   self._send = (message) ->
+  #     if self._socket then self._socket.broadcast message
+  #   self._initSocket = (socket) ->
+  #     socket.on 'connection', (client) ->
+  #       client.on 'message', (message) ->
+  #         [method, path, args] = JSON.parse message
+  #         # TODO: Handle message from client
+  # else
+  #   self._send = (message) ->
+  #     if self._socket then self._socket.send message
+  #   self._initSocket = (socket) ->
+  #     socket.connect()
+  #     socket.on 'message', (message) ->
+  #       [method, path, args] = JSON.parse message
+  #       # TODO: Handle message from server
+  return self
 
 Model.prototype = {
-  _setSocket: (socket) ->
-    this._socket = socket
-    this._initSocket socket
+  # _setSocket: (socket) ->
+  #   this._socket = socket
+  #   this._initSocket socket
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 }
@@ -55,7 +56,7 @@ lookup = (obj, props, len, i, path, get, isSet, onRef) ->
   
   # Get the next object along the path
   next = obj[prop]
-  if next?
+  if next == undefined
     if isSet
       # In set, create empty parent objects implied by the path
       next = obj[prop] = {}
@@ -81,6 +82,6 @@ lookup = (obj, props, len, i, path, get, isSet, onRef) ->
     path = if path then path + '.' + prop else prop
   
   if i < len
-    lookup next, props, len, i, path, get, funcs, funcInputs, isSet, onRef
+    lookup next, props, len, i, path, get, isSet, onRef
   else
     if isSet then obj: obj, prop: prop, path: path else obj: next, path: path
