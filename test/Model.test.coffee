@@ -58,7 +58,26 @@ module.exports =
     model._data.should.eql
       color: 'green'
       info: 'new'
-  #   
+  
+  'test get': ->
+    model = newModel 'server'
+    model._data.should.eql {}
+    model._data =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model.get('color').should.eql 'green'
+    model.get('info.numbers').should.eql first: 2, second: 10
+    model.get().should.eql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+  
   # 'test Model server and browser models sync': ->
   #   serverModel = newModel 'server'
   #   browserModel1 = newModel 'browser'
