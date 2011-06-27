@@ -11,7 +11,7 @@ module.exports =
     txn = new Txn '0', { path: 'count', type: 'set', val: 0 }
     Txn.prototype.ver.client.should.equal ++_clientVer
 
-  "instantiating a new Txn should only increment the prototype client ver, not prior instantiated Txn's client ver" ->
+  "instantiating a new Txn should only increment the prototype client ver, not prior instantiated Txn's client ver": ->
     txnOne = new Txn '0', { path: 'count', type: 'set', val: 0 }
     ++_clientVer
     txnTwo = new Txn '0', { path: 'count', type: 'set', val: 1 }
@@ -32,11 +32,10 @@ module.exports =
     ++_clientVer
 
   'should not be able to instantiate an id without passing clientId, if clientId id not in the prototype': ->
-    try {
-      new Txn { path: 'count', type: 'set', val: 0 }
-    } catch (e) {
+    try
+      txn = new Txn({ path: 'count', type: 'set', val: 0 })
+    catch e
       e.should.be.an.instanceof(Error)
-    }
 
   'vector clock should be a pair consisting of transaction id and recorded server version at the time of operation generation': ->
     txn = new Txn '0', { path: 'count', type: 'set', val: 0 }
@@ -99,7 +98,7 @@ module.exports =
     txnTwo.hasConflictWith(txnThree).should.be.false # Because same value
     txnTwo.hasConflictWith(txnFour).should.be.false  # Because not same path
 
-  "a txn should be able to detect a conflict with a given path/value and the server version at the time of that path/value's last update": ->
+  "a txn should be able to detect a conflict with a given both (1) path/value and (2) the server version at the time of that path/value's last update": ->
     txn = new Txn 'client0', { path: 'count', type: 'set', val: 0 }
     ++_clientVer
     txn.hasConflictWith('count', 'set', 0, txn.ver.server + 1).should.be.false # Because shares same value
