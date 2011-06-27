@@ -10,3 +10,14 @@ module.exports = class Txn
     protoVer.client++ unless skipClientVerIncr
     @id = "#{@clientId}.#{@ver.client}"
     @clock = [@id, @ver.server]
+    @path = @op.path
+    @type = @op.type
+    @val = @op.val
+
+  toJSON: () ->
+    {
+      c: @clock
+      p: @path
+      t: @type
+      v: @val
+    }
