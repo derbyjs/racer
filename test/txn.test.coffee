@@ -40,7 +40,8 @@ module.exports =
 
   'vector clock should be a pair consisting of transaction id and recorded server version at the time of operation generation': ->
     txn = new Txn '0', { targ: 'count', type: 'set', val: 0 }
-    txn.clock.should.eql ["0.#{++_clientVer}", 0]
+    txn.clock.should.eql ["0.#{++_clientVer}", Txn.prototype.ver.server]
+    Txn.prototype.ver.server.should.equal 100
 
   # Wire message protocol
 
@@ -97,3 +98,12 @@ module.exports =
     txnOne.hasConflictWith(txnThree).should.be.false # Because same client
     txnTwo.hasConflictWith(txnThree).should.be.false # Because same value
     txnTwo.hasConflictWith(txnFour).should.be.false  # Because not same path
+
+  "a txn should be able to detect a conflict with a given path/value and the server version at the time of that path/value's last update": ->
+    txn = new Txn 'client0', { targ: 'count', type: 'set', val: 0 }
+    ++_clientVer
+    txn.hasConflictWith('count', 'set', 0, txn.ver.server + 1).should.be.false # Because shares same value
+    txn.hasConflictWith('count', 'set', 1, txn.ver.server + 1).should.be.true  # Because conflicting values and precedes last update version
+    txn.hasConflictWith('count', 'set', 1, txn.ver.server).should.be.true      # Because conflicting values and equals last update version
+    txn.hasConflictWith('count', 'set', 1, txn.ver.server-1).should.be.false   # Because txn ver > last updated ver
+    txn.hasConflictWith('name', 'set', 'kobe', txn.ver.server + 1).should.be.false # Because different paths
