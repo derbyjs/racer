@@ -49,7 +49,7 @@ module.exports =
     txn = new Txn('client0', { path: 'count', type: 'set', val: 0 })
     txn.toJSON().should.eql {
       c: ["client0.#{++_clientVer}", 1] # Vector clock
-      k: 'count'
+      p: 'count'
       t: 'set'
       v: 0
     }
@@ -57,7 +57,7 @@ module.exports =
   'it should be able to de-serialize from JSON': ->
     txn = Txn.fromJSON {
       c: ['0.10', 2]
-      k: 'count'
+      p: 'count'
       t: 'set'
       v: 0
     }
@@ -75,7 +75,7 @@ module.exports =
   'deserializing to create a transaction should not increment ver.client': ->
     txn = Txn.fromJSON {
       c: ['0.1', 2]
-      k: 'count'
+      p: 'count'
       t: 'set'
       v: 0
     }
