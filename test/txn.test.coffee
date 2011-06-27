@@ -1,6 +1,6 @@
 # Tests for Op(erations)
 should = require 'should'
-Txn = require '../lib/txn'
+Txn = require 'txn'
 Txn.prototype.ver = { client: 4, server: 100 }
 _clientVer = 4
 
