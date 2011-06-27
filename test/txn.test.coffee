@@ -17,8 +17,8 @@ module.exports =
     txnTwo = new Txn '0', { path: 'count', type: 'set', val: 1 }
     ++_clientVer
     Txn.prototype.ver.client.should.equal _clientVer
-    txnTwo.ver.client.should.equal _clientVer
-    txnOne.ver.client.should.equal _clientVer-1
+    txnTwo.ver.client.should.equal _clientVer-1
+    txnOne.ver.client.should.equal _clientVer-2
 
   'it should have a transaction id equivalent to the "{clientId}.#{numOpsGenerated}"': ->
     txn = new Txn '0', { path: 'count', type: 'set', val: 0 }
