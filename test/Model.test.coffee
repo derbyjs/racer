@@ -39,6 +39,25 @@ newModel = (environment) ->
 # util.inherits BrowserSocketMock, EventEmitter
 
 module.exports =
+  'test get': ->
+    model = newModel 'server'
+    model._data.should.eql {}
+    model._data =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model.get('color').should.eql 'green'
+    model.get('info.numbers').should.eql first: 2, second: 10
+    model.get().should.eql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+  
   'test internal set': ->
     model = newModel 'server'
     model._data.should.eql {}
@@ -59,24 +78,29 @@ module.exports =
       color: 'green'
       info: 'new'
   
-  'test get': ->
-    model = newModel 'server'
-    model._data.should.eql {}
-    model._data =
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+  'test internal creation of client transactions on set': ->
+    model = newModel 'browser'
+    model._clientId = 'client0'
     
-    model.get('color').should.eql 'green'
-    model.get('info.numbers').should.eql first: 2, second: 10
-    model.get().should.eql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+    model.set 'color', 'green'
+    model._txns.should.eql
+      'client0.0':
+        op: ['set', 'color', 'green']
+        base: 0
+        sent: false
+    model._txnQueue.should.eql ['client0.0']
+    
+    model.set 'count', 0
+    model._txns.should.eql
+      'client0.0':
+        op: ['set', 'color', 'green']
+        base: 0
+        sent: false
+      'client0.1':
+        op: ['set', 'count', '0']
+        base: 0
+        sent: false
+    model._txnQueue.should.eql ['client0.0', 'client0.1']
   
   # 'test Model server and browser models sync': ->
   #   serverModel = newModel 'server'
