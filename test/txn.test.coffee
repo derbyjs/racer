@@ -83,3 +83,17 @@ module.exports =
   # Comparing transactions
 
   # Conflict detection
+  
+  '2 txns should conflict iff they update the same path to different values and are from different clients': ->
+    txnOne = new Txn 'client0', { targ: 'count', type: 'set', val: 0 }
+    ++_clientVer
+    txnTwo = new Txn 'client1', { targ: 'count', type: 'set', val: 1 }
+    ++_clientVer
+    txnThree = new Txn 'client0', { targ: 'count', type: 'set', val: 1 }
+    ++_clientVer
+    txnFout = new Txn 'client2', { targ: 'name', type: 'set', val: 'drago' }
+
+    txnOne.hasConflictWith(txnTwo).should.be.true
+    txnOne.hasConflictWith(txnThree).should.be.false # Because same client
+    txnTwo.hasConflictWith(txnThree).should.be.false # Because same value
+    txnTwo.hasConflictWith(txnFour).should.be.false  # Because not same path
