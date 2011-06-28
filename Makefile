@@ -1,4 +1,4 @@
-TESTS = $(shell find test/ -name 'txn.test.coffee')
+TESTS = $(shell find test/ -name '*.test.coffee')
 
 test:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
