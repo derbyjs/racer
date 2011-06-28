@@ -3,34 +3,37 @@ EventEmitter = require('events').EventEmitter
 
 ServerSocketMock =
 exports.ServerSocketMock = ->
-  self = this
-  clients = this._clients = []
-  self.on 'connection', (client) ->
-    clients.push client.browserSocket
-    client._serverSocket = self
-  self.broadcast = (message) ->
-    clients.forEach (client) ->
-      client.emit 'message', JSON.stringify message
+  EventEmitter.call this
+  @clients = this._clients = []
+  @on 'connection', (client) =>
+    @clients.push client.browserSocket
+    client._serverSocket = this
   return
-util.inherits ServerSocketMock, EventEmitter
+ServerSocketMock.prototype =
+  broadcast: (message) ->
+    for client in @clients
+      client.emit 'message', JSON.stringify message
+ServerSocketMock.prototype.__proto__ = EventEmitter.prototype
 
 ServerClientMock = (browserSocket) ->
-  self = this
-  self.browserSocket = browserSocket
-  self.broadcast = (message) ->
-    self._serverSocket._clients.forEach (client) ->
-      if browserSocket != client
-        client.emit 'message', JSON.stringify message
+  EventEmitter.call this
+  @browserSocket = browserSocket
   return
-util.inherits ServerClientMock, EventEmitter
+ServerClientMock.prototype =
+  broadcast: (message) ->
+    @_serverSocket._clients.forEach (client) =>
+      if @browserSocket != client
+        client.emit 'message', JSON.stringify message
+ServerClientMock.prototype.__proto__ = EventEmitter.prototype
 
 BrowserSocketMock =
-exports.BrowserSocketMock = (serverSocket) ->
-  self = this
-  serverClient = new ServerClientMock self
-  self.connect = ->
-    serverSocket.emit 'connection', serverClient
-  self.send = (message) ->
-    serverClient.emit 'message', JSON.stringify message
+exports.BrowserSocketMock = (@serverSocket) ->
+  EventEmitter.call this
+  @serverClient = new ServerClientMock this
   return
-util.inherits BrowserSocketMock, EventEmitter
+BrowserSocketMock.prototype =
+  connect: ->
+    @serverSocket.emit 'connection', @serverClient
+  send: (message) ->
+    @serverClient.emit 'message', JSON.stringify message
+BrowserSocketMock.prototype.__proto__ = EventEmitter.prototype
