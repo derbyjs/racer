@@ -8,7 +8,6 @@ newModel = (environment) ->
 
 mocks = require('./util/mocks')
 ServerSocketMock = mocks.ServerSocketMock
-ServerClientMock = mocks.ServerClientMock
 BrowserSocketMock = mocks.BrowserSocketMock
 
 module.exports =

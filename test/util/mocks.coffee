@@ -14,8 +14,7 @@ exports.ServerSocketMock = ->
   return
 util.inherits ServerSocketMock, EventEmitter
 
-ServerClientMock =
-exports.ServerClientMock = (browserSocket) ->
+ServerClientMock = (browserSocket) ->
   self = this
   self.browserSocket = browserSocket
   self.broadcast = (message) ->
