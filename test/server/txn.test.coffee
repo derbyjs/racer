@@ -1,6 +1,6 @@
 # Tests for Op(erations)
 should = require 'should'
-txn = require 'txn'
+txn = require 'server/txn'
 
 # transaction object literal
 tol = [baseVer = 2, txnId = '4.0', method = 'set', path = 'count', 1]
