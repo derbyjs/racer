@@ -18,7 +18,7 @@ Model = module.exports = ->
     txns[id] = txn
     txnQueue.push id
     # TODO: Raise event on creation of transaction
-    self._send(['txn', [base, id, op...]])
+    txn.sent = self._send(['txn', [base, id, op...]])
     return id
     
   _lookup = (path, options = {}) ->
@@ -53,7 +53,12 @@ Model = module.exports = ->
           # TODO: Handle message from client
   else
     self._send = (message) ->
-      if self._socket then self._socket.send message
+      if self._socket
+        self._socket.send message
+        # TODO: Only return true if sent successfully
+        return true
+      else
+        return false
     self._initSocket = (socket) ->
       socket.connect()
       socket.on 'message', (message) ->

@@ -131,3 +131,27 @@ module.exports =
     model._setSocket browserSocket
     
     model.set 'color', 'green'
+  
+  'test client set roundtrip with server echoing transaction': wrapTest (done) ->
+    serverSocket = new ServerSocketMock()
+    browserSocket = new BrowserSocketMock(serverSocket)
+    
+    serverSocket.on 'connection', (client) ->
+      client.on 'message', (message) ->
+        serverSocket.broadcast JSON.parse message
+        model.get('color').should.eql 'green'
+        model._txnQueue.should.eql []
+        model._txns.should.eql {}
+        done()
+    
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._setSocket browserSocket
+    
+    model.set 'color', 'green'
+    model._txnQueue.should.eql ['client0.0']
+    model._txns.should.eql
+      'client0.0':
+        op: ['set', 'color', 'green']
+        base: 0
+        sent: true
