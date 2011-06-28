@@ -16,6 +16,7 @@ Model = module.exports = ->
     id = nextTxnId()
     txns[id] = txn
     txnQueue.push id
+    # TODO: Raise event on creation of transaction
     return id
     
   _lookup = (path, options = {}) ->
@@ -28,42 +29,43 @@ Model = module.exports = ->
   
   self.get = (path) -> _lookup(path).obj
   
-  self._set = (path, value) ->
-    out = _lookup path, isSet: true
-    try
-      out.return = out.obj[out.prop] = value
-    catch err
-      throw new Error 'Model set failed on: ' + path
-    return out
+  setters = self._setters =
+    set: (path, value) ->
+      out = _lookup path, isSet: true
+      try
+        out.return = out.obj[out.prop] = value
+      catch err
+        throw new Error 'Model set failed on: ' + path
+      return out
   
   self.set = (path, value) ->
     addTxn ['set', path, value]
-  
-  # message = (method, path, args) ->
-  #   JSON.stringify [method, path, args]
-  # 
-  # if _.onServer
-  #   self._send = (message) ->
-  #     if self._socket then self._socket.broadcast message
-  #   self._initSocket = (socket) ->
-  #     socket.on 'connection', (client) ->
-  #       client.on 'message', (message) ->
-  #         [method, path, args] = JSON.parse message
-  #         # TODO: Handle message from client
-  # else
-  #   self._send = (message) ->
-  #     if self._socket then self._socket.send message
-  #   self._initSocket = (socket) ->
-  #     socket.connect()
-  #     socket.on 'message', (message) ->
-  #       [method, path, args] = JSON.parse message
-  #       # TODO: Handle message from server
-  return self
+    
+  if _.onServer
+    self._send = (message) ->
+      if self._socket then self._socket.broadcast message
+    self._initSocket = (socket) ->
+      socket.on 'connection', (client) ->
+        client.on 'message', (message) ->
+          [method, path, args] = JSON.parse message
+          # TODO: Handle message from client
+  else
+    self._send = (message) ->
+      if self._socket then self._socket.send message
+    self._initSocket = (socket) ->
+      socket.connect()
+      socket.on 'message', (message) ->
+        [type, content, meta] = JSON.parse message
+        if type is 'txn'
+          [base, txnId, method, args...] = content
+          setters[method].apply self, args
+          
+  return
 
 Model.prototype = {
-  # _setSocket: (socket) ->
-  #   this._socket = socket
-  #   this._initSocket socket
+  _setSocket: (socket) ->
+    this._socket = socket
+    this._initSocket socket
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 }
