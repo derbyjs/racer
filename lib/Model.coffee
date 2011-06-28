@@ -25,7 +25,7 @@ Model = module.exports = ->
     if path && path.split
       props = path.split('.')
       lookup self._data, props, props.length, 0, '',
-        self.get, options.isSet, options.onRef
+        self.get, options.addPath, options.onRef
     else
       obj: self._data, path: ''
   
@@ -33,12 +33,17 @@ Model = module.exports = ->
   
   setters = self._setters =
     set: (path, value) ->
-      out = _lookup path, isSet: true
+      out = _lookup path, addPath: true
       try
-        out.return = out.obj[out.prop] = value
+        out.parent[out.prop] = value
       catch err
         throw new Error 'Model set failed on: ' + path
-      return out
+    del: (path) ->
+      out = _lookup path
+      try
+        delete out.parent[out.prop]
+      catch err
+        throw new Error 'Model delete failed on: ' + path
   
   self.set = (path, value) ->
     addTxn ['set', path, value]
@@ -80,14 +85,14 @@ Model.prototype = {
     if key? then $r: ref, $k: key else $r: ref
 }
 
-lookup = (obj, props, len, i, path, get, isSet, onRef) ->
+lookup = (obj, props, len, i, path, get, addPath, onRef) ->
   prop = props[i++]
   
   # Get the next object along the path
   next = obj[prop]
   if next == undefined
-    if isSet
-      # In set, create empty parent objects implied by the path
+    if addPath
+      # Create empty parent objects implied by the path
       next = obj[prop] = {}
     else
       # If an object can't be found, return null
@@ -111,6 +116,6 @@ lookup = (obj, props, len, i, path, get, isSet, onRef) ->
     path = if path then path + '.' + prop else prop
   
   if i < len
-    lookup next, props, len, i, path, get, isSet, onRef
+    lookup next, props, len, i, path, get, addPath, onRef
   else
-    if isSet then obj: obj, prop: prop, path: path else obj: next, path: path
+    obj: next, path: path, parent: obj, prop: prop
