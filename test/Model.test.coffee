@@ -138,11 +138,13 @@ module.exports =
     
     serverSocket.on 'connection', (client) ->
       client.on 'message', (message) ->
-        serverSocket.broadcast JSON.parse message
-        model.get('color').should.eql 'green'
-        model._txnQueue.should.eql []
-        model._txns.should.eql {}
-        done()
+        setTimeout ->
+          serverSocket.broadcast JSON.parse message
+          model.get('color').should.eql 'green'
+          model._txnQueue.should.eql []
+          model._txns.should.eql {}
+          done()
+        , 0
     
     model = newModel 'browser'
     model._clientId = 'client0'

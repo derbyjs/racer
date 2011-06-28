@@ -67,6 +67,9 @@ Model = module.exports = ->
           [base, txnId, method, args...] = content
           setters[method].apply self, args
           self._base = base
+          delete txns[txnId]
+          i = txnQueue.indexOf txnId
+          if i > -1 then txnQueue.splice i, 1
   return
 
 Model.prototype = {
