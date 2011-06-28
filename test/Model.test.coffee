@@ -1,7 +1,4 @@
 wrapTest = require('./util').wrapTest
-assert = require('assert')
-util = require('util')
-EventEmitter = require('events').EventEmitter
 _ = require('../lib/util')
 Model = require('../lib/Model')
 
@@ -9,37 +6,10 @@ newModel = (environment) ->
   _.onServer = environment == 'server'
   new Model()
 
-ServerSocketMock = ->
-  self = this
-  clients = this._clients = []
-  self.on 'connection', (client) ->
-    clients.push client.browserSocket
-    client._serverSocket = self
-  self.broadcast = (message) ->
-    clients.forEach (client) ->
-      client.emit 'message', JSON.stringify message
-  return
-util.inherits ServerSocketMock, EventEmitter
-
-ServerClientMock = (browserSocket) ->
-  self = this
-  self.browserSocket = browserSocket
-  self.broadcast = (message) ->
-    self._serverSocket._clients.forEach (client) ->
-      if browserSocket != client
-        client.emit 'message', JSON.stringify message
-  return
-util.inherits ServerClientMock, EventEmitter
-
-BrowserSocketMock = (serverSocket) ->
-  self = this
-  serverClient = new ServerClientMock self
-  self.connect = ->
-    serverSocket.emit 'connection', serverClient
-  self.send = (message) ->
-    serverClient.emit 'message', JSON.stringify message
-  return
-util.inherits BrowserSocketMock, EventEmitter
+mocks = require('./util/mocks')
+ServerSocketMock = mocks.ServerSocketMock
+ServerClientMock = mocks.ServerClientMock
+BrowserSocketMock = mocks.BrowserSocketMock
 
 module.exports =
   'test get': ->
