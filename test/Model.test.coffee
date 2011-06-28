@@ -104,25 +104,6 @@ module.exports =
         base: 0
         sent: false
     model._txnQueue.should.eql ['client0.0', 'client0.1']
-  
-  # 'test Model server and browser models sync': ->
-  #   serverModel = newModel 'server'
-  #   browserModel1 = newModel 'browser'
-  #   browserModel2 = newModel 'browser'
-  #   serverSocket = new ServerSocketMock()
-  #   browserSocket1 = new BrowserSocketMock()
-  #   browserSocket2 = new BrowserSocketMock()
-  #   serverModel._setSocket serverSocket
-  #   browserModel1._setSocket browserSocket1
-  #   browserModel2._setSocket browserSocket2
-  # 
-  #   serverModel.set 'color', 'red'
-  #   serverModel.get().should.eql color: 'red'
-  #   browserModel1.get().should.eql color: 'red'
-  #   browserModel2.get().should.eql color: 'red'
-
-
-  # 'generating a new txn should increment the client version (2nd component of the txnId)': ->
 
   'test client performs set on receipt of message': ->
     serverSocket = new ServerSocketMock()
@@ -132,3 +113,21 @@ module.exports =
     
     serverSocket.broadcast ['txn', [1, 'server0.0', 'set', 'color', 'green']]
     model.get('color').should.eql 'green'
+    model._base.should.eql 1
+  
+  'test client sends transaction on set': wrapTest (done) ->
+    serverSocket = new ServerSocketMock()
+    browserSocket = new BrowserSocketMock(serverSocket)
+    
+    serverSocket.on 'connection', (client) ->
+      client.on 'message', (message) ->
+        JSON.parse(message).should.eql [
+          'txn', [0, 'client0.0', 'set', 'color', 'green']
+        ]
+        done()
+    
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._setSocket browserSocket
+    
+    model.set 'color', 'green'

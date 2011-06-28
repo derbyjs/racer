@@ -12,11 +12,13 @@ Model = module.exports = ->
   txns = self._txns = {}
   txnQueue = self._txnQueue = []
   addTxn = (op) ->
-    txn = op: op, base: self._base, sent: false
+    base = self._base
+    txn = op: op, base: base, sent: false
     id = nextTxnId()
     txns[id] = txn
     txnQueue.push id
     # TODO: Raise event on creation of transaction
+    self._send(['txn', [base, id, op...]])
     return id
     
   _lookup = (path, options = {}) ->
@@ -59,7 +61,7 @@ Model = module.exports = ->
         if type is 'txn'
           [base, txnId, method, args...] = content
           setters[method].apply self, args
-          
+          self._base = base
   return
 
 Model.prototype = {
