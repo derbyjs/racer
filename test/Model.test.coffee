@@ -177,3 +177,30 @@ module.exports =
         op: ['set', 'color', 'green']
         base: 0
         sent: true
+  
+  'test client delete roundtrip with server echoing transaction': wrapTest (done) ->
+    serverSocket = new ServerSocketMock()
+    browserSocket = new BrowserSocketMock(serverSocket)
+
+    serverSocket.on 'connection', (client) ->
+      client.on 'message', (message) ->
+        setTimeout ->
+          serverSocket.broadcast JSON.parse message
+          model._data.should.eql {}
+          model._txnQueue.should.eql []
+          model._txns.should.eql {}
+          done()
+        , 0
+
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._setSocket browserSocket
+    model._data = color: 'green'
+
+    model.delete 'color'
+    model._txnQueue.should.eql ['client0.0']
+    model._txns.should.eql
+      'client0.0':
+        op: ['del', 'color']
+        base: 0
+        sent: true

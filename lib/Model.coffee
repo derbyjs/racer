@@ -47,6 +47,8 @@ Model = module.exports = ->
   
   self.set = (path, value) ->
     addTxn ['set', path, value]
+  self.delete = (path) ->
+    addTxn ['del', path]
     
   if _.onServer
     self._send = (message) ->
