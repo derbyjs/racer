@@ -29,13 +29,14 @@ Model = module.exports = ->
   
   self.get = (path) -> _lookup(path).obj
   
-  self._set = (path, value) ->
-    out = _lookup path, isSet: true
-    try
-      out.return = out.obj[out.prop] = value
-    catch err
-      throw new Error 'Model set failed on: ' + path
-    return out
+  setters = self._setters =
+    set: (path, value) ->
+      out = _lookup path, isSet: true
+      try
+        out.return = out.obj[out.prop] = value
+      catch err
+        throw new Error 'Model set failed on: ' + path
+      return out
   
   self.set = (path, value) ->
     addTxn ['set', path, value]
@@ -54,8 +55,11 @@ Model = module.exports = ->
     self._initSocket = (socket) ->
       socket.connect()
       socket.on 'message', (message) ->
-        [base, txnId, method, path, args] = JSON.parse message
-        
+        [type, content, meta] = JSON.parse message
+        if type is 'txn'
+          [base, txnId, method, args...] = content
+          setters[method].apply self, args
+          
   return
 
 Model.prototype = {

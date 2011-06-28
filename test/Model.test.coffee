@@ -65,10 +65,10 @@ module.exports =
     model = newModel 'server'
     model._data.should.eql {}
     
-    model._set 'color', 'green'
+    model._setters.set 'color', 'green'
     model._data.should.eql color: 'green'
     
-    model._set 'info.numbers', first: 2, second: 10
+    model._setters.set 'info.numbers', first: 2, second: 10
     model._data.should.eql
       color: 'green'
       info:
@@ -76,7 +76,7 @@ module.exports =
           first: 2
           second: 10
     
-    model._set 'info', 'new'
+    model._setters.set 'info', 'new'
     model._data.should.eql
       color: 'green'
       info: 'new'
@@ -109,8 +109,7 @@ module.exports =
     serverSocket = new ServerSocketMock()
     browserSocket = new BrowserSocketMock(serverSocket)
     model = newModel 'browser'
-    model._clientId = 'client0'
     model._setSocket browserSocket
     
     serverSocket.broadcast ['txn', [1, 'server0.0', 'set', 'color', 'green']]
-    
+    model.get('color').should.eql 'green'
