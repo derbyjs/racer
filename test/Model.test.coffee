@@ -81,6 +81,26 @@ module.exports =
       color: 'green'
       info: 'new'
   
+  'test internal delete': ->
+    model = newModel 'server'
+    model._data =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model._setters.del 'color'
+    model._data.should.eql
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model._setters.del 'info.numbers'
+    model._data.should.eql
+      info: {}
+  
   'test internal creation of client transactions on set': ->
     model = newModel 'browser'
     model._clientId = 'client0'
