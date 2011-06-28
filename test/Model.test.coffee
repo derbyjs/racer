@@ -9,34 +9,37 @@ newModel = (environment) ->
   _.onServer = environment == 'server'
   new Model()
 
-# ServerSocketMock = ->
-#   self = this
-#   clients = this._clients = []
-#   self.on 'connection', (client) ->
-#     clients.push client.browserSocket
-#     client._serverSocket = self
-#   self.broadcast = (message) ->
-#     clients.forEach (client) ->
-#       client.emit 'message', message
-# util.inherits ServerSocketMock, EventEmitter
-# 
-# ServerClientMock = (browserSocket) ->
-#   self = this
-#   self.browserSocket = browserSocket
-#   self.broadcast = (message) ->
-#     self._serverSocket._clients.forEach (client) ->
-#       if browserSocket != client
-#         client.emit 'message', message
-# util.inherits ServerClientMock, EventEmitter
-# 
-# BrowserSocketMock = ->
-#   self = this
-#   serverClient = new ServerClientMock self
-#   self.connect = ->
-#     serverSocket.emit 'connection', serverClient
-#   self.send = (message) ->
-#     serverClient.emit 'message', message
-# util.inherits BrowserSocketMock, EventEmitter
+ServerSocketMock = ->
+  self = this
+  clients = this._clients = []
+  self.on 'connection', (client) ->
+    clients.push client.browserSocket
+    client._serverSocket = self
+  self.broadcast = (message) ->
+    clients.forEach (client) ->
+      client.emit 'message', JSON.stringify message
+  return
+util.inherits ServerSocketMock, EventEmitter
+
+ServerClientMock = (browserSocket) ->
+  self = this
+  self.browserSocket = browserSocket
+  self.broadcast = (message) ->
+    self._serverSocket._clients.forEach (client) ->
+      if browserSocket != client
+        client.emit 'message', JSON.stringify message
+  return
+util.inherits ServerClientMock, EventEmitter
+
+BrowserSocketMock = (serverSocket) ->
+  self = this
+  serverClient = new ServerClientMock self
+  self.connect = ->
+    serverSocket.emit 'connection', serverClient
+  self.send = (message) ->
+    serverClient.emit 'message', JSON.stringify message
+  return
+util.inherits BrowserSocketMock, EventEmitter
 
 module.exports =
   'test get': ->
@@ -102,18 +105,12 @@ module.exports =
         sent: false
     model._txnQueue.should.eql ['client0.0', 'client0.1']
   
-  # 'test Model server and browser models sync': ->
-  #   serverModel = newModel 'server'
-  #   browserModel1 = newModel 'browser'
-  #   browserModel2 = newModel 'browser'
-  #   serverSocket = new ServerSocketMock()
-  #   browserSocket1 = new BrowserSocketMock()
-  #   browserSocket2 = new BrowserSocketMock()
-  #   serverModel._setSocket serverSocket
-  #   browserModel1._setSocket browserSocket1
-  #   browserModel2._setSocket browserSocket2
-  # 
-  #   serverModel.set 'color', 'red'
-  #   serverModel.get().should.eql color: 'red'
-  #   browserModel1.get().should.eql color: 'red'
-  #   browserModel2.get().should.eql color: 'red'
+  'test client performs set on receipt of message': ->
+    serverSocket = new ServerSocketMock()
+    browserSocket = new BrowserSocketMock(serverSocket)
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._setSocket browserSocket
+    
+    serverSocket.broadcast ['txn', [1, 'server0.0', 'set', 'color', 'green']]
+    
