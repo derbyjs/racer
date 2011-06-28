@@ -3,7 +3,21 @@ _ = require('./util')
 Model = module.exports = ->
   self = this
   self._data = {}
+  self._base = 0
   
+  self._clientId = ''
+  txnCount = 0
+  nextTxnId = -> self._clientId + '.' + txnCount++
+  
+  txns = self._txns = {}
+  txnQueue = self._txnQueue = []
+  addTxn = (op) ->
+    txn = op: op, base: self._base, sent: false
+    id = nextTxnId()
+    txns[id] = txn
+    txnQueue.push id
+    return id
+    
   _lookup = (path, options = {}) ->
     if path && path.split
       props = path.split('.')
@@ -21,6 +35,9 @@ Model = module.exports = ->
     catch err
       throw new Error 'Model set failed on: ' + path
     return out
+  
+  self.set = (path, value) ->
+    addTxn ['set', path, value]
   
   # message = (method, path, args) ->
   #   JSON.stringify [method, path, args]
