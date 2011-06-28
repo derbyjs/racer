@@ -1,4 +1,5 @@
 redis = require 'redis'
+txn = require './txn'
 
 utils =
   # abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
@@ -64,9 +65,11 @@ stm = module.exports =
     utils.lock @client, lockpath, callback, (unlock, multi, callback) =>
       commit = () ->
         # Commits our transaction
+        multiCb = (err) ->
+          throw err if err
         multi(
-          ['zadd', ['changes', txn.base(tol), tol], ->]
-          ['incr', ['version'], ->]
+          ['zadd', ['changes', txn.base(tol), tol], multiCb]
+          ['incr', ['version'], multiCb]
         )
 
       # Check version
@@ -79,7 +82,7 @@ stm = module.exports =
         # Look for conflicts with the journal
         i = changes.length
         while i--
-          if txn.hasConflicts tol, changes[i]
+          if txn.isConflict tol, changes[i]
             unlock (err) ->
               return callback err if err
               return callback(new Error("Conflict with journal"))
