@@ -1,23 +1,26 @@
-module.exports = class Txn
-  constructor: (@clientId, @op, @skipClientVerIncr) ->
-    if @clientId.constructor == Object
-      throw new Error "You must have a clientId" unless Txn.prototype.clientId
-      @skipClientVerIncr = op
-      @op = @clientId
-      @clientId = Txn.prototype.clientId # Assign from prototype
-    protoVer = Txn.prototype.ver
-    @ver = { client: protoVer.client, server: protoVer.server }
-    protoVer.client++ unless skipClientVerIncr
-    @id = "#{@clientId}.#{@ver.client}"
-    @clock = [@id, @ver.server]
-    @path = @op.path
-    @type = @op.type
-    @val = @op.val
+# txn singleton
+txn = module.exports =
+  ver:
+    server: (tol) -> tol[0]
+    client: (tol) -> parseInt tol[1].split('.')[1], 10
+  id: (tol) -> tol[1]
+  clientId: (tol) -> tol[1].split('.')[0]
+  method: (tol) -> tol[2]
+  path: (tol) -> tol[3]
+  args: (tol) -> tol.slice(4)
+  eval: (txn, start) ->
+    return @args(txn)[0] if @method(txn) == 'set'
+  isConflict: (txnA, val, ver) ->
+    if arguments.length == 2
+      txnB = val
+      return false if @clientId(txnA) == @clientId(txnB) || @path(txnA) != @path(txnB)
+      argsA = @args(txnA)
+      argsB = @args(txnB)
+      return false if argsA.length != argsB.length
+      for argA, i in argsA
+        return false if argA == argsB[i]
+      return true
 
-  toJSON: () ->
-    {
-      c: @clock
-      p: @path
-      t: @type
-      v: @val
-    }
+    return @eval(txnA) != val && @base(txnA) <= ver
+
+txn.base = txn.ver.server

@@ -117,3 +117,6 @@ module.exports =
   #   serverModel.get().should.eql color: 'red'
   #   browserModel1.get().should.eql color: 'red'
   #   browserModel2.get().should.eql color: 'red'
+
+
+  # 'generating a new txn should increment the client version (2nd component of the txnId)': ->
