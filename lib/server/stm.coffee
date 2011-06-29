@@ -5,13 +5,14 @@ utils =
   # abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
   lock: (client, path, callback, block, retries) ->
     retries ||= @lock.maxRetries
+    console.log "watching " + path
     client.watch path, (err, res) =>
       return callback err if err
       client.get path, (err, lock) =>
         return callback err if err
         if lock isnt null
           # retry
-          client.unwatch (err, res) =>
+          client.unwatch path, (err, res) =>
             return callback err if err
             if retries--
               return this(client, path, callback, retries)
@@ -19,14 +20,23 @@ utils =
 
         # releases the lock
         unlock = (callback) ->
-          client.unwatch path, callback
+          client.unwatch path, (err) ->
+            throw err if err
 
-        # `multi` sandwiches commandTriplets in-between the set/del commands that enable/disable the lock
-        multi = (commandTriplets) ->
-          commandTriplets.unshift ['set', ['path', true], callback]
-          commandTriplets.push ['del', ['path'], callback]
-          client.multi commandTriplets
-        block unlock, multi, callback
+        # `exec` sandwiches commandTriplets in-between the set/del commands that enable/disable the lock
+        exec = (fn) ->
+          console.log "executing multi for #{path}"
+          multi = client.multi()
+          multi.set path, true, (err) ->
+            throw err if err
+          fn(multi)
+          console.log("!!! about to EXEC")
+          multi.del path, callback
+          multi.exec (err, replies) ->
+            throw err if err
+            console.log "DONE EXECing"
+            callback null
+        block unlock, exec, callback
 
 utils.lock.maxRetries = 5
 
@@ -61,16 +71,17 @@ stm = module.exports =
   #   DEL path
   #   EXEC
   attempt: (tol, callback) ->
-    lockpath = "lock.#{txn.id(tol)}"
-    utils.lock @client, lockpath, callback, (unlock, multi, callback) =>
-      commit = () ->
+    lockpath = "lock.#{txn.path(tol)}"
+    utils.lock @client, lockpath, callback, (unlock, exec, callback) =>
+      commit = () =>
         # Commits our transaction
-        multiCb = (err) ->
-          throw err if err
-        multi(
-          ['zadd', ['changes', txn.base(tol), tol], multiCb]
-          ['incr', ['version'], multiCb]
-        )
+        exec (multi) ->
+          multi.zadd 'changes', txn.base(tol), tol, (err) ->
+            throw err if err
+          multi.incr 'version', (err, nextVer) =>
+            throw err if err
+            console.log "nextVer= #{nextVer}"
+            @ver = nextVer
 
       # Check version
       return commit() if txn.base(tol) == @ver
@@ -88,4 +99,5 @@ stm = module.exports =
               return callback(new Error("Conflict with journal"))
 
         # If we get this far, commit the transaction
+        console.log "committing #{tol}"
         commit()
