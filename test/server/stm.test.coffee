@@ -11,11 +11,8 @@ module.exports =
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'red']
     stm.attempt txnOne, (err) ->
-      console.log 'a'
       should.strictEqual(null, err)
     stm.attempt txnTwo, (err) ->
-      console.log 'b'
-      console.log err
       err.should.be.an.instanceof Error
       stm.client.end()
       done()

@@ -37,10 +37,10 @@ module.exports =
   # Conflict detection
   
   '2 txns should conflict iff they update the same path to different values and are from different clients': ->
-    txnOne = [0, '0.0', 'set', 'count', 0]
-    txnTwo = [0, '1.0', 'set', 'count', 1]
+    txnOne   = [0, '0.0', 'set', 'count', 0]
+    txnTwo   = [0, '1.0', 'set', 'count', 1]
     txnThree = [0, '0.0', 'set', 'count', 1]
-    txnFour = [0, '2.0', 'set', 'name', 'drago']
+    txnFour  = [0, '2.0', 'set', 'name', 'drago']
 
     txn.isConflict(txnOne, txnTwo).should.be.true
     txn.isConflict(txnOne, txnThree).should.be.false # Because same client
