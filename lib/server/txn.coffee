@@ -13,7 +13,8 @@ txn = module.exports =
   isConflict: (txnA, val, ver) ->
     if arguments.length == 2
       txnB = val
-      return false if @clientId(txnA) == @clientId(txnB) || @path(txnA) != @path(txnB)
+      return false if @clientId(txnA) == @clientId(txnB) || !@pathConflict(@path(txnA), @path(txnB))
+      return true if @path(txnA) != @path(txnB) # nested paths
       argsA = @args(txnA)
       argsB = @args(txnB)
       return false if argsA.length != argsB.length

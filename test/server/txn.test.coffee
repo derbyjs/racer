@@ -61,6 +61,11 @@ module.exports =
     txn.isConflict(txnTwo, txnThree).should.be.false # Because same value
     txn.isConflict(txnTwo, txnFour).should.be.false # Because not same path
 
+    txnNestedOne = [0, '1.0', 'set', 'obj.nested.a', 'a']
+    txnNestedTwo = [0, '2.0', 'del', 'obj.nested']
+
+    txn.isConflict(txnNestedOne, txnNestedTwo).should.be.true # because nested paths
+
   "a txn should be able to detect a conflict with a given both (1) path/value and (2) the server version at the time of that path/value's last update": ->
     txnOne = [1, '1.0', 'set', 'count', 0]
     txn.isConflict(txnOne, 0, 2).should.be.false # Because shares same value
