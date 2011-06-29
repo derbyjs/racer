@@ -23,4 +23,15 @@ txn = module.exports =
 
     return @eval(txnA) != val && @base(txnA) <= ver
 
+  pathConflict: (pathA, pathB) ->
+    return true if pathA == pathB
+    pathALen = pathA.length
+    pathBLen = pathB.length
+    if pathALen == pathBLen
+      return false
+    if pathALen > pathBLen
+      return pathA.substring(0, pathBLen) == pathB
+    return pathB.substring(0, pathALen) == pathA
+
+
 txn.base = txn.ver.server

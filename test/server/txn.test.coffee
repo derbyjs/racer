@@ -34,7 +34,21 @@ module.exports =
 
   # Applying transactions
 
-  # Conflict detection
+  # Path Conflict Detection
+
+  '2 paths that are not string equivalent where 1 is not a substring of the other, should have noconflict': ->
+    txn.pathConflict('abc', 'def').should.be.false
+    txn.pathConflict('def', 'abc').should.be.false # symmetric
+
+  '2 paths that are not string equivalent but 1 is a substring of the other, should have a conflict': ->
+    # nested paths
+    txn.pathConflict('abc', 'abc.def').should.be.true
+    txn.pathConflict('abc.def', 'abc').should.be.true # symmetric
+
+  '2 paths that are string equivalent should have a conflict': ->
+    txn.pathConflict('abc', 'abc').should.be.true
+
+  # Transaction Conflict Detection
   
   '2 txns should conflict iff they update the same path to different values and are from different clients': ->
     txnOne   = [0, '0.0', 'set', 'count', 0]
