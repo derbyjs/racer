@@ -72,5 +72,3 @@ module.exports =
     txn.isConflict(txnOne, 1, 2).should.be.true  # Because conflicting values and precedes last update version
     txn.isConflict(txnOne, 1, 1).should.be.true  # Because conflicting values and equals last update version
     txn.isConflict(txnOne, 1, 0).should.be.false # Because txn base > last updated base
-
-  # TODO If 1 path is an ancestor of another path
