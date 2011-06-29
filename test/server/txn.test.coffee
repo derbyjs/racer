@@ -3,32 +3,32 @@ should = require 'should'
 txn = require 'server/txn'
 
 # transaction object literal
-tol = [baseVer = 2, txnId = '4.0', method = 'set', path = 'count', 1]
+transaction = [baseVer = 2, txnId = '4.0', method = 'set', path = 'count', 1]
 
 module.exports =
   # Properties
 
   'it should be able to access the baseVer': ->
-    txn.ver.server(tol).should.equal(2)
-    txn.base(tol).should.equal(2)
+    txn.ver.server(transaction).should.equal(2)
+    txn.base(transaction).should.equal(2)
 
   'it should be able to access the transaction id': ->
-    txn.id(tol).should.equal '4.0'
+    txn.id(transaction).should.equal '4.0'
 
   'it should be able to access the method': ->
-    txn.method(tol).should.equal('set')
+    txn.method(transaction).should.equal('set')
 
   'it should be able to access the path': ->
-    txn.path(tol).should.equal('count')
+    txn.path(transaction).should.equal('count')
     
   'it should be able to access the arguments': ->
-    txn.args(tol).should.eql([1])
+    txn.args(transaction).should.eql([1])
 
-  'it should be able to deduce the clientId from the transcation object literal (tol)': ->
-    txn.clientId(tol).should.equal '4'
+  'it should be able to deduce the clientId from the transcation object literal (transaction)': ->
+    txn.clientId(transaction).should.equal '4'
 
   'it should be able to deduce the client version from the transaction object literal': ->
-    txn.ver.client(tol).should.equal 0
+    txn.ver.client(transaction).should.equal 0
 
   # Evaluating (but not applying) transactions
 
@@ -53,3 +53,5 @@ module.exports =
     txn.isConflict(txnOne, 1, 2).should.be.true  # Because conflicting values and precedes last update version
     txn.isConflict(txnOne, 1, 1).should.be.true  # Because conflicting values and equals last update version
     txn.isConflict(txnOne, 1, 0).should.be.false # Because txn base > last updated base
+
+  # TODO If 1 path is an ancestor of another path
