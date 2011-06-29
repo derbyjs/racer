@@ -1,22 +1,26 @@
 redis = require 'redis'
 txn = require './txn'
 
-# TODO Since transactions from different clients targeting the same path should be in conflict, then we should be able to abort a transaction just by knowing if the client associated with the same lock we want is not our client. This should result in an earlier response to the client than with the current approach
+# TODO: Since transactions from different clients targeting the same path
+# should be in conflict, then we should be able to abort a transaction just by
+# knowing if the client associated with the same lock we want is not our client.
+# This should result in an earlier response to the client than with the
+# current approach
 
-# abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
+# Abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
 lock = (client, path, callback, block, retries) ->
   retries ||= lock.maxRetries
   client.setnx path, +new Date, (err, didGetLock) ->
     throw callback err if err
     unless didGetLock
-      # retry
+      # Retry
       if --retries
         nextTry = () ->
           lock(client, path, callback, block, retries)
         return setTimeout nextTry, Math.pow(2, lock.maxRetries-retries+1) * 1000
       return callback new Error("Tried un-successfully to hold a lock #{lock.maxRetries} times")
 
-    # releases the lock
+    # Release the lock
     unlock = (callback) ->
       client.del path, (err) ->
         return callback err if err
@@ -36,7 +40,7 @@ lock = (client, path, callback, block, retries) ->
 
 lock.maxRetries = 5
 
-# stm singleton
+# STM singleton
 stm = module.exports =
   connect: () ->
     @client = redis.createClient()
