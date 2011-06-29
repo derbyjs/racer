@@ -1,6 +1,8 @@
 redis = require 'redis'
 txn = require './txn'
 
+# TODO Since transactions from different clients targeting the same path should be in conflict, then we should be able to abort a transaction just by knowing if the client associated with the same lock we want is not our client. This should result in an earlier response to the client than with the current approach
+
 # abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
 lock = (client, path, callback, block, retries) ->
   retries ||= lock.maxRetries
@@ -76,3 +78,8 @@ stm = module.exports =
 
         # If we get this far, commit the transaction
         commit()
+
+stm.TransactionConflictError = () ->
+  Error.apply(this, arguments)
+  return
+stm.TransactionConflictError.prototype.__proto__ = Error.prototype

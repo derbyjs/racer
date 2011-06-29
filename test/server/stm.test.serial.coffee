@@ -21,7 +21,16 @@ module.exports =
       err.should.be.an.instanceof Error
       done()
 
-  '2 non-conflicting transactions should be fine': (done) ->
+  '2 transactions from different clients and targeting different paths should be applied': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
+    stm.attempt txnOne, (err) ->
+      should.strictEqual null, err
+    stm.attempt txnTwo, (err) ->
+      should.strictEqual null, err
+      done()
+
+  '2 non-conflicting transactions should be applied': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '1.1', 'set', 'color', 'red']
     stm.attempt txnOne, (err) ->
@@ -29,6 +38,7 @@ module.exports =
     stm.attempt txnTwo, (err) ->
       should.strictEqual null, err
       done()
+
   'finishAll': (done) ->
     stm.client.end()
     done()
