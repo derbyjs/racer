@@ -1,39 +1,36 @@
 util = require('util')
 EventEmitter = require('events').EventEmitter
 
-ServerSocketMock =
-exports.ServerSocketMock = ->
+ServerSocketMock = exports.ServerSocketMock = ->
   EventEmitter.call this
-  @clients = this._clients = []
+  @_clients = []
   @on 'connection', (client) =>
-    @clients.push client.browserSocket
+    @_clients.push client._browserSocket
     client._serverSocket = this
   return
-ServerSocketMock.prototype =
+ServerSocketMock:: =
   broadcast: (message) ->
-    for client in @clients
+    for client in @_clients
       client.emit 'message', JSON.stringify message
-ServerSocketMock.prototype.__proto__ = EventEmitter.prototype
+  __proto__: EventEmitter.prototype
 
-ServerClientMock = (browserSocket) ->
+ServerClientMock = (@_browserSocket) ->
   EventEmitter.call this
-  @browserSocket = browserSocket
   return
-ServerClientMock.prototype =
+ServerClientMock:: =
   broadcast: (message) ->
-    @_serverSocket._clients.forEach (client) =>
-      if @browserSocket != client
+    for client in @_serverSocket._clients
+      if @_browserSocket != client
         client.emit 'message', JSON.stringify message
-ServerClientMock.prototype.__proto__ = EventEmitter.prototype
+  __proto__: EventEmitter.prototype
 
-BrowserSocketMock =
-exports.BrowserSocketMock = (@serverSocket) ->
+BrowserSocketMock = exports.BrowserSocketMock = (@_serverSocket) ->
   EventEmitter.call this
-  @serverClient = new ServerClientMock this
+  @_serverClient = new ServerClientMock this
   return
-BrowserSocketMock.prototype =
+BrowserSocketMock:: =
   connect: ->
-    @serverSocket.emit 'connection', @serverClient
+    @_serverSocket.emit 'connection', @_serverClient
   send: (message) ->
-    @serverClient.emit 'message', JSON.stringify message
-BrowserSocketMock.prototype.__proto__ = EventEmitter.prototype
+    @_serverClient.emit 'message', JSON.stringify message
+  __proto__: EventEmitter.prototype

@@ -1,4 +1,8 @@
-should = require 'should'
+wrapTest = require('./util').wrapTest
+newModel = require('./util/model').newModel
+mocks = require './util/mocks'
+ServerSocketMock = mocks.ServerSocketMock
+BrowserSocketMock = mocks.BrowserSocketMock
 stm = require 'server/stm'
 
 stm.connect()
@@ -64,3 +68,22 @@ module.exports =
   'finishAll': (done) ->
     stm.client.end()
     done()
+  
+  'test client set roundtrip with STM': wrapTest (done) ->
+    serverSocket = new ServerSocketMock()
+    browserSocket = new BrowserSocketMock(serverSocket)
+    
+    serverSocket.on 'connection', (client) ->
+      client.on 'message', (message) ->
+        setTimeout ->
+          
+          serverSocket.broadcast JSON.parse message
+          model.get('color').should.eql 'green'
+          done()
+        , 0
+    
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._setSocket browserSocket
+    
+    model.set 'color', 'green'

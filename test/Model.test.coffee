@@ -1,14 +1,7 @@
 wrapTest = require('./util').wrapTest
-_ = require('../lib/util')
-Model = require('../lib/Model')
-
-newModel = (environment) ->
-  _.onServer = environment == 'server'
-  new Model()
-
-mocks = require('./util/mocks')
-ServerSocketMock = mocks.ServerSocketMock
-BrowserSocketMock = mocks.BrowserSocketMock
+modelUtil = require './util/model'
+newModel = modelUtil.newModel
+mockSocketModel = modelUtil.mockSocketModel
 
 module.exports =
   'test get': ->
@@ -95,37 +88,24 @@ module.exports =
     model._txnQueue.should.eql ['client0.0', 'client0.1']
 
   'test client performs set on receipt of message': ->
-    serverSocket = new ServerSocketMock()
-    browserSocket = new BrowserSocketMock(serverSocket)
-    model = newModel 'browser'
-    model._setSocket browserSocket
+    [serverSocket, model] = mockSocketModel()
     
     serverSocket.broadcast ['txn', [1, 'server0.0', 'set', 'color', 'green']]
     model.get('color').should.eql 'green'
     model._base.should.eql 1
   
   'test client sends transaction on set': wrapTest (done) ->
-    serverSocket = new ServerSocketMock()
-    browserSocket = new BrowserSocketMock(serverSocket)
-    
-    serverSocket.on 'connection', (client) ->
+    [serverSocket, model] = mockSocketModel 'client0', (client) ->
       client.on 'message', (message) ->
         JSON.parse(message).should.eql [
           'txn', [0, 'client0.0', 'set', 'color', 'green']
         ]
         done()
-    
-    model = newModel 'browser'
-    model._clientId = 'client0'
-    model._setSocket browserSocket
-    
+
     model.set 'color', 'green'
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
-    serverSocket = new ServerSocketMock()
-    browserSocket = new BrowserSocketMock(serverSocket)
-    
-    serverSocket.on 'connection', (client) ->
+    [serverSocket, model] = mockSocketModel 'client0', (client) ->
       client.on 'message', (message) ->
         setTimeout ->
           serverSocket.broadcast JSON.parse message
@@ -134,10 +114,6 @@ module.exports =
           model._txns.should.eql {}
           done()
         , 0
-    
-    model = newModel 'browser'
-    model._clientId = 'client0'
-    model._setSocket browserSocket
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['client0.0']
@@ -148,10 +124,7 @@ module.exports =
         sent: true
   
   'test client delete roundtrip with server echoing transaction': wrapTest (done) ->
-    serverSocket = new ServerSocketMock()
-    browserSocket = new BrowserSocketMock(serverSocket)
-
-    serverSocket.on 'connection', (client) ->
+    [serverSocket, model] = mockSocketModel 'client0', (client) ->
       client.on 'message', (message) ->
         setTimeout ->
           serverSocket.broadcast JSON.parse message
@@ -160,12 +133,8 @@ module.exports =
           model._txns.should.eql {}
           done()
         , 0
-
-    model = newModel 'browser'
-    model._clientId = 'client0'
-    model._setSocket browserSocket
+  
     model._data = color: 'green'
-
     model.delete 'color'
     model._txnQueue.should.eql ['client0.0']
     model._txns.should.eql
