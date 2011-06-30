@@ -1,7 +1,7 @@
 redis = require 'redis'
 txn = require './txn'
 
-MAX_RETRIES = 5
+MAX_RETRIES = 10
 
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
@@ -10,17 +10,16 @@ MAX_RETRIES = 5
 # current approach
 
 # Abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
-lock = (client, path, callback, block, retries) ->
-  retries ||= MAX_RETRIES
+lock = (client, path, callback, block, retries = MAX_RETRIES) ->
   client.setnx path, +new Date(), (err, didGetLock) ->
     throw callback err if err
     unless didGetLock
       # Retry
       if --retries
-        nextTry = ->
-          lock(client, path, callback, block, retries)
-        return setTimeout nextTry, Math.pow(2, MAX_RETRIES - retries + 1) * 1000
-      return callback new Error("Tried un-successfully to hold a lock #{MAX_RETRIES} times")
+        return setTimeout ->
+          lock client, path, callback, block, retries
+        , (1 << (MAX_RETRIES - retries)) * 10
+      return callback new Error "Tried un-successfully to hold a lock #{MAX_RETRIES} times"
 
     # Release the lock
     unlock = (callback) ->
@@ -32,7 +31,7 @@ lock = (client, path, callback, block, retries) ->
     # After decoration, the lock is released, and the multi is exec'ed
     exec = (fn) ->
       multi = client.multi()
-      fn(multi)
+      fn multi
       multi.del path, (err) ->
         throw err if err
       multi.exec (err, replies) ->
@@ -71,7 +70,7 @@ Stm:: =
           if txn.isConflict transaction, JSON.parse(changes[i])
             return unlock (err) ->
               return callback err if err
-              return callback(new Stm.ConflictError("Conflict with journal"))
+              return callback new Stm.ConflictError "Conflict with journal"
 
         # If we get this far, commit the transaction
         commit()
