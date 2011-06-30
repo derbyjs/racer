@@ -9,7 +9,6 @@ module.exports =
   # Properties
 
   'it should be able to access the baseVer': ->
-    txn.ver.server(transaction).should.equal(2)
     txn.base(transaction).should.equal(2)
 
   'it should be able to access the transaction id': ->
@@ -28,7 +27,7 @@ module.exports =
     txn.clientId(transaction).should.equal '4'
 
   'it should be able to deduce the client version from the transaction object literal': ->
-    txn.ver.client(transaction).should.equal 0
+    txn.clientVersion(transaction).should.equal 0
 
   # Evaluating (but not applying) transactions
 
