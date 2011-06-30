@@ -133,3 +133,10 @@ module.exports =
         op: ['del', 'color']
         base: 0
         sent: true
+  
+  'test speculative value of set': ->
+    model = newModel 'browser'
+    
+    model.set 'color', 'green'
+    model.get('color').should.eql 'green'
+    model._data.should.eql {}

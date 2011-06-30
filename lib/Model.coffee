@@ -21,25 +21,35 @@ Model = module.exports = ->
     txn.sent = self._send ['txn', [base, id, op...]]
     return id
     
-  _lookup = (path, options = {}) ->
+  _lookup = (data, path, options = {}) ->
     if path && path.split
       props = path.split '.'
-      lookup self._data, props, props.length, 0, '',
+      lookup data, props, props.length, 0, '',
         self.get, options.addPath, options.onRef
     else
-      obj: self._data, path: ''
+      obj: data, path: ''
   
-  self.get = (path) -> _lookup(path).obj
+  self.get = (path) ->
+    if i = txnQueue.length
+      data = Object.create self._data
+      while txnId = txnQueue[--i]
+        txn = txns[txnId]
+        [method, args...] = txn.op
+        args.push data
+        setters[method].apply self, args
+    else
+      data = self._data
+    _lookup(data, path).obj
   
   setters = self._setters =
-    set: (path, value) ->
-      out = _lookup path, addPath: true
+    set: (path, value, data = self._data) ->
+      out = _lookup data, path, addPath: true
       try
         out.parent[out.prop] = value
       catch err
         throw new Error 'Model set failed on: ' + path
-    del: (path) ->
-      out = _lookup path
+    del: (path, data = self._data) ->
+      out = _lookup data, path
       try
         delete out.parent[out.prop]
       catch err
