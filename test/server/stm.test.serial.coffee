@@ -1,7 +1,6 @@
-should = require('should')
-wrapTest = require('../util').wrapTest
-mockSocketModel = require('../util/model').mockSocketModel
+should = require 'should'
 stm = require 'server/stm'
+mockSocketModel = require('../util/model').mockSocketModel
 
 stm.connect()
 module.exports =
@@ -63,7 +62,7 @@ module.exports =
   'a transaction that was generated before the current base server version should be applied if the only transactions in the journal it conflicts with are those that came before it': (done) ->
     done()
   
-  'test client set roundtrip with STM': wrapTest (done) ->
+  'test client set roundtrip with STM': (done) ->
     [serverSocket, model] = mockSocketModel 'client0', (message) ->
       [type, content, meta] = message
       type.should.eql 'txn'
