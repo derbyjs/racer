@@ -5,11 +5,11 @@ mockSocketModel = require('../util/model').mockSocketModel
 stm.connect()
 module.exports =
   setup: (done) ->
-    stm.client.flushdb (err) ->
+    stm._client.flushdb (err) ->
       throw err if err
       done()
   teardown: (done) ->
-    stm.client.flushdb (err) ->
+    stm._client.flushdb (err) ->
       throw err if err
       done()
 
@@ -74,5 +74,5 @@ module.exports =
     model.set 'color', 'green'
   
   finishAll: (done) ->
-    stm.client.end()
+    stm._client.end()
     done()

@@ -15,7 +15,7 @@ lock = (client, path, callback, block, retries) ->
     unless didGetLock
       # Retry
       if --retries
-        nextTry = () ->
+        nextTry = ->
           lock(client, path, callback, block, retries)
         return setTimeout nextTry, Math.pow(2, lock.maxRetries-retries+1) * 1000
       return callback new Error("Tried un-successfully to hold a lock #{lock.maxRetries} times")
@@ -42,12 +42,12 @@ lock.maxRetries = 5
 
 # STM singleton
 stm = module.exports =
-  connect: () ->
-    @client = redis.createClient()
+  connect: ->
+    @_client = redis.createClient()
 
   version: (fn, refresh) ->
     if refresh or not @ver
-      @redis.get 'version', (err, ver) ->
+      @_client.get 'version', (err, ver) ->
         return fn(err) if (err)
         @ver = ver
         fn(null, @ver)
@@ -55,7 +55,7 @@ stm = module.exports =
 
   attempt: (transaction, callback) ->
     lockpath = "lock.#{txn.path(transaction)}"
-    lock @client, lockpath, callback, (unlock, exec) =>
+    lock @_client, lockpath, callback, (unlock, exec) =>
       commit = =>
         # Commits our transaction
         exec (multi) =>
@@ -69,7 +69,7 @@ stm = module.exports =
       return commit() if txn.base(transaction) == @ver
 
       # Fetch journal changes >= the transaction base
-      @client.zrangebyscore 'changes', txn.base(transaction), '+inf', (err, changes) =>
+      @_client.zrangebyscore 'changes', txn.base(transaction), '+inf', (err, changes) =>
         return callback err if err
 
         # Look for conflicts with the journal
@@ -83,7 +83,7 @@ stm = module.exports =
         # If we get this far, commit the transaction
         commit()
 
-stm.TransactionConflictError = () ->
-  Error.apply(this, arguments)
+stm.ConflictError = ->
+  Error.apply this, arguments
   return
-stm.TransactionConflictError.prototype.__proto__ = Error.prototype
+stm.ConflictError::__proto__ = Error::
