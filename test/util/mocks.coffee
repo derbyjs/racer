@@ -1,4 +1,3 @@
-util = require('util')
 EventEmitter = require('events').EventEmitter
 
 ServerSocketMock = exports.ServerSocketMock = ->
