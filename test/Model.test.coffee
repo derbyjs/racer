@@ -187,3 +187,36 @@ module.exports =
       info:
         numbers:
           third: 13
+  
+  'test speculative value of delete': ->
+    model = newModel 'browser'
+    model._clientId = 'client0'
+    model._data =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+
+    model.delete 'color'
+    model.get().should.eql
+      info:
+        numbers:
+          first: 2
+          second: 10
+    model._data.should.eql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+
+    model.delete 'info.numbers'
+    model.get().should.eql
+      info: {}
+    model._data.should.eql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10

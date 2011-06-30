@@ -92,9 +92,9 @@ Model = module.exports = ->
             [base, txnId, method, args...] = content
             setters[method].apply self, args
             self._base = base
-            removeTxn(txnId)
+            removeTxn txnId
           when 'txnFail'
-            removeTxn(content)
+            removeTxn content
   return
 
 Model:: =
