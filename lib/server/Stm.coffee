@@ -2,6 +2,7 @@ redis = require 'redis'
 txn = require './txn'
 
 MAX_RETRIES = 10
+RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
@@ -17,7 +18,7 @@ lock = (client, path, callback, block, retries = MAX_RETRIES) ->
       if retries
         return setTimeout ->
           lock client, path, callback, block, --retries
-        , (1 << (MAX_RETRIES - retries)) * 10
+        , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
       return callback new Error "Tried un-successfully to hold a lock #{MAX_RETRIES} times"
 
     unlock = (callback) ->
