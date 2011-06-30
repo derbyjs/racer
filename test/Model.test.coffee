@@ -134,6 +134,21 @@ module.exports =
         base: 0
         sent: true
   
+  'test transaction is removed after failure': wrapTest (done) ->
+    [serverSocket, model] = mockSocketModel 'client0', (message) ->
+      serverSocket.broadcast ['txnFail', 'client0.0']
+      model._txnQueue.should.eql []
+      model._txns.should.eql {}
+      done()
+    
+    model.set 'color', 'green'
+    model._txnQueue.should.eql ['client0.0']
+    model._txns.should.eql
+      'client0.0':
+        op: ['set', 'color', 'green']
+        base: 0
+        sent: true
+  
   'test speculative value of set': ->
     model = newModel 'browser'
     model._clientId = 'client0'
@@ -166,14 +181,6 @@ module.exports =
     model._data.should.eql {}
     
     model._removeTxn 'client0.1'
-    model.get().should.eql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
-          third: 13
-    
     model._removeTxn 'client0.2'
     model.get().should.eql
       color: 'green'

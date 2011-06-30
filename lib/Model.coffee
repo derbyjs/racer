@@ -87,11 +87,14 @@ Model = module.exports = ->
       socket.connect()
       socket.on 'message', (message) ->
         [type, content, meta] = JSON.parse message
-        if type is 'txn'
-          [base, txnId, method, args...] = content
-          setters[method].apply self, args
-          self._base = base
-          removeTxn(txnId)
+        switch type
+          when 'txn'
+            [base, txnId, method, args...] = content
+            setters[method].apply self, args
+            self._base = base
+            removeTxn(txnId)
+          when 'txnFail'
+            removeTxn(content)
   return
 
 Model:: =
