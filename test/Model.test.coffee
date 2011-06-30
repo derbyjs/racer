@@ -199,7 +199,7 @@ module.exports =
           second: 10
 
     model.delete 'color'
-    model.get().should.eql
+    model.get().should.protoEql
       info:
         numbers:
           first: 2
@@ -210,9 +210,9 @@ module.exports =
         numbers:
           first: 2
           second: 10
-
+    
     model.delete 'info.numbers'
-    model.get().should.eql
+    model.get().should.protoEql
       info: {}
     model._data.should.eql
       color: 'green'
