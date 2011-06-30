@@ -48,12 +48,12 @@ Stm:: =
     lockPath = 'lock.' + txn.path transaction
     base = txn.base transaction
     lock @_client, lockPath, callback, (unlock, exec) =>
-      commit = ->
+      commit = =>
         # Commits our transaction
-        exec (multi) ->
-          multi.zadd 'changes', base, JSON.stringify(transaction), (err) ->
+        exec (multi) =>
+          multi.zadd 'changes', base, JSON.stringify(transaction), (err) =>
             throw err if err
-          multi.incr 'version', (err, nextVer) ->
+          multi.incr 'version', (err, nextVer) =>
             throw err if err
             @_ver = nextVer
 
