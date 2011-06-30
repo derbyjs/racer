@@ -1,8 +1,6 @@
-wrapTest = require('./util').wrapTest
-newModel = require('./util/model').newModel
-mocks = require './util/mocks'
-ServerSocketMock = mocks.ServerSocketMock
-BrowserSocketMock = mocks.BrowserSocketMock
+should = require('should')
+wrapTest = require('../util').wrapTest
+mockSocketModel = require('../util/model').mockSocketModel
 stm = require 'server/stm'
 
 stm.connect()
@@ -25,7 +23,7 @@ module.exports =
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'red']
     stm.attempt txnOne, (err) ->
-      should.strictEqual null, err
+      should.equal null, err
     stm.attempt txnTwo, (err) ->
       err.should.be.an.instanceof Error
       done()
@@ -34,18 +32,18 @@ module.exports =
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
     stm.attempt txnOne, (err) ->
-      should.strictEqual null, err
+      should.equal null, err
     stm.attempt txnTwo, (err) ->
-      should.strictEqual null, err
+      should.equal null, err
       done()
 
   '2 same-client transactions targetting the same path should be applied': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '1.1', 'set', 'color', 'red']
     stm.attempt txnOne, (err) ->
-      should.strictEqual null, err
+      should.equal null, err
     stm.attempt txnTwo, (err) ->
-      should.strictEqual null, err
+      should.equal null, err
       done()
 
   # TODO
@@ -64,26 +62,18 @@ module.exports =
 
   'a transaction that was generated before the current base server version should be applied if the only transactions in the journal it conflicts with are those that came before it': (done) ->
     done()
-
-  'finishAll': (done) ->
-    stm.client.end()
-    done()
   
   'test client set roundtrip with STM': wrapTest (done) ->
-    serverSocket = new ServerSocketMock()
-    browserSocket = new BrowserSocketMock(serverSocket)
-    
-    serverSocket.on 'connection', (client) ->
-      client.on 'message', (message) ->
-        setTimeout ->
-          
-          serverSocket.broadcast JSON.parse message
-          model.get('color').should.eql 'green'
-          done()
-        , 0
-    
-    model = newModel 'browser'
-    model._clientId = 'client0'
-    model._setSocket browserSocket
-    
+    [serverSocket, model] = mockSocketModel 'client0', (message) ->
+      [type, content, meta] = message
+      type.should.eql 'txn'
+      stm.attempt content, (err) ->
+        should.equal null, err
+        serverSocket.broadcast message
+        model.get('color').should.eql 'green'
+        done()
     model.set 'color', 'green'
+  
+  finishAll: (done) ->
+    stm.client.end()
+    done()

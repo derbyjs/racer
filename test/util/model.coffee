@@ -11,7 +11,7 @@ exports.mockSocketModel = (clientId = '', onMessage = ->) ->
   browserSocket = new mocks.BrowserSocketMock(serverSocket)
   serverSocket.on 'connection', (client) ->
     client.on 'message', (message) ->
-      setTimeout (-> onMessage message), 0
+      setTimeout (-> onMessage JSON.parse message), 0
   model = exports.newModel 'browser'
   model._clientId = clientId
   model._setSocket browserSocket

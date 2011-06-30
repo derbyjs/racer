@@ -96,16 +96,14 @@ module.exports =
   
   'test client sends transaction on set': wrapTest (done) ->
     [serverSocket, model] = mockSocketModel 'client0', (message) ->
-      JSON.parse(message).should.eql [
-        'txn', [0, 'client0.0', 'set', 'color', 'green']
-      ]
+      message.should.eql ['txn', [0, 'client0.0', 'set', 'color', 'green']]
       done()
 
     model.set 'color', 'green'
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
     [serverSocket, model] = mockSocketModel 'client0', (message) ->
-      serverSocket.broadcast JSON.parse message
+      serverSocket.broadcast message
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -121,7 +119,7 @@ module.exports =
   
   'test client delete roundtrip with server echoing transaction': wrapTest (done) ->
     [serverSocket, model] = mockSocketModel 'client0', (message) ->
-      serverSocket.broadcast JSON.parse message
+      serverSocket.broadcast message
       model._data.should.eql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
