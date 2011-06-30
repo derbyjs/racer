@@ -95,25 +95,21 @@ module.exports =
     model._base.should.eql 1
   
   'test client sends transaction on set': wrapTest (done) ->
-    [serverSocket, model] = mockSocketModel 'client0', (client) ->
-      client.on 'message', (message) ->
-        JSON.parse(message).should.eql [
-          'txn', [0, 'client0.0', 'set', 'color', 'green']
-        ]
-        done()
+    [serverSocket, model] = mockSocketModel 'client0', (message) ->
+      JSON.parse(message).should.eql [
+        'txn', [0, 'client0.0', 'set', 'color', 'green']
+      ]
+      done()
 
     model.set 'color', 'green'
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
-    [serverSocket, model] = mockSocketModel 'client0', (client) ->
-      client.on 'message', (message) ->
-        setTimeout ->
-          serverSocket.broadcast JSON.parse message
-          model.get('color').should.eql 'green'
-          model._txnQueue.should.eql []
-          model._txns.should.eql {}
-          done()
-        , 0
+    [serverSocket, model] = mockSocketModel 'client0', (message) ->
+      serverSocket.broadcast JSON.parse message
+      model.get('color').should.eql 'green'
+      model._txnQueue.should.eql []
+      model._txns.should.eql {}
+      done()
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['client0.0']
@@ -124,15 +120,12 @@ module.exports =
         sent: true
   
   'test client delete roundtrip with server echoing transaction': wrapTest (done) ->
-    [serverSocket, model] = mockSocketModel 'client0', (client) ->
-      client.on 'message', (message) ->
-        setTimeout ->
-          serverSocket.broadcast JSON.parse message
-          model._data.should.eql {}
-          model._txnQueue.should.eql []
-          model._txns.should.eql {}
-          done()
-        , 0
+    [serverSocket, model] = mockSocketModel 'client0', (message) ->
+      serverSocket.broadcast JSON.parse message
+      model._data.should.eql {}
+      model._txnQueue.should.eql []
+      model._txns.should.eql {}
+      done()
   
     model._data = color: 'green'
     model.delete 'color'

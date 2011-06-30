@@ -6,10 +6,12 @@ exports.newModel = (environment) ->
   _.onServer = environment == 'server'
   return new Model()
   
-exports.mockSocketModel = (clientId = '', onConnection = -> {}) ->
+exports.mockSocketModel = (clientId = '', onMessage = ->) ->
   serverSocket = new mocks.ServerSocketMock()
   browserSocket = new mocks.BrowserSocketMock(serverSocket)
-  serverSocket.on 'connection', onConnection
+  serverSocket.on 'connection', (client) ->
+    client.on 'message', (message) ->
+      setTimeout (-> onMessage message), 0
   model = exports.newModel 'browser'
   model._clientId = clientId
   model._setSocket browserSocket
