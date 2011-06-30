@@ -12,7 +12,7 @@ ServerSocketMock:: =
   broadcast: (message) ->
     for client in @_clients
       client.emit 'message', JSON.stringify message
-  __proto__: EventEmitter.prototype
+  __proto__: EventEmitter::
 
 ServerClientMock = (@_browserSocket) ->
   EventEmitter.call this
@@ -22,7 +22,7 @@ ServerClientMock:: =
     for client in @_serverSocket._clients
       if @_browserSocket != client
         client.emit 'message', JSON.stringify message
-  __proto__: EventEmitter.prototype
+  __proto__: EventEmitter::
 
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSocket) ->
   EventEmitter.call this
@@ -33,4 +33,4 @@ BrowserSocketMock:: =
     @_serverSocket.emit 'connection', @_serverClient
   send: (message) ->
     @_serverClient.emit 'message', JSON.stringify message
-  __proto__: EventEmitter.prototype
+  __proto__: EventEmitter::
