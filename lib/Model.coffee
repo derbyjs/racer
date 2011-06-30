@@ -55,10 +55,25 @@ Model = module.exports = ->
         out.parent[out.prop] = value
       catch err
         throw new Error 'Model set failed on: ' + path
-    del: (path, options) ->
+    del: (path, options = {}) ->
       out = _lookup path, options
+      parent = out.parent
+      prop = out.prop
       try
-        delete out.parent[out.prop]
+        if options.proto
+          # In speculative models, deletion of something in the model data is
+          # acheived by making a copy of the parent prototype's properties that
+          # does not include the deleted property
+          obj = {}
+          for key, value of parent.__proto__
+            unless key is prop
+              obj[key] = if typeof value is 'object'
+                Object.create value
+              else
+                value
+          parent.__proto__ = obj
+        else
+          delete parent[prop]
       catch err
         throw new Error 'Model delete failed on: ' + path
   
