@@ -1,4 +1,4 @@
-_ = require('./util')
+_ = require './util'
 
 Model = module.exports = ->
   self = this
@@ -18,12 +18,12 @@ Model = module.exports = ->
     txns[id] = txn
     txnQueue.push id
     # TODO: Raise event on creation of transaction
-    txn.sent = self._send(['txn', [base, id, op...]])
+    txn.sent = self._send ['txn', [base, id, op...]]
     return id
     
   _lookup = (path, options = {}) ->
     if path && path.split
-      props = path.split('.')
+      props = path.split '.'
       lookup self._data, props, props.length, 0, '',
         self.get, options.addPath, options.onRef
     else
@@ -79,13 +79,12 @@ Model = module.exports = ->
           if i > -1 then txnQueue.splice i, 1
   return
 
-Model.prototype = {
+Model:: =
   _setSocket: (socket) ->
     this._socket = socket
     this._initSocket socket
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
-}
 
 lookup = (obj, props, len, i, path, get, addPath, onRef) ->
   prop = props[i++]
