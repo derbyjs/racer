@@ -1,5 +1,5 @@
 should = require 'should'
-Stm = require 'server/stm'
+Stm = require 'server/Stm'
 stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
 
