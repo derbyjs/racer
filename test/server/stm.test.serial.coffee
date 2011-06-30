@@ -1,8 +1,8 @@
 should = require 'should'
-stm = require 'server/stm'
+Stm = require 'server/stm'
+stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
 
-stm.connect()
 module.exports =
   setup: (done) ->
     stm._client.flushdb (err) ->

@@ -1,6 +1,8 @@
 redis = require 'redis'
 txn = require './txn'
 
+MAX_RETRIES = 5
+
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
 # knowing if the client associated with the same lock we want is not our client.
@@ -9,16 +11,16 @@ txn = require './txn'
 
 # Abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
 lock = (client, path, callback, block, retries) ->
-  retries ||= lock.maxRetries
-  client.setnx path, +new Date, (err, didGetLock) ->
+  retries ||= MAX_RETRIES
+  client.setnx path, +new Date(), (err, didGetLock) ->
     throw callback err if err
     unless didGetLock
       # Retry
       if --retries
         nextTry = ->
           lock(client, path, callback, block, retries)
-        return setTimeout nextTry, Math.pow(2, lock.maxRetries-retries+1) * 1000
-      return callback new Error("Tried un-successfully to hold a lock #{lock.maxRetries} times")
+        return setTimeout nextTry, Math.pow(2, MAX_RETRIES - retries + 1) * 1000
+      return callback new Error("Tried un-successfully to hold a lock #{MAX_RETRIES} times")
 
     # Release the lock
     unlock = (callback) ->
@@ -38,38 +40,29 @@ lock = (client, path, callback, block, retries) ->
         callback null
     block unlock, exec
 
-lock.maxRetries = 5
-
-# STM singleton
-stm = module.exports =
-  connect: ->
-    @_client = redis.createClient()
-
-  version: (fn, refresh) ->
-    if refresh or not @ver
-      @_client.get 'version', (err, ver) ->
-        return fn(err) if (err)
-        @ver = ver
-        fn(null, @ver)
-    fn(@ver)
-
+Stm = module.exports = ->
+  @_client = redis.createClient()
+  @_ver = null
+  return
+Stm:: =
   attempt: (transaction, callback) ->
-    lockpath = "lock.#{txn.path(transaction)}"
-    lock @_client, lockpath, callback, (unlock, exec) =>
-      commit = =>
+    lockPath = 'lock.' + txn.path transaction
+    base = txn.base transaction
+    lock @_client, lockPath, callback, (unlock, exec) =>
+      commit = ->
         # Commits our transaction
-        exec (multi) =>
-          multi.zadd 'changes', txn.base(transaction), JSON.stringify(transaction), (err) ->
+        exec (multi) ->
+          multi.zadd 'changes', base, JSON.stringify(transaction), (err) ->
             throw err if err
-          multi.incr 'version', (err, nextVer) =>
+          multi.incr 'version', (err, nextVer) ->
             throw err if err
-            @ver = nextVer
+            @_ver = nextVer
 
       # Check version
-      return commit() if txn.base(transaction) == @ver
+      return commit() if base == @_ver
 
       # Fetch journal changes >= the transaction base
-      @_client.zrangebyscore 'changes', txn.base(transaction), '+inf', (err, changes) =>
+      @_client.zrangebyscore 'changes', base, '+inf', (err, changes) ->
         return callback err if err
 
         # Look for conflicts with the journal
@@ -78,12 +71,12 @@ stm = module.exports =
           if txn.isConflict transaction, JSON.parse(changes[i])
             return unlock (err) ->
               return callback err if err
-              return callback(new Error("Conflict with journal"))
+              return callback(new Stm.ConflictError("Conflict with journal"))
 
         # If we get this far, commit the transaction
         commit()
 
-stm.ConflictError = ->
+Stm.ConflictError = ->
   Error.apply this, arguments
   return
-stm.ConflictError::__proto__ = Error::
+Stm.ConflictError::__proto__ = Error::
