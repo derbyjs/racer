@@ -9,19 +9,17 @@ MAX_RETRIES = 10
 # This should result in an earlier response to the client than with the
 # current approach
 
-# Abstract away logic for a redis lock strategy that uses WATCH/UNWATCH
 lock = (client, path, callback, block, retries = MAX_RETRIES) ->
-  client.setnx path, +new Date(), (err, didGetLock) ->
+  client.setnx path, +new Date, (err, gotLock) ->
     throw callback err if err
-    unless didGetLock
+    unless gotLock
       # Retry
-      if --retries
+      if retries
         return setTimeout ->
-          lock client, path, callback, block, retries
+          lock client, path, callback, block, --retries
         , (1 << (MAX_RETRIES - retries)) * 10
       return callback new Error "Tried un-successfully to hold a lock #{MAX_RETRIES} times"
 
-    # Release the lock
     unlock = (callback) ->
       client.del path, (err) ->
         return callback err if err
