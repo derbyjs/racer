@@ -20,36 +20,43 @@ Model = module.exports = ->
     # TODO: Raise event on creation of transaction
     txn.sent = self._send ['txn', [base, id, op...]]
     return id
+  removeTxn = self._removeTxn = (txnId) ->
+    delete txns[txnId]
+    i = txnQueue.indexOf txnId
+    if i > -1 then txnQueue.splice i, 1
     
-  _lookup = (data, path, options = {}) ->
+  _lookup = (path, options = {}) ->
     if path && path.split
       props = path.split '.'
+      data = options.data || self._data
       lookup data, props, props.length, 0, '',
-        self.get, options.addPath, options.onRef
+        self.get, options.addPath, options.proto, options.onRef
     else
       obj: data, path: ''
   
   self.get = (path) ->
-    if i = txnQueue.length
+    if len = txnQueue.length
       data = Object.create self._data
-      while txnId = txnQueue[--i]
-        txn = txns[txnId]
+      i = 0
+      while i < len
+        txn = txns[txnQueue[i++]]
         [method, args...] = txn.op
-        args.push data
+        args.push data: data, proto: true
         setters[method].apply self, args
     else
       data = self._data
-    _lookup(data, path).obj
+    if path then _lookup(path, data: data).obj else data
   
   setters = self._setters =
-    set: (path, value, data = self._data) ->
-      out = _lookup data, path, addPath: true
+    set: (path, value, options = {}) ->
+      options.addPath = true
+      out = _lookup path, options
       try
         out.parent[out.prop] = value
       catch err
         throw new Error 'Model set failed on: ' + path
-    del: (path, data = self._data) ->
-      out = _lookup data, path
+    del: (path, options) ->
+      out = _lookup path, options
       try
         delete out.parent[out.prop]
       catch err
@@ -84,9 +91,7 @@ Model = module.exports = ->
           [base, txnId, method, args...] = content
           setters[method].apply self, args
           self._base = base
-          delete txns[txnId]
-          i = txnQueue.indexOf txnId
-          if i > -1 then txnQueue.splice i, 1
+          removeTxn(txnId)
   return
 
 Model:: =
@@ -96,8 +101,11 @@ Model:: =
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 
-lookup = (obj, props, len, i, path, get, addPath, onRef) ->
+lookup = (obj, props, len, i, path, get, addPath, proto, onRef) ->
   prop = props[i++]
+  
+  if proto && !Object::isPrototypeOf(obj)
+      obj = Object.create obj
   
   # Get the next object along the path
   next = obj[prop]
@@ -127,6 +135,6 @@ lookup = (obj, props, len, i, path, get, addPath, onRef) ->
     path = if path then path + '.' + prop else prop
   
   if i < len
-    lookup next, props, len, i, path, get, addPath, onRef
+    lookup next, props, len, i, path, get, addPath, proto, onRef
   else
     obj: next, path: path, parent: obj, prop: prop

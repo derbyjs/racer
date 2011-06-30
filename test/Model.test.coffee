@@ -86,7 +86,7 @@ module.exports =
         base: 0
         sent: false
     model._txnQueue.should.eql ['client0.0', 'client0.1']
-
+  
   'test client performs set on receipt of message': ->
     [serverSocket, model] = mockSocketModel()
     
@@ -98,7 +98,7 @@ module.exports =
     [serverSocket, model] = mockSocketModel 'client0', (message) ->
       message.should.eql ['txn', [0, 'client0.0', 'set', 'color', 'green']]
       done()
-
+  
     model.set 'color', 'green'
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
@@ -136,7 +136,47 @@ module.exports =
   
   'test speculative value of set': ->
     model = newModel 'browser'
+    model._clientId = 'client0'
     
     model.set 'color', 'green'
     model.get('color').should.eql 'green'
     model._data.should.eql {}
+    
+    model.set 'color', 'red'
+    model.get('color').should.eql 'red'
+    model._data.should.eql {}
+    
+    model.set 'info.numbers', first: 2, second: 10
+    model.get().should.eql
+      color: 'red'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    model._data.should.eql {}
+    
+    model.set 'info.numbers.third', 13
+    model.get().should.eql
+      color: 'red'
+      info:
+        numbers:
+          first: 2
+          second: 10
+          third: 13
+    model._data.should.eql {}
+    
+    model._removeTxn 'client0.1'
+    model.get().should.eql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+          third: 13
+    
+    model._removeTxn 'client0.2'
+    model.get().should.eql
+      color: 'green'
+      info:
+        numbers:
+          third: 13
