@@ -31,6 +31,7 @@ lock = (client, path, callback, block, retries = MAX_RETRIES) ->
     exec = (fn) ->
       multi = client.multi()
       fn multi
+      # release the lock after all other operations
       multi.del path, (err) ->
         throw err if err
       multi.exec (err, replies) ->

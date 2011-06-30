@@ -13,6 +13,13 @@ module.exports =
       throw err if err
       done()
 
+  'a transaction should increase the version by 1': (done) ->
+    should.equal null, stm._ver
+    stm.attempt [0, '1.0', 'set', 'color', 'green'], (err) ->
+      should.equal null, err
+      stm._ver.should.equal 1
+      done()
+
   # compare clientIds = If same, then noconflict
   # compare paths     = If different, then noconflict
   # compare bases     = If same, then conflict
