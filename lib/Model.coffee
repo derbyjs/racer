@@ -73,8 +73,7 @@ Model = module.exports = ->
                 else
                   value
             parent.__proto__ = obj
-        else
-          delete parent[prop]
+        delete parent[prop]
       catch err
         throw new Error 'Model delete failed on: ' + path
   
