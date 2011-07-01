@@ -1,69 +1,67 @@
 _ = require './util'
 
+# Note that Model is written as an object constructor for testing purposes,
+# but it is not intended to be instantiated multiple times in use. Therefore,
+# all functions are simply defined in a closure, which would be inefficient
+# if multiple model instantiations were created.
+
 Model = module.exports = ->
   self = this
   self._data = {}
   self._base = 0
-  
   self._clientId = ''
+  
   txnCount = 0
   nextTxnId = -> self._clientId + '.' + txnCount++
-  
-  txns = self._txns = {}
-  txnQueue = self._txnQueue = []
-  addTxn = (op) ->
+  self._txns = txns = {}
+  self._txnQueue = txnQueue = []
+  self._addTxn = addTxn = (op) ->
     base = self._base
     txn = op: op, base: base, sent: false
     id = nextTxnId()
     txns[id] = txn
     txnQueue.push id
     # TODO: Raise event on creation of transaction
-    txn.sent = self._send ['txn', [base, id, op...]]
+    txn.sent = send ['txn', [base, id, op...]]
     return id
-  removeTxn = self._removeTxn = (txnId) ->
+  self._removeTxn = removeTxn = (txnId) ->
     delete txns[txnId]
     i = txnQueue.indexOf txnId
     if i > -1 then txnQueue.splice i, 1
-    
-  _lookup = (path, options = {}) ->
-    if path && path.split
-      props = path.split '.'
-      data = options.data || self._data
-      lookup data, props, props.length, 0, '',
-        self.get, options.addPath, options.proto, options.onRef
-    else
-      obj: data, path: ''
   
-  self.get = (path) ->
+  self.get = get = (path) ->
     if len = txnQueue.length
-      data = Object.create self._data
+      obj = Object.create self._data
       i = 0
       while i < len
         txn = txns[txnQueue[i++]]
         [method, args...] = txn.op
-        args.push data: data, proto: true
-        setters[method].apply self, args
+        args.push obj: obj, proto: true
+        setters[method] args...
     else
-      data = self._data
-    if path then _lookup(path, data: data).obj else data
-  
-  setters = self._setters =
+      obj = self._data
+    if path then lookup(path, obj: obj).obj else obj
+  self.set = (path, value) ->
+    addTxn ['set', path, value]
+  self.delete = (path) ->
+    addTxn ['del', path]
+  self._setters = setters =
     set: (path, value, options = {}) ->
       options.addPath = true
-      out = _lookup path, options
+      out = lookup path, options
       try
         out.parent[out.prop] = value
       catch err
         throw new Error 'Model set failed on: ' + path
     del: (path, options = {}) ->
-      out = _lookup path, options
+      out = lookup path, options
       parent = out.parent
       prop = out.prop
       try
         if options.proto
           # In speculative models, deletion of something in the model data is
-          # acheived by making a copy of the parent prototype's properties that
-          # does not include the deleted property
+          # acheived by making a copy of the parent prototype's properties
+          # that does not include the deleted property
           if prop of parent.__proto__
             obj = {}
             for key, value of parent.__proto__
@@ -77,82 +75,77 @@ Model = module.exports = ->
       catch err
         throw new Error 'Model delete failed on: ' + path
   
-  self.set = (path, value) ->
-    addTxn ['set', path, value]
-  self.delete = (path) ->
-    addTxn ['del', path]
+  lookup = (path, options = {}) ->
+    obj = options.obj || self._data
+    if path && path.split
+      props = path.split '.'
+      _lookup obj, props, props.length, 0, '',
+        options.addPath, options.proto, options.onRef
+    else
+      obj: obj, path: ''
+  _lookup = (obj, props, len, i, path, addPath, proto, onRef) ->
+    prop = props[i++]
     
-  if _.onServer
-    self._send = (message) ->
-      if self._socket then self._socket.broadcast message
-    self._initSocket = (socket) ->
-      socket.on 'connection', (client) ->
-        client.on 'message', (message) ->
-          [method, path, args] = JSON.parse message
-          # TODO: Handle message from client
-  else
-    self._send = (message) ->
-      if self._socket
-        self._socket.send message
-        # TODO: Only return true if sent successfully
-        return true
+    # In speculative model operations, return a prototype referenced object
+    if proto && !Object::isPrototypeOf(obj)
+        obj = Object.create obj
+
+    # Get the next object along the path
+    next = obj[prop]
+    if next == undefined
+      if addPath
+        # Create empty parent objects implied by the path
+        next = obj[prop] = {}
       else
-        return false
-    self._initSocket = (socket) ->
-      socket.connect()
-      socket.on 'message', (message) ->
-        [type, content, meta] = JSON.parse message
-        switch type
-          when 'txn'
-            [base, txnId, method, args...] = content
-            setters[method].apply self, args
-            self._base = base
-            removeTxn txnId
-          when 'txnFail'
-            removeTxn content
-  return
+        # If an object can't be found, return null
+        return obj: null
 
-Model:: =
-  _setSocket: (socket) ->
-    this._socket = socket
-    this._initSocket socket
-  ref: (ref, key) ->
+    # Check for model references
+    if ref = next.$r
+      refObj = get ref
+      if key = next.$k
+        keyObj = get key
+        path = ref + '.' + keyObj
+        next = refObj[keyObj]
+      else
+        path = ref
+        next = refObj
+      if onRef
+        remainder = [path].concat props.slice(i)
+        onRef key, remainder.join('.')
+    else
+      # Store the absolute path traversed so far
+      path = if path then path + '.' + prop else prop
+
+    if i < len
+      _lookup next, props, len, i, path, addPath, proto, onRef
+    else
+      obj: next, path: path, parent: obj, prop: prop
+  
+  socket = null
+  self._setSocket = (_socket) ->
+    socket = _socket
+    _socket.connect()
+    _socket.on 'message', onMessage
+  send = (message) ->
+    if socket
+      socket.send message
+      # TODO: Only return true if sent successfully
+      return true
+    else
+      return false
+  onMessage = (message) ->
+    [type, content, meta] = JSON.parse message
+    switch type
+      when 'txn'
+        [base, txnId, method, args...] = content
+        setters[method] args...
+        self._base = base
+        removeTxn txnId
+      when 'txnFail'
+        removeTxn content
+  
+  self.ref = (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
-
-lookup = (obj, props, len, i, path, get, addPath, proto, onRef) ->
-  prop = props[i++]
   
-  if proto && !Object::isPrototypeOf(obj)
-      obj = Object.create obj
-  
-  # Get the next object along the path
-  next = obj[prop]
-  if next == undefined
-    if addPath
-      # Create empty parent objects implied by the path
-      next = obj[prop] = {}
-    else
-      # If an object can't be found, return null
-      return obj: null
-  
-  # Check for model references
-  if ref = next.$r
-    refObj = get ref
-    if key = next.$k
-      keyObj = get key
-      path = ref + '.' + keyObj
-      next = refObj[keyObj]
-    else
-      path = ref
-      next = refObj
-    if onRef
-      remainder = [path].concat props.slice(i)
-      onRef key, remainder.join('.')
-  else
-    # Store the absolute path traversed so far
-    path = if path then path + '.' + prop else prop
-  
-  if i < len
-    lookup next, props, len, i, path, get, addPath, proto, onRef
-  else
-    obj: next, path: path, parent: obj, prop: prop
+  return
