@@ -1,3 +1,4 @@
+# TODO Add set version of methods
 module.exports =
   base: (tol) -> tol[0]
   id: (tol) -> tol[1]
