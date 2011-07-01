@@ -8,6 +8,17 @@ exports.wrapTest = (fn, numCallbacks = 1) ->
     beforeExit ->
       n.should.equal numCallbacks
 
+flatten = (a) ->
+  if typeof a is 'object'
+    obj = if Array.isArray a then [] else {}
+  else
+    return a
+  for key, val of a
+    obj[key] = flatten val
+  return obj
+
+protoInspect = (a) -> inspect flatten a
+
 protoSubset = (a, b) ->
   for i of a
     if typeof a[i] is 'object'
@@ -21,6 +32,12 @@ protoEql = (a, b) -> protoSubset(a, b) && protoSubset(b, a)
 
 should.Assertion::protoEql = (val) ->
   @assert protoEql(val, @obj),
-    'expected ' + @inspect + ' to prototypically equal ' + inspect(val),
-    'expected ' + @inspect + ' to not prototypically equal ' + inspect(val);
+    """expected \n
+    #{protoInspect @obj} \n
+    to prototypically equal \n
+    #{protoInspect val} \n""",
+    """expected \n
+    #{protoInspect @obj} \n
+    to not prototypically equal \n
+    #{protoInspect val} \n"""
   return this

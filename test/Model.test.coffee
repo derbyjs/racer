@@ -155,11 +155,9 @@ module.exports =
     
     model.set 'color', 'green'
     model.get('color').should.eql 'green'
-    model._data.should.eql {}
     
     model.set 'color', 'red'
     model.get('color').should.eql 'red'
-    model._data.should.eql {}
     
     model.set 'info.numbers', first: 2, second: 10
     model.get().should.eql
@@ -168,7 +166,6 @@ module.exports =
         numbers:
           first: 2
           second: 10
-    model._data.should.eql {}
     
     model.set 'info.numbers.third', 13
     model.get().should.eql
@@ -178,6 +175,7 @@ module.exports =
           first: 2
           second: 10
           third: 13
+    
     model._data.should.eql {}
     
     model._removeTxn 'client0.1'
@@ -204,8 +202,17 @@ module.exports =
         numbers:
           first: 2
           second: 10
-    model._data.should.eql
-      color: 'green'
+    
+    model.set 'color', 'red'
+    model.get().should.protoEql
+      color: 'red'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model.delete 'color'
+    model.get().should.protoEql
       info:
         numbers:
           first: 2
@@ -214,6 +221,7 @@ module.exports =
     model.delete 'info.numbers'
     model.get().should.protoEql
       info: {}
+    
     model._data.should.eql
       color: 'green'
       info:

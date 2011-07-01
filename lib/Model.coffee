@@ -64,14 +64,15 @@ Model = module.exports = ->
           # In speculative models, deletion of something in the model data is
           # acheived by making a copy of the parent prototype's properties that
           # does not include the deleted property
-          obj = {}
-          for key, value of parent.__proto__
-            unless key is prop
-              obj[key] = if typeof value is 'object'
-                Object.create value
-              else
-                value
-          parent.__proto__ = obj
+          if prop of parent.__proto__
+            obj = {}
+            for key, value of parent.__proto__
+              unless key is prop
+                obj[key] = if typeof value is 'object'
+                  Object.create value
+                else
+                  value
+            parent.__proto__ = obj
         else
           delete parent[prop]
       catch err
