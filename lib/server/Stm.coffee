@@ -52,7 +52,7 @@ for i, path in pairs(KEYS) do
 end
 if fail then return 0 end
 local ver = redis.call('incr', 'ver')
-redis.call('zadd', 'ops', ver, ARGV[2])
+redis.call('zadd', 'ops', ver - 1, ARGV[2])
 return ver
 """
 
