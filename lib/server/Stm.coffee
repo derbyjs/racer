@@ -4,7 +4,7 @@ txn = require './txn'
 MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
-LOCK_TIMEOUT = 3  # Lock timeout in seconds. Must be between 2 and 15
+LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
 
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
@@ -44,17 +44,34 @@ LOCK = """
 local now = os.time()
 local path = KEYS[1]
 for i, val in pairs(redis.call('smembers', path)) do
-  if (val % 0x1000000000) < now then
+  if (val % 0x100000000) < now then
     redis.call('srem', path, val)
   else
     return 0
   end
 end
-local val = ARGV[1] * 0x1000000000 + now + #{LOCK_TIMEOUT}
+local val = ARGV[1] * 0x100000000 + now + #{LOCK_TIMEOUT}
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)
 end
 return val
+"""
+ABORT = """
+local val = ARGV[1]
+for i, path in pairs(KEYS) do
+  redis.call('srem', path, val)
+end
+"""
+COMMIT = """
+local val = ARGV[1]
+local fail = false
+for i, path in pairs(KEYS) do
+  if redis.call('srem', path, val) == 0 then fail = true end
+end
+if fail then return 0 end
+local ver = redis.call('incr', 'version')
+redis.call('zadd', 'changes', ver, ARGV[2])
+return ver
 """
 
 serverId = 1
