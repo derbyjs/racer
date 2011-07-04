@@ -4,9 +4,6 @@ txn = require './txn'
 MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
-# TODO: This locking system needs to be rewritten. It does not detect when a
-# child nested path conflicts.
-
 LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
 LOCK = """
 local now = os.time()
@@ -18,7 +15,19 @@ for i, val in pairs(redis.call('smembers', path)) do
     return 0
   end
 end
+for i, path in pairs(KEYS) do
+  path = 'l' .. path
+  local val = redis.call('get', path)
+  if val then
+    if (val % 0x100000000) < now then
+      redis.call('del', path)
+    else
+      return 0
+    end
+  end
+end
 local val = ARGV[1] * 0x100000000 + now + #{LOCK_TIMEOUT}
+redis.call('set', 'l' .. path, val)
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)
 end
@@ -27,13 +36,17 @@ return {val, ops}
 """
 UNLOCK = """
 local val = ARGV[1]
+local path = 'l' .. KEYS[1]
+if redis.call('get', path) == val then redis.call('del', path) end
 for i, path in pairs(KEYS) do
   redis.call('srem', path, val)
 end
 """
 COMMIT = """
 local val = ARGV[1]
+local path = 'l' .. KEYS[1]
 local fail = false
+if redis.call('get', path) == val then redis.call('del', path) else fail = true end
 for i, path in pairs(KEYS) do
   if redis.call('srem', path, val) == 0 then fail = true end
 end
