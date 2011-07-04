@@ -4,6 +4,9 @@ txn = require './txn'
 MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
+# TODO: This locking system needs to be rewritten. It does not detect when a
+# child nested path conflicts.
+
 LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
 LOCK = """
 local now = os.time()
@@ -46,21 +49,22 @@ return ver
 # This should result in an earlier response to the client than with the
 # current approach
 
-lock = (client, len, locks, serverId, base, callback, retries = MAX_RETRIES) ->
-  client.eval LOCK, len, locks..., serverId, base, (err, values) ->
+lock = (client, len, locks, txnNum, base, callback, retries = MAX_RETRIES) ->
+  client.eval LOCK, len, locks..., txnNum, base, (err, values) ->
     throw err if err
     unless values[0]
       # Retry
       if retries
         return setTimeout ->
-          lock client, len, locks, serverId, base, callback, --retries
+          lock client, len, locks, txnNum, base, callback, --retries
         , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
       return callback new Stm.LockMaxTries 'Failed to aquire lock maximum times'
     callback null, values[0], values[1]
 
 Stm = module.exports = ->
   @_client = client = redis.createClient()
-  serverId = 1
+  txnNum = 1
+  nextTxnNum = -> txnNum++
   
   @commit = (transaction, callback) ->
     path = txn.path transaction
@@ -68,19 +72,19 @@ Stm = module.exports = ->
     lockPath = ''
     locks = (lockPath += '.' + segment for segment in path.split '.').reverse()
     locksLen = locks.length
-    lock client, locksLen, locks, serverId, base, (err, lockVal, ops) ->
+    lock client, locksLen, locks, nextTxnNum(), base, (err, lockVal, ops) ->
       callback err if err
       
       # Check for conflicts with the journal
       i = ops.length
       while i--
         if txn.conflict transaction, JSON.parse(ops[i])
-          return client.eval UNLOCK, locksLen, locks, lockVal, (err) ->
+          return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
             throw err if err
             callback new Stm.Conflict 'Conflict with journal'
       
       # Commit if there are no conflicts and the locks are still held
-      client.eval COMMIT, locksLen, locks, lockVal, JSON.stringify(transaction), (err, ver) ->
+      client.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
         throw err if err
         if ver is 0
           return callback new Stm.LockTimeout 'Lock timed out before commit'

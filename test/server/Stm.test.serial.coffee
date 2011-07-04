@@ -48,16 +48,34 @@ module.exports =
     stm.commit txnOne, (err) ->
       err.should.be.an.instanceof Stm.Conflict
       done()
+  
+  'setting a child path should conflict': (done) ->
+    txnOne = [0, '1.0', 'set', 'colors', ['green']]
+    txnTwo = [0, '2.0', 'set', 'colors.0', 'red']
+    stm.commit txnOne, (err) ->
+      should.equal null, err
+    stm.commit txnTwo, (err) ->
+      err.should.be.an.instanceof Stm.Conflict
+      done()
+  
+  'setting a parent path should conflict': (done) ->
+    txnOne = [0, '1.0', 'set', 'colors', ['green']]
+    txnTwo = [0, '2.0', 'set', 'colors.0', 'red']
+    stm.commit txnTwo, (err) ->
+      should.equal null, err
+    stm.commit txnOne, (err) ->
+      err.should.be.an.instanceof Stm.Conflict
+      done()
 
   'a transaction that was generated before the current base server version should callback for conflict resolution if it conflicts with a transaction in the journal that occurred at the same snapshot base version': (done) ->
     done()
-
+  
   'a transaction that was generated before the current base server version should callback for conflict resolution if it conflicts with a transaction in the journal that occurred after its snapshot base version': (done) ->
     done()
-
+  
   'a transaction that was generated before the current base server version should be applied if the only transactions in the journal it conflicts with are those that came before it': (done) ->
     done()
-
+  
   'a transaction that was generated before the current base server version should be applied if the only transactions in the journal it conflicts with are those that came before it': (done) ->
     done()
   
