@@ -13,11 +13,6 @@ module.exports =
       throw err if err
       done()
 
-  # compare clientIds = If same, then noconflict
-  # compare paths     = If different, then noconflict
-  # compare bases     = If same, then conflict
-  #                     If b1 > b2, and we are considering b1
-
   '2 different-client, different-path transactions should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
