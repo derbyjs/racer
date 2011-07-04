@@ -74,7 +74,7 @@ Stm = module.exports = ->
       # Check for conflicts with the journal
       i = ops.length
       while i--
-        if txn.isConflict transaction, JSON.parse(ops[i])
+        if txn.conflict transaction, JSON.parse(ops[i])
           return client.eval UNLOCK, locksLen, locks, lockVal, (err) ->
             throw err if err
             callback new Stm.Conflict 'Conflict with journal'

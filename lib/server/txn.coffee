@@ -1,33 +1,43 @@
 module.exports =
   base: (tol) -> tol[0]
   id: (tol) -> tol[1]
-  clientId: (tol) -> tol[1].split('.')[0]
-  clientVersion: (tol) -> tol[1].split('.')[1] - 0
   method: (tol) -> tol[2]
   path: (tol) -> tol[3]
-  args: (tol) -> tol.slice(4)
-  eval: (txn) ->
-    switch @method(txn)
-      when 'set' then return @args(txn)[0]
-  isConflict: (txnA, val, ver) ->
-    if arguments.length == 2
-      txnB = val
-      return false if @clientId(txnA) == @clientId(txnB) || !@pathConflict(@path(txnA), @path(txnB))
-      return true if @path(txnA) != @path(txnB) # nested paths
-      argsA = @args(txnA)
-      argsB = @args(txnB)
-      return false if argsA.length != argsB.length
-      for argA, i in argsA
-        return false if argA == argsB[i]
-      return true
+  args: (tol) -> tol.slice 4
+  
+  conflict: (txnA, txnB) ->
+    # txnA is a new transaction, and txnB is an already committed transaction
+    
+    # There is no conflict if the paths don't conflict
+    return false if !pathConflict(txnA[3], txnB[3])
+    
+    # There is no conflict if the transactions are from the same client
+    # and the new transaction was from a later client version
+    idA = txnA[1].split '.'
+    idB = txnB[1].split '.'
+    clientIdA = idA[0]
+    clientIdB = idB[0]
+    if clientIdA == clientIdB
+      clientVerA = idA[1] - 0
+      clientVerB = idB[1] - 0
+      return false if clientVerA > clientVerB
+    
+    # There is no conflict if the new transaction has exactly the same method,
+    # path, and arguments as the committed transaction
+    lenA = txnA.length
+    i = 2
+    while i < lenA
+      return true if txnA[i] != txnB[i]
+      i++
+    return true if lenA != txnB.length
+    return false
 
-    return @eval(txnA) != val && @base(txnA) <= ver
-  pathConflict: (pathA, pathB) ->
+  pathConflict: pathConflict = (pathA, pathB) ->
+    # Paths conflict if either is a sub-path of the other
     return true if pathA == pathB
     pathALen = pathA.length
     pathBLen = pathB.length
-    if pathALen == pathBLen
-      return false
+    return false if pathALen == pathBLen
     if pathALen > pathBLen
-      return pathA.substring(0, pathBLen) == pathB
-    return pathB.substring(0, pathALen) == pathA
+      return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
+    return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA
