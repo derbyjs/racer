@@ -28,7 +28,7 @@ module.exports =
     stm.commit txnOne, (err) ->
       should.equal null, err
     stm.commit txnTwo, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'different-client, same-path, sequential transaction should succeed': (done) ->
@@ -55,7 +55,7 @@ module.exports =
     stm.commit txnOne, (err) ->
       should.equal null, err
     stm.commit txnTwo, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'different-client, same-path, simultaneous, different args length transaction should fail': (done) ->
@@ -64,7 +64,7 @@ module.exports =
     stm.commit txnOne, (err) ->
       should.equal null, err
     stm.commit txnTwo, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'same-client, same-path transaction should succeed in order': (done) ->
@@ -82,7 +82,7 @@ module.exports =
     stm.commit txnTwo, (err) ->
       should.equal null, err
     stm.commit txnOne, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'setting a child path should conflict': (done) ->
@@ -91,7 +91,7 @@ module.exports =
     stm.commit txnOne, (err) ->
       should.equal null, err
     stm.commit txnTwo, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'setting a parent path should conflict': (done) ->
@@ -100,7 +100,7 @@ module.exports =
     stm.commit txnTwo, (err) ->
       should.equal null, err
     stm.commit txnOne, (err) ->
-      err.should.be.an.instanceof Stm.Conflict
+      err.code.should.eql 'STM_CONFLICT'
       done()
   
   'test client set roundtrip with STM': (done) ->
