@@ -3,6 +3,19 @@ Stm = require 'server/Stm'
 stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
 
+luaLock = (path, base, callback) ->
+  locks = path.split '.'
+  stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
+    lockVal = values[0]
+    # The lower 32 bits of the lock value are a UNIX timestamp representing
+    # when the transaction should timeout
+    timeout = lockVal % 0x100000000
+    # The upper 20 bits of the lock value are a counter incremented on each
+    # lock request. This allows for one million unqiue transactions to be
+    # addressed per second, which should be greater than Redis's capacity
+    lockClock = Math.floor lockVal / 0x100000000
+    callback err, values, timeout, lockClock
+
 module.exports =
   setup: (done) ->
     stm._client.flushdb (err) ->
@@ -12,7 +25,25 @@ module.exports =
     stm._client.flushdb (err) ->
       throw err if err
       done()
-
+  
+  'Lua lock script should return valid timeout and transaction count': (done) ->
+    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      
+      now = +Date.now() / 1000
+      timeDiff = now + Stm._LOCK_TIMEOUT - timeout
+      timeDiff.should.be.within 0, 2
+      
+      lockClock.should.be.equal 1
+      done()
+  
+  'Lua lock script should truncate transaction count to 12 bits': (done) ->
+    stm._client.set 'lockClock', 0xdffffe
+    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockClock.should.be.equal 0xfffff
+      done()
+  
   'different-client, different-path, simultaneous transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
