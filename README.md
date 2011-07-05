@@ -7,5 +7,4 @@ Coming soon
 
 ```
 $ make test
-$ make serial-test
 ```

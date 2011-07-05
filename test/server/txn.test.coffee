@@ -9,25 +9,19 @@ module.exports =
   # Properties
 
   'it should be able to access the baseVer': ->
-    txn.base(transaction).should.equal(2)
+    txn.base(transaction).should.equal 2
 
   'it should be able to access the transaction id': ->
     txn.id(transaction).should.equal '4.0'
 
   'it should be able to access the method': ->
-    txn.method(transaction).should.equal('set')
+    txn.method(transaction).should.equal 'set'
 
   'it should be able to access the path': ->
-    txn.path(transaction).should.equal('count')
+    txn.path(transaction).should.equal 'count'
     
   'it should be able to access the arguments': ->
-    txn.args(transaction).should.eql([1])
-
-  'it should be able to deduce the clientId from the transcation object literal (transaction)': ->
-    txn.clientId(transaction).should.equal '4'
-
-  'it should be able to deduce the client version from the transaction object literal': ->
-    txn.clientVersion(transaction).should.equal 0
+    txn.args(transaction).should.eql [1]
 
   # Evaluating (but not applying) transactions
 
@@ -35,39 +29,39 @@ module.exports =
 
   # Path Conflict Detection
 
-  '2 paths that are not string equivalent where 1 is not a substring of the other, should have noconflict': ->
+  'Paths where neither is a sub-path of the other should not conflict': ->
     txn.pathConflict('abc', 'def').should.be.false
     txn.pathConflict('def', 'abc').should.be.false # symmetric
+    txn.pathConflict('abc.de', 'abc.def').should.be.false
+    txn.pathConflict('abc.def', 'abc.de').should.be.false # symmetric
 
-  '2 paths that are not string equivalent but 1 is a substring of the other, should have a conflict': ->
-    # nested paths
+  'Paths where one is a sub-path of the other should conflict': ->
     txn.pathConflict('abc', 'abc.def').should.be.true
     txn.pathConflict('abc.def', 'abc').should.be.true # symmetric
-
-  '2 paths that are string equivalent should have a conflict': ->
     txn.pathConflict('abc', 'abc').should.be.true
 
   # Transaction Conflict Detection
   
-  '2 txns should conflict iff they update the same path to different values and are from different clients': ->
-    txnOne   = [0, '0.0', 'set', 'count', 0]
-    txnTwo   = [0, '1.0', 'set', 'count', 1]
-    txnThree = [0, '0.0', 'set', 'count', 1]
-    txnFour  = [0, '2.0', 'set', 'name', 'drago']
+  'test conflict detection between transactions': ->
+    txn1 = [0, '1.0', 'set', 'count', 1]
+    txn2 = [0, '0.0', 'set', 'count', 0]
+    txn3 = [0, '0.0', 'del', 'count', 1]
+    txn4 = [0, '0.0', 'set', 'count', 1, 0]
+    txn5 = [0, '0.1', 'set', 'count', 1]
+    txn6 = [0, '0.1', 'set', 'name', 'drago']
+    
+    txn7 = [0, '1.0', 'set', 'obj.nested', 0]
+    txn8 = [0, '2.0', 'set', 'obj.nested.a', 0]
 
-    txn.isConflict(txnOne, txnTwo).should.be.true
-    txn.isConflict(txnOne, txnThree).should.be.false # Because same client
-    txn.isConflict(txnTwo, txnThree).should.be.false # Because same value
-    txn.isConflict(txnTwo, txnFour).should.be.false # Because not same path
+    txn.conflict(txn1, txn2).should.be.true # Different arguments
+    txn.conflict(txn1, txn3).should.be.true # Different method
+    txn.conflict(txn1, txn4).should.be.true # Different number of arguments
+    
+    txn.conflict(txn2, txn5).should.be.true # Same client, wrong order
+    txn.conflict(txn5, txn2).should.be.false # Same client, correct order
+    
+    txn.conflict(txn1, txn5).should.be.false # Same method, path, and arguments
+    txn.conflict(txn1, txn6).should.be.false # Non-conflicting paths
 
-    txnNestedOne = [0, '1.0', 'set', 'obj.nested.a', 'a']
-    txnNestedTwo = [0, '2.0', 'del', 'obj.nested']
-
-    txn.isConflict(txnNestedOne, txnNestedTwo).should.be.true # because nested paths
-
-  "a txn should be able to detect a conflict with a given both (1) path/value and (2) the server version at the time of that path/value's last update": ->
-    txnOne = [1, '1.0', 'set', 'count', 0]
-    txn.isConflict(txnOne, 0, 2).should.be.false # Because shares same value
-    txn.isConflict(txnOne, 1, 2).should.be.true  # Because conflicting values and precedes last update version
-    txn.isConflict(txnOne, 1, 1).should.be.true  # Because conflicting values and equals last update version
-    txn.isConflict(txnOne, 1, 0).should.be.false # Because txn base > last updated base
+    txn.conflict(txn7, txn8).should.be.true # Conflicting nested paths
+    txn.conflict(txn8, txn7).should.be.true # Conflicting nested paths
