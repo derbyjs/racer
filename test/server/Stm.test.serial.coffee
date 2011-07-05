@@ -4,17 +4,27 @@ stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
 
 luaLock = (path, base, callback) ->
-  locks = path.split '.'
+  locks = stm._getLocks path
   stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
     lockVal = values[0]
     # The lower 32 bits of the lock value are a UNIX timestamp representing
     # when the transaction should timeout
-    timeout = lockVal % 0x100000000
+    timeout = lockVal % Stm._LOCK_TIMEOUT_MASK
     # The upper 20 bits of the lock value are a counter incremented on each
     # lock request. This allows for one million unqiue transactions to be
     # addressed per second, which should be greater than Redis's capacity
-    lockClock = Math.floor lockVal / 0x100000000
+    lockClock = Math.floor lockVal / Stm._LOCK_TIMEOUT_MASK
     callback err, values, timeout, lockClock
+
+luaUnlock = (path, lockVal, callback) ->
+  locks = stm._getLocks path
+  stm._client.eval Stm._UNLOCK, locks.length, locks..., lockVal, (err) ->
+    callback err
+
+luaCommit = (path, lockVal, transaction, callback) ->
+  locks = stm._getLocks path
+  stm._client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
+    callback err, ver
 
 module.exports =
   setup: (done) ->
@@ -26,15 +36,21 @@ module.exports =
       throw err if err
       done()
   
+  # Redis Lua script tests:
+  
   'Lua lock script should return valid timeout and transaction count': (done) ->
-    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+    luaLock 'one', 0, (err, values, timeout, lockClock) ->
       should.equal null, err
       
       now = +Date.now() / 1000
       timeDiff = now + Stm._LOCK_TIMEOUT - timeout
       timeDiff.should.be.within 0, 2
-      
+
       lockClock.should.be.equal 1
+    
+    luaLock 'two', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockClock.should.be.equal 2
       done()
   
   'Lua lock script should truncate transaction count to 12 bits': (done) ->
@@ -43,6 +59,31 @@ module.exports =
       should.equal null, err
       lockClock.should.be.equal 0xfffff
       done()
+  
+  'Lua lock script should detect conflicts properly': (done) ->
+    luaLock 'colors.0', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'colors.1', 0, (err, values) ->
+      # Same parent but different leaf should not conflict
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'colors.0', 0, (err, values) ->
+      # Same path should conflict
+      should.equal null, err
+      values.should.equal 0
+    luaLock 'colors', 0, (err, values) ->
+      # Parent path should conflict
+      should.equal null, err
+      values.should.equal 0
+    luaLock 'colors.0.name', 0, (err, values) ->
+      # Child path should conflict
+      should.equal null, err
+      values.should.equal 0
+      done()
+  
+  
+  # STM commit function tests:
   
   'different-client, different-path, simultaneous transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']

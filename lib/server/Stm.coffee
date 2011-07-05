@@ -31,12 +31,14 @@ Stm = module.exports = ->
         return callback error 'STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times'
       callback null, values[0], values[1]
   
-  @commit = (transaction, callback) ->
-    path = txn.path transaction
-    base = txn.base transaction
+  @_getLocks = getLocks = (path) ->
     lockPath = ''
-    locks = (lockPath += '.' + segment for segment in path.split '.').reverse()
+    return (lockPath += '.' + segment for segment in path.split '.').reverse()
+  
+  @commit = (transaction, callback) ->
+    locks = getLocks txn.path transaction
     locksLen = locks.length
+    base = txn.base transaction
     lock locksLen, locks, base, (err, lockVal, ops) ->
       callback err if err
       
@@ -58,12 +60,14 @@ Stm = module.exports = ->
   return
 
 Stm._LOCK_TIMEOUT = LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
+Stm._LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000  # Use 32 bits for timeout
+Stm._LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000  # Use 20 bits for lock clock
 
 Stm._LOCK = LOCK = """
 local now = os.time()
 local path = KEYS[1]
 for i, val in pairs(redis.call('smembers', path)) do
-  if val % 0x100000000 < now then
+  if val % #{LOCK_TIMEOUT_MASK} < now then
     redis.call('srem', path, val)
   else
     return 0
@@ -73,14 +77,15 @@ for i, path in pairs(KEYS) do
   path = 'l' .. path
   local val = redis.call('get', path)
   if val then
-    if val % 0x100000000 < now then
+    if val % #{LOCK_TIMEOUT_MASK} < now then
       redis.call('del', path)
     else
       return 0
     end
   end
 end
-local val = (redis.call('incr', 'lockClock') % 0x100000) * 0x100000000 + (now + #{LOCK_TIMEOUT})
+local val = (redis.call('incr', 'lockClock') % #{LOCK_CLOCK_MASK}) *
+  #{LOCK_TIMEOUT_MASK} + (now + #{LOCK_TIMEOUT})
 redis.call('set', 'l' .. path, val)
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)
