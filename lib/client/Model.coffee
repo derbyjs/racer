@@ -1,10 +1,3 @@
-#_ = require './util'
-#ClientModel = require './client/Model'
-#ServerModel = require './server/Model'
-#
-#Model = module.exports = ->
-#  if _.onServer then new ServerModel() else new ClientModel()
-
 Model = module.exports = ->
   self = this
   @_data = {}
@@ -52,12 +45,12 @@ Model = module.exports = ->
 
 Model:: =
   _send: -> false
-  _setSocket: (socket) ->
-    socket.connect()
-    socket.on 'message', @_onMessage
+  _setSocket: (@_socket) ->
+    @_socket.connect()
+    @_socket.on 'message', @_onMessage
     @_send = (txn) ->
-      socket.send ['txn', txn]
-      # TODO: Only return true if sent successfully
+      @_socket.send txn
+      # TODO: Only return if sent successfully
       return true
   _setStm: (stm) ->
     onTxn = @_onTxn
@@ -81,7 +74,7 @@ Model:: =
     @_txns[id] = txn
     @_txnQueue.push id
     # TODO: Raise event on creation of transaction
-    txn.sent = @_send [base, id, op...]
+    txn.sent = @_send ['txn', [base, id, op...]]
     return id
   _removeTxn: removeTxn = (txnId) ->
     delete @_txns[txnId]

@@ -7,8 +7,64 @@ sendMessage = (model, args...) ->
   model._onMessage JSON.stringify ['txn', [0, '0.0', args...]]
 
 module.exports =
-  'test get': ->
-    model = newModel 'server'
+# TODO Uncomment the following 3 server-side tests
+#  'test get on server': ->
+#    model = newModel 'server'
+#    model.store.adapter._data.should.eql {}
+#    model._data =
+#      color: 'green'
+#      info:
+#        numbers:
+#          first: 2
+#          second: 10
+#    
+#    model.get 'color', (err, val, ver, doc) ->
+#      val.should.equal 'green'
+#      model.get 'info.numbers', (err, val, ver, doc) ->
+#        val.should.eql first: 2, second: 10
+#
+#  'test internal set on server': ->
+#    model = newModel 'server'
+#    model._data.should.eql {}
+#    
+#    model._setters.set 'color', 'green'
+#    model._data.should.eql color: 'green'
+#    
+#    model._setters.set 'info.numbers', first: 2, second: 10
+#    model._data.should.eql
+#      color: 'green'
+#      info:
+#        numbers:
+#          first: 2
+#          second: 10
+#    
+#    model._setters.set 'info', 'new'
+#    model._data.should.eql
+#      color: 'green'
+#      info: 'new'
+#  
+#  'test internal delete on server': ->
+#    model = newModel 'server'
+#    model._data =
+#      color: 'green'
+#      info:
+#        numbers:
+#          first: 2
+#          second: 10
+#    
+#    model._setters.del 'color'
+#    model._data.should.eql
+#      info:
+#        numbers:
+#          first: 2
+#          second: 10
+#    
+#    model._setters.del 'info.numbers'
+#    model._data.should.eql
+#      info: {}
+
+  'test get in browser': ->
+    model = newModel 'browser'
     model._data.should.eql {}
     model._data =
       color: 'green'
@@ -25,9 +81,9 @@ module.exports =
         numbers:
           first: 2
           second: 10
-  
-  'test internal set': ->
-    model = newModel 'server'
+
+  'test internal set in browser': ->
+    model = newModel 'browser'
     model._data.should.eql {}
     
     sendMessage model, 'set', 'color', 'green'
@@ -46,8 +102,8 @@ module.exports =
       color: 'green'
       info: 'new'
   
-  'test internal delete': ->
-    model = newModel 'server'
+  'test internal delete in browser': ->
+    model = newModel 'browser'
     model._data =
       color: 'green'
       info:
@@ -65,6 +121,7 @@ module.exports =
     sendMessage model, 'del', 'info.numbers'
     model._data.should.eql
       info: {}
+  
   
   'test internal creation of client transactions on set': ->
     model = newModel 'browser'
