@@ -39,8 +39,6 @@ Model = module.exports = ->
         setters[method].apply self, args
     else
       obj = self._data
-    console.log path
-    console.log obj
     if path then self.lookup(path, obj: obj).obj else obj
   
   return
@@ -127,7 +125,8 @@ Model:: =
     if key? then $r: ref, $k: key else $r: ref
 
 setters =
-  set: (path, value, options = {addPath: true}) ->
+  set: (path, value, options = {}) ->
+    options.addPath = true
     out = @lookup path, options
     try
       out.parent[out.prop] = value

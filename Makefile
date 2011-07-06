@@ -1,4 +1,4 @@
-TESTS = $(shell find test/ -name 'Model.test.coffee')
+TESTS = $(shell find test/ -name '*.test.coffee')
 SERIAL_TESTS = $(shell find test/ -name '*.test.serial.coffee')
 
 test-async:
