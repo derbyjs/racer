@@ -84,8 +84,9 @@ for i, path in pairs(KEYS) do
     end
   end
 end
-local val = (redis.call('incr', 'lockClock') % #{LOCK_CLOCK_MASK}) *
-  #{LOCK_TIMEOUT_MASK} + (now + #{LOCK_TIMEOUT})
+local val = string.format('%d',
+  (redis.call('incr', 'lockClock') % #{LOCK_CLOCK_MASK}) * #{LOCK_TIMEOUT_MASK} +
+  (now + #{LOCK_TIMEOUT}))
 redis.call('set', 'l' .. path, val)
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)

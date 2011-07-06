@@ -102,13 +102,69 @@ module.exports =
   'Lua unlock script should remove locking conflict': (done) ->
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
-      values[0].should.be.above 0
+      lockVal = values[0]
+      lockVal.should.be.above 0
       
-      luaUnlock 'color', values[0], (err) ->
+      luaUnlock 'color', lockVal, (err) ->
         should.equal null, err
       luaLock 'color', 0, (err, values) ->
         should.equal null, err
         values[0].should.be.above 0
+        done()
+  
+  'Lua commit script should add transaction to journal, increment version, and release locks': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 1
+        stm._client.zrange 'ops', 0, -1, (err, val) ->
+          should.equal null, err
+          val.should.eql [JSON.stringify txnOne]
+        stm._client.get 'ver', (err, val) ->
+          should.equal null, err
+          val.should.eql 1
+        luaLock 'color', 0, (err, values) ->
+          should.equal null, err
+          values[0].should.be.above 0
+          done()
+  
+  'Lua commit script should abort if locks are no longer held': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      
+      luaUnlock 'color', lockVal, (err) ->
+        should.equal null, err
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 0
+        stm._client.get 'ops', (err, val) ->
+          should.equal null, err
+          should.equal null, val
+        stm._client.get 'ver', (err, val) ->
+          should.equal null, err
+          should.equal null, val
+          done()
+  
+  'Lua commit should work with maximum sized transaction value': (done) ->
+    stm._client.set 'lockClock', 0xffffe
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      lockClock.should.be.equal 0xfffff
+
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 1
         done()
   
   # STM commit function tests:
