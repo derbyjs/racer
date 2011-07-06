@@ -51,7 +51,7 @@ Model:: =
     @_socket.connect()
     @_socket.on 'message', @_onMessage
     @_send = (txn) ->
-      @_socket.send ['txn', txn]
+      @_socket.send txn
       # TODO: Only return if sent successfully
       return true
   _setStm: (stm) ->
