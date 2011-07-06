@@ -1,6 +1,6 @@
 Model = module.exports = ->
   self = this
-  @_data = data = {}
+  @_data = {}
 
   # Server Model instance acts like a browser to the Stm
   # TODO DRY this up - Also appears in client/Model
@@ -28,7 +28,7 @@ Model = module.exports = ->
   @get = (path) ->
     if len = txnQueue.length
       # Then generate a speculative model
-      obj = Object.create data
+      obj = Object.create self._data
       i = 0
       while i < len
         # Add the speculative model to each pending transactions by
@@ -38,7 +38,9 @@ Model = module.exports = ->
         args.push obj: obj, proto: true
         setters[method].apply self, args
     else
-      obj = data
+      obj = self._data
+    console.log path
+    console.log obj
     if path then self.lookup(path, obj: obj).obj else obj
   
   return
@@ -81,11 +83,12 @@ Model:: =
     txnQueue = @_txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   lookup: (path, {obj, addPath, proto, onRef}) ->
-    obj = obj || @_data
+    obj ||= @_data
     props = if path and path.split then path.split '.' else []
+    get = @get
 
     return props.reduce( ({obj, path}, prop, i) ->
-      # In speculative model operations, return a prototype referenced object
+    # In speculative model operations, return a prototype referenced object
       if proto && !Object::isPrototypeOf(obj)
         obj = Object.create obj
       next = obj[prop]
@@ -104,7 +107,7 @@ Model:: =
           path = ref
           next = refObj
         if onRef
-          remainder = [path].concat props.slice(i)
+          remainder = [path].concat props.slice(i+1)
           onRef key, remainder.join('.')
       else
         # Store the absolute path traversed so far
