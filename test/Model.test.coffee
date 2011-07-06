@@ -4,8 +4,23 @@ newModel = modelUtil.newModel
 mockSocketModel = modelUtil.mockSocketModel
 
 module.exports =
-  'test get': ->
+  'test get on server': ->
     model = newModel 'server'
+    model.store.adapter._data.should.eql {}
+    model._data =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
+    
+    model.get 'color', (err, val, ver, doc) ->
+      val.should.equal 'green'
+      model.get 'info.numbers', (err, val, ver, doc) ->
+        val.should.eql first: 2, second: 10
+
+  'test get in browser': ->
+    model = newModel 'browser'
     model._data.should.eql {}
     model._data =
       color: 'green'
