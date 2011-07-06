@@ -1,6 +1,6 @@
 _ = require './util'
 ClientModel = require './client/Model'
-ServerModel = require './client/ServerModel'
+ServerModel = require './server/Model'
 
 # Note that Model is written as an object constructor for testing purposes,
 # but it is not intended to be instantiated multiple times in use. Therefore,
@@ -8,4 +8,4 @@ ServerModel = require './client/ServerModel'
 # if multiple model instantiations were created.
 
 Model = module.exports = ->
-  return new (_.onServer ? ClientModel : ServerModel)()
+  if _.onServer then new ServerModel() else new ClientModel()
