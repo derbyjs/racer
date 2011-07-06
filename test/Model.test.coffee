@@ -3,6 +3,9 @@ modelUtil = require './util/model'
 newModel = modelUtil.newModel
 mockSocketModel = modelUtil.mockSocketModel
 
+sendMessage = (model, args...) ->
+  model._onMessage JSON.stringify ['txn', [0, '0.0', args...]]
+
 module.exports =
   'test get': ->
     model = newModel 'server'
@@ -27,10 +30,10 @@ module.exports =
     model = newModel 'server'
     model._data.should.eql {}
     
-    model._setters.set 'color', 'green'
+    sendMessage model, 'set', 'color', 'green'
     model._data.should.eql color: 'green'
     
-    model._setters.set 'info.numbers', first: 2, second: 10
+    sendMessage model, 'set', 'info.numbers', first: 2, second: 10
     model._data.should.eql
       color: 'green'
       info:
@@ -38,7 +41,7 @@ module.exports =
           first: 2
           second: 10
     
-    model._setters.set 'info', 'new'
+    sendMessage model, 'set', 'info', 'new'
     model._data.should.eql
       color: 'green'
       info: 'new'
@@ -52,14 +55,14 @@ module.exports =
           first: 2
           second: 10
     
-    model._setters.del 'color'
+    sendMessage model, 'del', 'color'
     model._data.should.eql
       info:
         numbers:
           first: 2
           second: 10
     
-    model._setters.del 'info.numbers'
+    sendMessage model, 'del', 'info.numbers'
     model._data.should.eql
       info: {}
   
