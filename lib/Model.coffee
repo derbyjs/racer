@@ -1,5 +1,3 @@
-_ = require './util'
-
 Model = module.exports = ->
   self = this
   self._data = {}
@@ -10,14 +8,16 @@ Model = module.exports = ->
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
   
+  self._onTxn = onTxn = (txn) ->
+    [base, txnId, method, args...] = txn
+    setters[method].apply self, args
+    self._base = base
+    self._removeTxn txnId
   self._onMessage = (message) ->
-    [type, content, meta] = JSON.parse message
+    [type, content] = JSON.parse message
     switch type
       when 'txn'
-        [base, txnId, method, args...] = content
-        setters[method].apply self, args
-        self._base = base
-        self._removeTxn txnId
+        onTxn content
       when 'txnFail'
         self._removeTxn content
   
@@ -37,16 +37,23 @@ Model = module.exports = ->
   return
 
 Model:: =
-  _setSocket: (@_socket) ->
-    @_socket.connect()
-    @_socket.on 'message', @_onMessage
-  _send: (message) ->
-    if socket = @_socket
-      socket.send message
+  _send: -> false
+  _setSocket: (socket) ->
+    socket.connect()
+    socket.on 'message', @_onMessage
+    @_send = (txn) ->
+      socket.send ['txn', txn]
       # TODO: Only return true if sent successfully
       return true
-    else
-      return false
+  _setStm: (stm) ->
+    onTxn = @_onTxn
+    @_send = (txn) ->
+      stm.commit txn, (err, ver) ->
+        # TODO: Handle STM conflicts and other errors
+        if ver
+          txn[0] = ver
+          onTxn txn
+      return true
   _nextTxnId: ->
     @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->
@@ -56,7 +63,7 @@ Model:: =
     @_txns[id] = txn
     @_txnQueue.push id
     # TODO: Raise event on creation of transaction
-    txn.sent = @_send ['txn', [base, id, op...]]
+    txn.sent = @_send [base, id, op...]
     return id
   _removeTxn: (txnId) ->
     delete @_txns[txnId]
