@@ -3,6 +3,29 @@ Stm = require 'server/Stm'
 stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
 
+luaLock = (path, base, callback) ->
+  locks = stm._getLocks path
+  stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
+    lockVal = values[0]
+    # The lower 32 bits of the lock value are a UNIX timestamp representing
+    # when the transaction should timeout
+    timeout = lockVal % Stm._LOCK_TIMEOUT_MASK
+    # The upper 20 bits of the lock value are a counter incremented on each
+    # lock request. This allows for one million unqiue transactions to be
+    # addressed per second, which should be greater than Redis's capacity
+    lockClock = Math.floor lockVal / Stm._LOCK_TIMEOUT_MASK
+    callback err, values, timeout, lockClock
+
+luaUnlock = (path, lockVal, callback) ->
+  locks = stm._getLocks path
+  stm._client.eval Stm._UNLOCK, locks.length, locks..., lockVal, (err) ->
+    callback err
+
+luaCommit = (path, lockVal, transaction, callback) ->
+  locks = stm._getLocks path
+  stm._client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
+    callback err, ver
+
 module.exports =
   setup: (done) ->
     stm._client.flushdb (err) ->
@@ -12,6 +35,136 @@ module.exports =
     stm._client.flushdb (err) ->
       throw err if err
       done()
+  
+  # Redis Lua script tests:
+  
+  'Lua lock script should return valid timeout and transaction count': (done) ->
+    luaLock 'one', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      
+      now = +Date.now() / 1000
+      timeDiff = now + Stm._LOCK_TIMEOUT - timeout
+      timeDiff.should.be.within 0, 2
+
+      lockClock.should.be.equal 1
+    
+    luaLock 'two', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockClock.should.be.equal 2
+      done()
+  
+  'Lua lock script should truncate transaction count to 12 bits': (done) ->
+    stm._client.set 'lockClock', 0xdffffe
+    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockClock.should.be.equal 0xfffff
+      done()
+  
+  'Lua lock script should detect conflicts properly': (done) ->
+    luaLock 'colors.0', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'colors.1', 0, (err, values) ->
+      # Same parent but different leaf should not conflict
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'colors.0', 0, (err, values) ->
+      # Same path should conflict
+      should.equal null, err
+      values.should.equal 0
+    luaLock 'colors', 0, (err, values) ->
+      # Parent path should conflict
+      should.equal null, err
+      values.should.equal 0
+    luaLock 'colors.0.name', 0, (err, values) ->
+      # Child path should conflict
+      should.equal null, err
+      values.should.equal 0
+      done()
+  
+  ### Test runs slowly, since it has to wait for a timeout
+  
+  'Lua lock script should replaced timed out locks': (done) ->
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values.should.equal 0
+    setTimeout ->
+      luaLock 'color', 0, (err, values) ->
+        should.equal null, err
+        values[0].should.be.above 0
+        done()
+    , (Stm._LOCK_TIMEOUT + 1) * 1000
+  ###
+  
+  'Lua unlock script should remove locking conflict': (done) ->
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      
+      luaUnlock 'color', lockVal, (err) ->
+        should.equal null, err
+      luaLock 'color', 0, (err, values) ->
+        should.equal null, err
+        values[0].should.be.above 0
+        done()
+  
+  'Lua commit script should add transaction to journal, increment version, and release locks': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 1
+        stm._client.zrange 'ops', 0, -1, (err, val) ->
+          should.equal null, err
+          val.should.eql [JSON.stringify txnOne]
+        stm._client.get 'ver', (err, val) ->
+          should.equal null, err
+          val.should.eql 1
+        luaLock 'color', 0, (err, values) ->
+          should.equal null, err
+          values[0].should.be.above 0
+          done()
+  
+  'Lua commit script should abort if locks are no longer held': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      
+      luaUnlock 'color', lockVal, (err) ->
+        should.equal null, err
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 0
+        stm._client.get 'ops', (err, val) ->
+          should.equal null, err
+          should.equal null, val
+        stm._client.get 'ver', (err, val) ->
+          should.equal null, err
+          should.equal null, val
+          done()
+  
+  'Lua commit should work with maximum sized transaction value': (done) ->
+    stm._client.set 'lockClock', 0xffffe
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    luaLock 'color', 0, (err, values, timeout, lockClock) ->
+      should.equal null, err
+      lockVal = values[0]
+      lockVal.should.be.above 0
+      lockClock.should.be.equal 0xfffff
+      luaCommit 'color', lockVal, txnOne, (err, ver) ->
+        should.equal null, err
+        ver.should.equal 1
+        done()
 
 #  'a transaction should increase the version by 1': (done) ->
 #    should.equal null, stm._ver
@@ -25,6 +178,9 @@ module.exports =
 #  # compare bases     = If same, then conflict
 #  #                     If b1 > b2, and we are considering b1
 
+  
+  # STM commit function tests:
+  
   'different-client, different-path, simultaneous transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
