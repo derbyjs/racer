@@ -6,17 +6,16 @@ _ = require './util'
 # if multiple model instantiations were created.
 
 Model = module.exports = ->
-  self = this
-  self._data = {}
-  self._base = 0
-  self._clientId = ''
+  @_data = {}
+  @_base = 0
+  @_clientId = ''
   
   txnCount = 0
-  nextTxnId = -> self._clientId + '.' + txnCount++
-  self._txns = txns = {}
-  self._txnQueue = txnQueue = []
-  self._addTxn = addTxn = (op) ->
-    base = self._base
+  nextTxnId = => @_clientId + '.' + txnCount++
+  @_txns = txns = {}
+  @_txnQueue = txnQueue = []
+  @_addTxn = addTxn = (op) =>
+    base = @_base
     txn = op: op, base: base, sent: false
     id = nextTxnId()
     txns[id] = txn
@@ -24,14 +23,14 @@ Model = module.exports = ->
     # TODO: Raise event on creation of transaction
     txn.sent = send ['txn', [base, id, op...]]
     return id
-  self._removeTxn = removeTxn = (txnId) ->
+  @_removeTxn = removeTxn = (txnId) ->
     delete txns[txnId]
     i = txnQueue.indexOf txnId
     if i > -1 then txnQueue.splice i, 1
   
-  self.get = get = (path) ->
+  @get = get = (path) =>
     if len = txnQueue.length
-      obj = Object.create self._data
+      obj = Object.create @_data
       i = 0
       while i < len
         txn = txns[txnQueue[i++]]
@@ -39,13 +38,13 @@ Model = module.exports = ->
         args.push obj: obj, proto: true
         setters[method] args...
     else
-      obj = self._data
+      obj = @_data
     if path then lookup(path, obj: obj).obj else obj
-  self.set = (path, value) ->
+  @set = (path, value) ->
     addTxn ['set', path, value]
-  self.delete = (path) ->
+  @delete = (path) ->
     addTxn ['del', path]
-  self._setters = setters =
+  @_setters = setters =
     set: (path, value, options = {}) ->
       options.addPath = true
       out = lookup path, options
@@ -75,8 +74,8 @@ Model = module.exports = ->
       catch err
         throw new Error 'Model delete failed on: ' + path
   
-  lookup = (path, options = {}) ->
-    obj = options.obj || self._data
+  lookup = (path, options = {}) =>
+    obj = options.obj || @_data
     if path && path.split
       props = path.split '.'
       _lookup obj, props, props.length, 0, '',
@@ -123,7 +122,7 @@ Model = module.exports = ->
       obj: next, path: path, parent: obj, prop: prop
   
   socket = null
-  self._setSocket = (_socket) ->
+  @_setSocket = (_socket) ->
     socket = _socket
     _socket.connect()
     _socket.on 'message', onMessage
@@ -134,18 +133,18 @@ Model = module.exports = ->
       return true
     else
       return false
-  onMessage = (message) ->
+  onMessage = (message) =>
     [type, content, meta] = JSON.parse message
     switch type
       when 'txn'
         [base, txnId, method, args...] = content
         setters[method] args...
-        self._base = base
+        @_base = base
         removeTxn txnId
       when 'txnFail'
         removeTxn content
   
-  self.ref = (ref, key) ->
+  @ref = (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
   
   return

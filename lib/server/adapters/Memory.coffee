@@ -48,6 +48,7 @@ Memory:: =
     paths.forEach (path) =>
       @get path, eachCb
 
+  # @private
   extract: (path) ->
     parts = path.split '.'
     first = parts.slice(0,2).join('.')
