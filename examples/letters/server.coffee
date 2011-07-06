@@ -5,18 +5,20 @@ fs = require 'fs'
 
 model = rally.model
 
-rally.use rallyMongo (err) ->
-  return if model.get 'letters'
-  colors = ['red', 'yellow', 'blue', 'orange', 'green']
-  letters = {}
-  for row in [0..4]
-    for col in [0..25]
-      letters[row * col] =
-        color: colors[row]
-        value: String.fromCharCode 65 + col
-        x: col * 24
-        y: row * 36
-  model.set 'letters', letters
+rally.store rallyMongo,
+  server: 'mongodb://localhost/rally-letters'
+  init: (err) ->
+    return if model.get 'letters'
+    colors = ['red', 'yellow', 'blue', 'orange', 'green']
+    letters = {}
+    for row in [0..4]
+      for col in [0..25]
+        letters[row * col] =
+          color: colors[row]
+          value: String.fromCharCode 65 + col
+          x: col * 24
+          y: row * 36
+    model.set 'letters', letters
 
 app = express.createServer()
 
