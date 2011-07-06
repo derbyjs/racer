@@ -99,7 +99,17 @@ module.exports =
     , (Stm._LOCK_TIMEOUT + 1) * 1000
   ###
   
-  
+  'Lua unlock script should remove locking conflict': (done) ->
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+      
+      luaUnlock 'color', values[0], (err) ->
+        should.equal null, err
+      luaLock 'color', 0, (err, values) ->
+        should.equal null, err
+        values[0].should.be.above 0
+        done()
   
   # STM commit function tests:
   
