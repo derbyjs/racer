@@ -82,6 +82,24 @@ module.exports =
       values.should.equal 0
       done()
   
+  ### Test runs slowly, since it has to wait for a timeout
+  
+  'Lua lock script should replaced timed out locks': (done) ->
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values.should.equal 0
+    setTimeout ->
+      luaLock 'color', 0, (err, values) ->
+        should.equal null, err
+        values[0].should.be.above 0
+        done()
+    , (Stm._LOCK_TIMEOUT + 1) * 1000
+  ###
+  
+  
   
   # STM commit function tests:
   
