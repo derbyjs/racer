@@ -21,6 +21,8 @@ rally.store rallyMongo,
             y: row * 36
       model.set 'letters', letters, done
 
+# TODO Pass in Socket.IO configuration params
+
 app = express.createServer()
 
 app.get '/', (req, res) ->
