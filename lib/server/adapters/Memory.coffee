@@ -51,5 +51,5 @@ Memory:: =
   # @private
   extract: (path) ->
     # TODO DRY - duplicated in Mongo adapter
-    [namespace, id, nestedPathParts...] = parts = path.split '.'
+    [namespace, id, nestedPathParts...] = path.split '.'
     ["#{namespace}.#{id}", nestedPathParts.join('.')]

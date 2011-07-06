@@ -13,7 +13,5 @@ MongoAdapter:: =
     # TODO
   extract: (path) ->
     # TODO DRY - duplicated in Memory adapter
-    parts = path.split '.'
-    first = parts.slice(0,2).join('.')
-    rest  = parts.slice(2).join('.')
-    [first, rest]
+    [namespace, id, nestedPathParts...] = path.split '.'
+    ["#{namespace}.#{id}", nestedPathParts.join('.')]
