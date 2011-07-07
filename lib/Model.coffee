@@ -90,7 +90,7 @@ Model:: =
       next = obj[prop]
       if next is undefined
         # Return null if the object can't be found
-        return 'obj': null unless addPath
+        return {'obj': null} unless addPath
         # If addPath is true, create empty parent objects implied by path
         next = obj[prop] = {}
       
@@ -106,7 +106,7 @@ Model:: =
           next = refObj
         if onRef
           remainder = [path].concat props.slice(i+1)
-          onRef key, remainder.join '.'
+          onRef key, remainder.join('.')
       else
         # Store the absolute path traversed so far
         path = if path then path + '.' + prop else prop
