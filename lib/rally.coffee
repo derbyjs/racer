@@ -1,6 +1,8 @@
+# Server-side rally definition
+
 Model = require './Model'
 
-module.exports =
+rally = module.exports =
   model: new Model
   # Or we can place #store in Model::
   store: (adapter, config) ->
@@ -23,3 +25,22 @@ module.exports =
   html: ->
     # TODO
     throw "Unimplemented"
+
+# Setters are nice because all you need to do is:
+#
+#     rally.app = app
+#     rally.socket = socket
+Object.defineProperty rally, 'app',
+  get: () -> @app
+  set: (app) ->
+    addMiddleware app if isExpress app
+    socketPromise.callback => @socket.listen app
+    @app = app
+
+Object.defineProperty rally, 'socket',
+  get: () -> @model.socket
+  set: (socket) ->
+    socketPromise.fulfill socket
+    @model.socket = socket
+
+socketPromise = new Promise
