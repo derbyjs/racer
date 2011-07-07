@@ -18,11 +18,9 @@ module.exports =
   
   'Lua lock script should replaced timed out locks': (done) ->
     luaLock 'color', 0, (err, values) ->
-      console.log 1
       should.equal null, err
       values[0].should.be.above 0
     luaLock 'color', 0, (err, values) ->
-      console.log 2
       should.equal null, err
       values.should.equal 0
     timeoutFn = ->
