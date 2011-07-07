@@ -14,9 +14,14 @@ board.addEventListener 'dragstart', (e) ->
     target: e.target
     offsetX: e.offsetX
     offsetY: e.offsetY
+  
+  e.target.style.opacity = 0.5
 
 board.addEventListener 'dragover', (e) ->
   e.preventDefault()
+
+board.addEventListener 'dragend', (e) ->
+  dragData.target.style.opacity = 1
   
 board.addEventListener 'drop', (e) ->
   e.preventDefault()
@@ -24,7 +29,6 @@ board.addEventListener 'drop', (e) ->
   # Calculate the new position for the letter
   x = e.offsetX - dragData.offsetX
   y = e.offsetY - dragData.offsetY
-  console.log e.target
   if (target = e.target) != board
     target = target.parentNode if target.parentNode != board
     # If dropped on another letter, add the offset of that letter

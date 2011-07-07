@@ -1,4 +1,4 @@
-html,body,p,b {
+html,body,p {
   margin: 0;
   padding: 0;
 }
@@ -41,7 +41,7 @@ body {
     0 0 1px #000,
     0 1px 1px #000;
 }
-.letter>b {
+.letter > b {
   line-height: 20px;
   font-weight: normal;
   vertical-align: 4px;

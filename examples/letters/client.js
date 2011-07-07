@@ -8,21 +8,24 @@ board.addEventListener('dragstart', function(e) {
   dt.effectAllowed = 'move';
   dt.dropEffect = 'move';
   dt.setData('text', 0);
-  return dragData = {
+  dragData = {
     target: e.target,
     offsetX: e.offsetX,
     offsetY: e.offsetY
   };
+  return e.target.style.opacity = 0.5;
 });
 board.addEventListener('dragover', function(e) {
   return e.preventDefault();
+});
+board.addEventListener('dragend', function(e) {
+  return dragData.target.style.opacity = 1;
 });
 board.addEventListener('drop', function(e) {
   var dragTarget, target, x, y;
   e.preventDefault();
   x = e.offsetX - dragData.offsetX;
   y = e.offsetY - dragData.offsetY;
-  console.log(e.target);
   if ((target = e.target) !== board) {
     if (target.parentNode !== board) {
       target = target.parentNode;
