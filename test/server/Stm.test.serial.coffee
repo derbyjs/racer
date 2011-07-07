@@ -6,6 +6,7 @@ mockSocketModel = require('../util/model').mockSocketModel
 luaLock = (path, base, callback) ->
   locks = stm._getLocks path
   stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
+    throw err if err
     lockVal = values[0]
     # The lower 32 bits of the lock value are a UNIX timestamp representing
     # when the transaction should timeout
@@ -82,7 +83,7 @@ module.exports =
       values.should.equal 0
       done()
   
-  ### Test runs slowly, since it has to wait for a timeout
+  ### Test runs slowly, since it has to wait for a timeout ###
   
   'Lua lock script should replaced timed out locks': (done) ->
     luaLock 'color', 0, (err, values) ->
@@ -97,7 +98,7 @@ module.exports =
         values[0].should.be.above 0
         done()
     , (Stm._LOCK_TIMEOUT + 1) * 1000
-  ###
+  
   
   'Lua unlock script should remove locking conflict': (done) ->
     luaLock 'color', 0, (err, values) ->
