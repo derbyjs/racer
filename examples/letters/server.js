@@ -19,7 +19,7 @@ boardHtml = function() {
   html = '';
   for (id in letters) {
     letter = letters[id];
-    html += "<p class=\"" + letter.color + " letter\" id=" + id + " draggable=true\nstyle=left:" + letter.x + "px;top:" + letter.y + "px>" + letter.value;
+    html += "<p class=\"" + letter.color + " letter\" id=" + id + " draggable=true\nstyle=left:" + letter.x + "px;top:" + letter.y + "px><b>" + letter.value + "</b>";
   }
   return html;
 };
