@@ -2,30 +2,9 @@ should = require 'should'
 Stm = require 'server/Stm'
 stm = new Stm()
 mockSocketModel = require('../util/model').mockSocketModel
-
-luaLock = (path, base, callback) ->
-  locks = stm._getLocks path
-  stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
-    throw err if err
-    lockVal = values[0]
-    # The lower 32 bits of the lock value are a UNIX timestamp representing
-    # when the transaction should timeout
-    timeout = lockVal % Stm._LOCK_TIMEOUT_MASK
-    # The upper 20 bits of the lock value are a counter incremented on each
-    # lock request. This allows for one million unqiue transactions to be
-    # addressed per second, which should be greater than Redis's capacity
-    lockClock = Math.floor lockVal / Stm._LOCK_TIMEOUT_MASK
-    callback err, values, timeout, lockClock
-
-luaUnlock = (path, lockVal, callback) ->
-  locks = stm._getLocks path
-  stm._client.eval Stm._UNLOCK, locks.length, locks..., lockVal, (err) ->
-    callback err
-
-luaCommit = (path, lockVal, transaction, callback) ->
-  locks = stm._getLocks path
-  stm._client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
-    callback err, ver
+luaLock = require('../util/Stm').luaLock(stm)
+luaUnlock = require('../util/Stm').luaUnlock(stm)
+luaCommit = require('../util/Stm').luaCommit(stm)
 
 module.exports =
   setup: (done) ->
@@ -82,24 +61,6 @@ module.exports =
       should.equal null, err
       values.should.equal 0
       done()
-  
-  ### Test runs slowly, since it has to wait for a timeout ###
-  
-  'Lua lock script should replaced timed out locks': (done) ->
-    luaLock 'color', 0, (err, values) ->
-      should.equal null, err
-      values[0].should.be.above 0
-    luaLock 'color', 0, (err, values) ->
-      should.equal null, err
-      values.should.equal 0
-    setTimeout ->
-      luaLock 'color', 0, (err, values) ->
-        should.equal null, err
-        values[0].should.be.above 0
-        done()
-    , (Stm._LOCK_TIMEOUT + 1) * 1000
-  
-  
   'Lua unlock script should remove locking conflict': (done) ->
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
