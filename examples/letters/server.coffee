@@ -26,22 +26,6 @@ fs = require 'fs'
 
 app = express.createServer()
 
-boardHtml = () ->
-  colors = ['red', 'yellow', 'blue', 'orange', 'green']
-  letters = {}
-  for row in [0..4]
-    for col in [0..25]
-      letters[row * 26 + col] =
-        color: colors[row]
-        value: String.fromCharCode(65 + col)
-        x: col * 24 + 72
-        y: row * 32 + 8
-  html = ''
-  for id, letter of letters
-    html += """<p class="#{letter.color} letter" id=#{id} draggable=true
-    style=left:#{letter.x}px;top:#{letter.y}px><b>#{letter.value}</b>"""
-  return html
-
 app.get '/', (req, res) ->
   fs.readFile 'client.js', 'utf8', (err, script) ->
     fs.readFile 'style.css', 'utf8', (err, style) ->
@@ -54,7 +38,7 @@ app.get '/', (req, res) ->
       <div id=back>
         <div id=page>
           <p id=info>
-          <div id=board>#{boardHtml()}</div>
+          <div id=board></div>
         </div>
       </div>
       <script>#{script}</script>
