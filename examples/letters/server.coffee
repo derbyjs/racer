@@ -7,8 +7,9 @@ fs = require 'fs'
 # 
 # rally.store rallyMongo,
 #   server: 'mongodb://localhost/rally-letters'
-#   init: (err, done) ->
+#   init: (done) ->
 #     model.get 'letters', (err, letters) ->
+#       return done err  if err
 #       return if letters
 #       colors = ['red', 'yellow', 'blue', 'orange', 'green']
 #       letters = {}
