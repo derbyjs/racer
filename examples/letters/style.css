@@ -2,23 +2,20 @@ html,body,p {
   margin: 0;
   padding: 0;
 }
-
 body {
   background: #ccc;
   font: 13px/1.231 arial;
 }
-
 #back {
   border-top: 1px solid #eee;
+  background: -moz-linear-gradient(#ddd, #ccc) repeat-x;
   background: -webkit-linear-gradient(#ddd, #ccc) repeat-x;
 }
-
 #page {
   width: 760px;
   padding: 12px 0;
   margin: 0 auto;
 }
-
 #board {
   background: #fff;
   border-radius: 3px;
@@ -35,19 +32,14 @@ body {
 }
 
 .letter {
+  cursor: default;
   position: absolute;
   font: 28px/23px Anton;
   text-shadow:
     0 0 1px #000,
     0 1px 1px #000;
+  text-decoration: none;
 }
-.letter > b {
-  line-height: 20px;
-  font-weight: normal;
-  vertical-align: 4px;
-  display: inline-block;
-}
-
 .red { color: #ed1c24 }
 .yellow { color: #fce600 }
 .blue { color: #008bce }
