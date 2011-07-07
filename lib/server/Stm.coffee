@@ -19,18 +19,20 @@ Stm = module.exports = ->
     err.message = message
     return err
   
+  # callback has signature: fn(err, lockVal, ops)
   lock = (len, locks, base, callback, retries = MAX_RETRIES) ->
     client.eval LOCK, len, locks..., base, (err, values) ->
       throw err if err
-      unless values[0]
-        # Retry
-        if retries
-          return setTimeout ->
-            lock len, locks, base, callback, --retries
-          , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
-        return callback error 'STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times'
-      callback null, values[0], values[1]
+      if values[0]
+        return callback null, values[0], values[1]
+      if retries
+        return setTimeout ->
+          lock len, locks, base, callback, --retries
+        , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
+      return callback error('STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times')
   
+  # e.g., getLocks("a.b.c")
+  #       => [".a.b.c", ".a.b", ".a"]
   @_getLocks = getLocks = (path) ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
@@ -40,21 +42,17 @@ Stm = module.exports = ->
     locksLen = locks.length
     base = txn.base transaction
     lock locksLen, locks, base, (err, lockVal, ops) ->
-      callback err if err
-      
-      # Check for conflicts with the journal
-      i = ops.length
-      while i--
-        if txn.conflict transaction, JSON.parse(ops[i])
-          return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
-            throw err if err
-            callback error 'STM_CONFLICT', 'Conflict with journal'
+      return callback err if err
+      if txn.journalConflict transaction, ops
+        return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
+          throw err if err
+          callback error('STM_CONFLICT', 'Conflict with journal')
       
       # Commit if there are no conflicts and the locks are still held
       client.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
         throw err if err
         if ver is 0
-          return callback error 'STM_LOCK_RELEASED', 'Lock was released before commit'
+          return callback error('STM_LOCK_RELEASED', 'Lock was released before commit')
         callback null, ver
   
   return

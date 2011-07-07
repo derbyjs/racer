@@ -10,7 +10,7 @@ module.exports =
     # txnA is a new transaction, and txnB is an already committed transaction
     
     # There is no conflict if the paths don't conflict
-    return false if !pathConflict(txnA[3], txnB[3])
+    return false if !@pathConflict(txnA[3], txnB[3])
     
     # There is no conflict if the transactions are from the same client
     # and the new transaction was from a later client version
@@ -33,7 +33,7 @@ module.exports =
     return true if lenA != txnB.length
     return false
 
-  pathConflict: pathConflict = (pathA, pathB) ->
+  pathConflict: (pathA, pathB) ->
     # Paths conflict if either is a sub-path of the other
     return true if pathA == pathB
     pathALen = pathA.length
@@ -42,3 +42,10 @@ module.exports =
     if pathALen > pathBLen
       return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
     return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA
+
+  journalConflict: (transaction, ops) ->
+    i = ops.length
+    while i--
+      return true if @conflict transaction, JSON.parse(ops[i])
+    return false
+
