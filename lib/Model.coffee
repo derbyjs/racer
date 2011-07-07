@@ -58,6 +58,7 @@ Model:: =
           txn[0] = ver
           onTxn txn
         return true
+      # TODO Broadcast changes to clients
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->
     # Wraps the op in a transaction
