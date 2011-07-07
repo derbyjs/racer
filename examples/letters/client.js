@@ -31,8 +31,8 @@ window.onload = function() {
     open = '<a href=# onclick="return false"';
     close = '</a>';
   } else {
-    open = '<u';
-    close = '</u>';
+    open = '<span';
+    close = '</span>';
   }
   for (id in letters) {
     letter = letters[id];

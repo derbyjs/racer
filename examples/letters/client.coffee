@@ -25,8 +25,8 @@ window.onload = ->
     open = '<a href=# onclick="return false"'
     close = '</a>'
   else
-    open = '<u'
-    close = '</u>'
+    open = '<span'
+    close = '</span>'
   for id, letter of letters
     html += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
     style=left:#{letter.x}px;top:#{letter.y}px>#{letter.value}#{close}"""
@@ -36,6 +36,7 @@ window.onload = ->
 
   addListener board, 'dragstart', (e) ->
     e.dataTransfer.effectAllowed = 'move'
+    # At least one data item must be set
     e.dataTransfer.setData 'Text', 'x'
 
     # Store the dragged letter and the offset of the click position
@@ -49,6 +50,7 @@ window.onload = ->
     target.style.opacity = 0.5
 
   addListener board, 'dragover', (e) ->
+    # Enable dragging onto board
     e.preventDefault() if e.preventDefault
     e.dataTransfer.dropEffect = 'move'
     return false
@@ -57,6 +59,7 @@ window.onload = ->
     dragData.target.style.opacity = 1
 
   addListener board, 'drop', (e) ->
+    # Prevent Firefox from redirecting
     e.preventDefault() if e.preventDefault
 
     # Move the letter to its new position
