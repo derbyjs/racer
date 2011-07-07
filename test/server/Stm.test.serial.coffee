@@ -249,3 +249,5 @@ module.exports =
   finishAll: (done) ->
     stm._client.end()
     done()
+
+  ## !!!! PLACE ALL TESTS BEFORE finishAll
