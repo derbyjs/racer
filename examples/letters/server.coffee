@@ -39,7 +39,7 @@ boardHtml = () ->
   html = ''
   for id, letter of letters
     html += """<p class="#{letter.color} letter" id=#{id} draggable=true
-    style=left:#{letter.x}px;top:#{letter.y}px>#{letter.value}"""
+    style=left:#{letter.x}px;top:#{letter.y}px><b>#{letter.value}</b>"""
   return html
 
 app.get '/', (req, res) ->
