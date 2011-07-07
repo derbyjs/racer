@@ -1,7 +1,11 @@
-html, body {
-  background: #ccc;
+html,body,p {
   margin: 0;
   padding: 0;
+}
+
+body {
+  background: #ccc;
+  font: 13px/16px arial;
 }
 
 #back {
@@ -10,7 +14,7 @@ html, body {
 }
 
 #page {
-  width: 624px;
+  width: 760px;
   padding: 12px 0;
   margin: 0 auto;
 }
@@ -21,7 +25,28 @@ html, body {
   box-shadow:
     inset 0 0 0 1px rgba(0,0,0,.2),
     inset 0 1px 2px #d0d0d0,
-    0 1px #e3e3e3;
-  width: 624px;
-  height: 386px;
+    0 1px #e0e0e0;
+  width: 760px;
+  height: 540px;
+  position: relative;
+  -webkit-user-select: none;
 }
+
+.letter {
+  cursor: default;
+  font: 24px/18px Anton;
+  text-align: center;
+  position: absolute;
+  display: block;
+  width: 16px;
+  height: 20px;
+  text-shadow:
+    0 0 1px #000,
+    0 1px 1px #000;
+}
+
+.red { color: #ed1c24 }
+.yellow { color: #fce600 }
+.blue { color: #008bce }
+.orange { color: #f58235 }
+.green { color: #54b948 }

@@ -25,18 +25,35 @@ fs = require 'fs'
 
 app = express.createServer()
 
+boardHtml = () ->
+  colors = ['red', 'yellow', 'blue', 'orange', 'green']
+  letters = {}
+  for row in [0..4]
+    for col in [0..25]
+      letters[row * 26 + col] =
+        color: colors[row]
+        value: String.fromCharCode(65 + col)
+        x: col * 24 + 72
+        y: row * 32 + 12
+  html = ''
+  for id, letter of letters
+    html += """<p class="#{letter.color} letter" id=#{id}
+    style=left:#{letter.x}px;top:#{letter.y}px>#{letter.value}"""
+  return html
+
 app.get '/', (req, res) ->
   fs.readFile 'client.js', 'utf8', (err, script) ->
     fs.readFile 'style.css', 'utf8', (err, style) ->
       #script = model.html() + script
       res.send """
       <!DOCTYPE html>
-      <style>#{style}</style>
       <title>Letters game</title>
+      <style>#{style}</style>
+      <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
       <div id=back>
         <div id=page>
           <p id=info>
-          <div id=board></div>
+          <div id=board>#{boardHtml()}</div>
         </div>
       </div>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
