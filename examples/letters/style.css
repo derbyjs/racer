@@ -1,0 +1,27 @@
+html, body {
+  background: #ccc;
+  margin: 0;
+  padding: 0;
+}
+
+#back {
+  border-top: 1px solid #eee;
+  background: -webkit-linear-gradient(#ddd, #ccc) repeat-x;
+}
+
+#page {
+  width: 624px;
+  padding: 12px 0;
+  margin: 0 auto;
+}
+
+#board {
+  background: #fff;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.2),
+    inset 0 1px 2px #d0d0d0,
+    0 1px #e3e3e3;
+  width: 624px;
+  height: 386px;
+}
