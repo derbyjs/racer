@@ -12,21 +12,21 @@ boardHtml = function() {
         color: colors[row],
         value: String.fromCharCode(65 + col),
         x: col * 24 + 72,
-        y: row * 32 + 12
+        y: row * 32 + 8
       };
     }
   }
   html = '';
   for (id in letters) {
     letter = letters[id];
-    html += "<p class=\"" + letter.color + " letter\" id=" + id + "\nstyle=left:" + letter.x + "px;top:" + letter.y + "px>" + letter.value;
+    html += "<p class=\"" + letter.color + " letter\" id=" + id + " draggable=true\nstyle=left:" + letter.x + "px;top:" + letter.y + "px>" + letter.value;
   }
   return html;
 };
 app.get('/', function(req, res) {
   return fs.readFile('client.js', 'utf8', function(err, script) {
     return fs.readFile('style.css', 'utf8', function(err, style) {
-      return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board>" + (boardHtml()) + "</div>\n  </div>\n</div>\n<script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>\n<script>" + script + "</script>");
+      return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board>" + (boardHtml()) + "</div>\n  </div>\n</div>\n<script>" + script + "</script>");
     });
   });
 });

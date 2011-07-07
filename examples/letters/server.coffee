@@ -34,10 +34,10 @@ boardHtml = () ->
         color: colors[row]
         value: String.fromCharCode(65 + col)
         x: col * 24 + 72
-        y: row * 32 + 12
+        y: row * 32 + 8
   html = ''
   for id, letter of letters
-    html += """<p class="#{letter.color} letter" id=#{id}
+    html += """<p class="#{letter.color} letter" id=#{id} draggable=true
     style=left:#{letter.x}px;top:#{letter.y}px>#{letter.value}"""
   return html
 
@@ -56,7 +56,6 @@ app.get '/', (req, res) ->
           <div id=board>#{boardHtml()}</div>
         </div>
       </div>
-      <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
       <script>#{script}</script>
       """
 

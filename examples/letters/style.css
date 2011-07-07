@@ -29,17 +29,20 @@ body {
   width: 760px;
   height: 540px;
   position: relative;
+  -moz-user-select: none;
   -webkit-user-select: none;
+  user-select: none;
 }
 
 .letter {
+  background: transparent;
   cursor: default;
-  font: 24px/18px Anton;
+  font: 28px/20px Anton;
   text-align: center;
   position: absolute;
   display: block;
   width: 16px;
-  height: 20px;
+  height: 24px;
   text-shadow:
     0 0 1px #000,
     0 1px 1px #000;
