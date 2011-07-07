@@ -77,10 +77,16 @@ Model:: =
     txnQueue = @_txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   _lookup: (path, {obj, addPath, proto, onRef}) ->
-    obj ||= @_data
-    props = if path and path.split then path.split '.' else []
+    next = obj || @_data
     get = @get
-    props.reduce ({obj, path}, prop, i) ->
+    props = if path and path.split then path.split '.' else []
+    
+    path = ''
+    i = 0
+    len = props.length
+    while i < len
+      obj = next
+      prop = props[i++]
       
       # In speculative model operations, return a prototype referenced object
       if proto && !Object::isPrototypeOf(obj)
@@ -90,7 +96,7 @@ Model:: =
       next = obj[prop]
       if next is undefined
         # Return null if the object can't be found
-        return {'obj': null} unless addPath
+        return {obj: null} unless addPath
         # If addPath is true, create empty parent objects implied by path
         next = obj[prop] = {}
       
@@ -105,16 +111,13 @@ Model:: =
           path = ref
           next = refObj
         if onRef
-          remainder = [path].concat props.slice(i+1)
+          remainder = [path].concat props.slice(i)
           onRef key, remainder.join('.')
       else
         # Store the absolute path traversed so far
         path = if path then path + '.' + prop else prop
-      
-      if i == props.length - 1
-        return obj: next, path: path, parent: obj, prop: prop
-      return obj: next, path: path
-    , obj: obj, path: ''
+    
+    return obj: next, path: path, parent: obj, prop: prop
   
   set: (path, value) ->
     @_addTxn ['set', path, value]
