@@ -1,3 +1,12 @@
+_ = require './util'
+
+if _.onServer
+  Store = require './server/Store'
+  MemoryAdapter = require './server/adapters/Memory'
+  Stm = require './server/Stm'
+  DataSupervisor = require './server/DataSupervisor'
+
+
 Model = module.exports = ->
   self = this
   self._data = {}
@@ -43,13 +52,24 @@ Model = module.exports = ->
 
 Model:: =
   _send: -> false
-  _setSocket: (socket) ->
+  _setEndpoint: (service, config) ->
+    if _.onServer
+      @_setSocket service, config
+    else
+      @_setDataSupervisor service, config
+  _setSocket: (socket, config) ->
     socket.connect()
     socket.on 'message', @_onMessage
     @_send = (txn) ->
       socket.send ['txn', txn]
       # TODO: Only return true if sent successfully
       return true
+  _setDataSupervisor: (supervisor, config) ->
+    @_send = (txn, callback) ->
+      supervisor.tryTxn txn, callback
+      return true
+
+  # TODO This logic will be in DataSupervisor
   _setStm: (stm) ->
     onTxn = @_onTxn
     @_send = (txn) ->
@@ -60,6 +80,7 @@ Model:: =
           onTxn txn
         return true
       # TODO Broadcast changes to clients
+
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->
     # Wraps the op in a transaction

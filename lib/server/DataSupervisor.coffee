@@ -36,3 +36,6 @@ DataSupervisor:: =
       throw err if err
       # TODO See above 2 TODOs
       callback err, val, ver, doc
+
+  broadcast: ->
+    # TODO
