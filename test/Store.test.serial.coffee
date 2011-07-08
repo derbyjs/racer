@@ -1,6 +1,6 @@
 should = require 'should'
-Store = require 'server/Store'
-MemoryAdapter = require 'server/adapters/Memory'
+Store = require 'Store'
+MemoryAdapter = require 'adapters/Memory'
 store = new Store(MemoryAdapter)
 
 # TODO Stub Stm

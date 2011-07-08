@@ -1,4 +1,4 @@
-Stm = require 'server/Stm'
+Stm = require 'Stm'
 
 exports.luaLock = (stm) ->
   (path, base, callback) ->

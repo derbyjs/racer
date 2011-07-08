@@ -1,10 +1,10 @@
 should = require 'should'
-Stm = require 'server/Stm'
+Stm = require 'Stm'
 stm = new Stm()
-mockSocketModel = require('../util/model').mockSocketModel
-luaLock = require('../util/Stm').luaLock(stm)
-luaUnlock = require('../util/Stm').luaUnlock(stm)
-luaCommit = require('../util/Stm').luaCommit(stm)
+mockSocketModel = require('./util/model').mockSocketModel
+luaLock = require('./util/Stm').luaLock(stm)
+luaUnlock = require('./util/Stm').luaUnlock(stm)
+luaCommit = require('./util/Stm').luaCommit(stm)
 
 module.exports =
   setup: (done) ->

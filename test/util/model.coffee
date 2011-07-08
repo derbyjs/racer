@@ -1,5 +1,5 @@
-Model = require '../../lib/Model'
-_ = require '../../lib/util'
+Model = require 'Model'
+_ = require 'util'
 mocks = require './mocks'
 
 exports.newModel = (environment) ->
