@@ -6,6 +6,16 @@ if _.onServer
   Stm = require './server/Stm'
   DataSupervisor = require './server/DataSupervisor'
 
+# Server vs Browser
+# - Server should not keep track of local _data (only by proxy if using Store MemoryAdapter); Browser should
+# - Server should connect to DataSupervisor; Browser should connect to socket.io endpoint on server
+# - Server should not deal with speculative models; Browser should
+#   - Perhaps a special Store can control this?
+# - Keeping track of transactions?
+#
+# Perhaps all server Store types have a Stm component. Then the
+# abstraction is we just are interacting with some data store
+# with STM capabilities
 
 Model = module.exports = ->
   self = this
@@ -17,12 +27,15 @@ Model = module.exports = ->
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
   
+  # Server-side endpoint handler
+  # AND also used in browser-side endpoint handler
   self._onTxn = onTxn = (txn) ->
     [base, txnId, method, args...] = txn
     setters[method].apply self, args
     self._base = base
     self._removeTxn txnId
   
+  # Browser-side endpoint handler
   self._onMessage = (message) ->
     [type, content] = JSON.parse message
     switch type
@@ -99,6 +112,8 @@ Model:: =
     delete @_txns[txnId]
     txnQueue = @_txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
+
+  # TODO Perhaps this is delegated to Store on browser and server?
   _lookup: (path, {obj, addPath, proto, onRef}) ->
     next = obj || @_data
     get = @get
