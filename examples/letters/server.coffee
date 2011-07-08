@@ -6,7 +6,7 @@ fs = require 'fs'
 # Follows the same middleware interface as Connect:
 rally.use rallyMongo
   server: 'mongodb://localhost/rally-letters'
-  init: (done) ->
+  load: (done) ->
     store = rally.store
     store.get 'letters', (err, letters) ->
       return done err if err or letters
