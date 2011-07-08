@@ -1,22 +1,3 @@
-_ = require './util'
-
-if _.onServer
-  Store = require './server/Store'
-  MemoryAdapter = require './server/adapters/Memory'
-  Stm = require './server/Stm'
-  DataSupervisor = require './server/DataSupervisor'
-
-# Server vs Browser
-# - Server should not keep track of local _data (only by proxy if using Store MemoryAdapter); Browser should
-# - Server should connect to DataSupervisor; Browser should connect to socket.io endpoint on server
-# - Server should not deal with speculative models; Browser should
-#   - Perhaps a special Store can control this?
-# - Keeping track of transactions?
-#
-# Perhaps all server Store types have a Stm component. Then the
-# abstraction is we just are interacting with some data store
-# with STM capabilities
-
 Model = module.exports = ->
   self = this
   self._data = {}
@@ -27,15 +8,12 @@ Model = module.exports = ->
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
   
-  # Server-side endpoint handler
-  # AND also used in browser-side endpoint handler
   self._onTxn = onTxn = (txn) ->
     [base, txnId, method, args...] = txn
     setters[method].apply self, args
     self._base = base
     self._removeTxn txnId
   
-  # Browser-side endpoint handler
   self._onMessage = (message) ->
     [type, content] = JSON.parse message
     switch type
@@ -65,11 +43,6 @@ Model = module.exports = ->
 
 Model:: =
   _send: -> false
-  _setEndpoint: (service, config) ->
-    if _.onServer
-      @_setSocket service, config
-    else
-      @_setDataSupervisor service, config
   _setSocket: (socket, config) ->
     socket.connect()
     socket.on 'message', @_onMessage
@@ -77,12 +50,6 @@ Model:: =
       socket.send ['txn', txn]
       # TODO: Only return true if sent successfully
       return true
-  _setDataSupervisor: (supervisor, config) ->
-    @_send = (txn, callback) ->
-      supervisor.tryTxn txn, callback
-      return true
-
-  # TODO This logic will be in DataSupervisor
   _setStm: (stm) ->
     onTxn = @_onTxn
     @_send = (txn) ->
@@ -92,7 +59,6 @@ Model:: =
           txn[0] = ver
           onTxn txn
         return true
-      # TODO Broadcast changes to clients
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->
@@ -113,7 +79,6 @@ Model:: =
     txnQueue = @_txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
 
-  # TODO Perhaps this is delegated to Store on browser and server?
   _lookup: (path, {obj, addPath, proto, onRef}) ->
     next = obj || @_data
     get = @get
@@ -157,9 +122,9 @@ Model:: =
     
     return obj: next, path: path, parent: obj, prop: prop
   
-  set: (path, value, callback) ->
-    value = @_addTxn ['set', path, value]
-    if callback then callback(null, value) else value
+  set: (path, value) ->
+    @_addTxn ['set', path, value]
+    return value
   delete: (path) ->
     @_addTxn ['del', path]
   ref: (ref, key) ->
