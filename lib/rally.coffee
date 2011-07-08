@@ -29,7 +29,12 @@ rally = module.exports =
 # Setters are nice because all you need to do is:
 #
 #     rally.app = app
-#     rally.socket = socket
+#     rally.socketio = io
+#
+# Alternatives:
+#     rally.listen app
+#     // or
+#     rally.listen socketio
 Object.defineProperty rally, 'app',
   get: () -> @app
   set: (app) ->
@@ -37,10 +42,10 @@ Object.defineProperty rally, 'app',
     socketPromise.callback => @socket.listen app
     @app = app
 
-Object.defineProperty rally, 'socket',
-  get: () -> @model.socket
-  set: (socket) ->
-    socketPromise.fulfill socket
-    @model.socket = socket
+Object.defineProperty rally, 'socketio',
+  get: () -> @model.socketio
+  set: (io) ->
+    socketPromise.fulfill io
+    @model.socketio = io
 
 socketPromise = new Promise

@@ -22,7 +22,7 @@ Model = module.exports = ->
       when 'txnFail'
         self._removeTxn content
   
-  self.get = (path) ->
+  self.get = (path, callback) ->
     if len = txnQueue.length
       # Then generate a speculative model
       obj = Object.create self._data
@@ -36,7 +36,8 @@ Model = module.exports = ->
         setters[method].apply self, args
     else
       obj = self._data
-    if path then self._lookup(path, obj: obj).obj else obj
+    val = if path then self._lookup(path, obj: obj).obj else obj
+    if callback then callback(null, val) else val
   
   return
 
@@ -120,8 +121,9 @@ Model:: =
     
     return obj: next, path: path, parent: obj, prop: prop
   
-  set: (path, value) ->
-    @_addTxn ['set', path, value]
+  set: (path, value, callback) ->
+    value = @_addTxn ['set', path, value]
+    if callback then callback(null, value) else value
   delete: (path) ->
     @_addTxn ['del', path]
   ref: (ref, key) ->
