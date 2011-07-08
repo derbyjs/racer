@@ -10,7 +10,7 @@ Model = module.exports = ->
   
   self._onTxn = onTxn = (txn) ->
     [base, txnId, method, args...] = txn
-    setters[method].apply self, args
+    self['_' + method].apply self, args
     self._base = base
     self._removeTxn txnId
   
@@ -33,7 +33,7 @@ Model = module.exports = ->
         txn = txns[txnQueue[i++]]
         [method, args...] = txn.op
         args.push obj: obj, proto: true
-        setters[method].apply self, args
+        self['_' + method].apply self, args
     else
       obj = self._data
     val = if path then self._lookup(path, obj: obj).obj else obj
@@ -130,23 +130,22 @@ Model:: =
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 
-setters =
-  set: (path, value, options = {}) ->
+  _set: (path, value, options = {}) ->
     options.addPath = true
     out = @_lookup path, options
     try
       out.parent[out.prop] = value
     catch err
       throw new Error 'Model set failed on: ' + path
-  del: (path, options = {}) ->
+  _del: (path, options = {}) ->
     out = @_lookup path, options
     parent = out.parent
     prop = out.prop
     try
       if options.proto
         # In speculative models, deletion of something in the model data is
-        # acheived by making a copy of the parent prototype's properties
-        # that does not include the deleted property
+        # acheived by making a copy of the parent prototype's properties that
+        # does not include the deleted property
         if prop of parent.__proto__
           obj = {}
           for key, value of parent.__proto__

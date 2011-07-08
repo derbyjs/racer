@@ -1,28 +1,8 @@
 rally = require 'rally'
-rallyMongo = require 'rally-mongodb'
 express = require 'express'
 fs = require 'fs'
 
-# Follows the same middleware interface as Connect:
-rally.use rallyMongo
-  server: 'mongodb://localhost/rally-letters'
-  load: (done) ->
-    store = rally.store
-    store.get 'letters', (err, letters) ->
-      return done err if err or letters
-      # Initialize data if letters object has not been created
-      colors = ['red', 'yellow', 'blue', 'orange', 'green']
-      letters = {}
-      for row in [0..4]
-        for col in [0..25]
-          letters[row * 26 + col] =
-            color: colors[row]
-            value: String.fromCharCode(65 + col)
-            left: col * 24 + 72
-            top: row * 32 + 8
-      store.set 'letters', letters, done
-
-# TODO Pass in Socket.IO configuration params
+# TODO: Pass in Socket.IO configuration params
 
 app = express.createServer()
 
@@ -47,4 +27,38 @@ app.get '/', (req, res) ->
         <script>#{modelScript + clientScript}</script>
         """
 
-app.listen 3000
+# Initialize data if letters object has not been created
+colors = ['red', 'yellow', 'blue', 'orange', 'green']
+letters = {}
+for row in [0..4]
+  for col in [0..25]
+    letters[row * 26 + col] =
+      color: colors[row]
+      value: String.fromCharCode(65 + col)
+      left: col * 24 + 72
+      top: row * 32 + 8
+rally.store.set 'letters', letters, (err) ->
+  throw err if err
+  app.listen 3000
+
+  # # Follows the same middleware interface as Connect:
+  # rally.use rallyMongo
+  #   server: 'mongodb://localhost/rally-letters'
+  #   load: () ->
+  #     store = rally.store
+  #     store.get 'letters', (err, letters) ->
+  #       return if err or letters
+  #       # Initialize data if letters object has not been created
+  #       colors = ['red', 'yellow', 'blue', 'orange', 'green']
+  #       letters = {}
+  #       for row in [0..4]
+  #         for col in [0..25]
+  #           letters[row * 26 + col] =
+  #             color: colors[row]
+  #             value: String.fromCharCode(65 + col)
+  #             left: col * 24 + 72
+  #             top: row * 32 + 8
+  #       store.set 'letters', letters
+
+  # Follows the same middleware interface as Connect:
+
