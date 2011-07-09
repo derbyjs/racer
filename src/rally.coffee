@@ -6,6 +6,9 @@ io = require 'socket.io'
 # Add the server side functions to Model's prototype
 Model::[name] = fn for name, fn of modelServer
 
+clientIdCount = 0
+nextClientId = -> (clientIdCount++).toString(36)
+
 # rally itself is connect middleware, for
 # easy integration into connect/express
 module.exports = rally = (req, res, next) ->
@@ -14,10 +17,9 @@ module.exports = rally = (req, res, next) ->
   oldProto = rally.__proto__
   # re-define rally here, so we only do the
   # session middleware check once
-  nextClientId = 1
   rally = (req, res, next) ->
     reqRally = req.rally = Object.create rally
-    reqRally.clientId = req.session.clientId ||= nextClientId++
+    reqRally.clientId = req.session.clientId ||= nextClientId()
     next()
   rally.__proto__ = oldProto
   rally req, res, next
@@ -27,7 +29,7 @@ rally.subscribe = (path, callback) ->
   # TODO: Accept a list of paths
   # TODO: Attach to an existing model
   # TODO: Support path wildcards, references, and functions
-  model = new Model
+  model = new Model nextClientId()
   store.get path, (err, value, ver) ->
     callback err if err
     model._set path, value
@@ -42,4 +44,5 @@ io = io.listen 3001
 io.sockets.on 'connection', (socket) ->
   socket.on 'txn', (data) ->
     # TODO: Actually submit transaction to STM instead of just echoing
+    socket.broadcast.emit 'txn', data
     socket.emit 'txn', data

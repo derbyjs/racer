@@ -1,4 +1,4 @@
-var app, browserify, bundle, col, colors, express, fs, letters, rally, row;
+var app, browserify, bundle, express, fs, rally;
 rally = require('rally');
 express = require('express');
 fs = require('fs');
@@ -7,11 +7,6 @@ bundle = browserify.bundle({
   require: ['rally']
 });
 app = express.createServer();
-app.use(express.cookieParser());
-app.use(express.session({
-  secret: 'rally'
-}));
-app.use(rally);
 app.get('/', function(req, res) {
   return fs.readFile('client.js', 'utf8', function(err, clientScript) {
     return fs.readFile('style.css', 'utf8', function(err, style) {
@@ -21,22 +16,24 @@ app.get('/', function(req, res) {
     });
   });
 });
-rally.store.flush();
-colors = ['red', 'yellow', 'blue', 'orange', 'green'];
-letters = {};
-for (row = 0; row <= 4; row++) {
-  for (col = 0; col <= 25; col++) {
-    letters[row * 26 + col] = {
-      color: colors[row],
-      value: String.fromCharCode(65 + col),
-      left: col * 24 + 72,
-      top: row * 32 + 8
-    };
+rally.store.flush(function() {
+  var col, colors, letters, row;
+  colors = ['red', 'yellow', 'blue', 'orange', 'green'];
+  letters = {};
+  for (row = 0; row <= 4; row++) {
+    for (col = 0; col <= 25; col++) {
+      letters[row * 26 + col] = {
+        color: colors[row],
+        value: String.fromCharCode(65 + col),
+        left: col * 24 + 72,
+        top: row * 32 + 8
+      };
+    }
   }
-}
-rally.store.set('letters', letters, function(err) {
-  if (err) {
-    throw err;
-  }
-  return app.listen(3000);
+  return rally.store.set('letters', letters, function(err) {
+    if (err) {
+      throw err;
+    }
+    return app.listen(3000);
+  });
 });

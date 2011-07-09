@@ -33,8 +33,8 @@ Store:: =
   flush: (callback) ->
     done = false
     cb = (err) ->
+      callback err, callback = null if callback && done || err
       done = true
-      callback err if callback && done || err
     @adapter.flush cb
     @stm.flush cb
   
@@ -48,11 +48,11 @@ Store:: =
   set: (path, value, callback) ->
     adapter = @adapter
     pending = @_pendingSets
-    @stm.commit [0, 'store.0', 'set', path, value], (err, ver) ->
+    @stm.commit [0, '_.0', 'set', path, value], (err, ver) ->
       if err then return callback && callback err
       pending[ver] = ['set', path, value, ver, callback]
   del: (path, callback) ->
     adapter = @adapter
-    @stm.commit [0, 'store.0', 'del', path], -> (err, ver) ->
+    @stm.commit [0, '_.0', 'del', path], -> (err, ver) ->
       if err then return callback && callback err
       adapter.del path, callback

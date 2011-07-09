@@ -1,8 +1,8 @@
-Model = module.exports = ->
+Model = module.exports = (clientId = '')->
   self = this
   self._data = {}
   self._base = 0
-  self._clientId = ''
+  self._clientId = clientId
   self._subs = {}
   
   self._txnCount = 0
