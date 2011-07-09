@@ -6,7 +6,8 @@
     "main": "./lib/browser.js"
   },
   "dependencies": {
-    "redis": ">=0.5.11"
+    "redis": ">=0.5.11",
+    "socket.io": ">=0.7"
   },
   "devDependencies": {
     "expresso": ">=0.7.9",

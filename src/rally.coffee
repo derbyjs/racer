@@ -1,6 +1,7 @@
 Model = require './Model'
 modelServer = require './Model.server'
 Store = require './Store'
+io = require 'socket.io'
 
 # Add the server side functions to Model's prototype
 for name, fn of modelServer
@@ -22,3 +23,8 @@ module.exports =
     throw "Unimplemented"
   use: ->
     throw "Unimplemented"
+
+io = io.listen 3001
+io.sockets.on 'connection', (socket) ->
+  socket.on 'txn', (data) ->
+    socket.emit 'txn', data

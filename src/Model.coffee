@@ -8,19 +8,11 @@ Model = module.exports = ->
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
   
-  self._onTxn = onTxn = (txn) ->
+  self._onTxn = (txn) ->
     [base, txnId, method, args...] = txn
     self['_' + method].apply self, args
     self._base = base
     self._removeTxn txnId
-  
-  self._onMessage = (message) ->
-    [type, content] = JSON.parse message
-    switch type
-      when 'txn'
-        onTxn content
-      when 'txnFail'
-        self._removeTxn content
   
   self.get = (path) ->
     if len = txnQueue.length
@@ -43,10 +35,10 @@ Model = module.exports = ->
 Model:: =
   _send: -> false
   _setSocket: (socket, config) ->
-    socket.connect()
-    socket.on 'message', @_onMessage
+    socket.on 'txn', @_onTxn
+    socket.on 'txnFail', @_removeTxn
     @_send = (txn) ->
-      socket.send ['txn', txn]
+      socket.emit 'txn', txn
       # TODO: Only return true if sent successfully
       return true
 

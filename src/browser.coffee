@@ -5,3 +5,4 @@
   model._base = base
   model._clientId = clientId
   model._txnCount = txnCount
+  model._setSocket io.connect 'http://localhost:3001'

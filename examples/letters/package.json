@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "rally": "*"
+    "rally": "*",
+    "socket.io": ">=0.7"
   },
   "private": true
 }

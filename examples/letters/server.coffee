@@ -3,14 +3,12 @@ express = require 'express'
 fs = require 'fs'
 browserify = require 'browserify'
 
-# TODO: Pass in Socket.IO configuration params
-
+bundle = browserify.bundle require: ['rally']
 app = express.createServer()
 
 app.get '/', (req, res) ->
   fs.readFile 'client.js', 'utf8', (err, clientScript) ->
     fs.readFile 'style.css', 'utf8', (err, style) ->
-      bundle = browserify.bundle require: 'rally'
       # Subscribe optionally accepts a model as an argument. If no model is
       # specified, it will create a new model object.
       rally.subscribe 'letters', (err, model) ->
@@ -25,6 +23,7 @@ app.get '/', (req, res) ->
             <div id=board></div>
           </div>
         </div>
+        <script src="http://localhost:3001/socket.io/socket.io.js"></script>
         <script>
           #{bundle}
           var rally = require('rally');
@@ -32,6 +31,8 @@ app.get '/', (req, res) ->
           #{clientScript}
         </script>
         """
+
+# TODO: Pass in Socket.IO and Redis configuration params
 
 # Clear any existing data, then initialize
 rally.store.flush()

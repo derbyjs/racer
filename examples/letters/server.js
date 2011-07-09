@@ -1,18 +1,17 @@
-var app, browserify, col, colors, express, fs, letters, rally, row;
+var app, browserify, bundle, col, colors, express, fs, letters, rally, row;
 rally = require('rally');
 express = require('express');
 fs = require('fs');
 browserify = require('browserify');
+bundle = browserify.bundle({
+  require: ['rally']
+});
 app = express.createServer();
 app.get('/', function(req, res) {
   return fs.readFile('client.js', 'utf8', function(err, clientScript) {
     return fs.readFile('style.css', 'utf8', function(err, style) {
-      var bundle;
-      bundle = browserify.bundle({
-        require: 'rally'
-      });
       return rally.subscribe('letters', function(err, model) {
-        return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board></div>\n  </div>\n</div>\n<script>\n  " + bundle + "\n  var rally = require('rally');\n  rally.init(" + (model.json()) + ");\n  " + clientScript + "\n</script>");
+        return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board></div>\n  </div>\n</div>\n<script src=\"http://localhost:3001/socket.io/socket.io.js\"></script>\n<script>\n  " + bundle + "\n  var rally = require('rally');\n  rally.init(" + (model.json()) + ");\n  " + clientScript + "\n</script>");
       });
     });
   });
