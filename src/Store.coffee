@@ -3,7 +3,7 @@ Stm = require './Stm'
 transaction = require './transaction'
 
 # Server vs Browser
-# - Server should not keep track of local _data (only by proxy if using Store MemoryAdapter); Browser should
+# - Server should not keep track of local _data (only by proxy if using Store MemoryAdapter); Browser should (or should not and instead access it through a client-side MemoryAdapter; this would make for a more uniform abstraction)
 # - Server should connect to DataSupervisor; Browser should connect to socket.io endpoint on server
 # - Server should not deal with speculative models; Browser should
 #   - Perhaps a special Store can control this?
@@ -16,27 +16,30 @@ transaction = require './transaction'
 FLUSH_MS = 500
 
 Store = module.exports = ->
+  # TODO Grab latest version from store and journal
   @_adapter = adapter = new MemoryAdapter
   @_stm = new Stm
 
   pending = {}
   ver = 1
-  maxVer = 0
   @_queue = (txn, ver) ->
     pending[ver] = txn
-    maxVer = ver
   setInterval ->
-    while ver <= maxVer
-      break unless txn = pending[ver]
+    lastWrittenVer = adapter._ver
+    nextVerToWrite = ++lastWrittenVer
+    while txn = pending[nextVerToWrite]
       method = transaction.method txn
       opArgs = transaction.opArgs txn
       opArgs.push ver, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of _commit when the adapter operation completes
         throw err if err
-      adapter[method] opArgs...
-      delete pending[ver]
-      ver++
+      adapter[method] opArgs... # Implicitly increments adapter._ver
+      delete pending[nextVerToWrite++]
+    # TODO This algo will need to change when we go
+    #      multi-process, because we can't count on
+    #      local adapter's _ver to increase sequentially
+    #      with the current implementation
   , FLUSH_MS
   
   return

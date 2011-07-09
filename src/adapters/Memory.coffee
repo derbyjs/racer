@@ -8,6 +8,7 @@ Memory = module.exports = ->
 Memory:: =
   flush: (callback) ->
     @_data = {}
+    @_ver = 0
     callback null if callback
   
   _set: Model::._set
