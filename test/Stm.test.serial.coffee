@@ -8,11 +8,11 @@ luaCommit = require('./util/Stm').luaCommit(stm)
 
 module.exports =
   setup: (done) ->
-    stm._client.flushdb (err) ->
+    stm.flush (err) ->
       throw err if err
       done()
   teardown: (done) ->
-    stm._client.flushdb (err) ->
+    stm.flush (err) ->
       throw err if err
       done()
   

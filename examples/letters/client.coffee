@@ -1,4 +1,5 @@
 window.onload = ->
+  model = rally.model
   board = document.getElementById 'board'
   dragData = null
   

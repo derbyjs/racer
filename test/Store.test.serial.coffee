@@ -37,7 +37,7 @@ module.exports =
     done()
 
   'can retrieve a path': (done) ->
-    store.set 'pets.1.name.first', 'squeak', 5
+    store.set 'pets', 'squeak', 5
     store.set 'pets.1.name.first', 'banana', 6
     store.get 'pets.1.name.first', (err, val, ver, doc) ->
       should.equal null, err
@@ -49,14 +49,14 @@ module.exports =
           first: 'banana'
       done()
 
-  'should be able to retrieve a multiple paths at once': (done) ->
-    store.set 'a.b.c', 'hello', 5
-    store.set 'pets.1.name.first', 'banana', 6
-    store.mget 'pets.1.name.first', 'a.b.c', (err, data, maxVer) ->
-      should.equal null, err
-      data.should.eql ['banana', 'hello']
-      maxVer.should.equal 6
-      done()
+  # 'should be able to retrieve a multiple paths at once': (done) ->
+  #   store.set 'a.b.c', 'hello', 5
+  #   store.set 'pets.1.name.first', 'banana', 6
+  #   store.mget 'pets.1.name.first', 'a.b.c', (err, data, maxVer) ->
+  #     should.equal null, err
+  #     data.should.eql ['banana', 'hello']
+  #     maxVer.should.equal 6
+  #     done()
 
 
 

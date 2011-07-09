@@ -22,7 +22,7 @@ Model = module.exports = ->
       when 'txnFail'
         self._removeTxn content
   
-  self.get = (path, callback) ->
+  self.get = (path) ->
     if len = txnQueue.length
       # Then generate a speculative model
       obj = Object.create self._data
@@ -36,8 +36,7 @@ Model = module.exports = ->
         self['_' + method].apply self, args
     else
       obj = self._data
-    val = if path then self._lookup(path, obj: obj).obj else obj
-    if callback then callback(null, val) else val
+    if path then self._lookup(path, obj: obj).obj else obj
   
   return
 
@@ -50,15 +49,6 @@ Model:: =
       socket.send ['txn', txn]
       # TODO: Only return true if sent successfully
       return true
-  _setStm: (stm) ->
-    onTxn = @_onTxn
-    @_send = (txn) ->
-      stm.commit txn, (err, ver) ->
-        # TODO: Handle STM conflicts and other errors
-        if ver
-          txn[0] = ver
-          onTxn txn
-        return true
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->

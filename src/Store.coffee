@@ -15,18 +15,32 @@ Stm = require './Stm'
 Store = module.exports = ->
   @adapter = new MemoryAdapter
   @stm = new Stm
+  return
   
 Store:: =
   flush: (callback) ->
-    @adapter.flush callback
+    done = false
+    cb = (err) ->
+      done = true
+      callback err if callback && done || err
+    @adapter.flush cb
+    @stm.flush cb
+  
   get: (path, callback) ->
     @adapter.get path, callback
   
   # Note that for now, store setters will only commit against base 0
   # TODO: Figure out how to better version store operations if they are to be
   # used for anything other than initialization code
+  # TODO: DRY this up
   set: (path, value, callback) ->
-    @stm.commit [0, 'store.0', 'set', path, value], callback
+    adapter = @adapter
+    @stm.commit [0, 'store.0', 'set', path, value], (err, ver) ->
+      if err then return callback && callback err
+      adapter.set path, value, ver, callback
   delete: (path, callback) ->
-    @stm.commit [0, 'store.0', 'del', path], callback
-
+    adapter = @adapter
+    @stm.commit [0, 'store.0', 'del', path], -> (err, ver) ->
+      if err then return callback && callback err
+      adapter.set path, value, ver, callback
+      

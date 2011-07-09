@@ -10,7 +10,7 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 # This should result in an earlier response to the client than with the
 # current approach
 
-Stm = module.exports = ->
+Stm = module.exports = () ->
   @_client = client = redis.createClient()
   
   error = (code, message) ->
@@ -19,7 +19,9 @@ Stm = module.exports = ->
     err.message = message
     return err
   
-  # callback has signature: fn(err, lockVal, ops)
+  @flush = (callback) -> @_client.flushdb callback
+  
+  # Callback has signature: fn(err, lockVal, ops)
   lock = (len, locks, base, callback, retries = MAX_RETRIES) ->
     client.eval LOCK, len, locks..., base, (err, values) ->
       throw err if err
@@ -31,8 +33,7 @@ Stm = module.exports = ->
         , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
       return callback error('STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times')
   
-  # e.g., getLocks("a.b.c")
-  #       => [".a.b.c", ".a.b", ".a"]
+  # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
   @_getLocks = getLocks = (path) ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
