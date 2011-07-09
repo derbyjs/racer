@@ -12,9 +12,21 @@ Stm = require './Stm'
 # abstraction is we just are interacting with some data store
 # with STM capabilities
 
+FLUSH_MS = 500
+
 Store = module.exports = ->
-  @adapter = new MemoryAdapter
+  @adapter = adapter = new MemoryAdapter
   @stm = new Stm
+
+  @_pendingSets = pending = {}
+  setInterval ->
+    lastWrittenVer = adapter._ver
+    nextVerToWrite = ++lastWrittenVer
+    while pending[nextVerToWrite]
+      [method, args...] = pending[nextVerToWrite]
+      adapter[method] args... # Implicitly increments adapter._ver
+      delete pending[nextVerToWrite++]
+  , FLUSH_MS
   return
   
 Store:: =
@@ -35,9 +47,10 @@ Store:: =
   # TODO: DRY this up
   set: (path, value, callback) ->
     adapter = @adapter
+    pending = @_pendingSets
     @stm.commit [0, 'store.0', 'set', path, value], (err, ver) ->
       if err then return callback && callback err
-      adapter.set path, value, ver, callback
+      pending[ver] = ['set', path, value, ver, callback]
   del: (path, callback) ->
     adapter = @adapter
     @stm.commit [0, 'store.0', 'del', path], -> (err, ver) ->
