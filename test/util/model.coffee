@@ -1,9 +1,7 @@
 Model = require 'Model'
-_ = require 'util'
 mocks = require './mocks'
 
 exports.newModel = (environment) ->
-  _.onServer = environment == 'server'
   return new Model()
   
 exports.mockSocketModel = (clientId = '', onMessage = ->) ->
