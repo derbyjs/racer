@@ -8,7 +8,7 @@ Model::[name] = fn for name, fn of modelServer
 
 # TODO: This solution only works for a single server. Fix to work with
 # multiple servers
-clientIdCount = 0
+clientIdCount = 1
 nextClientId = -> (clientIdCount++).toString(36)
 
 # The rally modules is connect middleware, for
@@ -20,8 +20,8 @@ module.exports = rally = (req, res, next) ->
   # Re-define rally here, so we only do the
   # session middleware check once
   rally = (req, res, next) ->
-    reqRally = req.rally = Object.create rally
-    reqRally.clientId = req.session.clientId ||= nextClientId()
+    clientId = req.session.clientId || nextClientId()
+    req.model = new Model clientId
     next()
   rally.__proto__ = oldProto
   rally req, res, next
