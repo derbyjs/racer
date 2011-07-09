@@ -66,17 +66,18 @@ Model:: =
         sub[1].apply null, re.exec(path).slice(1).concat(args)
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
-  _addTxn: (op) ->
+  _addTxn: (method, path, args...) ->
     # Wraps the op in a transaction
     # Places the transaction in a dictionary and queue
     # Sends the transaction over Socket.IO
     # Returns the transaction id
     base = @_base
+    op = Array::.slice.call arguments
     txn = op: op, base: base, sent: false
     id = @_nextTxnId()
     @_txns[id] = txn
     @_txnQueue.push id
-    # TODO: Raise event on creation of transaction
+    @_emit method, path, args
     txn.sent = @_send [base, id, op...]
     return id
   _removeTxn: (txnId) ->
@@ -128,10 +129,10 @@ Model:: =
     return obj: next, path: path, parent: obj, prop: prop
   
   set: (path, value) ->
-    @_addTxn ['set', path, value]
+    @_addTxn 'set', path, value
     return value
   del: (path) ->
-    @_addTxn ['del', path]
+    @_addTxn 'del', path
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 
