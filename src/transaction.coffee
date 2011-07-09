@@ -1,10 +1,17 @@
 # TODO Add set version of methods
 module.exports =
-  base: (tol) -> tol[0]
-  id: (tol) -> tol[1]
-  method: (tol) -> tol[2]
-  path: (tol) -> tol[3]
-  args: (tol) -> tol.slice 4
+  base: (txn) -> txn[0]
+  id: (txn) -> txn[1]
+  op: (txn) -> txn.slice 2
+  method: (txn) -> txn[2]
+  opArgs: (txn) -> txn.slice 3
+  path: (txn) -> txn[3]
+  args: (txn) -> txn.slice 4
+  
+  # Test to see if path name contains a segment that starts with an underscore.
+  # Such a path is private to the current session and should not be stored
+  # in persistent storage or synced with other clients.
+  publicPath: (name) -> ! /(^_)|(\._)/.test name
   
   conflict: (txnA, txnB) ->
     # txnA is a new transaction, and txnB is an already committed transaction
@@ -43,9 +50,8 @@ module.exports =
       return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
     return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA
 
-  journalConflict: (transaction, ops) ->
+  journalConflict: (txn, ops) ->
     i = ops.length
     while i--
-      return true if @conflict transaction, JSON.parse(ops[i])
+      return true if @conflict txn, JSON.parse(ops[i])
     return false
-

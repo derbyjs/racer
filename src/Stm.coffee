@@ -1,5 +1,5 @@
 redis = require 'redis'
-txn = require './txn'
+transaction = require './transaction'
 
 MAX_RETRIES = 10  # Must be 30 or less given current delay algorithm
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
@@ -38,19 +38,19 @@ Stm = module.exports = () ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
-  @commit = (transaction, callback) ->
-    locks = getLocks txn.path transaction
+  @commit = (txn, callback) ->
+    locks = getLocks transaction.path txn
     locksLen = locks.length
-    base = txn.base transaction
+    base = transaction.base txn
     lock locksLen, locks, base, (err, lockVal, ops) ->
       return callback err if err
-      if txn.journalConflict transaction, ops
+      if transaction.journalConflict txn, ops
         return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
           callback error('STM_CONFLICT', 'Conflict with journal')
       
       # Commit if there are no conflicts and the locks are still held
-      client.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
+      client.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
         throw err if err
         if ver is 0
           return callback error('STM_LOCK_RELEASED', 'Lock was released before commit')

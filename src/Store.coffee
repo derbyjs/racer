@@ -1,5 +1,6 @@
 MemoryAdapter = require './adapters/Memory'
 Stm = require './Stm'
+transaction = require './transaction'
 
 # Server vs Browser
 # - Server should not keep track of local _data (only by proxy if using Store MemoryAdapter); Browser should
@@ -18,7 +19,7 @@ Store = module.exports = ->
   @adapter = adapter = new MemoryAdapter
   @stm = new Stm
 
-  @_pendingSets = pending = {}
+  @_pending = pending = {}
   setInterval ->
     lastWrittenVer = adapter._ver
     nextVerToWrite = ++lastWrittenVer
@@ -44,15 +45,15 @@ Store:: =
   # Note that for now, store setters will only commit against base 0
   # TODO: Figure out how to better version store operations if they are to be
   # used for anything other than initialization code
-  # TODO: DRY this up
   set: (path, value, callback) ->
-    adapter = @adapter
-    pending = @_pendingSets
-    @stm.commit [0, '_.0', 'set', path, value], (err, ver) ->
-      if err then return callback && callback err
-      pending[ver] = ['set', path, value, ver, callback]
+    @commit [0, '_.0', 'set', path, value], callback
   del: (path, callback) ->
-    adapter = @adapter
-    @stm.commit [0, '_.0', 'del', path], -> (err, ver) ->
+    @commit [0, '_.0', 'del', path], callback
+    
+  commit: (txn, callback) ->
+    pending = @_pending
+    @stm.commit txn, (err, ver) ->
+      # TODO: Callback after stm commit is successful instead of after
+      # the adapter operation is complete
       if err then return callback && callback err
-      adapter.del path, callback
+      pending[ver] = transaction.op(txn).concat(ver, callback)
