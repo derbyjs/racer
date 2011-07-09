@@ -7,6 +7,8 @@ browserify = require 'browserify'
 
 app = express.createServer()
 
+app.use rally
+
 app.get '/', (req, res) ->
   fs.readFile 'client.js', 'utf8', (err, clientScript) ->
     fs.readFile 'style.css', 'utf8', (err, style) ->

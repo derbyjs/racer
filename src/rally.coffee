@@ -6,7 +6,20 @@ Store = require './Store'
 for name, fn of modelServer
   Model::[name] = fn
 
-module.exports =
+# rally itself is connect middleware, for
+# easy integration into connect/express
+if _.onServer
+  rally = (req, res, next) ->
+    reqRally = req.rally = Object.create rally
+    reqRally.clientId = req.session.clientId ||= rally.nextClientId++
+    next()
+  rally.nextClientId = 1
+else
+  rally = {}
+
+module.exports = rally
+
+methods =
   store: store = new Store
   subscribe: (path, callback) ->
     # TODO: Accept a list of paths
@@ -22,3 +35,5 @@ module.exports =
     throw "Unimplemented"
   use: ->
     throw "Unimplemented"
+
+rally[name] = fn for name, fn of methods
