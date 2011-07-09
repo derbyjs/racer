@@ -6,6 +6,10 @@ browserify = require 'browserify'
 bundle = browserify.bundle require: ['rally']
 app = express.createServer()
 
+app.use express.cookieParser()
+app.use express.session({secret: 'rally'})
+app.use rally
+
 app.get '/', (req, res) ->
   fs.readFile 'client.js', 'utf8', (err, clientScript) ->
     fs.readFile 'style.css', 'utf8', (err, style) ->

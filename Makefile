@@ -31,3 +31,6 @@ test: test-async-fast test-serial-fast test-serial-slow
 
 test-cov:
 	@TESTFLAGS=--cov $(MAKE) test
+
+compile:
+	./node_modules/coffee-script/bin/coffee -b -w -o ./lib -c ./src
