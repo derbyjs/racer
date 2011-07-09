@@ -1,14 +1,10 @@
 Model = require './Model'
 modelServer = require './Model.server'
 Store = require './Store'
-browserify = require 'browserify'
 
 # Add the server side functions to Model's prototype
 for name, fn of modelServer
   Model::[name] = fn
-
-clientJs = browserify.bundle
-  require: __dirname + '/Model.js'
 
 module.exports =
   store: store = new Store
@@ -22,7 +18,6 @@ module.exports =
       model._set path, value
       model._base = ver
       callback null, model
-  js: -> clientJs
   unsubscribe: ->
     throw "Unimplemented"
   use: ->

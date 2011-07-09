@@ -1,0 +1,9 @@
+{ "name": "rally-letters-example",
+  "description": "Pants optional.",
+  "version": "0.0.0",
+  "main": "./server.js",
+  "dependencies": {
+    "rally": "*"
+  },
+  "private": true
+}
