@@ -6,16 +6,18 @@ io = require 'socket.io'
 # Add the server side functions to Model's prototype
 Model::[name] = fn for name, fn of modelServer
 
+# TODO: This solution only works for a single server. Fix to work with
+# multiple servers
 clientIdCount = 0
 nextClientId = -> (clientIdCount++).toString(36)
 
-# rally itself is connect middleware, for
+# The rally modules is connect middleware, for
 # easy integration into connect/express
 module.exports = rally = (req, res, next) ->
   if !req.session
     throw 'Missing session middleware'
   oldProto = rally.__proto__
-  # re-define rally here, so we only do the
+  # Re-define rally here, so we only do the
   # session middleware check once
   rally = (req, res, next) ->
     reqRally = req.rally = Object.create rally
