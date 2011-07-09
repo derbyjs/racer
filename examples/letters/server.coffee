@@ -7,6 +7,8 @@ browserify = require 'browserify'
 
 app = express.createServer()
 
+app.use express.cookieParser()
+app.use express.session({secret: 'rally'})
 app.use rally
 
 app.get '/', (req, res) ->

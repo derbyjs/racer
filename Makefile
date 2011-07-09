@@ -33,4 +33,4 @@ test-cov:
 	@TESTFLAGS=--cov $(MAKE) test
 
 compile:
-	./node_modules/coffee-script/bin/coffee -o ./lib -c ./src
+	./node_modules/coffee-script/bin/coffee -b -w -o ./lib -c ./src

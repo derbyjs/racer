@@ -4,6 +4,11 @@ express = require('express');
 fs = require('fs');
 browserify = require('browserify');
 app = express.createServer();
+app.use(express.cookieParser());
+app.use(express.session({
+  secret: 'rally'
+}));
+app.use(rally);
 app.get('/', function(req, res) {
   return fs.readFile('client.js', 'utf8', function(err, clientScript) {
     return fs.readFile('style.css', 'utf8', function(err, style) {
