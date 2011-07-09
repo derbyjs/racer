@@ -3,16 +3,18 @@ Model = module.exports = ->
   self._data = {}
   self._base = 0
   self._clientId = ''
+  self._subs = {}
   
   self._txnCount = 0
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
   
   self._onTxn = (txn) ->
-    [base, txnId, method, args...] = txn
-    self['_' + method].apply self, args
+    [base, txnId, method, path, args...] = txn
+    self['_' + method].apply self, txn.slice(3)
     self._base = base
     self._removeTxn txnId
+    self._emit method, path, args
   
   self.get = (path) ->
     if len = txnQueue.length
@@ -41,11 +43,27 @@ Model:: =
       socket.emit 'txn', txn
       # TODO: Only return true if sent successfully
       return true
-  
-  _on: (pattern, callback) ->
-    pattern.replace(/\.((?:[^\.\|]+)\|?){2,})\./g, '.($1).')
+
+  on: (method, pattern, callback) ->
+    re = new RegExp '^' + pattern
+      # Add parentheses around or-ed sections without parens
+      .replace(/(^|\.)((?:[^\.\|]+\|)(?:[^\.\|]+\|?)*)(\.|$)/g, '$1($2)$3')
+      # Escape periods
       .replace(/\./g, '\\.')
-      .replace(/\*/g, '([^\\.])')
+      # Match any character string not including a period in place of asterisks
+      .replace(/\*/g, '([^\\.]+)') + '$'
+    sub = [re, callback]
+    subs = @_subs
+    if subs[method] is undefined
+      subs[method] = [sub]
+    else
+      subs[method].push sub
+  _emit: (method, path, args) ->
+    return if !subs = @_subs[method]
+    for sub in subs
+      re = sub[0]
+      if re.test path
+        sub[1].apply null, re.exec(path).slice(1).concat(args)
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->

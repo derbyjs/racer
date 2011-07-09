@@ -54,7 +54,7 @@ window.onload = function() {
     model.set(letterPath + '.top', e.clientY - dragData.startTop);
     return dragTarget.parentNode.appendChild(dragTarget);
   });
-  return model.on('letters.*.left|top', function(id, prop, value) {
+  return model.on('set', 'letters.*.left|top', function(id, prop, value) {
     var el;
     el = document.getElementById(id);
     return el.style[prop] = value + 'px';

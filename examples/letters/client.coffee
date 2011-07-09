@@ -58,7 +58,7 @@ window.onload = ->
   # Update the letter's position when the model changes
   # Path wildcards are passed to the handler function as arguments in order.
   # The function arguments are: (wildcards..., value, path)
-  model.on 'letters.*.left|top', (id, prop, value) ->
+  model.on 'set', 'letters.*.left|top', (id, prop, value) ->
     el = document.getElementById id
     el.style[prop] = value + 'px'
 
