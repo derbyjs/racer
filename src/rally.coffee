@@ -19,7 +19,7 @@ module.exports = rally = (req, res, next) ->
   # Re-define rally here, so we only do the
   # session middleware check once
   oldRally = rally
-  rally = (req, res, next) ->
+  module.exports = rally = (req, res, next) ->
     session = req.session
     session.clientId = clientId = session.clientId || nextClientId()
     req.model = new Model clientId
