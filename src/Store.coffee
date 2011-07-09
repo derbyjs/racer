@@ -38,9 +38,8 @@ Store:: =
     @stm.commit [0, 'store.0', 'set', path, value], (err, ver) ->
       if err then return callback && callback err
       adapter.set path, value, ver, callback
-  delete: (path, callback) ->
+  del: (path, callback) ->
     adapter = @adapter
     @stm.commit [0, 'store.0', 'del', path], -> (err, ver) ->
       if err then return callback && callback err
-      adapter.set path, value, ver, callback
-      
+      adapter.del path, callback

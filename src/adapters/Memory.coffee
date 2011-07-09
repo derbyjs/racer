@@ -17,9 +17,8 @@ Memory:: =
     callback null if callback
   
   _del: Model::._del
-  delete: (path, value, ver, callback) ->
+  del: (path, callback) ->
     @_del path, value
-    @_ver = ver
     callback null if callback
 
   get: (path, callback) ->

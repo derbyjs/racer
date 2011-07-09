@@ -112,7 +112,7 @@ Model:: =
   set: (path, value) ->
     @_addTxn ['set', path, value]
     return value
-  delete: (path) ->
+  del: (path) ->
     @_addTxn ['del', path]
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
