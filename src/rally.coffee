@@ -16,15 +16,15 @@ nextClientId = -> (clientIdCount++).toString(36)
 module.exports = rally = (req, res, next) ->
   if !req.session
     throw 'Missing session middleware'
-  oldProto = rally.__proto__
   # Re-define rally here, so we only do the
   # session middleware check once
+  oldRally = rally
   rally = (req, res, next) ->
     session = req.session
     session.clientId = clientId = session.clientId || nextClientId()
     req.model = new Model clientId
     next()
-  rally.__proto__ = oldProto
+  rally[name] = prop for name, prop of oldRally
   rally req, res, next
 
 rally.store = store = new Store
