@@ -27,4 +27,5 @@ module.exports =
 io = io.listen 3001
 io.sockets.on 'connection', (socket) ->
   socket.on 'txn', (data) ->
+    # TODO: Actually submit transaction to STM instead of just echoing
     socket.emit 'txn', data

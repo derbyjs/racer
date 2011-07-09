@@ -41,6 +41,11 @@ Model:: =
       socket.emit 'txn', txn
       # TODO: Only return true if sent successfully
       return true
+  
+  _on: (pattern, callback) ->
+    pattern.replace(/\.((?:[^\.\|]+)\|?){2,})\./g, '.($1).')
+      .replace(/\./g, '\\.')
+      .replace(/\*/g, '([^\\.])')
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (op) ->
