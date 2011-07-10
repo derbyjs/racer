@@ -6,17 +6,10 @@ io = require 'socket.io'
 browserify = require 'browserify'
 fs = require 'fs'
 
-# Add the server side functions to Model's prototype
-Model::[name] = fn for name, fn of modelServer
-
-# TODO: This solution only works for a single server. Fix to work with
-# multiple servers
-clientIdCount = 1
-nextClientId = -> (clientIdCount++).toString(36)
-
 ioUri = ''
-
 module.exports = rally = (options) ->
+  # TODO: Provide full configuration for socket.io
+  # TODO: Add configuration for Redis
   ioPort = options.ioPort || 80
   ioUri = options.ioUri || ':' + ioPort
   ioSockets = options.ioSockets || io.listen(ioPort).sockets
@@ -33,22 +26,28 @@ module.exports = rally = (options) ->
   return (req, res, next) ->
     if !req.session
       throw 'Missing session middleware'
-    session = req.session
-    session.clientId = clientId = session.clientId || nextClientId()
-    req.model = new Model clientId, ioUri
-    next()
+    finish = (clientId) ->
+      req.model = new Model clientId, ioUri
+      next()
+    if clientId = req.session.clientId
+      finish clientId
+    else
+      nextClientId (clientId) ->
+        req.session.clientId = clientId
+        finish clientId
 
 rally.store = store = new Store
 rally.subscribe = (path, callback) ->
   # TODO: Accept a list of paths
   # TODO: Attach to an existing model
   # TODO: Support path wildcards, references, and functions
-  model = new Model nextClientId(), ioUri
-  store.get path, (err, value, ver) ->
-    callback err if err
-    model._set path, value
-    model._base = ver
-    callback null, model
+  nextClientId (clientId) ->
+    model = new Model clientId, ioUri
+    store.get path, (err, value, ver) ->
+      callback err if err
+      model._set path, value
+      model._base = ver
+      callback null, model
 rally.unsubscribe = ->
   throw "Unimplemented"
 rally.use = ->
@@ -56,3 +55,11 @@ rally.use = ->
 rally.js = ->
   browserify.bundle(require: 'rally') + fs.readFileSync __dirname +
     '/../node_modules/socket.io/node_modules/socket.io-client/dist/socket.io.js'
+
+# Add the server side functions to Model's prototype
+Model::[name] = fn for name, fn of modelServer
+
+stm = store._stm
+nextClientId = (callback) -> stm._client.incr 'clientIdCount', (err, value) ->
+  throw err if err
+  callback value.toString(36)

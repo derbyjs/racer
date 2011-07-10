@@ -16,8 +16,8 @@ transaction = require './transaction'
 FLUSH_MS = 500
 
 Store = module.exports = ->
-  @adapter = adapter = new MemoryAdapter
-  @stm = new Stm
+  @_adapter = adapter = new MemoryAdapter
+  @_stm = new Stm
 
   pending = {}
   ver = 1
@@ -47,11 +47,11 @@ Store:: =
     cb = (err) ->
       callback err, callback = null if callback && done || err
       done = true
-    @adapter.flush cb
-    @stm.flush cb
+    @_adapter.flush cb
+    @_stm.flush cb
   
   get: (path, callback) ->
-    @adapter.get path, callback
+    @_adapter.get path, callback
   
   # Note that for now, store setters will only commit against base 0
   # TODO: Figure out how to better version store operations if they are to be
@@ -63,7 +63,7 @@ Store:: =
     
   _commit: (txn, callback) ->
     queue = @_queue
-    @stm.commit txn, (err, ver) ->
+    @_stm.commit txn, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
       return if err
