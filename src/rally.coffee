@@ -1,6 +1,7 @@
 Model = require './Model'
 modelServer = require './Model.server'
 Store = require './Store'
+transaction = require './transaction'
 io = require 'socket.io'
 
 # Add the server side functions to Model's prototype
@@ -45,10 +46,8 @@ rally.use = ->
 
 io = io.listen 3001
 io.sockets.on 'connection', (socket) ->
-  socket.on 'txn', (data) ->
-    # TODO: Actually submit transaction to STM instead of just echoing
-    # TODO: Remove timeout delay below. Added for testing
-    setTimeout ->
-      socket.broadcast.emit 'txn', data
-      socket.emit 'txn', data
-    , 400
+  socket.on 'txn', (txn) ->
+    store._commit txn, (err, txn) ->
+      return socket.emit 'txnFail', transaction.id txn if err
+      socket.broadcast.emit 'txn', txn
+      socket.emit 'txn', txn

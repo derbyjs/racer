@@ -19,17 +19,28 @@ Store = module.exports = ->
   @adapter = adapter = new MemoryAdapter
   @stm = new Stm
 
-  @_pending = pending = {}
+  pending = {}
+  ver = 1
+  maxVer = 0
+  @_queue = (txn, ver) ->
+    pending[ver] = txn
+    maxVer = ver
   setInterval ->
-    lastWrittenVer = adapter._ver
-    nextVerToWrite = ++lastWrittenVer
-    while pending[nextVerToWrite]
-      [method, args...] = pending[nextVerToWrite]
-      adapter[method] args... # Implicitly increments adapter._ver
-      delete pending[nextVerToWrite++]
+    while ver <= maxVer
+      break unless txn = pending[ver]
+      method = transaction.method txn
+      opArgs = transaction.opArgs txn
+      opArgs.push ver, (err) ->
+        # TODO: Better adapter error handling and potentially a second callback
+        # to the caller of _commit when the adapter operation completes
+        throw err if err
+      adapter[method] opArgs...
+      delete pending[ver]
+      ver++
   , FLUSH_MS
-  return
   
+  return
+
 Store:: =
   flush: (callback) ->
     done = false
@@ -46,14 +57,14 @@ Store:: =
   # TODO: Figure out how to better version store operations if they are to be
   # used for anything other than initialization code
   set: (path, value, callback) ->
-    @commit [0, '_.0', 'set', path, value], callback
+    @_commit [0, '_.0', 'set', path, value], callback
   del: (path, callback) ->
-    @commit [0, '_.0', 'del', path], callback
+    @_commit [0, '_.0', 'del', path], callback
     
-  commit: (txn, callback) ->
-    pending = @_pending
+  _commit: (txn, callback) ->
+    queue = @_queue
     @stm.commit txn, (err, ver) ->
-      # TODO: Callback after stm commit is successful instead of after
-      # the adapter operation is complete
-      if err then return callback && callback err
-      pending[ver] = transaction.op(txn).concat(ver, callback)
+      txn[0] = ver
+      callback err, txn if callback
+      return if err
+      queue txn, ver
