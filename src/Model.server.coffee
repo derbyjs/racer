@@ -13,3 +13,4 @@ module.exports =
     base: @_base
     clientId: @_clientId
     txnCount: @_txnCount
+    ioUri: @_ioUri

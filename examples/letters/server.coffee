@@ -1,38 +1,33 @@
 rally = require 'rally'
 express = require 'express'
 fs = require 'fs'
-browserify = require 'browserify'
 
-bundle = browserify.bundle require: ['rally']
+script = rally.js() + fs.readFileSync 'client.js'
+style = fs.readFileSync 'style.css'
+
+rally ioPort: 3001
 app = express.createServer()
 
 app.get '/', (req, res) ->
-  fs.readFile 'client.js', 'utf8', (err, clientScript) ->
-    fs.readFile 'style.css', 'utf8', (err, style) ->
-      # Subscribe optionally accepts a model as an argument. If no model is
-      # specified, it will create a new model object.
-      rally.subscribe 'letters', (err, model) ->
-        res.send """
-        <!DOCTYPE html>
-        <title>Letters game</title>
-        <style>#{style}</style>
-        <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
-        <div id=back>
-          <div id=page>
-            <p id=info>
-            <div id=board></div>
-          </div>
-        </div>
-        <script src="http://localhost:3001/socket.io/socket.io.js"></script>
-        <script>
-          #{bundle}
-          var rally = require('rally');
-          rally.init(#{model.json()});
-          #{clientScript}
-        </script>
-        """
-
-# TODO: Pass in Socket.IO and Redis configuration params
+  # Subscribe optionally accepts a model as an argument. If no model is
+  # specified, it will create a new model object.
+  rally.subscribe 'letters', (err, model) ->
+    res.send """
+    <!DOCTYPE html>
+    <title>Letters game</title>
+    <style>#{style}</style>
+    <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
+    <div id=back>
+      <div id=page>
+        <p id=info>
+        <div id=board></div>
+      </div>
+    </div>
+    <script>
+      #{script}
+      rally.init(#{model.json()});
+    </script>
+    """
 
 # Clear any existing data, then initialize
 rally.store.flush ->

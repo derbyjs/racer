@@ -1,4 +1,5 @@
-var addListener;
+var addListener, rally;
+rally = require('rally');
 window.onload = function() {
   var board, close, dragData, html, id, letter, model, open, _ref;
   model = rally.model;

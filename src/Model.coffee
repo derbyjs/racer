@@ -1,8 +1,7 @@
-Model = module.exports = (clientId = '')->
+Model = module.exports = (@_clientId = '', @_ioUri = '')->
   self = this
   self._data = {}
   self._base = 0
-  self._clientId = clientId
   self._subs = {}
   
   self._txnCount = 0

@@ -3,6 +3,8 @@ modelServer = require './Model.server'
 Store = require './Store'
 transaction = require './transaction'
 io = require 'socket.io'
+browserify = require 'browserify'
+fs = require 'fs'
 
 # Add the server side functions to Model's prototype
 Model::[name] = fn for name, fn of modelServer
@@ -12,28 +14,36 @@ Model::[name] = fn for name, fn of modelServer
 clientIdCount = 1
 nextClientId = -> (clientIdCount++).toString(36)
 
-# The rally modules is connect middleware, for
-# easy integration into connect/express
-module.exports = rally = (req, res, next) ->
-  if !req.session
-    throw 'Missing session middleware'
-  # Re-define rally here, so we only do the
-  # session middleware check once
-  oldRally = rally
-  module.exports = rally = (req, res, next) ->
+ioUri = ''
+
+module.exports = rally = (options) ->
+  ioPort = options.ioPort || 80
+  ioUri = options.ioUri || ':' + ioPort
+  ioSockets = options.ioSockets || io.listen(ioPort).sockets
+  
+  ioSockets.on 'connection', (socket) ->
+    socket.on 'txn', (txn) ->
+      store._commit txn, (err, txn) ->
+        return socket.emit 'txnFail', transaction.id txn if err
+        socket.broadcast.emit 'txn', txn
+        socket.emit 'txn', txn
+  
+  # The rally module returns connect middleware for
+  # easy integration into connect/express
+  return (req, res, next) ->
+    if !req.session
+      throw 'Missing session middleware'
     session = req.session
     session.clientId = clientId = session.clientId || nextClientId()
-    req.model = new Model clientId
+    req.model = new Model clientId, ioUri
     next()
-  rally[name] = prop for name, prop of oldRally
-  rally req, res, next
 
 rally.store = store = new Store
 rally.subscribe = (path, callback) ->
   # TODO: Accept a list of paths
   # TODO: Attach to an existing model
   # TODO: Support path wildcards, references, and functions
-  model = new Model nextClientId()
+  model = new Model nextClientId(), ioUri
   store.get path, (err, value, ver) ->
     callback err if err
     model._set path, value
@@ -43,11 +53,6 @@ rally.unsubscribe = ->
   throw "Unimplemented"
 rally.use = ->
   throw "Unimplemented"
-
-io = io.listen 3001
-io.sockets.on 'connection', (socket) ->
-  socket.on 'txn', (txn) ->
-    store._commit txn, (err, txn) ->
-      return socket.emit 'txnFail', transaction.id txn if err
-      socket.broadcast.emit 'txn', txn
-      socket.emit 'txn', txn
+rally.js = ->
+  browserify.bundle(require: 'rally') + fs.readFileSync __dirname +
+    '/../node_modules/socket.io/node_modules/socket.io-client/dist/socket.io.js'
