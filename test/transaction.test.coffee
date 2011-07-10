@@ -3,24 +3,30 @@ should = require 'should'
 transaction = require 'transaction'
 
 # transaction object literal
-txn = [baseVer = 2, txnId = '4.0', method = 'set', path = 'count', 1]
+txn = [2, '4.0', 'set', 'count', 1]
 
 module.exports =
   # Properties
 
-  'it should be able to access the baseVer': ->
-    transaction.base(txn).should.equal 2
+  'test transaction.base': ->
+    transaction.base(txn).should.eql 2
 
-  'it should be able to access the transaction id': ->
-    transaction.id(txn).should.equal '4.0'
+  'test transaction.id': ->
+    transaction.id(txn).should.eql '4.0'
 
-  'it should be able to access the method': ->
-    transaction.method(txn).should.equal 'set'
+  'test transaction.op': ->
+    transaction.op(txn).should.eql ['set', 'count', 1]
 
-  'it should be able to access the path': ->
-    transaction.path(txn).should.equal 'count'
-    
-  'it should be able to access the arguments': ->
+  'test transaction.method': ->
+    transaction.method(txn).should.eql 'set'
+
+  'test transaction.opArgs': ->
+    transaction.opArgs(txn).should.eql ['count', 1]
+
+  'test transaction.path': ->
+    transaction.path(txn).should.eql 'count'
+
+  'test transaction.args': ->
     transaction.args(txn).should.eql [1]
 
   # Evaluating (but not applying) transactions
@@ -29,13 +35,13 @@ module.exports =
 
   # Path Conflict Detection
 
-  'Paths where neither is a sub-path of the other should not conflict': ->
+  'paths where neither is a sub-path of the other should not conflict': ->
     transaction.pathConflict('abc', 'def').should.be.false
     transaction.pathConflict('def', 'abc').should.be.false # symmetric
     transaction.pathConflict('abc.de', 'abc.def').should.be.false
     transaction.pathConflict('abc.def', 'abc.de').should.be.false # symmetric
 
-  'Paths where one is a sub-path of the other should conflict': ->
+  'paths where one is a sub-path of the other should conflict': ->
     transaction.pathConflict('abc', 'abc.def').should.be.true
     transaction.pathConflict('abc.def', 'abc').should.be.true # symmetric
     transaction.pathConflict('abc', 'abc').should.be.true
