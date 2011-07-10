@@ -7,6 +7,7 @@ browserify = require 'browserify'
 fs = require 'fs'
 
 ioUri = ''
+ioSockets = null
 module.exports = rally = (options) ->
   # TODO: Provide full configuration for socket.io
   # TODO: Add configuration for Redis
@@ -18,8 +19,7 @@ module.exports = rally = (options) ->
     socket.on 'txn', (txn) ->
       store._commit txn, (err, txn) ->
         return socket.emit 'txnFail', transaction.id txn if err
-        socket.broadcast.emit 'txn', txn
-        socket.emit 'txn', txn
+        ioSockets.emit 'txn', txn
   
   # The rally module returns connect middleware for
   # easy integration into connect/express
@@ -56,10 +56,25 @@ rally.js = ->
   browserify.bundle(require: 'rally') + fs.readFileSync __dirname +
     '/../node_modules/socket.io/node_modules/socket.io-client/dist/socket.io.js'
 
-# Add the server side functions to Model's prototype
-Model::[name] = fn for name, fn of modelServer
+nextClientId = (callback) ->
+  store._stm._client.incr 'clientIdCount', (err, value) ->
+    throw err if err
+    callback value.toString(36)
 
-stm = store._stm
-nextClientId = (callback) -> stm._client.incr 'clientIdCount', (err, value) ->
-  throw err if err
-  callback value.toString(36)
+# Update Model's prototype to provide server-side functionality
+Model::_send = (txn) ->
+  onTxn = @_onTxn
+  removeTxn = @_removeTxn
+  store._commit txn, (err, txn) ->
+    return removeTxn transaction.id txn if err
+    onTxn txn
+    ioSockets.emit 'txn', txn
+  return true
+Model::json = modelJson = (callback, self = this) ->
+  setTimeout modelJson, 10, callback, self if self._txnQueue.length
+  callback JSON.stringify
+    data: self._data
+    base: self._base
+    clientId: self._clientId
+    txnCount: self._txnCount
+    ioUri: self._ioUri

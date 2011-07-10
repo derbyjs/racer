@@ -12,22 +12,23 @@ app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object.
   rally.subscribe 'letters', (err, model) ->
-    res.send """
-    <!DOCTYPE html>
-    <title>Letters game</title>
-    <style>#{style}</style>
-    <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
-    <div id=back>
-      <div id=page>
-        <p id=info>
-        <div id=board></div>
+    model.json (json) ->
+      res.send """
+      <!DOCTYPE html>
+      <title>Letters game</title>
+      <style>#{style}</style>
+      <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
+      <div id=back>
+        <div id=page>
+          <p id=info>
+          <div id=board></div>
+        </div>
       </div>
-    </div>
-    <script>
-      #{script}
-      rally.init(#{model.json()});
-    </script>
-    """
+      <script>
+        #{script}
+        rally.init(#{json});
+      </script>
+      """
 
 # Clear any existing data, then initialize
 rally.store.flush ->

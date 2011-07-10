@@ -10,7 +10,9 @@ rally({
 app = express.createServer();
 app.get('/', function(req, res) {
   return rally.subscribe('letters', function(err, model) {
-    return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board></div>\n  </div>\n</div>\n<script>\n  " + script + "\n  rally.init(" + (model.json()) + ");\n</script>");
+    return model.json(function(json) {
+      return res.send("<!DOCTYPE html>\n<title>Letters game</title>\n<style>" + style + "</style>\n<link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>\n<div id=back>\n  <div id=page>\n    <p id=info>\n    <div id=board></div>\n  </div>\n</div>\n<script>\n  " + script + "\n  rally.init(" + json + ");\n</script>");
+    });
   });
 });
 rally.store.flush(function() {
