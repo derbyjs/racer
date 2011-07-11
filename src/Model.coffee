@@ -48,10 +48,18 @@ Model:: =
       return true
 
   on: (method, pattern, callback) ->
-    re = new RegExp '^' + pattern.replace(/[\.\*]/g, (match) ->
-        return '\\.' if match == '.'
-        return '([^\\.]+)' if match == '*'
-      ) + '$'
+    re = if pattern instanceof RegExp then pattern else
+      new RegExp '^' + pattern.replace(/\.|\*+/g, (match, index) ->
+          # Escape periods
+          return '\\.' if match is '.'
+          # A single asterisk matches any single path segment
+          return '([^\\.]+)' if match is '*'
+          # A double asterisk matches any path segment or segments
+          return if match is '**'
+            # Use greedy matching at the end of the path and
+            # non-greedy matching otherwise
+            if pattern.length - index is 2 then '(.+)' else '(.+?)'
+        ) + '$'
     sub = [re, callback]
     subs = @_subs
     if subs[method] is undefined
