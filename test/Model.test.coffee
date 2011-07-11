@@ -227,3 +227,17 @@ module.exports =
         numbers:
           first: 2
           second: 10
+  
+  'test internal creation of model event subscriptions': ->
+    model = new Model
+    model.on 'set', pattern for pattern in [
+      'color'
+      '*'
+      '*.color.*'
+    ]
+    model._subs['set'][i][0].source.should.eql source for source, i in [
+      '^color$'
+      '^([^\\.]+)$'
+      '^([^\\.]+)\\.color\\.([^\\.]+)$'
+    ]
+    

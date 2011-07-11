@@ -3,8 +3,7 @@ mocks = require './mocks'
   
 exports.mockSocketModel = (clientId = '', onTxn = ->) ->
   serverSockets = new mocks.ServerSocketsMock()
-  serverSockets.on 'connection', (socket) ->
-    socket.on 'txn', onTxn
+  serverSockets.on 'connection', (socket) -> socket.on 'txn', onTxn
   browserSocket = new mocks.BrowserSocketMock(serverSockets)
   model = new Model()
   model._clientId = clientId

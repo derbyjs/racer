@@ -48,13 +48,12 @@ Model:: =
       return true
 
   on: (method, pattern, callback) ->
-    re = new RegExp '^' + pattern
-      # Add parentheses around or-ed sections without parens
-      .replace(/(^|\.)((?:[^\.\|]+\|)(?:[^\.\|]+\|?)*)(\.|$)/g, '$1($2)$3')
-      # Escape periods
-      .replace(/\./g, '\\.')
-      # Match any character string not including a period in place of asterisks
-      .replace(/\*/g, '([^\\.]+)') + '$'
+    re = new RegExp '^' + pattern.replace(/[\.\*]/g, (match) ->
+        switch match
+          when '.' then return '\\.'
+          when '*' then return '([^\\.]+)'
+        return ''
+      ) + '$'
     sub = [re, callback]
     subs = @_subs
     if subs[method] is undefined
