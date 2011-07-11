@@ -2,16 +2,22 @@ rally = require 'rally'
 express = require 'express'
 fs = require 'fs'
 
-script = rally.js() + fs.readFileSync 'client.js'
-style = fs.readFileSync 'style.css'
-
 rally ioPort: 3001
 app = express.createServer()
 
+# rally.js returns a browserify bundle of the rally client side code and the
+# socket.io client side code
+script = rally.js() + fs.readFileSync 'client.js'
+style = fs.readFileSync 'style.css'
+
+app.get '/script.js', (req, res) -> res.send script
+
 app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
-  # specified, it will create a new model object.
+  # specified, it will create a new model object
   rally.subscribe 'letters', (err, model) ->
+    # model.json waits for any pending model operations to complete and then
+    # returns the data for initialization on the client
     model.json (json) ->
       res.send """
       <!DOCTYPE html>
@@ -24,10 +30,8 @@ app.get '/', (req, res) ->
           <div id=board></div>
         </div>
       </div>
-      <script>
-        #{script}
-        rally.init(#{json});
-      </script>
+      <script src=/script.js></script>
+      <script>rally.init(#{json})</script>
       """
 
 # Clear any existing data, then initialize
