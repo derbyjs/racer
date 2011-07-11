@@ -240,4 +240,22 @@ module.exports =
       '^([^\\.]+)$'
       '^([^\\.]+)\\.color\\.([^\\.]+)$'
     ]
-    
+
+  'test that model events get emitted properly': wrapTest (done) ->
+    [sockets, model] = mockSocketModel 'client0', (txn) ->
+      sockets.emit 'txn', txn
+    count = 0
+    model.on 'set', '*', (path, value) ->
+      path.should.equal 'color'
+      value.should.equal 'green'
+      if count is 0
+        model._txnQueue.length.should.eql 1
+        model._data.should.eql {}
+      else
+        model._txnQueue.length.should.eql 0
+        model._data.should.eql color: 'green'
+      model.get('color').should.equal 'green'
+      count++
+      done()
+    model.set 'color', 'green'
+  , 2

@@ -49,10 +49,8 @@ Model:: =
 
   on: (method, pattern, callback) ->
     re = new RegExp '^' + pattern.replace(/[\.\*]/g, (match) ->
-        switch match
-          when '.' then return '\\.'
-          when '*' then return '([^\\.]+)'
-        return ''
+        return '\\.' if match == '.'
+        return '([^\\.]+)' if match == '*'
       ) + '$'
     sub = [re, callback]
     subs = @_subs
