@@ -1,5 +1,4 @@
-**.swp
+*.swp
 node_modules/
 lib/
-examples/letters/*.js
-examples/letters/node_modules/
+examples/*/*.js
