@@ -4,20 +4,20 @@ SERIAL_TESTS_SLOW = $(shell find test/ -name '*.test.serial.slow.coffee')
 
 test-async-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I lib \
+		-I src \
 		$(TESTFLAGS) \
 		$(ASYNC_TESTS_FAST)
 
 test-serial-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I lib \
+		-I src \
 		--serial \
 		$(TESTFLAGS) \
 		$(SERIAL_TESTS_FAST)
 
 test-serial-slow:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I lib \
+		-I src \
 		--serial \
 		--timeout 6000 \
 		$(TESTFLAGS) \

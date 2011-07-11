@@ -1,5 +1,4 @@
 Model = require './Model'
-modelServer = require './Model.server'
 Store = require './Store'
 transaction = require './transaction'
 io = require 'socket.io'
@@ -11,20 +10,26 @@ ioSockets = null
 module.exports = rally = (options) ->
   # TODO: Provide full configuration for socket.io
   # TODO: Add configuration for Redis
+
+  ## Setup socket.io ##
   ioPort = options.ioPort || 80
   ioUri = options.ioUri || ':' + ioPort
   ioSockets = options.ioSockets || io.listen(ioPort).sockets
-  
   ioSockets.on 'connection', (socket) ->
     socket.on 'txn', (txn) ->
       store._commit txn, (err, txn) ->
         return socket.emit 'txnFail', transaction.id txn if err
         ioSockets.emit 'txn', txn
   
+  ## Connect Middleware ##
   # The rally module returns connect middleware for
   # easy integration into connect/express
+  # 1. Assigns clientId's if not yet assigned
+  # 2. Instantiates a new Model and attaches it to the incoming request,
+  #    for access from route handlers later
   return (req, res, next) ->
     if !req.session
+      # TODO Do this check only the first time the middleware is invoked
       throw 'Missing session middleware'
     finish = (clientId) ->
       req.model = new Model clientId, ioUri
