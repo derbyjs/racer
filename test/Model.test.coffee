@@ -235,11 +235,27 @@ module.exports =
       '*'
       '*.color.*'
     ]
-    model._subs['set'][i][0].source.should.eql source for source, i in [
+    sources = [
       '^color$'
       '^([^\\.]+)$'
       '^([^\\.]+)\\.color\\.([^\\.]+)$'
     ]
+    matches = [
+      ['color']
+      ['any-thing']
+      ['x.color.y', 'any-thing.color.x']
+    ]
+    nonMatches = [
+      ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
+      ['', 'x.y', '.x', 'x.']
+      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
+        '.color.y', 'x.color.', 'a.x.color.y', 'x.color.y.b']
+    ]
+    for sub, i in model._subs['set']
+      re = sub[0]
+      re.source.should.equal sources[i]
+      re.test(match).should.be.true for match in matches[i]
+      re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
 
   'test that model events get emitted properly': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', (txn) ->
