@@ -1,2 +1,4 @@
 **.swp
 node_modules/
+lib/
+examples/**.js
