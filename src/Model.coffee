@@ -49,7 +49,7 @@ Model:: =
 
   on: (method, pattern, callback) ->
     re = if pattern instanceof RegExp then pattern else
-      new RegExp '^' + pattern.replace(/\.|\*+/g, (match, index) ->
+      new RegExp '^' + pattern.replace(/\.|\*{1,2}/g, (match, index) ->
           # Escape periods
           return '\\.' if match is '.'
           # A single asterisk matches any single path segment
