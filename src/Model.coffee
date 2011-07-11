@@ -1,3 +1,5 @@
+transaction = require './transaction'
+
 Model = module.exports = (@_clientId = '', @_ioUri = '')->
   self = this
   self._data = {}
@@ -9,11 +11,12 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
   self._txnQueue = txnQueue = []
   
   self._onTxn = (txn) ->
-    [base, txnId, method, path, args...] = txn
-    self['_' + method].apply self, txn.slice(3)
-    self._base = base
-    self._removeTxn txnId
-    self._emit method, path, args
+    method = transaction.method txn
+    args = transaction.args txn
+    self['_' + method].apply self, args
+    self._base = transaction.base txn
+    self._removeTxn transaction.id txn
+    self._emit method, args
   self._removeTxn = (txnId) ->
     delete self._txns[txnId]
     txnQueue = self._txnQueue
@@ -25,12 +28,11 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
       obj = Object.create self._data
       i = 0
       while i < len
-        # Add the speculative model to each pending transactions by
-        # appending to each txn's args
-        txn = txns[txnQueue[i++]]
-        [method, args...] = txn.op
+        # Apply each pending operation to the speculative model
+        txn = txns[txnQueue[i++]].txn
+        args = transaction.args(txn)
         args.push obj: obj, proto: true
-        self['_' + method].apply self, args
+        self['_' + transaction.method txn].apply self, args
     else
       obj = self._data
     if path then self._lookup(path, obj: obj).obj else obj
@@ -66,7 +68,7 @@ Model:: =
       subs[method] = [sub]
     else
       subs[method].push sub
-  _emit: (method, path, args) ->
+  _emit: (method, [path, args...]) ->
     return if !subs = @_subs[method]
     for sub in subs
       re = sub[0]
@@ -74,19 +76,18 @@ Model:: =
         sub[1].apply null, re.exec(path).slice(1).concat(args)
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
-  _addTxn: (method, path, args...) ->
-    # Wraps the op in a transaction
-    # Places the transaction in a dictionary and queue
-    # Sends the transaction over Socket.IO
-    # Returns the transaction id
-    base = @_base
-    op = Array::.slice.call arguments
-    txn = op: op, base: base, sent: false
+  _addTxn: (method, args...) ->
+    # Create a new transaction
     id = @_nextTxnId()
-    @_txns[id] = txn
+    txn = [@_base, id, method, args...]
+    # Add it to a local queue
+    obj = txn: txn, sent: false
+    @_txns[id] = obj
     @_txnQueue.push id
-    @_emit method, path, args
-    txn.sent = @_send [base, id, op...]
+    # Emit an event on creation of the transaction
+    @_emit method, args
+    # Send it over Socket.IO or to the store on the server
+    obj.sent = @_send txn
     return id
 
   _lookup: (path, {obj, addPath, proto, onRef}) ->

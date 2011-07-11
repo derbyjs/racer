@@ -29,12 +29,12 @@ Store = module.exports = ->
     nextVerToWrite = ++lastWrittenVer
     while txn = pending[nextVerToWrite]
       method = transaction.method txn
-      opArgs = transaction.opArgs txn
-      opArgs.push ver, (err) ->
+      args = transaction.args txn
+      args.push ver, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of _commit when the adapter operation completes
         throw err if err
-      adapter[method] opArgs... # Implicitly increments adapter._ver
+      adapter[method] args... # Implicitly increments adapter._ver
       delete pending[nextVerToWrite++]
     # TODO This algo will need to change when we go
     #      multi-process, because we can't count on

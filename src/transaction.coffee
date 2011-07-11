@@ -2,11 +2,9 @@
 module.exports =
   base: (txn) -> txn[0]
   id: (txn) -> txn[1]
-  op: (txn) -> txn.slice 2
   method: (txn) -> txn[2]
-  opArgs: (txn) -> txn.slice 3
+  args: (txn) -> txn.slice 3
   path: (txn) -> txn[3]
-  args: (txn) -> txn.slice 4
   
   # Test to see if path name contains a segment that starts with an underscore.
   # Such a path is private to the current session and should not be stored

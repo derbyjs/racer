@@ -70,20 +70,17 @@ module.exports =
     model.set 'color', 'green'
     model._txns.should.eql
       'client0.0':
-        op: ['set', 'color', 'green']
-        base: 0
+        txn: [0, 'client0.0', 'set', 'color', 'green']
         sent: false
     model._txnQueue.should.eql ['client0.0']
     
     model.set 'count', 0
     model._txns.should.eql
       'client0.0':
-        op: ['set', 'color', 'green']
-        base: 0
+        txn: [0, 'client0.0', 'set', 'color', 'green']
         sent: false
       'client0.1':
-        op: ['set', 'count', '0']
-        base: 0
+        txn: [0, 'client0.1', 'set', 'count', '0']
         sent: false
     model._txnQueue.should.eql ['client0.0', 'client0.1']
   
@@ -112,8 +109,7 @@ module.exports =
     model._txnQueue.should.eql ['client0.0']
     model._txns.should.eql
       'client0.0':
-        op: ['set', 'color', 'green']
-        base: 0
+        txn: [0, 'client0.0', 'set', 'color', 'green']
         sent: true
   
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
@@ -129,8 +125,7 @@ module.exports =
     model._txnQueue.should.eql ['client0.0']
     model._txns.should.eql
       'client0.0':
-        op: ['del', 'color']
-        base: 0
+        txn: [0, 'client0.0', 'del', 'color']
         sent: true
   
   'test transaction is removed after failure': wrapTest (done) ->
@@ -144,8 +139,7 @@ module.exports =
     model._txnQueue.should.eql ['client0.0']
     model._txns.should.eql
       'client0.0':
-        op: ['set', 'color', 'green']
-        base: 0
+        txn: [0, 'client0.0', 'set', 'color', 'green']
         sent: true
   
   'test speculative value of set': ->

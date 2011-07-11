@@ -14,20 +14,14 @@ module.exports =
   'test transaction.id': ->
     transaction.id(txn).should.eql '4.0'
 
-  'test transaction.op': ->
-    transaction.op(txn).should.eql ['set', 'count', 1]
-
   'test transaction.method': ->
     transaction.method(txn).should.eql 'set'
 
-  'test transaction.opArgs': ->
-    transaction.opArgs(txn).should.eql ['count', 1]
+  'test transaction.args': ->
+    transaction.args(txn).should.eql ['count', 1]
 
   'test transaction.path': ->
     transaction.path(txn).should.eql 'count'
-
-  'test transaction.args': ->
-    transaction.args(txn).should.eql [1]
 
   # Evaluating (but not applying) transactions
 
