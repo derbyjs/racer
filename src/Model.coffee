@@ -14,6 +14,10 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
     self._base = base
     self._removeTxn txnId
     self._emit method, path, args
+  self._removeTxn = (txnId) ->
+    delete self._txns[txnId]
+    txnQueue = self._txnQueue
+    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   
   self.get = (path) ->
     if len = txnQueue.length
@@ -79,10 +83,6 @@ Model:: =
     @_emit method, path, args
     txn.sent = @_send [base, id, op...]
     return id
-  _removeTxn: (txnId) ->
-    delete @_txns[txnId]
-    txnQueue = @_txnQueue
-    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
 
   _lookup: (path, {obj, addPath, proto, onRef}) ->
     next = obj || @_data

@@ -234,14 +234,12 @@ module.exports =
       done()
   
   'test client set roundtrip with STM': (done) ->
-    [serverSocket, model] = mockSocketModel 'client0', (message) ->
-      [type, content, meta] = message
-      type.should.eql 'txn'
-      stm.commit content, (err, version) ->
+    [sockets, model] = mockSocketModel 'client0', (txn) ->
+      stm.commit txn, (err, version) ->
         should.equal null, err
         version.should.equal 1
-        content[0] = version
-        serverSocket.broadcast message
+        txn[0] = version
+        sockets.emit 'txn', txn
         model.get('color').should.eql 'green'
         done()
     model.set 'color', 'green'

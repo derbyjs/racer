@@ -1,16 +1,12 @@
 Model = require 'Model'
 mocks = require './mocks'
-
-exports.newModel = (environment) ->
-  return new Model()
   
-exports.mockSocketModel = (clientId = '', onMessage = ->) ->
-  serverSocket = new mocks.ServerSocketMock()
-  browserSocket = new mocks.BrowserSocketMock(serverSocket)
-  serverSocket.on 'connection', (client) ->
-    client.on 'message', (message) ->
-      setTimeout (-> onMessage JSON.parse message), 0
-  model = exports.newModel 'browser'
+exports.mockSocketModel = (clientId = '', onTxn = ->) ->
+  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets.on 'connection', (socket) ->
+    socket.on 'txn', onTxn
+  browserSocket = new mocks.BrowserSocketMock(serverSockets)
+  model = new Model()
   model._clientId = clientId
   model._setSocket browserSocket
-  return [serverSocket, model]
+  return [serverSockets, model]
