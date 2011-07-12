@@ -21,7 +21,7 @@ Stm = module.exports = () ->
   
   @flush = (callback) -> @_client.flushdb callback
   
-  # Callback has signature: fn(err, lockVal, ops)
+  # Callback has signature: fn(err, lockVal, txns)
   lock = (len, locks, base, callback, retries = MAX_RETRIES) ->
     client.eval LOCK, len, locks..., base, (err, values) ->
       throw err if err
@@ -42,9 +42,9 @@ Stm = module.exports = () ->
     locks = getLocks transaction.path txn
     locksLen = locks.length
     base = transaction.base txn
-    lock locksLen, locks, base, (err, lockVal, ops) ->
+    lock locksLen, locks, base, (err, lockVal, txns) ->
       return callback err if err
-      if transaction.journalConflict txn, ops
+      if transaction.journalConflict txn, txns
         return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
           callback error('STM_CONFLICT', 'Conflict with journal')
@@ -90,8 +90,8 @@ redis.call('set', 'l' .. path, val)
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)
 end
-local ops = redis.call('zrangebyscore', 'ops', ARGV[1], '+inf')
-return {val, ops}
+local txns = redis.call('zrangebyscore', 'txns', ARGV[1], '+inf')
+return {val, txns}
 """
 Stm._UNLOCK = UNLOCK = """
 local val = ARGV[1]
@@ -111,6 +111,6 @@ for i, path in pairs(KEYS) do
 end
 if fail then return 0 end
 local ver = redis.call('incr', 'ver')
-redis.call('zadd', 'ops', ver - 1, ARGV[2])
+redis.call('zadd', 'txns', ver - 1, ARGV[2])
 return ver
 """
