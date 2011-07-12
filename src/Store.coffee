@@ -35,8 +35,8 @@ Store = module.exports = ->
       delete pending[verToWrite++]
   , FLUSH_MS
   
-  @_commit = (txn, callback) ->
-    stm.commit txn, (err, ver) ->
+  @_commit = (txn, options, callback) ->
+    stm.commit txn, options, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
       return if err
@@ -56,10 +56,9 @@ Store:: =
   get: (path, callback) ->
     @_adapter.get path, callback
   
-  # Note that for now, store setters will only commit against base 0
-  # TODO: Figure out how to better version store operations if they are to be
-  # used for anything other than initialization code
+  # Store operations are forced, which means that they will not be checked for
+  # conflicts against already committed transactions
   set: (path, value, callback) ->
-    @_commit [0, '_.0', 'set', path, value], callback
+    @_commit [0, '_.0', 'set', path, value], force: true, callback
   del: (path, callback) ->
-    @_commit [0, '_.0', 'del', path], callback
+    @_commit [0, '_.0', 'del', path], force: true, callback

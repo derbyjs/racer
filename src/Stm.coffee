@@ -38,13 +38,18 @@ Stm = module.exports = () ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
-  @commit = (txn, callback) ->
+  @commit = (txn, {force} = {}, callback) ->
+    # If the force option is set, pass an empty string for base, which tells
+    # the Lua script not to return a journal, so no conflicts will be found
+    base = if force then '' else transaction.base txn
     locks = getLocks transaction.path txn
     locksLen = locks.length
-    base = transaction.base txn
     lock locksLen, locks, base, (err, lockVal, txns) ->
       return callback err if err
-      if transaction.journalConflict txn, txns
+      
+      # Check the new transaction against all transactions in the journal
+      # since the transaction's base version
+      if txns && transaction.journalConflict txn, txns
         return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
           callback error('STM_CONFLICT', 'Conflict with journal')
@@ -90,7 +95,8 @@ redis.call('set', 'l' .. path, val)
 for i, path in pairs(KEYS) do
   redis.call('sadd', path, val)
 end
-local txns = redis.call('zrangebyscore', 'txns', ARGV[1], '+inf')
+local txns
+if ARGV[1] ~= '' then txns = redis.call('zrangebyscore', 'txns', ARGV[1], '+inf') end
 return {val, txns}
 """
 Stm._UNLOCK = UNLOCK = """
