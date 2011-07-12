@@ -3,8 +3,9 @@ html,body,p {
   padding: 0;
 }
 body {
+  color: #000;
   background: #ccc;
-  font: 13px/1.231 arial;
+  font: 13px/1 arial;
 }
 #back {
   border-top: 1px solid #eee;
@@ -15,6 +16,13 @@ body {
   width: 760px;
   padding: 12px 0;
   margin: 0 auto;
+}
+#info {
+  text-align: center;
+  font-weight: bold;
+  height: 1em;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 0 #f3f3f3;
 }
 #board {
   background: #fff;

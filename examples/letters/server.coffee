@@ -34,17 +34,18 @@ app.get '/', (req, res) ->
       <script>rally.init(#{json})</script>
       """
 
-connectionCount = 0
-updateConnected = -> rally.store.set 'info.connected', connectionCount
-rally.sockets.on 'connection', (socket) ->
-  connectionCount++
-  updateConnected()
-  socket.on 'disconnect', ->
-    connectionCount--
-    updateConnected()
-
 # Clear any existing data, then initialize
 rally.store.flush ->
+  connectionCount = 0
+  updateConnected = -> rally.store.set 'info.connected', connectionCount
+  updateConnected()
+  rally.sockets.on 'connection', (socket) ->
+    connectionCount++
+    updateConnected()
+    socket.on 'disconnect', ->
+      connectionCount--
+      updateConnected()
+  
   colors = ['red', 'yellow', 'blue', 'orange', 'green']
   letters = {}
   for row in [0..4]

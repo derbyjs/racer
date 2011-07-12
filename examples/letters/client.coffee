@@ -2,8 +2,15 @@ rally = require 'rally'
 
 window.onload = ->
   model = rally.model
+  info = document.getElementById 'info'
   board = document.getElementById 'board'
   dragData = null
+  
+  updateInfo = ->
+    connected = model.get 'info.connected'
+    info.innerHTML = connected + ' Player' + if connected > 1 then 's' else ''
+  model.on 'set', 'info.connected', updateInfo
+  updateInfo()
   
   html = ''
   if `/*@cc_on!@*/0`
