@@ -13,8 +13,17 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
   self._onTxn = (txn) ->
     method = transaction.method txn
     args = transaction.args txn
+
+    # TODO Fix this. In a multi-server scenario,
+    #      txn's could arrive out of order. Therefore, assigning
+    #      _base from an incoming transaction could set the new
+    #      _base to < current _base. And it could also apply changes
+    #      that would apply to the causally prior _base, when those
+    #      changes should not be applied in the context of
+    #      _base = max(current _base, new _base) = current _base
     self['_' + method].apply self, args
     self._base = transaction.base txn
+
     self._removeTxn transaction.id txn
     self._emit method, args
   self._removeTxn = (txnId) ->
