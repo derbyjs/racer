@@ -34,11 +34,13 @@ module.exports = rally = (options) ->
     finish = (clientId) ->
       req.model = new Model clientId, ioUri
       next()
-    if clientId = req.session.clientId
+    # TODO Security checks via session
+    if clientId = req.params.clientId || req.body.clientId
       finish clientId
     else
       nextClientId (clientId) ->
-        req.session.clientId = clientId
+        # TODO Ensure that the eventual response includes parameters to set
+        #      the clientId in the browser window context
         finish clientId
 
 rally.store = store = new Store
