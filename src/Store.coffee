@@ -29,13 +29,13 @@ Store = module.exports = ->
       args = transaction.args txn
       args.push verToWrite, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
-        # to the caller of _commit when the adapter operation completes
+        # to the caller of commit when the adapter operation completes
         throw err if err
       adapter[transaction.method txn] args...
       delete pending[verToWrite++]
   , FLUSH_MS
   
-  @_commit = (txn, callback) ->
+  @commit = (txn, callback) ->
     stm.commit txn, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
@@ -60,6 +60,6 @@ Store:: =
   # TODO: Figure out how to better version store operations if they are to be
   # used for anything other than initialization code
   set: (path, value, callback) ->
-    @_commit [0, '_.0', 'set', path, value], callback
+    @commit [0, '_.0', 'set', path, value], callback
   del: (path, callback) ->
-    @_commit [0, '_.0', 'del', path], callback
+    @commit [0, '_.0', 'del', path], callback

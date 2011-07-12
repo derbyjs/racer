@@ -17,7 +17,7 @@ module.exports = rally = (options) ->
   ioSockets = options.ioSockets || io.listen(ioPort).sockets
   ioSockets.on 'connection', (socket) ->
     socket.on 'txn', (txn) ->
-      store._commit txn, (err, txn) ->
+      store.commit txn, (err, txn) ->
         return socket.emit 'txnFail', transaction.id txn if err
         ioSockets.emit 'txn', txn
   
@@ -72,7 +72,7 @@ nextClientId = (callback) ->
 Model::_send = (txn) ->
   onTxn = @_onTxn
   removeTxn = @_removeTxn
-  store._commit txn, (err, txn) ->
+  store.commit txn, (err, txn) ->
     return removeTxn transaction.id txn if err
     onTxn txn
     ioSockets.emit 'txn', txn
