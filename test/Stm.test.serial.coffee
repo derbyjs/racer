@@ -84,7 +84,7 @@ module.exports =
       luaCommit 'color', lockVal, txnOne, (err, ver) ->
         should.equal null, err
         ver.should.equal 1
-        stm._client.zrange 'ops', 0, -1, (err, val) ->
+        stm._client.zrange 'txns', 0, -1, (err, val) ->
           should.equal null, err
           val.should.eql [JSON.stringify txnOne]
         stm._client.get 'ver', (err, val) ->
@@ -107,7 +107,7 @@ module.exports =
       luaCommit 'color', lockVal, txnOne, (err, ver) ->
         should.equal null, err
         ver.should.equal 0
-        stm._client.get 'ops', (err, val) ->
+        stm._client.get 'txns', (err, val) ->
           should.equal null, err
           should.equal null, val
         stm._client.get 'ver', (err, val) ->

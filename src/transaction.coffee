@@ -48,8 +48,8 @@ module.exports =
       return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
     return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA
 
-  journalConflict: (txn, ops) ->
-    i = ops.length
+  journalConflict: (txn, txns) ->
+    i = txns.length
     while i--
-      return true if @conflict txn, JSON.parse(ops[i])
+      return true if @conflict txn, JSON.parse(txns[i])
     return false
