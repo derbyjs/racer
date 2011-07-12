@@ -7,44 +7,33 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
   self._subs = {}
   
   self._txnCount = 0
-  self._txns = txns = {}
-  self._txnQueue = txnQueue = []
+  self._txns = {}
+  self._txnQueue = []
   
-  self._onTxn = (txn) ->
-    method = transaction.method txn
-    args = transaction.args txn
-
-    # TODO Fix this. In a multi-server scenario,
-    #      txn's could arrive out of order. Therefore, assigning
-    #      _base from an incoming transaction could set the new
-    #      _base to < current _base. And it could also apply changes
-    #      that would apply to the causally prior _base, when those
-    #      changes should not be applied in the context of
-    #      _base = max(current _base, new _base) = current _base
-    self['_' + method].apply self, args
-    self._base = transaction.base txn
-
-    self._removeTxn transaction.id txn
-    self._emit method, args
+  # TODO: This makes transactions get applied in order, but it only works when
+  # every version is received. It needs to be updated to handle subscriptions
+  # to only a subset of the model
+  # TODO: Add a timeout that requests missed transactions which have not been
+  # received for a long time. Under the current scheme, a missed transaction
+  # will prevent the client from ever updating again
+  pending = {}
+  self._onTxn = onTxn = (txn) ->
+    base = transaction.base txn
+    nextVer = self._base + 1
+    # Cache this transaction to be applied later if it is not the next version
+    return pending[base] = txn if base != nextVer
+    # Otherwise, apply it immediately
+    self._applyTxn txn
+    # And apply any transactions that were waiting for this one to be received
+    nextVer++
+    while txn = pending[nextVer]
+      self._applyTxn txn
+      delete pending[nextVer++]
+  
   self._removeTxn = (txnId) ->
     delete self._txns[txnId]
     txnQueue = self._txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
-  
-  self.get = (path) ->
-    if len = txnQueue.length
-      # Then generate a speculative model
-      obj = Object.create self._data
-      i = 0
-      while i < len
-        # Apply each pending operation to the speculative model
-        txn = txns[txnQueue[i++]].txn
-        args = transaction.args(txn)
-        args.push obj: obj, proto: true
-        self['_' + transaction.method txn].apply self, args
-    else
-      obj = self._data
-    if path then self._lookup(path, obj: obj).obj else obj
   
   return
 
@@ -98,6 +87,13 @@ Model:: =
     # Send it over Socket.IO or to the store on the server
     obj.sent = @_send txn
     return id
+  _applyTxn: (txn) ->
+    method = transaction.method txn
+    args = transaction.args txn
+    @['_' + method].apply this, args
+    @_base = transaction.base txn
+    @_removeTxn transaction.id txn
+    @_emit method, args
 
   _lookup: (path, {obj, addPath, proto, onRef}) ->
     next = obj || @_data
@@ -141,6 +137,21 @@ Model:: =
         path = if path then path + '.' + prop else prop
     
     return obj: next, path: path, parent: obj, prop: prop
+  
+  get: (path) ->
+    if len = @_txnQueue.length
+      # Then generate a speculative model
+      obj = Object.create @_data
+      i = 0
+      while i < len
+        # Apply each pending operation to the speculative model
+        txn = @_txns[@_txnQueue[i++]].txn
+        args = transaction.args txn
+        args.push obj: obj, proto: true
+        @['_' + transaction.method txn].apply this, args
+    else
+      obj = @_data
+    if path then @_lookup(path, obj: obj).obj else obj
   
   set: (path, value) ->
     @_addTxn 'set', path, value
