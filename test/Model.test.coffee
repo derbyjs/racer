@@ -99,6 +99,7 @@ module.exports =
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', (txn) ->
+      txn[0]++
       sockets.emit 'txn', txn
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
@@ -114,6 +115,7 @@ module.exports =
   
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', (txn) ->
+      txn[0]++
       sockets.emit 'txn', txn
       model._data.should.eql {}
       model._txnQueue.should.eql []
@@ -128,7 +130,7 @@ module.exports =
         txn: [0, 'client0.0', 'del', 'color']
         sent: true
   
-  'test transaction is removed after failure': wrapTest (done) ->
+  'transactions should be removed after failure': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', (txn) ->
       sockets.emit 'txnFail', 'client0.0'
       model._txnQueue.should.eql []
@@ -141,6 +143,18 @@ module.exports =
       'client0.0':
         txn: [0, 'client0.0', 'set', 'color', 'green']
         sent: true
+  
+  'transactions received out of order should be applied in order': ->
+    [sockets, model] = mockSocketModel()
+    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
+    model.get('color').should.eql 'green'
+    
+    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']
+    model.get('color').should.eql 'green'
+    
+    sockets.emit 'txn', [2, '_.0', 'set', 'number', 7]
+    model.get('color').should.eql 'red'
+    model.get('number').should.eql 7
   
   'test speculative value of set': ->
     model = new Model
@@ -269,8 +283,9 @@ module.exports =
           re.exec(match).slice(1).should.eql captures
       re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
 
-  'test that model events get emitted properly': wrapTest (done) ->
+  'model events should get emitted properly': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', (txn) ->
+      txn[0]++
       sockets.emit 'txn', txn
     count = 0
     model.on 'set', '*', (path, value) ->
