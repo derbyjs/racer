@@ -1,18 +1,21 @@
 should = require 'should'
 Stm = require 'Stm'
-stm = new Stm()
+redis = require 'redis'
+client = redis.createClient()
+stm = new Stm client
 mockSocketModel = require('./util/model').mockSocketModel
-luaLock = require('./util/Stm').luaLock(stm)
-luaUnlock = require('./util/Stm').luaUnlock(stm)
-luaCommit = require('./util/Stm').luaCommit(stm)
+stmUtil = require('./util/Stm')(stm, client)
+luaLock = stmUtil.luaLock
+luaUnlock = stmUtil.luaUnlock
+luaCommit = stmUtil.luaCommit
 
 module.exports =
   setup: (done) ->
-    stm.flush (err) ->
+    client.flushdb (err) ->
       throw err if err
       done()
   teardown: (done) ->
-    stm.flush (err) ->
+    client.flushdb (err) ->
       throw err if err
       done()
   
@@ -34,7 +37,7 @@ module.exports =
       done()
   
   'Lua lock script should truncate transaction count to 12 bits': (done) ->
-    stm._client.set 'lockClock', 0xdffffe
+    client.set 'lockClock', 0xdffffe
     luaLock 'color', 0, (err, values, timeout, lockClock) ->
       should.equal null, err
       lockClock.should.be.equal 0xfffff
@@ -84,10 +87,10 @@ module.exports =
       luaCommit 'color', lockVal, txnOne, (err, ver) ->
         should.equal null, err
         ver.should.equal 1
-        stm._client.zrange 'txns', 0, -1, (err, val) ->
+        client.zrange 'txns', 0, -1, (err, val) ->
           should.equal null, err
           val.should.eql [JSON.stringify txnOne]
-        stm._client.get 'ver', (err, val) ->
+        client.get 'ver', (err, val) ->
           should.equal null, err
           val.should.eql 1
         luaLock 'color', 0, (err, values) ->
@@ -107,16 +110,16 @@ module.exports =
       luaCommit 'color', lockVal, txnOne, (err, ver) ->
         should.equal null, err
         ver.should.equal 0
-        stm._client.get 'txns', (err, val) ->
+        client.get 'txns', (err, val) ->
           should.equal null, err
           should.equal null, val
-        stm._client.get 'ver', (err, val) ->
+        client.get 'ver', (err, val) ->
           should.equal null, err
           should.equal null, val
           done()
   
   'Lua commit should work with maximum sized transaction value': (done) ->
-    stm._client.set 'lockClock', 0xffffe
+    client.set 'lockClock', 0xffffe
     txnOne = [0, '1.0', 'set', 'color', 'green']
     luaLock 'color', 0, (err, values, timeout, lockClock) ->
       should.equal null, err
@@ -254,7 +257,7 @@ module.exports =
     model.set 'color', 'green'
   
   finishAll: (done) ->
-    stm._client.end()
+    client.end()
     done()
 
   ## !!!! PLACE ALL TESTS BEFORE finishAll

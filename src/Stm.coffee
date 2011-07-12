@@ -1,4 +1,3 @@
-redis = require 'redis'
 transaction = require './transaction'
 
 MAX_RETRIES = 10  # Must be 30 or less given current delay algorithm
@@ -10,16 +9,13 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 # This should result in an earlier response to the client than with the
 # current approach
 
-Stm = module.exports = () ->
-  @_client = client = redis.createClient()
+Stm = module.exports = (client) ->
   
   error = (code, message) ->
     err = new Error()
     err.code = code
     err.message = message
     return err
-  
-  @flush = (callback) -> @_client.flushdb callback
   
   # Callback has signature: fn(err, lockVal, txns)
   lock = (len, locks, base, callback, retries = MAX_RETRIES) ->

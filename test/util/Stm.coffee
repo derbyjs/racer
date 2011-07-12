@@ -1,9 +1,10 @@
 Stm = require 'Stm'
 
-exports.luaLock = (stm) ->
-  (path, base, callback) ->
+module.exports = (stm, client) ->
+
+  luaLock: (path, base, callback) ->
     locks = stm._getLocks path
-    stm._client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
+    client.eval Stm._LOCK, locks.length, locks..., base, (err, values) ->
       throw err if err
       lockVal = values[0]
       # The lower 32 bits of the lock value are a UNIX timestamp representing
@@ -15,15 +16,13 @@ exports.luaLock = (stm) ->
       lockClock = Math.floor lockVal / Stm._LOCK_TIMEOUT_MASK
       callback err, values, timeout, lockClock
 
-exports.luaUnlock = (stm) ->
-  (path, lockVal, callback) ->
+  luaUnlock: (path, lockVal, callback) ->
     locks = stm._getLocks path
-    stm._client.eval Stm._UNLOCK, locks.length, locks..., lockVal, (err) ->
+    client.eval Stm._UNLOCK, locks.length, locks..., lockVal, (err) ->
       callback err
 
-exports.luaCommit = (stm) ->
-  (path, lockVal, transaction, callback) ->
+  luaCommit: (path, lockVal, transaction, callback) ->
     locks = stm._getLocks path
-    stm._client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
+    client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
       callback err, ver
 

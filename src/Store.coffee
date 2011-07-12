@@ -1,4 +1,5 @@
 MemoryAdapter = require './adapters/Memory'
+redis = require 'redis'
 Stm = require './Stm'
 transaction = require './transaction'
 
@@ -17,12 +18,13 @@ FLUSH_MS = 500
 
 Store = module.exports = ->
   # TODO: Grab latest version from store and journal
-  @_adapter = adapter = new MemoryAdapter
-  @_stm = stm = new Stm
+  adapter = new MemoryAdapter
+  redisClient = redis.createClient()
+  stm = new Stm redisClient
   sockets = null
-  @_setSockets = (s) ->
+  @setSockets = (s) ->
     sockets = s
-
+  
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   pending = {}
@@ -38,7 +40,7 @@ Store = module.exports = ->
       delete pending[verToWrite++]
   , FLUSH_MS
   
-  @_commit = (txn, options, callback) ->
+  @commit = (txn, options, callback) ->
     stm.commit txn, options, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
@@ -46,23 +48,19 @@ Store = module.exports = ->
       sockets.emit 'txn', txn if sockets
       pending[ver] = txn
   
-  return
-
-Store:: =
-  flush: (callback) ->
+  @get = (path, callback) -> adapter.get path, callback
+  
+  @flush = (callback) ->
     done = false
     cb = (err) ->
       callback err, callback = null if callback && done || err
       done = true
-    @_adapter.flush cb
-    @_stm.flush cb
+    adapter.flush cb
+    redisClient.flushdb cb
   
-  get: (path, callback) ->
-    @_adapter.get path, callback
+  @nextClientId = (callback) ->
+    redisClient.incr 'clientIdCount', (err, value) ->
+      throw err if err
+      callback value.toString(36)
   
-  # Store operations are forced, which means that they will not be checked for
-  # conflicts against already committed transactions
-  set: (path, value, callback) ->
-    @_commit [0, '_.0', 'set', path, value], force: true, callback
-  del: (path, callback) ->
-    @_commit [0, '_.0', 'del', path], force: true, callback
+  return
