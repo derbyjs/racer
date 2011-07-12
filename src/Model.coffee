@@ -15,7 +15,7 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
     args = transaction.args txn
 
     # TODO Fix this. In a multi-server scenario,
-    #      txn's could arrive out of order. Therefore, assigning
+    #      txn's could arrive at client out of order. Therefore, assigning
     #      _base from an incoming transaction could set the new
     #      _base to < current _base. And it could also apply changes
     #      that would apply to the causally prior _base, when those
@@ -37,7 +37,7 @@ Model = module.exports = (@_clientId = '', @_ioUri = '')->
       obj = Object.create self._data
       i = 0
       while i < len
-        # Apply each pending operation to the speculative model
+        # Replay: Apply each pending operation to the speculative model
         txn = txns[txnQueue[i++]].txn
         args = transaction.args(txn)
         args.push obj: obj, proto: true
