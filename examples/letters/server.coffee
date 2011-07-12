@@ -15,7 +15,7 @@ app.get '/script.js', (req, res) -> res.send script
 app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  rally.subscribe 'letters', (err, model) ->
+  rally.subscribe ['letters', 'info'], (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
@@ -33,6 +33,15 @@ app.get '/', (req, res) ->
       <script src=/script.js></script>
       <script>rally.init(#{json})</script>
       """
+
+connectionCount = 0
+updateConnected = -> rally.store.set 'info.connected', connectionCount
+rally.sockets.on 'connection', (socket) ->
+  connectionCount++
+  updateConnected()
+  socket.on 'disconnect', ->
+    connectionCount--
+    updateConnected()
 
 # Clear any existing data, then initialize
 rally.store.flush ->
@@ -69,4 +78,3 @@ rally.store.flush ->
   #       store.set 'letters', letters
 
   # Follows the same middleware interface as Connect:
-

@@ -19,6 +19,9 @@ Store = module.exports = ->
   # TODO: Grab latest version from store and journal
   @_adapter = adapter = new MemoryAdapter
   @_stm = stm = new Stm
+  sockets = null
+  @_setSockets = (s) ->
+    sockets = s
 
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
@@ -40,6 +43,7 @@ Store = module.exports = ->
       txn[0] = ver
       callback err, txn if callback
       return if err
+      sockets.emit 'txn', txn if sockets
       pending[ver] = txn
   
   return
