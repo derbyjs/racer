@@ -19,7 +19,7 @@ Memory:: =
   
   _del: Model::._del
   del: (path, ver, callback) ->
-    @_del path, value
+    @_del path
     @_ver = ver
     callback null if callback
 
