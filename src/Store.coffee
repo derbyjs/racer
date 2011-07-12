@@ -16,31 +16,31 @@ transaction = require './transaction'
 FLUSH_MS = 500
 
 Store = module.exports = ->
-  # TODO Grab latest version from store and journal
+  # TODO: Grab latest version from store and journal
   @_adapter = adapter = new MemoryAdapter
-  @_stm = new Stm
+  @_stm = stm = new Stm
 
+  # TODO: This algorithm will need to change when we go multi-process,
+  # because we can't count on the version to increase sequentially
   pending = {}
-  ver = 1
-  @_queue = (txn, ver) ->
-    pending[ver] = txn
+  verToWrite = 1
   setInterval ->
-    lastWrittenVer = adapter._ver
-    nextVerToWrite = ++lastWrittenVer
-    while txn = pending[nextVerToWrite]
-      method = transaction.method txn
+    while txn = pending[verToWrite]
       args = transaction.args txn
-      args.push ver, (err) ->
+      args.push verToWrite, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of _commit when the adapter operation completes
         throw err if err
-      adapter[method] args... # Implicitly increments adapter._ver
-      delete pending[nextVerToWrite++]
-    # TODO This algo will need to change when we go
-    #      multi-process, because we can't count on
-    #      local adapter's _ver to increase sequentially
-    #      with the current implementation
+      adapter[transaction.method txn] args...
+      delete pending[verToWrite++]
   , FLUSH_MS
+  
+  @_commit = (txn, callback) ->
+    stm.commit txn, (err, ver) ->
+      txn[0] = ver
+      callback err, txn if callback
+      return if err
+      pending[ver] = txn
   
   return
 
@@ -63,11 +63,3 @@ Store:: =
     @_commit [0, '_.0', 'set', path, value], callback
   del: (path, callback) ->
     @_commit [0, '_.0', 'del', path], callback
-    
-  _commit: (txn, callback) ->
-    queue = @_queue
-    @_stm.commit txn, (err, ver) ->
-      txn[0] = ver
-      callback err, txn if callback
-      return if err
-      queue txn, ver
