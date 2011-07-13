@@ -90,7 +90,7 @@ MongoAdapter:: =
   set: (path, val, ver, callback) ->
     return @_pending.push ['set', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
-    if path
+    if path.length
       path = path.join '.'
       delta = {ver: ver}
       delta[path] = val
@@ -100,7 +100,7 @@ MongoAdapter:: =
   del: (path, ver, callback) ->
     return @_pending.push ['del', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
-    if path
+    if path.length
       path = path.join '.'
       unset = {}
       unset[path] = 1
@@ -110,18 +110,18 @@ MongoAdapter:: =
   get: (path,callback) ->
     return @_pending.push ['get', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
-    if path
+    if path.length
       path = path.join '.'
       fields = { _id: 0, ver: 1 }
       fields[path] = 1
       return @_collection(collection).findOne {_id: id}, { fields: fields }, (err, doc) ->
         return callback err if err
         # TODO Fix doc[path] with a lookup
-        callback null, doc[path], doc.ver
-    @_collection(collection).findOne {_id: id}, {}, (err, doc) ->
+        callback null, doc && doc[path], doc && doc.ver
+    @_collection(collection).findOne {_id: id}, (err, doc) ->
       return callback err if err
-      ver = doc.ver
-      delete doc.ver
+      ver = doc && doc.ver
+      delete doc.ver if doc
       callback null, doc, ver
 
   _collection: (name) ->
