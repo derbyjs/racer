@@ -91,14 +91,14 @@ module.exports =
     model._base.should.eql 1
   
   'test client sends transaction on set': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', (txn) ->
+    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       txn.should.eql [0, 'client0.0', 'set', 'color', 'green']
       done()
   
     model.set 'color', 'green'
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', (txn) ->
+    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       txn[0]++
       sockets.emit 'txn', txn
       model.get('color').should.eql 'green'
@@ -114,7 +114,7 @@ module.exports =
         sent: true
   
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', (txn) ->
+    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       txn[0]++
       sockets.emit 'txn', txn
       model._data.should.eql {}
@@ -131,7 +131,7 @@ module.exports =
         sent: true
   
   'transactions should be removed after failure': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', (txn) ->
+    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       sockets.emit 'txnFail', 'client0.0'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -155,6 +155,11 @@ module.exports =
     sockets.emit 'txn', [2, '_.0', 'set', 'number', 7]
     model.get('color').should.eql 'red'
     model.get('number').should.eql 7
+  
+  'new transactions should be requested on socket.io connect': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
+      txnsSince.should.eql 0
+      done()
   
   'test speculative value of set': ->
     model = new Model
@@ -284,7 +289,7 @@ module.exports =
       re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
 
   'model events should get emitted properly': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', (txn) ->
+    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       txn[0]++
       sockets.emit 'txn', txn
     count = 0

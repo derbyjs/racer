@@ -1,6 +1,6 @@
 transaction = require './transaction'
 
-Model = module.exports = (@_clientId = '')->
+Model = module.exports = (@_clientId = '') ->
   self = this
   self._data = {}
   self._base = 0
@@ -13,17 +13,20 @@ Model = module.exports = (@_clientId = '')->
   # TODO: This makes transactions get applied in order, but it only works when
   # every version is received. It needs to be updated to handle subscriptions
   # to only a subset of the model
-  # TODO: Add a timeout that requests missed transactions which have not been
-  # received for a long time. Under the current scheme, a missed transaction
-  # will prevent the client from ever updating again
   pending = {}
+  pendingTimeout = null
   self._onTxn = onTxn = (txn) ->
     base = transaction.base txn
     nextVer = self._base + 1
     # Cache this transaction to be applied later if it is not the next version
-    return pending[base] = txn if base != nextVer
+    if base > nextVer
+      pendingTimeout = setTimeout self._txnsSince, PENDING_TIMEOUT, self._base
+      return pending[base] = txn
+    # Ignore this transaction if it is older than the next version
+    return if base < nextVer
     # Otherwise, apply it immediately
     self._applyTxn txn
+    clearTimeout pendingTimeout
     # And apply any transactions that were waiting for this one to be received
     nextVer++
     while txn = pending[nextVer]
@@ -39,6 +42,7 @@ Model = module.exports = (@_clientId = '')->
 
 Model:: =
   _send: -> false
+  _txnsSince: ->
   _setSocket: (socket, config) ->
     socket.on 'txn', @_onTxn
     socket.on 'txnFail', @_removeTxn
@@ -46,6 +50,10 @@ Model:: =
       socket.emit 'txn', txn
       # TODO: Only return true if sent successfully
       return true
+    
+    # Request any transactions that may have been missed
+    @_txnsSince = (ver) -> socket.emit 'txnsSince', ver
+    @_txnsSince @_base
 
   on: (method, pattern, callback) ->
     re = if pattern instanceof RegExp then pattern else
@@ -189,3 +197,6 @@ Model:: =
       delete parent[prop]
     catch err
       throw new Error 'Model delete failed on: ' + path
+
+# Timeout in milliseconds after which missed transactions will be requested
+Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
