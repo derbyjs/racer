@@ -18,14 +18,14 @@ Stm = module.exports = (client) ->
     return err
   
   # Callback has signature: fn(err, lockVal, txns)
-  lock = (len, locks, base, callback, retries = MAX_RETRIES) ->
-    client.eval LOCK, len, locks..., base, (err, values) ->
+  lock = (len, locks, txnsSince, callback, retries = MAX_RETRIES) ->
+    client.eval LOCK, len, locks..., txnsSince, (err, values) ->
       throw err if err
       if values[0]
         return callback null, values[0], values[1]
       if retries
         return setTimeout ->
-          lock len, locks, base, callback, --retries
+          lock len, locks, txnsSince, callback, --retries
         , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
       return callback error('STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times')
   
@@ -35,16 +35,16 @@ Stm = module.exports = (client) ->
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
   @commit = (txn, {force} = {}, callback) ->
-    # If the force option is set, pass an empty string for base, which tells
-    # the Lua script not to return a journal, so no conflicts will be found
-    base = if force then '' else transaction.base txn
+    # If the force option is set, pass an empty string for txnsSince, which
+    # indicates not to return a journal, so no conflicts will be found
+    txnsSince = if force then '' else transaction.base(txn) + 1
     locks = getLocks transaction.path txn
     locksLen = locks.length
-    lock locksLen, locks, base, (err, lockVal, txns) ->
+    lock locksLen, locks, txnsSince, (err, lockVal, txns) ->
       return callback err if err
       
       # Check the new transaction against all transactions in the journal
-      # since the transaction's base version
+      # since one after the transaction's base version
       if txns && transaction.journalConflict txn, txns
         return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
@@ -113,6 +113,6 @@ for i, path in pairs(KEYS) do
 end
 if fail then return 0 end
 local ver = redis.call('incr', 'ver')
-redis.call('zadd', 'txns', ver - 1, ARGV[2])
+redis.call('zadd', 'txns', ver, ARGV[2])
 return ver
 """

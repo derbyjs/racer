@@ -18,15 +18,22 @@ Model = module.exports = (@_clientId = '') ->
   self._onTxn = onTxn = (txn) ->
     base = transaction.base txn
     nextVer = self._base + 1
+    # console.log nextVer, pending
     # Cache this transaction to be applied later if it is not the next version
     if base > nextVer
-      pendingTimeout = setTimeout self._txnsSince, PENDING_TIMEOUT, self._base
+      unless pendingTimeout
+        pendingTimeout = setTimeout ->
+          self._reqNewTxns()
+          pendingTimeout = null
+        , PENDING_TIMEOUT
       return pending[base] = txn
     # Ignore this transaction if it is older than the next version
     return if base < nextVer
     # Otherwise, apply it immediately
     self._applyTxn txn
-    clearTimeout pendingTimeout
+    if pendingTimeout
+      clearTimeout pendingTimeout
+      pendingTimeout = null
     # And apply any transactions that were waiting for this one to be received
     nextVer++
     while txn = pending[nextVer]
@@ -44,16 +51,18 @@ Model:: =
   _send: -> false
   _txnsSince: ->
   _setSocket: (socket, config) ->
-    socket.on 'txn', @_onTxn
-    socket.on 'txnFail', @_removeTxn
-    @_send = (txn) ->
+    self = this
+    self.socket = socket
+    socket.on 'txn', self._onTxn
+    socket.on 'txnFail', self._removeTxn
+    self._send = (txn) ->
       socket.emit 'txn', txn
       # TODO: Only return true if sent successfully
       return true
     
     # Request any transactions that may have been missed
-    @_txnsSince = (ver) -> socket.emit 'txnsSince', ver
-    @_txnsSince @_base
+    self._reqNewTxns = -> socket.emit 'txnsSince', self._base + 1
+    socket.on 'connect', self._reqNewTxns
 
   on: (method, pattern, callback) ->
     re = if pattern instanceof RegExp then pattern else

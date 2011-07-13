@@ -158,12 +158,12 @@ module.exports =
   
   'new transactions should be requested on socket.io connect': wrapTest (done) ->
     [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
-      txnsSince.should.eql 0
+      txnsSince.should.eql 1
       done()
   
   'transactions should not be requested if pending less than timeout': wrapTest (done) ->
     [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
-      txnsSince.should.eql 0
+      txnsSince.should.eql 1
       done()
     sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
     sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']

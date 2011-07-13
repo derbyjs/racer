@@ -30,8 +30,14 @@ module.exports = ->
         commit txn, null, (err, txn) ->
           socket.emit 'txnFail', transaction.id txn if err
       socket.on 'txnsSince', (ver) ->
-        redisClient.zrangebyscore 'txns', ver + 1, '+inf', (err, vals) ->
-          socket.emit 'txn', JSON.parse val for val in vals
+        redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
+          txn = null
+          for val, i in vals
+            if i % 2
+              txn[0] = val-0
+              socket.emit 'txn', txn
+            else
+              txn = JSON.parse val
   
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
