@@ -40,15 +40,12 @@ app.get '/', (req, res) ->
 store.flush (err) ->
   store.subscribe (err, model) ->
   
-    connectionCount = 0
-    updateConnected = -> model.set 'info.connected', connectionCount
-    updateConnected()
+    updatePlayers = -> model.set 'info.players', players
+    players = 0; updatePlayers()
     rally.sockets.on 'connection', (socket) ->
-      connectionCount++
-      updateConnected()
+      players++; updatePlayers()
       socket.on 'disconnect', ->
-        connectionCount--
-        updateConnected()
+        players--; updatePlayers()
   
     colors = ['red', 'yellow', 'blue', 'orange', 'green']
     letters = {}

@@ -10,6 +10,8 @@ module.exports = (store, ioUri) ->
       return removeTxn transaction.id txn if err
       onTxn txn
     return true
+  
+  Model::_reqNewTxns = -> store._txnsSince @_base + 1, @_onTxn
 
   Model::json = modelJson = (callback, self = this) ->
     return setTimeout modelJson, 10, callback, self if self._txnQueue.length

@@ -49,7 +49,7 @@ Model = module.exports = (@_clientId = '') ->
 
 Model:: =
   _send: -> false
-  _txnsSince: ->
+  _reqNewTxns: ->
   _setSocket: (socket, config) ->
     self = this
     self.socket = socket
