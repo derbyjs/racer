@@ -11,21 +11,22 @@ Memory:: =
     @_ver = 0
     callback null if callback
   
-  _set: Model::._set
+  _set: Model::_set
   set: (path, value, ver, callback) ->
     @_set path, value
     @_ver = ver
     callback null if callback
   
-  _del: Model::._del
+  _del: Model::_del
   del: (path, ver, callback) ->
     @_del path
     @_ver = ver
     callback null if callback
-
+  
   get: (path, callback) ->
+    console.log this
     obj = @_data
-    value = if path then @._lookup(path, obj: obj).obj else obj
+    value = if path then @_lookup(path, obj: obj).obj else obj
     callback null, value, @_ver if callback
 
   # mget: (paths, callback) ->
@@ -47,4 +48,4 @@ Memory:: =
   #   paths.forEach (path) =>
   #     @get path, eachCb
   
-  _lookup: Model::._lookup
+  _lookup: Model::_lookup

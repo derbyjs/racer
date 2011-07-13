@@ -1,18 +1,18 @@
 should = require 'should'
 Stm = require 'Stm'
-stm = new Stm()
-mockSocketModel = require('./util/model').mockSocketModel
-luaLock = require('./util/Stm').luaLock(stm)
-luaUnlock = require('./util/Stm').luaUnlock(stm)
-luaCommit = require('./util/Stm').luaCommit(stm)
+redis = require 'redis'
+client = redis.createClient()
+stm = new Stm client
+stmUtil = require('./util/Stm')(stm, client)
+luaLock = stmUtil.luaLock
 
 module.exports =
   setup: (done) ->
-    stm._client.flushdb (err) ->
+    client.flushdb (err) ->
       throw err if err
       done()
   teardown: (done) ->
-    stm._client.flushdb (err) ->
+    client.flushdb (err) ->
       throw err if err
       done()
   
@@ -31,7 +31,7 @@ module.exports =
     setTimeout timeoutFn, (Stm._LOCK_TIMEOUT + 1) * 1000
 
   finishAll: (done) ->
-    stm._client.end()
+    client.end()
     done()
 
   ## !!!! PLACE ALL TESTS BEFORE finishAll

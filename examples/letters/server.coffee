@@ -15,7 +15,7 @@ app.get '/script.js', (req, res) -> res.send script
 app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  rally.subscribe ['letters', 'info'], (err, model) ->
+  rally.subscribe 'letters', 'info', (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
@@ -35,28 +35,29 @@ app.get '/', (req, res) ->
       """
 
 # Clear any existing data, then initialize
-rally.store.flush ->
-  connectionCount = 0
-  updateConnected = -> rally.store.set 'info.connected', connectionCount
-  updateConnected()
-  rally.sockets.on 'connection', (socket) ->
-    connectionCount++
-    updateConnected()
-    socket.on 'disconnect', ->
-      connectionCount--
-      updateConnected()
+rally.flushdb (err) ->
+  rally.subscribe (err, model) ->
   
-  colors = ['red', 'yellow', 'blue', 'orange', 'green']
-  letters = {}
-  for row in [0..4]
-    for col in [0..25]
-      letters[row * 26 + col] =
-        color: colors[row]
-        value: String.fromCharCode(65 + col)
-        left: col * 24 + 72
-        top: row * 32 + 8
-  rally.store.set 'letters', letters, (err) ->
-    throw err if err
+    connectionCount = 0
+    updateConnected = -> model.set 'info.connected', connectionCount
+    updateConnected()
+    rally.sockets.on 'connection', (socket) ->
+      connectionCount++
+      updateConnected()
+      socket.on 'disconnect', ->
+        connectionCount--
+        updateConnected()
+  
+    colors = ['red', 'yellow', 'blue', 'orange', 'green']
+    letters = {}
+    for row in [0..4]
+      for col in [0..25]
+        letters[row * 26 + col] =
+          color: colors[row]
+          value: String.fromCharCode(65 + col)
+          left: col * 24 + 72
+          top: row * 32 + 8
+    model.set 'letters', letters
     app.listen 3000
 
   # # Follows the same middleware interface as Connect:
