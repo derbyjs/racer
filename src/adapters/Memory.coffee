@@ -24,7 +24,6 @@ Memory:: =
     callback null if callback
   
   get: (path, callback) ->
-    console.log this
     obj = @_data
     value = if path then @_lookup(path, obj: obj).obj else obj
     callback null, value, @_ver if callback

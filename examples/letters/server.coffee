@@ -3,6 +3,7 @@ express = require 'express'
 fs = require 'fs'
 
 rally ioPort: 3001
+store = rally.store
 app = express.createServer()
 
 # rally.js returns a browserify bundle of the rally client side code and the
@@ -10,12 +11,13 @@ app = express.createServer()
 script = rally.js() + fs.readFileSync 'client.js'
 style = fs.readFileSync 'style.css'
 
-app.get '/script.js', (req, res) -> res.send script
+app.get '/script.js', (req, res) ->
+  res.send script, 'Content-Type': 'application/javascript'
 
 app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  rally.subscribe 'letters', 'info', (err, model) ->
+  store.subscribe 'letters', 'info', (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
@@ -35,8 +37,8 @@ app.get '/', (req, res) ->
       """
 
 # Clear any existing data, then initialize
-rally.flushdb (err) ->
-  rally.subscribe (err, model) ->
+store.flush (err) ->
+  store.subscribe (err, model) ->
   
     connectionCount = 0
     updateConnected = -> model.set 'info.connected', connectionCount

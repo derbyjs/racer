@@ -1,6 +1,6 @@
 transaction = require './transaction'
 
-Model = module.exports = (@_clientId = '', @_ioUri = '')->
+Model = module.exports = (@_clientId = '')->
   self = this
   self._data = {}
   self._base = 0

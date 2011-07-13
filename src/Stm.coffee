@@ -1,4 +1,5 @@
 transaction = require './transaction'
+require './transaction.server'
 
 MAX_RETRIES = 10  # Must be 30 or less given current delay algorithm
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
@@ -12,9 +13,8 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 Stm = module.exports = (client) ->
   
   error = (code, message) ->
-    err = new Error()
+    err = new Error(message)
     err.code = code
-    err.message = message
     return err
   
   # Callback has signature: fn(err, lockVal, txns)

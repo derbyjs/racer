@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "main": "./lib/rally.js",
   "browserify": {
-    "main": "./lib/browser.js"
+    "main": "./lib/rally.browser.js"
   },
   "dependencies": {
     "redis": ">=0.5.11",

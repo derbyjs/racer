@@ -1,11 +1,8 @@
 Model = require './Model'
 Store = require './Store'
-transaction = require './transaction'
 io = require 'socket.io'
 browserify = require 'browserify'
 fs = require 'fs'
-
-store = new Store
 
 ioUri = ''
 sockets = null
@@ -17,11 +14,10 @@ module.exports = rally = (options) ->
   ioPort = options.ioPort || 80
   ioUri = options.ioUri || ':' + ioPort
   sockets = rally.sockets = options.ioSockets || io.listen(ioPort).sockets
-  sockets.on 'connection', (socket) ->
-    socket.on 'txn', (txn) ->
-      store.commit txn, null, (err, txn) ->
-        return socket.emit 'txnFail', transaction.id txn if err
-  store.setSockets sockets
+  store._setSockets sockets, ioUri
+  
+  # Adds server functions to Model's prototype
+  require('./Model.server')(store, ioUri)
   
   ## Connect Middleware ##
   # The rally module returns connect middleware for
@@ -34,57 +30,17 @@ module.exports = rally = (options) ->
       # TODO Do this check only the first time the middleware is invoked
       throw 'Missing session middleware'
     finish = (clientId) ->
-      req.model = new Model clientId, ioUri
+      req.model = new Model clientId
       next()
     # TODO Security checks via session
     if clientId = req.params.clientId || req.body.clientId
       finish clientId
     else
-      store.nextClientId (clientId) ->
-        # TODO Ensure that the eventual response includes parameters to set
-        #      the clientId in the browser window context
-        finish clientId
+      store._nextClientId finish
 
-rally.flushdb = store.flush
+rally.use = -> throw 'Unimplemented'
 
-populateModel = (model, paths, callback) ->
-  return callback null, model unless path = paths.pop()
-  store.get path, (err, value, ver) ->
-    callback err if err
-    model._set path, value
-    model._base = ver
-    return populateModel model, paths, callback
-rally.subscribe = (paths..., callback)->
-  # TODO: Attach to an existing model
-  # TODO: Support path wildcards, references, and functions
-  store.nextClientId (clientId) ->
-    model = new Model clientId, ioUri
-    return callback null, model unless paths
-    populateModel model, paths, callback
+rally.js = -> browserify.bundle(require: 'rally') + fs.readFileSync __dirname +
+  '/../node_modules/socket.io/node_modules/socket.io-client/dist/socket.io.js'
 
-rally.unsubscribe = ->
-  throw "Unimplemented"
-
-rally.use = ->
-  throw "Unimplemented"
-
-rally.js = ->
-  browserify.bundle(require: 'rally') + fs.readFileSync __dirname +
-    '/../node_modules/socket.io/node_modules/socket.io-client/dist/socket.io.js'
-
-# Update Model's prototype to provide server-side functionality
-Model::_send = (txn) ->
-  onTxn = @_onTxn
-  removeTxn = @_removeTxn
-  store.commit txn, null, (err, txn) ->
-    return removeTxn transaction.id txn if err
-    onTxn txn
-  return true
-Model::json = modelJson = (callback, self = this) ->
-  setTimeout modelJson, 10, callback, self if self._txnQueue.length
-  callback JSON.stringify
-    data: self._data
-    base: self._base
-    clientId: self._clientId
-    txnCount: self._txnCount
-    ioUri: self._ioUri
+rally.store = store = new Store
