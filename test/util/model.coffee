@@ -7,4 +7,5 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   browserSocket = new mocks.BrowserSocketMock(serverSockets)
   model = new Model clientId
   model._setSocket browserSocket
+  browserSocket._connect()
   return [serverSockets, model]

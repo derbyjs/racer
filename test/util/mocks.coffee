@@ -8,7 +8,10 @@ callEmit = (target, name, value, async) ->
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
   @_sockets = []
-  @on 'connection', (socket) => @_sockets.push socket._browserSocket
+  @on 'connection', (socket) =>
+    browserSocket = socket._browserSocket
+    @_sockets.push browserSocket
+    EventEmitter::emit.call browserSocket, 'connect'
   return
 ServerSocketsMock:: =
   emit: (name, value) -> callEmit socket, name, value for socket in @_sockets
@@ -28,8 +31,9 @@ ServerSocketMock:: =
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
   EventEmitter.call this
   @_serverSocket = new ServerSocketMock @_serverSockets, this
-  EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
   return
 BrowserSocketMock:: =
+  _connect: ->
+    EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
   emit: (name, value) -> callEmit @_serverSocket, name, value, 'async'
   __proto__: EventEmitter::
