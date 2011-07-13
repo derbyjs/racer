@@ -95,7 +95,9 @@ MongoAdapter:: =
       delta = {ver: ver}
       delta[path] = val
       return @_collection(collection).update {_id: id}, { $set: delta}, { upsert: true, safe: true }, callback
-    @_collection(collection).update {_id: id}, val, { safe: true }, callback
+    delta = @_flatten path.join('.'), val
+    delta.ver = ver
+    @_collection(collection).update {_id: id}, { $set: delta }, { upsert: true, safe: true }, callback
 
   del: (path, ver, callback) ->
     return @_pending.push ['del', arguments] if @_state != CONNECTED
@@ -129,6 +131,17 @@ MongoAdapter:: =
 
   _genObjectId: ->
     ObjectId.toString(new ObjectId)
+
+  _flatten: (path, obj, delta = {}) ->
+    if obj.constructor != Object
+      delta[path] = obj
+      return delta
+
+    for k, v of obj
+      nextPath = if path then "#{path}.#{k}" else k
+      @_flatten nextPath, v, delta
+    return delta
+    
 
 MongoAdapter.prototype.__proto__ = EventEmitter.prototype
 

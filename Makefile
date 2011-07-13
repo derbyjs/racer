@@ -1,6 +1,6 @@
 ASYNC_TESTS_FAST = $(shell find test/ -name '*.test.coffee')
 ASYNC_TESTS_SLOW = $(shell find test/ -name '*.test.slow.coffee')
-SERIAL_TESTS_FAST = $(shell find test/ -name 'Mongo.test.serial.coffee')
+SERIAL_TESTS_FAST = $(shell find test/ -name '*.test.serial.coffee')
 SERIAL_TESTS_SLOW = $(shell find test/ -name '*.test.serial.slow.coffee')
 
 test-async-fast:
