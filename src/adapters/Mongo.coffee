@@ -39,7 +39,7 @@ module.exports = MongoAdapter = (conf) ->
   return
 
 MongoAdapter:: =
-  open: (callback) ->
+  connect: (callback) ->
     @_db = new mongo.Db(
         @_database
       , new mongo.Server @_host, @_port
@@ -58,10 +58,10 @@ MongoAdapter:: =
         return @_db.authenticate @_user, @_pass, open
       return open()
 
-  close: (callback) ->
+  disconnect: (callback) ->
     switch @_state
     when DISCONNECTED then callback null
-    when CONNECTING then @once 'open', => @close callback
+    when CONNECTING then @once 'connected', => @close callback
     when CONNECTED
       @_state = DISCONNECTING
       @_db.close()
@@ -69,7 +69,7 @@ MongoAdapter:: =
       @emit 'disconnected'
       # TODO onClose callbacks for collections
       callback() if callback
-    when DISCONNECTING then @once 'close', => callback null
+    when DISCONNECTING then @once 'disconnected', => callback null
   
   flush: (callback) ->
     return @_pending.push ['flush', arguments] if @_state != CONNECTED
