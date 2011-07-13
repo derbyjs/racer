@@ -161,6 +161,14 @@ module.exports =
       txnsSince.should.eql 0
       done()
   
+  'transactions should not be requested if pending less than timeout': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
+      txnsSince.should.eql 0
+      done()
+    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
+    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']
+    sockets.emit 'txn', [2, '_.0', 'set', 'color', 'blue']
+  
   'test speculative value of set': ->
     model = new Model
     model._clientId = 'client0'
