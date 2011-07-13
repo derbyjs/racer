@@ -20,15 +20,7 @@ module.exports = MongoAdapter = (conf) ->
   EventEmitter.call this
   @_ver = 0
 
-  if typeof conf == 'string'
-    uri = url.parse conf
-    @_host = uri.hostname
-    @_port = uri.port || 27017
-    # TODO callback
-    @_database = uri.pathname.replace /\//g, ''
-    [@_user, @_pass] = uri.auth?.split(':') ? []
-  else
-    {@_host, @_port, @_database, @_user, @_pass} = conf.host
+  @_loadConf conf if conf
 
   @_state = DISCONNECTED
 
@@ -39,7 +31,22 @@ module.exports = MongoAdapter = (conf) ->
   return
 
 MongoAdapter:: =
-  connect: (callback) ->
+  _loadConf: (conf) ->
+    if typeof conf == 'string'
+      uri = url.parse conf
+      @_host = uri.hostname
+      @_port = uri.port || 27017
+      # TODO callback
+      @_database = uri.pathname.replace /\//g, ''
+      [@_user, @_pass] = uri.auth?.split(':') ? []
+    else
+      {@_host, @_port, @_database, @_user, @_pass} = conf
+
+  connect: (conf, callback) ->
+    if 'function' == typeof conf
+      callback = conf
+    else
+      @_loadConf conf
     @_db = new mongo.Db(
         @_database
       , new mongo.Server @_host, @_port
@@ -60,16 +67,16 @@ MongoAdapter:: =
 
   disconnect: (callback) ->
     switch @_state
-    when DISCONNECTED then callback null
-    when CONNECTING then @once 'connected', => @close callback
-    when CONNECTED
-      @_state = DISCONNECTING
-      @_db.close()
-      @_state = DISCONNECTED
-      @emit 'disconnected'
-      # TODO onClose callbacks for collections
-      callback() if callback
-    when DISCONNECTING then @once 'disconnected', => callback null
+      when DISCONNECTED then callback null
+      when CONNECTING then @once 'connected', => @close callback
+      when CONNECTED
+        @_state = DISCONNECTING
+        @_db.close()
+        @_state = DISCONNECTED
+        @emit 'disconnected'
+        # TODO onClose callbacks for collections
+        callback() if callback
+      when DISCONNECTING then @once 'disconnected', => callback null
   
   flush: (callback) ->
     return @_pending.push ['flush', arguments] if @_state != CONNECTED
@@ -82,17 +89,17 @@ MongoAdapter:: =
 
   set: (path, val, ver, callback) ->
     return @_pending.push ['set', arguments] if @_state != CONNECTED
-    [collection, id, path...] = @_extract path
+    [collection, id, path...] = path.split '.'
     if path
       path = path.join '.'
       delta = {ver: ver}
       delta[path] = val
-      return @_collection(collection).update {_id: id}, { $set: delta}, { safe: true }, callback
+      return @_collection(collection).update {_id: id}, { $set: delta}, { upsert: true, safe: true }, callback
     @_collection(collection).update {_id: id}, val, { safe: true }, callback
 
   del: (path, ver, callback) ->
     return @_pending.push ['del', arguments] if @_state != CONNECTED
-    [collection, id, path...] = @_extract path
+    [collection, id, path...] = path.split '.'
     if path
       path = path.join '.'
       unset = {}
@@ -102,7 +109,7 @@ MongoAdapter:: =
 
   get: (path,callback) ->
     return @_pending.push ['get', arguments] if @_state != CONNECTED
-    [collection, id, path...] = @_extract path
+    [collection, id, path...] = path.split '.'
     if path
       path = path.join '.'
       fields = { _id: 0, ver: 1 }
@@ -118,9 +125,44 @@ MongoAdapter:: =
       callback null, doc, ver
 
   _collection: (name) ->
-    @_collections[name] ||= new mongo.Collection name, @_db
+    @_collections[name] ||= new Collection name, @_db
 
   _genObjectId: ->
-    ObjectId.toString new ObjectId
+    ObjectId.toString(new ObjectId)
 
 MongoAdapter.prototype.__proto__ = EventEmitter.prototype
+
+# MongoCollection = require ('../../node_modules/mongodb/lib/mongodb').Collection
+MongoCollection = mongo.Collection
+
+Collection = (name, db) ->
+  self = this
+  self.name = name
+  self.db = db
+  self._pending = []
+  self._ready = false
+
+  db.collection name, (err, collection) ->
+    throw err if err
+    self._ready = true
+    self.collection = collection
+    self.onReady()
+
+  return
+
+Collection:: =
+  onReady: () ->
+    for todo in @_pending
+      @[todo[0]].apply @, todo[1]
+    @_pending = []
+
+for name, fn of MongoCollection::
+  do (name, fn) ->
+    Collection::[name] = () ->
+      collection = @collection
+      args = arguments
+      if @_ready
+        process.nextTick ->
+          collection[name].apply collection, args
+      else
+        @_pending.push [name, arguments]
