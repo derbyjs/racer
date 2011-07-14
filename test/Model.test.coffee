@@ -69,12 +69,12 @@ module.exports =
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['client0.0']
-    model._txns['client0.0'].slice(0).should.eql [0, 'client0.0', 'set', 'color', 'green']
+    model._txns['client0.0'].slice().should.eql [0, 'client0.0', 'set', 'color', 'green']
     
     model.set 'count', 0
     model._txnQueue.should.eql ['client0.0', 'client0.1']
-    model._txns['client0.0'].slice(0).should.eql [0, 'client0.0', 'set', 'color', 'green']
-    model._txns['client0.1'].slice(0).should.eql [0, 'client0.1', 'set', 'count', '0']
+    model._txns['client0.0'].slice().should.eql [0, 'client0.0', 'set', 'color', 'green']
+    model._txns['client0.1'].slice().should.eql [0, 'client0.1', 'set', 'count', '0']
   
   'test client performs set on receipt of message': ->
     [sockets, model] = mockSocketModel()

@@ -17,6 +17,9 @@ transaction.conflict = (txnA, txnB) ->
     clientVerB = idB[1] - 0
     return false if clientVerA > clientVerB
   
+  # Ignore transactions with the same ID as an already committed transaction
+  return 'STM_DUPE' if txnA[1] == txnB[1]
+  
   # There is no conflict if the new transaction has exactly the same method,
   # path, and arguments as the committed transaction
   lenA = txnA.length
@@ -40,5 +43,5 @@ transaction.pathConflict = (pathA, pathB) ->
 transaction.journalConflict = (txn, txns) ->
   i = txns.length
   while i--
-    return true if @conflict txn, JSON.parse(txns[i])
+    return conflict if conflict = @conflict txn, JSON.parse(txns[i])
   return false

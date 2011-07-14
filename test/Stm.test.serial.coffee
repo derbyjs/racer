@@ -236,6 +236,15 @@ module.exports =
       err.code.should.eql 'STM_CONFLICT'
       done()
   
+  'sending a duplicate transaction should be detected': (done) ->
+    txnOne = [0, '1.0', 'set', 'color', 'green']
+    txnTwo = txnOne.slice()
+    stm.commit txnOne, null, (err) ->
+      should.equal null, err
+    stm.commit txnTwo, null, (err) ->
+      err.code.should.eql 'STM_DUPE'
+      done()
+  
   'forcing a conflicting transaction should make it succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'red']

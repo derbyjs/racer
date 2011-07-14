@@ -29,7 +29,8 @@ Store = module.exports = (adapterClass) ->
     sockets.on 'connection', (socket) ->
       socket.on 'txn', (txn) ->
         commit txn, null, (err, txn) ->
-          socket.emit 'txnFail', transaction.id txn if err
+          if err && err.code == 'STM_CONFLICT'
+            socket.emit 'txnFail', transaction.id txn
       socket.on 'txnsSince', (ver) ->
         txnsSince ver, (txn) ->
           socket.emit 'txn', txn

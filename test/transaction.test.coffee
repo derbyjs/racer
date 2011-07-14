@@ -44,6 +44,7 @@ module.exports =
   # Transaction Conflict Detection
   
   'test conflict detection between transactions': ->
+    txn0 = [0, '1.0', 'set', 'count', 1]
     txn1 = [0, '1.0', 'set', 'count', 1]
     txn2 = [0, '0.0', 'set', 'count', 0]
     txn3 = [0, '0.0', 'del', 'count', 1]
@@ -53,7 +54,7 @@ module.exports =
     
     txn7 = [0, '1.0', 'set', 'obj.nested', 0]
     txn8 = [0, '2.0', 'set', 'obj.nested.a', 0]
-
+    
     transaction.conflict(txn1, txn2).should.be.true # Different arguments
     transaction.conflict(txn1, txn3).should.be.true # Different method
     transaction.conflict(txn1, txn4).should.be.true # Different number of arguments
@@ -63,6 +64,8 @@ module.exports =
     
     transaction.conflict(txn1, txn5).should.be.false # Same method, path, and arguments
     transaction.conflict(txn1, txn6).should.be.false # Non-conflicting paths
-
+    
     transaction.conflict(txn7, txn8).should.be.true # Conflicting nested paths
     transaction.conflict(txn8, txn7).should.be.true # Conflicting nested paths
+    
+    transaction.conflict(txn0, txn1).should.be.eql 'STM_DUPE' # Same transaction ID

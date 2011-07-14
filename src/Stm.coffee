@@ -45,9 +45,11 @@ Stm = module.exports = (client) ->
       
       # Check the new transaction against all transactions in the journal
       # since one after the transaction's base version
-      if txns && transaction.journalConflict txn, txns
+      if txns && conflict = transaction.journalConflict txn, txns
         return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
+          if conflict is 'STM_DUPE'
+            return callback error('STM_DUPE', 'Transaction already in journal')
           callback error('STM_CONFLICT', 'Conflict with journal')
       
       # Commit if there are no conflicts and the locks are still held
