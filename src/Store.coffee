@@ -52,11 +52,11 @@ Store = module.exports = (adapterClass) ->
   setInterval ->
     while txn = pending[verToWrite]
       args = transaction.args txn
-      args.push verToWrite, (err) ->
+      args.push verToWrite, null, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of _commit when the adapter operation completes
         throw err if err
-      adapter[transaction.method txn] args...
+      adapter[transaction.method txn].apply adapter, args
       delete pending[verToWrite++]
   , FLUSH_MS
   
@@ -75,10 +75,9 @@ Store = module.exports = (adapterClass) ->
   
   populateModel = (model, paths, callback) ->
     return callback null, model unless path = paths.pop()
-    adapter.get path, (err, value, ver) ->
+    adapter.get path, null, (err, value, ver) ->
       callback err if err
-      model._set path, value
-      model._base = ver
+      model._adapter.set path, value, ver
       return populateModel model, paths, callback
   @subscribe = (paths..., callback) ->
     # TODO: Attach to an existing model

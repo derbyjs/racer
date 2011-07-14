@@ -4,65 +4,6 @@ mockSocketModel = require('./util/model').mockSocketModel
 
 module.exports =
   
-  'test get': ->
-    model = new Model
-    model._data.should.eql {}
-    model._data =
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
-    
-    model.get('color').should.eql 'green'
-    model.get('info.numbers').should.eql first: 2, second: 10
-    model.get().should.eql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
-  
-  'test internal set': ->
-    model = new Model
-    model._data.should.eql {}
-    
-    model._set 'color', 'green'
-    model._data.should.eql color: 'green'
-    
-    model._set 'info.numbers', first: 2, second: 10
-    model._data.should.eql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
-    
-    model._set 'info', 'new'
-    model._data.should.eql
-      color: 'green'
-      info: 'new'
-  
-  'test internal del': ->
-    model = new Model
-    model._data =
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
-    
-    model._del 'color'
-    model._data.should.eql
-      info:
-        numbers:
-          first: 2
-          second: 10
-    
-    model._del 'info.numbers'
-    model._data.should.eql
-      info: {}
-  
   'test internal creation of client transactions on set': ->
     model = new Model
     model._clientId = 'client0'
@@ -80,7 +21,7 @@ module.exports =
     [sockets, model] = mockSocketModel()
     sockets.emit 'txn', [1, 'server0.0', 'set', 'color', 'green']
     model.get('color').should.eql 'green'
-    model._base.should.eql 1
+    model._adapter.ver.should.eql 1
     sockets._disconnect()
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
@@ -102,13 +43,13 @@ module.exports =
       txn.should.eql [0, 'client0.0', 'del', 'color']
       txn[0]++
       sockets.emit 'txn', txn
-      model._data.should.eql {}
+      model._adapter._data.should.eql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
       done()
   
-    model._data = color: 'green'
+    model._adapter._data = color: 'green'
     model.del 'color'
     model._txnQueue.should.eql ['client0.0']
   
@@ -178,7 +119,7 @@ module.exports =
           second: 10
           third: 13
     
-    model._data.should.eql {}
+    model._adapter._data.should.eql {}
     
     model._removeTxn 'client0.1'
     model._removeTxn 'client0.2'
@@ -191,7 +132,7 @@ module.exports =
   'test speculative value of del': ->
     model = new Model
     model._clientId = 'client0'
-    model._data =
+    model._adapter._data =
       color: 'green'
       info:
         numbers:
@@ -224,7 +165,7 @@ module.exports =
     model.get().should.protoEql
       info: {}
     
-    model._data.should.eql
+    model._adapter._data.should.eql
       color: 'green'
       info:
         numbers:
@@ -288,10 +229,10 @@ module.exports =
       value.should.equal 'green'
       if count is 0
         model._txnQueue.length.should.eql 1
-        model._data.should.eql {}
+        model._adapter._data.should.eql {}
       else
         model._txnQueue.length.should.eql 0
-        model._data.should.eql color: 'green'
+        model._adapter._data.should.eql color: 'green'
       model.get('color').should.equal 'green'
       count++
       sockets._disconnect()

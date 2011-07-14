@@ -10,13 +10,13 @@ module.exports = (store, ioUri) ->
       return removeTxn transaction.id txn if err
       onTxn txn
   
-  Model::_reqNewTxns = -> store._txnsSince @_base + 1, @_onTxn
+  Model::_reqNewTxns = -> store._txnsSince @_adapter.ver + 1, @_onTxn
 
   Model::json = modelJson = (callback, self = this) ->
     return setTimeout modelJson, 10, callback, self if self._txnQueue.length
     callback JSON.stringify
-      data: self._data
-      base: self._base
+      data: self.get()
+      base: self._adapter.ver
       clientId: self._clientId
       txnCount: self._txnCount
       ioUri: ioUri

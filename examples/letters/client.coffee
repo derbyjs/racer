@@ -10,7 +10,7 @@ window.onload = ->
     players = model.get 'info.players'
     info.innerHTML =
       if model.socket.socket.connected
-        then (players + ' Player' + if players > 1 then 's' else '')
+        players + ' Player' + if players > 1 then 's' else ''
       else
         'Offline'
   model.on 'set', 'info.players', updateInfo

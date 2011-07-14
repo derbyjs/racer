@@ -1,9 +1,9 @@
 transaction = require './transaction'
+Memory = require './adapters/Memory'
 
 Model = module.exports = (@_clientId = '') ->
   self = this
-  self._data = {}
-  self._base = 0
+  self._adapter = new Memory
   self._subs = {}
   
   self._txnCount = 0
@@ -17,7 +17,7 @@ Model = module.exports = (@_clientId = '') ->
   pendingTimeout = null
   self._onTxn = onTxn = (txn) ->
     base = transaction.base txn
-    nextVer = self._base + 1
+    nextVer = self._adapter.ver + 1
     # Cache this transaction to be applied later if it is not the next version
     if base > nextVer
       unless pendingTimeout
@@ -60,7 +60,7 @@ Model:: =
       socket.emit 'txn', txn
     
     # Request any transactions that may have been missed
-    self._reqNewTxns = -> socket.emit 'txnsSince', self._base + 1
+    self._reqNewTxns = -> socket.emit 'txnsSince', self._adapter.ver + 1
     
     resendAll = ->
       txns = self._txns
@@ -114,7 +114,7 @@ Model:: =
   _addTxn: (method, args...) ->
     # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
-    @_txns[id] = txn = [@_base, id, method, args...]
+    @_txns[id] = txn = [@_adapter.ver, id, method, args...]
     @_txnQueue.push id
     # Emit an event on creation of the transaction
     @_emit method, args
@@ -124,68 +124,25 @@ Model:: =
   _applyTxn: (txn) ->
     method = transaction.method txn
     args = transaction.args txn
-    @['_' + method].apply this, args
-    @_base = transaction.base txn
+    args.push transaction.base txn
+    adapter = @_adapter
+    adapter[method].apply adapter, args
     @_removeTxn transaction.id txn
     @_emit method, args
-
-  _lookup: (path, {obj, addPath, proto, onRef}) ->
-    next = obj || @_data
-    get = @get
-    props = if path and path.split then path.split '.' else []
-    
-    path = ''
-    i = 0
-    len = props.length
-    while i < len
-      obj = next
-      prop = props[i++]
-      
-      # In speculative model operations, return a prototype referenced object
-      if proto && !Object::isPrototypeOf(obj)
-        obj = Object.create obj
-      
-      # Traverse down the next segment in the path
-      next = obj[prop]
-      if next is undefined
-        # Return null if the object can't be found
-        return {obj: null} unless addPath
-        # If addPath is true, create empty parent objects implied by path
-        next = obj[prop] = {}
-      
-      # Check for model references
-      if ref = next.$r
-        refObj = get ref
-        if key = next.$k
-          keyObj = get key
-          path = ref + '.' + keyObj
-          next = refObj[keyObj]
-        else
-          path = ref
-          next = refObj
-        if onRef
-          remainder = [path].concat props.slice(i)
-          onRef key, remainder.join('.')
-      else
-        # Store the absolute path traversed so far
-        path = if path then path + '.' + prop else prop
-    
-    return obj: next, path: path, parent: obj, prop: prop
   
   get: (path) ->
+    adapter = @_adapter
     if len = @_txnQueue.length
       # Then generate a speculative model
-      obj = Object.create @_data
+      obj = Object.create adapter.get()
       i = 0
       while i < len
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
         args = transaction.args txn
-        args.push obj: obj, proto: true
-        @['_' + transaction.method txn].apply this, args
-    else
-      obj = @_data
-    if path then @_lookup(path, obj: obj).obj else obj
+        args.push adapter.ver, obj: obj, proto: true
+        adapter[transaction.method txn].apply adapter, args
+    return adapter.get path, obj
   
   set: (path, value) ->
     @_addTxn 'set', path, value
@@ -194,35 +151,6 @@ Model:: =
     @_addTxn 'del', path
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
-
-  _set: (path, value, options = {}) ->
-    options.addPath = true
-    out = @_lookup path, options
-    try
-      out.parent[out.prop] = value
-    catch err
-      throw new Error 'Model set failed on: ' + path
-  _del: (path, options = {}) ->
-    out = @_lookup path, options
-    parent = out.parent
-    prop = out.prop
-    try
-      if options.proto
-        # In speculative models, deletion of something in the model data is
-        # acheived by making a copy of the parent prototype's properties that
-        # does not include the deleted property
-        if prop of parent.__proto__
-          obj = {}
-          for key, value of parent.__proto__
-            unless key is prop
-              obj[key] = if typeof value is 'object'
-                Object.create value
-              else
-                value
-          parent.__proto__ = obj
-      delete parent[prop]
-    catch err
-      throw new Error 'Model delete failed on: ' + path
 
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
