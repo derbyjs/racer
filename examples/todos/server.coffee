@@ -11,6 +11,15 @@ app = express.createServer(
   , rally()
 )
 
+store = store.Model
+Group = Model.subclass
+  name: String
+  todos: [Todo]
+
+Todo = Model.subclass
+  label: String
+  completed: Date
+
 # rally.js returns a browserify bundle of the rally client side code and the
 # socket.io client side code
 script = rally.js() + fs.readFileSync 'client.js'
@@ -19,10 +28,19 @@ style = fs.readFileSync 'style.css'
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
+# TODO Is it possible to infer what is subscribed to by observing
+#      what Models invoke? I think so.
+
+nextUserId = 1
+
 app.get '/', (req, res) ->
-  # Subscribe optionally accepts a model as an argument. If no model is
-  # specified, it will create a new model object
-  store.subscribe "users.#{req.session.userId}", (err, model) ->
+  userId = req.session.userId ||= nextUserId++
+  # The following return promises/futures
+  user = User.findById(userId)
+  group = Group.findById(groupId)
+
+  # subscribe waits for the promises to complete
+  store.subscribe user, group, (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
