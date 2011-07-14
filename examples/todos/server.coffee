@@ -43,11 +43,12 @@ app.get '/', (req, res) ->
   group = Group.findById groupId
 
   # subscribe waits for the promises to complete.
-  # It analyzes the fetched snapshots' versions and
-  # then catches the versions up + subscribes for
+  # user.name, group.todos, and group.name also are promises.
+  # subscribe analyzes the eventually promise-fetched snapshots'
+  # versions and then catches the versions up + subscribes for
   # future updates to all paths corresponding to user,
   # group, and used properties.
-  store.subscribe user, group('todos'), (err, model) ->
+  store.subscribe user.name, group.todos, group.name, (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
