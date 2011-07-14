@@ -52,7 +52,7 @@ Store = module.exports = (adapterClass) ->
   setInterval ->
     while txn = pending[verToWrite]
       args = transaction.args txn
-      args.push verToWrite, null, (err) ->
+      args.push verToWrite, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of _commit when the adapter operation completes
         throw err if err
@@ -75,7 +75,7 @@ Store = module.exports = (adapterClass) ->
   
   populateModel = (model, paths, callback) ->
     return callback null, model unless path = paths.pop()
-    adapter.get path, null, (err, value, ver) ->
+    adapter.get path, (err, value, ver) ->
       callback err if err
       model._adapter.set path, value, ver
       return populateModel model, paths, callback

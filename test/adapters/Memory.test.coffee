@@ -1,21 +1,21 @@
-Memory = require 'adapters/Memory'
+MemorySync = require 'adapters/MemorySync'
 wrapTest = require('../util').wrapTest
 
 module.exports =
 
   'test sync get': ->
-    memory = new Memory
-    memory._data.should.eql {}
-    memory._data =
+    memorySync = new MemorySync
+    memorySync._data.should.eql {}
+    memorySync._data =
       color: 'green'
       info:
         numbers:
           first: 2
           second: 10
     
-    memory.get('color').should.eql 'green'
-    memory.get('info.numbers').should.eql first: 2, second: 10
-    memory.get().should.eql
+    memorySync.get('color').should.eql 'green'
+    memorySync.get('info.numbers').should.eql first: 2, second: 10
+    memorySync.get().should.eql
       color: 'green'
       info:
         numbers:
@@ -23,40 +23,40 @@ module.exports =
           second: 10
 
   'test sync set': ->
-    memory = new Memory
+    memorySync = new MemorySync
     
-    memory.set 'color', 'green'
-    memory._data.should.eql color: 'green'
+    memorySync.set 'color', 'green'
+    memorySync._data.should.eql color: 'green'
     
-    memory.set 'info.numbers', first: 2, second: 10
-    memory._data.should.eql
+    memorySync.set 'info.numbers', first: 2, second: 10
+    memorySync._data.should.eql
       color: 'green'
       info:
         numbers:
           first: 2
           second: 10
     
-    memory.set 'info', 'new'
-    memory._data.should.eql
+    memorySync.set 'info', 'new'
+    memorySync._data.should.eql
       color: 'green'
       info: 'new'
 
   'test sync del': ->
-    memory = new Memory
-    memory._data =
+    memorySync = new MemorySync
+    memorySync._data =
       color: 'green'
       info:
         numbers:
           first: 2
           second: 10
     
-    memory.del 'color'
-    memory._data.should.eql
+    memorySync.del 'color'
+    memorySync._data.should.eql
       info:
         numbers:
           first: 2
           second: 10
     
-    memory.del 'info.numbers'
-    memory._data.should.eql
+    memorySync.del 'info.numbers'
+    memorySync._data.should.eql
       info: {}
