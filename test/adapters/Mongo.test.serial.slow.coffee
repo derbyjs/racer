@@ -11,6 +11,10 @@ module.exports =
   teardown: (done) ->
     adapter.flush done
 
+  # TODO Add in MongoAdapter#insert
+
+  # TODO Queries other then `get key`
+
   'should be able to get a path that is set': (done) ->
     adapter.set 'users.0.username', 'brian', ver=1, (err) ->
       should.equal null, err
