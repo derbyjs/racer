@@ -12,6 +12,9 @@ app = express.createServer(
 )
 
 store = store.Model
+User = Model.subclass
+  username: String
+
 Group = Model.subclass
   name: String
   todos: [Todo]
@@ -28,19 +31,23 @@ style = fs.readFileSync 'style.css'
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
-# TODO Is it possible to infer what is subscribed to by observing
-#      what Models invoke? I think so.
-
-nextUserId = 1
+userCount = 1
 
 app.get '/', (req, res) ->
-  userId = req.session.userId ||= nextUserId++
-  # The following return promises/futures
-  user = User.findById(userId)
-  group = Group.findById(groupId)
+  # user is a promise/future
+  unless userId = req.session.userId
+    user = User.create username: 'user_' + userCount++
+  else
+    user = User.findById userId
+  # group is also a promise/future
+  group = Group.findById groupId
 
-  # subscribe waits for the promises to complete
-  store.subscribe user, group, (err, model) ->
+  # subscribe waits for the promises to complete.
+  # It analyzes the fetched snapshots' versions and
+  # then catches the versions up + subscribes for
+  # future updates to all paths corresponding to user,
+  # group, and used properties.
+  store.subscribe user, group('todos'), (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
