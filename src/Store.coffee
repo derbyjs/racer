@@ -6,12 +6,11 @@ transaction = require './transaction'
 
 FLUSH_MS = 500
 
-Store = module.exports = (adapterClass) ->
-  # TODO: Grab latest version from store and journal
-  adapterClass ||= MemoryAdapter
-  adapter = new adapterClass
-  redisClient = redis.createClient()
+Store = module.exports = (AdapterClass = MemoryAdapter) ->
+  @_adapter = adapter = new AdapterClass
+  @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
+  
   sockets = null
   @_setSockets = (s) ->
     sockets = s

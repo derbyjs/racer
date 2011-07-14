@@ -10,7 +10,7 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 # This should result in an earlier response to the client than with the
 # current approach
 
-Stm = module.exports = (client) ->
+Stm = module.exports = (redisClient) ->
   
   error = (code, message) ->
     err = new Error(message)
@@ -19,7 +19,7 @@ Stm = module.exports = (client) ->
   
   # Callback has signature: fn(err, lockVal, txns)
   lock = (len, locks, txnsSince, callback, retries = MAX_RETRIES) ->
-    client.eval LOCK, len, locks..., txnsSince, (err, values) ->
+    redisClient.eval LOCK, len, locks..., txnsSince, (err, values) ->
       throw err if err
       if values[0]
         return callback null, values[0], values[1]
@@ -46,14 +46,14 @@ Stm = module.exports = (client) ->
       # Check the new transaction against all transactions in the journal
       # since one after the transaction's base version
       if txns && conflict = transaction.journalConflict txn, txns
-        return client.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
+        return redisClient.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           throw err if err
           if conflict is 'STM_DUPE'
             return callback error('STM_DUPE', 'Transaction already in journal')
           callback error('STM_CONFLICT', 'Conflict with journal')
       
       # Commit if there are no conflicts and the locks are still held
-      client.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
+      redisClient.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
         throw err if err
         if ver is 0
           return callback error('STM_LOCK_RELEASED', 'Lock was released before commit')
