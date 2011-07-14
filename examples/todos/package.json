@@ -1,0 +1,10 @@
+{ "name": "rally-todos-example",
+  "description": "Get your todos on.",
+  "version": "0.0.0",
+  "main": "./server.js",
+  "dependencies": {
+    "rally": "*",
+    "socket.io-client": ">=0.7"
+  },
+  "private": true
+}
