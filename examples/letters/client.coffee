@@ -6,15 +6,16 @@ window.onload = ->
   board = document.getElementById 'board'
   dragData = null
   
-  connected = true
   updateInfo = ->
     players = model.get 'info.players'
     info.innerHTML =
-      if connected then (players + ' Player' + if players > 1 then 's' else '')
-      else 'Offline'
+      if model.socket.socket.connected
+        then (players + ' Player' + if players > 1 then 's' else '')
+      else
+        'Offline'
   model.on 'set', 'info.players', updateInfo
-  model.socket.on 'connect', -> connected = true; updateInfo()
-  model.socket.on 'disconnect', -> connected = false; updateInfo()
+  model.socket.on 'connect', updateInfo
+  model.socket.on 'disconnect', updateInfo
   updateInfo()
   
   html = ''
