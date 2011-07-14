@@ -8,6 +8,7 @@ module.exports =
     expected = 1
     [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
       txnsSince.should.eql expected
+      sockets._disconnect()
       done()
     sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
     sockets.emit 'txn', [2, '_.0', 'set', 'color', 'red']

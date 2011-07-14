@@ -12,6 +12,7 @@ ServerSocketsMock = exports.ServerSocketsMock = ->
     browserSocket = socket._browserSocket
     @_sockets.push browserSocket
     EventEmitter::emit.call browserSocket, 'connect'
+    @_disconnect = -> EventEmitter::emit.call browserSocket, 'disconnect'
   return
 ServerSocketsMock:: =
   emit: (name, value) -> callEmit socket, name, value for socket in @_sockets

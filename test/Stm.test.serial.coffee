@@ -253,6 +253,7 @@ module.exports =
         txn[0] = version
         sockets.emit 'txn', txn
         model.get('color').should.eql 'green'
+        sockets._disconnect()
         done()
     model.set 'color', 'green'
   

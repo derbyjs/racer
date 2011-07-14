@@ -68,81 +68,60 @@ module.exports =
     model._clientId = 'client0'
     
     model.set 'color', 'green'
-    model._txns.should.eql
-      'client0.0':
-        txn: [0, 'client0.0', 'set', 'color', 'green']
-        sent: false
     model._txnQueue.should.eql ['client0.0']
+    model._txns['client0.0'].slice(0).should.eql [0, 'client0.0', 'set', 'color', 'green']
     
     model.set 'count', 0
-    model._txns.should.eql
-      'client0.0':
-        txn: [0, 'client0.0', 'set', 'color', 'green']
-        sent: false
-      'client0.1':
-        txn: [0, 'client0.1', 'set', 'count', '0']
-        sent: false
     model._txnQueue.should.eql ['client0.0', 'client0.1']
+    model._txns['client0.0'].slice(0).should.eql [0, 'client0.0', 'set', 'color', 'green']
+    model._txns['client0.1'].slice(0).should.eql [0, 'client0.1', 'set', 'count', '0']
   
   'test client performs set on receipt of message': ->
     [sockets, model] = mockSocketModel()
     sockets.emit 'txn', [1, 'server0.0', 'set', 'color', 'green']
     model.get('color').should.eql 'green'
     model._base.should.eql 1
-  
-  'test client sends transaction on set': wrapTest (done) ->
-    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
-      txn.should.eql [0, 'client0.0', 'set', 'color', 'green']
-      done()
-  
-    model.set 'color', 'green'
+    sockets._disconnect()
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
+      txn.should.eql [0, 'client0.0', 'set', 'color', 'green']
       txn[0]++
       sockets.emit 'txn', txn
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
+      sockets._disconnect()
       done()
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['client0.0']
-    model._txns.should.eql
-      'client0.0':
-        txn: [0, 'client0.0', 'set', 'color', 'green']
-        sent: true
   
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
+      txn.should.eql [0, 'client0.0', 'del', 'color']
       txn[0]++
       sockets.emit 'txn', txn
       model._data.should.eql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
+      sockets._disconnect()
       done()
   
     model._data = color: 'green'
     model.del 'color'
     model._txnQueue.should.eql ['client0.0']
-    model._txns.should.eql
-      'client0.0':
-        txn: [0, 'client0.0', 'del', 'color']
-        sent: true
   
   'transactions should be removed after failure': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       sockets.emit 'txnFail', 'client0.0'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
+      sockets._disconnect()
       done()
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['client0.0']
-    model._txns.should.eql
-      'client0.0':
-        txn: [0, 'client0.0', 'set', 'color', 'green']
-        sent: true
   
   'transactions received out of order should be applied in order': ->
     [sockets, model] = mockSocketModel()
@@ -155,15 +134,18 @@ module.exports =
     sockets.emit 'txn', [2, '_.0', 'set', 'number', 7]
     model.get('color').should.eql 'red'
     model.get('number').should.eql 7
+    sockets._disconnect()
   
   'new transactions should be requested on socket.io connect': wrapTest (done) ->
     [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
       txnsSince.should.eql 1
+      sockets._disconnect()
       done()
   
   'transactions should not be requested if pending less than timeout': wrapTest (done) ->
     [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
       txnsSince.should.eql 1
+      sockets._disconnect()
       done()
     sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
     sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']
@@ -295,7 +277,7 @@ module.exports =
         for match, captures of obj
           re.exec(match).slice(1).should.eql captures
       re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
-
+  
   'model events should get emitted properly': wrapTest (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       txn[0]++
@@ -312,6 +294,7 @@ module.exports =
         model._data.should.eql color: 'green'
       model.get('color').should.equal 'green'
       count++
+      sockets._disconnect()
       done()
     model.set 'color', 'green'
   , 2
