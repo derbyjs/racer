@@ -23,16 +23,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         txnsSince ver, (txn) ->
           socket.emit 'txn', txn
   
-  @_txnsSince = txnsSince = (ver, onTxn) ->
-    redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
-      txn = null
-      for val, i in vals
-        if i % 2
-          txn[0] = +val
-          onTxn txn
-        else
-          txn = JSON.parse val
-  
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   pending = {}
@@ -55,6 +45,16 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       return if err
       sockets.emit 'txn', txn if sockets
       pending[ver] = txn
+  
+  @_txnsSince = txnsSince = (ver, onTxn) ->
+    redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
+      txn = null
+      for val, i in vals
+        if i % 2
+          txn[0] = +val
+          onTxn txn
+        else
+          txn = JSON.parse val
   
   @_nextClientId = nextClientId = (callback) ->
     redisClient.incr 'clientIdCount', (err, value) ->
