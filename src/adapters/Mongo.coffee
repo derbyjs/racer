@@ -87,7 +87,7 @@ MongoAdapter:: =
   # TODO create (new docs with auto-id's)
   #      Perhaps use "namespace.?.path.val"
 
-  set: (path, val, ver, options, callback) ->
+  set: (path, val, ver, callback) ->
     return @_pending.push ['set', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
     if path.length
@@ -99,7 +99,7 @@ MongoAdapter:: =
     delta.ver = ver
     @_collection(collection).update {_id: id}, { $set: delta }, { upsert: true, safe: true }, callback
 
-  del: (path, ver, options, callback) ->
+  del: (path, ver, callback) ->
     return @_pending.push ['del', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
     if path.length
@@ -109,7 +109,7 @@ MongoAdapter:: =
       return @_collection(collection).update {_id: id}, { $unset: unset }, { safe: true}, callback
     @_collection(collection).remove {_id: id}, callback
 
-  get: (path, options, callback) ->
+  get: (path,callback) ->
     return @_pending.push ['get', arguments] if @_state != CONNECTED
     [collection, id, path...] = path.split '.'
     if path.length
