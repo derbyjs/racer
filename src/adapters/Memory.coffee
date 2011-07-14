@@ -9,12 +9,12 @@ Memory:: =
   flush: (callback) ->
     @_data = {}
     @ver = 0
-    callback null if callback
+    callback null
   
   _get: MemorySync::get
   get: (path, callback) ->
     value = @_get path
-    callback null, value, @ver if callback
+    callback null, value, @ver
   
   _lookup: MemorySync::_lookup
 
