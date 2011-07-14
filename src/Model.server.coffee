@@ -9,7 +9,6 @@ module.exports = (store, ioUri) ->
     store._commit txn, null, (err, txn) ->
       return removeTxn transaction.id txn if err
       onTxn txn
-    return true
   
   Model::_reqNewTxns = -> store._txnsSince @_base + 1, @_onTxn
 

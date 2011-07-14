@@ -39,7 +39,7 @@ Store = module.exports = (adapterClass) ->
       txn = null
       for val, i in vals
         if i % 2
-          txn[0] = val-0
+          txn[0] = +val
           onTxn txn
         else
           txn = JSON.parse val

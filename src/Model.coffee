@@ -18,7 +18,6 @@ Model = module.exports = (@_clientId = '') ->
   self._onTxn = onTxn = (txn) ->
     base = transaction.base txn
     nextVer = self._base + 1
-    # console.log nextVer, pending
     # Cache this transaction to be applied later if it is not the next version
     if base > nextVer
       unless pendingTimeout
@@ -55,14 +54,35 @@ Model:: =
     self.socket = socket
     socket.on 'txn', self._onTxn
     socket.on 'txnFail', self._removeTxn
-    self._send = (txn) ->
+    
+    self._send = send = (txn) ->
+      txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn
-      # TODO: Only return true if sent successfully
-      return true
     
     # Request any transactions that may have been missed
     self._reqNewTxns = -> socket.emit 'txnsSince', self._base + 1
-    socket.on 'connect', self._reqNewTxns
+    
+    resendAll = ->
+      txns = self._txns
+      send txns[id] for id in self._txnQueue
+    resendExpired = ->
+      now = +new Date
+      txns = self._txns
+      for id in self._txnQueue
+        txn = txns[id]
+        return if txn.timeout > now
+        send txn
+    
+    # Request missed transactions and send queued transactions on connect
+    resendInterval = null
+    socket.on 'connect', ->
+      self._reqNewTxns
+      resendAll()
+      unless resendInterval
+        resendInterval = setInterval resendExpired, RESEND_INTERVAL
+    socket.on 'disconnect', ->
+      clearInterval resendInterval
+      resendInterval = null
 
   on: (method, pattern, callback) ->
     re = if pattern instanceof RegExp then pattern else
@@ -92,17 +112,14 @@ Model:: =
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (method, args...) ->
-    # Create a new transaction
+    # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
-    txn = [@_base, id, method, args...]
-    # Add it to a local queue
-    obj = txn: txn, sent: false
-    @_txns[id] = obj
+    @_txns[id] = txn = [@_base, id, method, args...]
     @_txnQueue.push id
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
-    obj.sent = @_send txn
+    @_send txn
     return id
   _applyTxn: (txn) ->
     method = transaction.method txn
@@ -162,7 +179,7 @@ Model:: =
       i = 0
       while i < len
         # Apply each pending operation to the speculative model
-        txn = @_txns[@_txnQueue[i++]].txn
+        txn = @_txns[@_txnQueue[i++]]
         args = transaction.args txn
         args.push obj: obj, proto: true
         @['_' + transaction.method txn].apply this, args
@@ -209,3 +226,7 @@ Model:: =
 
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
+# Timeout in milliseconds after which sent transactions will be resent
+Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
+# Interval in milliseconds to check timeouts for queued transactions
+Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
