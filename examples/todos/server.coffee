@@ -11,7 +11,7 @@ app = express.createServer(
   , rally()
 )
 
-store = store.Model
+Model = store.Model
 User = Model.subclass
   username: String
 
