@@ -4,7 +4,7 @@ Model = require './Model'
 Stm = require './Stm'
 transaction = require './transaction'
 
-FLUSH_MS = 500
+PENDING_INTERVAL = 500
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
@@ -27,7 +27,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # because we can't count on the version to increase sequentially
   pending = {}
   verToWrite = 1
-  setInterval ->
+  @_pendingInterval = setInterval ->
     while txn = pending[verToWrite]
       args = transaction.args txn
       args.push verToWrite, (err) ->
@@ -36,7 +36,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         throw err if err
       adapter[transaction.method txn].apply adapter, args
       delete pending[verToWrite++]
-  , FLUSH_MS
+  , PENDING_INTERVAL
   
   @_commit = commit = (txn, options, callback) ->
     stm.commit txn, options, (err, ver) ->
