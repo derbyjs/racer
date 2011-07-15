@@ -11,6 +11,16 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
   
+  @_nextClientId = nextClientId = (callback) ->
+    redisClient.incr 'clientIdCount', (err, value) ->
+      throw err if err
+      callback value.toString(36)
+  
+  # TODO: DRY this with Model
+  clientId = nextClientId()
+  txnCount = 0
+  nextTxnId = -> clientId + '.' + txnCount++
+  
   sockets = null
   @_setSockets = (s) ->
     sockets = s
@@ -56,11 +66,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         else
           txn = JSON.parse val
   
-  @_nextClientId = nextClientId = (callback) ->
-    redisClient.incr 'clientIdCount', (err, value) ->
-      throw err if err
-      callback value.toString(36)
-  
   populateModel = (model, paths, callback) ->
     return callback null, model unless path = paths.pop()
     adapter.get path, (err, value, ver) ->
@@ -98,5 +103,15 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       done = true
     adapter.flush cb
     redisClient.flushdb cb
+  
+  @get = adapter.get
+  
+  @set = (path, value, ver, options, callback) ->
+    [options, callback] = [{}, options] unless callback
+    @_commit [ver, nextTxnId(), 'set', path, value], options, callback
+  
+  @del = (path, ver, options, callback) ->
+    [options, callback] = [{}, options] unless callback
+    @_commit [ver, nextTxnId(), 'del', path], options, callback
   
   return
