@@ -50,8 +50,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       delete pending[verToWrite++]
   , PENDING_INTERVAL
   
-  @_commit = commit = (txn, options, callback) ->
-    stm.commit txn, options, (err, ver) ->
+  @_commit = commit = (txn, callback) ->
+    stm.commit txn, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
       return if err
@@ -108,12 +108,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @get = adapter.get
   
-  @set = (path, value, ver = 0, options, callback) ->
-    [options, callback] = [{}, options] if typeof options is 'function'
-    @_commit [ver, nextTxnId(), 'set', path, value], options, callback
+  @set = (path, value, ver = null, callback) ->
+    @_commit [ver, nextTxnId(), 'set', path, value], callback
   
-  @del = (path, ver = 0, options, callback) ->
-    [options, callback] = [{}, options] if typeof options is 'function'
-    @_commit [ver, nextTxnId(), 'del', path], options, callback
+  @del = (path, ver = null, callback) ->
+    @_commit [ver, nextTxnId(), 'del', path], callback
   
   return

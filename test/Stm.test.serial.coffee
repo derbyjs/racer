@@ -149,114 +149,114 @@ module.exports =
   'different-client, different-path, simultaneous transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'favorite-skittle', 'red']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
       done()
   
   'different-client, same-path, simultaneous transaction should fail': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'red']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'different-client, same-path, sequential transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [1, '2.0', 'set', 'color', 'red']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
       done()
   
   'different-client, same-path, simultaneous, identical transaction should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'green']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
       done()
   
   'different-client, same-path, simultaneous, different method transaction should fail': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'del', 'color', 'green']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'different-client, same-path, simultaneous, different args length transaction should fail': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '2.0', 'set', 'color', 'green', 0]
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'same-client, same-path transaction should succeed in order': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '1.1', 'set', 'color', 'red']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
       done()
   
   'same-client, same-path transaction should fail out of order': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '1.1', 'set', 'color', 'red']
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'setting a child path should conflict': (done) ->
     txnOne = [0, '1.0', 'set', 'colors', ['green']]
     txnTwo = [0, '2.0', 'set', 'colors.0', 'red']
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'setting a parent path should conflict': (done) ->
     txnOne = [0, '1.0', 'set', 'colors', ['green']]
     txnTwo = [0, '2.0', 'set', 'colors.0', 'red']
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       err.code.should.eql 'STM_CONFLICT'
       done()
   
   'sending a duplicate transaction should be detected': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = txnOne.slice()
-    stm.commit txnOne, null, (err) ->
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, null, (err) ->
+    stm.commit txnTwo, (err) ->
       err.code.should.eql 'STM_DUPE'
       done()
   
   'forcing a conflicting transaction should make it succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
-    txnTwo = [0, '2.0', 'set', 'color', 'red']
-    stm.commit txnOne, null, (err) ->
+    txnTwo = [null, '2.0', 'set', 'color', 'red']
+    stm.commit txnOne, (err) ->
       should.equal null, err
-    stm.commit txnTwo, force: true, (err) ->
+    stm.commit txnTwo, (err) ->
       should.equal null, err
       done()
   
   'test client set roundtrip with STM': (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
-      stm.commit txn, null, (err, version) ->
+      stm.commit txn, (err, version) ->
         should.equal null, err
         version.should.equal 1
         txn[0] = version

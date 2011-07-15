@@ -34,10 +34,11 @@ Stm = module.exports = (redisClient) ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
-  @commit = (txn, {force} = {}, callback) ->
-    # If the force option is set, pass an empty string for txnsSince, which
-    # indicates not to return a journal, so no conflicts will be found
-    txnsSince = if force then '' else transaction.base(txn) + 1
+  @commit = (txn, callback) ->
+    # If the base of a transaction is null, pass an empty string for txnsSince,
+    # which indicates not to return a journal, so no conflicts will be found
+    base = transaction.base txn
+    txnsSince = if base == null then '' else base + 1
     locks = getLocks transaction.path txn
     locksLen = locks.length
     lock locksLen, locks, txnsSince, (err, lockVal, txns) ->

@@ -38,7 +38,7 @@ app.get '/', (req, res) ->
 
 # Clear any existing data, then initialize
 store.flush (err) ->
-  updatePlayers = -> store.set 'info.players', players, 0, force: true
+  updatePlayers = -> store.set 'info.players', players
   players = 0; updatePlayers()
   rally.sockets.on 'connection', (socket) ->
     players++; updatePlayers()
