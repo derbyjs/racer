@@ -40,7 +40,7 @@ app.get '/:groupId', (req, res) ->
       <div id=container>
         <h1>Todos</h1>
         <form><input class="new-item" value="add a todo item" /></form>
-        <ul id="items">
+        <ul id="todos">
           <li>
             <input type="checkbox" />
             <label>Some Existing Todo Item</label>
