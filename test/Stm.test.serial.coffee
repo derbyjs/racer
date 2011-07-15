@@ -9,15 +9,15 @@ luaLock = stmUtil.luaLock
 luaUnlock = stmUtil.luaUnlock
 luaCommit = stmUtil.luaCommit
 
+finishAll = false
 module.exports =
   setup: (done) ->
-    client.flushdb (err) ->
-      throw err if err
-      done()
+    client.flushdb done
   teardown: (done) ->
-    client.flushdb (err) ->
-      throw err if err
-      done()
+    if finishAll
+      client.end()
+      return done()
+    client.flushdb done
   
   # Redis Lua script tests:
   
@@ -266,8 +266,6 @@ module.exports =
         done()
     model.set 'color', 'green'
   
-  finishAll: (done) ->
-    client.end()
-    done()
+  finishAll: (done) -> finishAll = true; done()
 
-  ## !!!! PLACE ALL TESTS BEFORE finishAll
+  ## !! PLACE ALL TESTS BEFORE finishAll !! ##

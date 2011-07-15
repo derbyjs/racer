@@ -4,11 +4,14 @@ MongoAdapter = require 'adapters/Mongo'
 adapter = new MongoAdapter
 adapter.connect('mongodb://localhost/rally_test')
 
+finishAll = false
 module.exports =
   setup: (done) ->
     adapter.flush done
-
   teardown: (done) ->
+    if finishAll
+      adapter.disconnect()
+      return done()
     adapter.flush done
 
   # TODO Add in MongoAdapter#insert
@@ -96,6 +99,6 @@ module.exports =
           should.equal undefined, ver
           done()
 
-  finishAll: (done) ->
-    adapter.disconnect()
-    done()
+  finishAll: (done) -> finishAll = true; done()
+
+  ## !! PLACE ALL TESTS BEFORE finishAll !! ##

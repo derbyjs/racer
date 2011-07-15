@@ -3,19 +3,17 @@ Store = require 'Store'
 
 store = new Store
 
+finishAll = false
 module.exports =
   setup: (done) ->
-    store.flush (err) ->
-      throw err if err
-      done()
+    store.flush done
   teardown: (done) ->
-    store.flush (err) ->
-      throw err if err
-      done()
+    if finishAll
+      clearInterval store._pendingInterval
+      store._redisClient.end()
+      return done()
+    store.flush done
 
-  finishAll: (done) ->
-    clearInterval store._pendingInterval
-    store._redisClient.end()
-    done()
+  finishAll: (done) -> finishAll = true; done()
 
-  ## !!!! PLACE ALL TESTS BEFORE finishAll
+  ## !! PLACE ALL TESTS BEFORE finishAll !! ##
