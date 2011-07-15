@@ -245,12 +245,15 @@ module.exports =
       err.code.should.eql 'STM_DUPE'
       done()
   
-  'forcing a conflicting transaction should make it succeed': (done) ->
+  'a conflicting transaction with base of null or undefined should succeed': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [null, '2.0', 'set', 'color', 'red']
+    txnThree = [undefined, '3.0', 'set', 'color', 'blue']
     stm.commit txnOne, (err) ->
       should.equal null, err
     stm.commit txnTwo, (err) ->
+      should.equal null, err
+    stm.commit txnThree, (err) ->
       should.equal null, err
       done()
   

@@ -35,10 +35,11 @@ Stm = module.exports = (redisClient) ->
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
   @commit = (txn, callback) ->
-    # If the base of a transaction is null, pass an empty string for txnsSince,
-    # which indicates not to return a journal, so no conflicts will be found
+    # If the base of a transaction is null or undefined, pass an empty string
+    # for txnsSince, which indicates not to return a journal. Thus, no conflicts
+    # will be found
     base = transaction.base txn
-    txnsSince = if base == null then '' else base + 1
+    txnsSince = if `base == null` then '' else base + 1
     locks = getLocks transaction.path txn
     locksLen = locks.length
     lock locksLen, locks, txnsSince, (err, lockVal, txns) ->
