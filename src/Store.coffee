@@ -81,7 +81,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @flush = (callback) ->
     done = false
     cb = (err) ->
-      callback err, callback = null if callback && done || err
+      if callback && (done || err)
+        callback err
+        callback = null
       done = true
     adapter.flush cb
     redisClient.flushdb cb
