@@ -53,5 +53,18 @@ module.exports =
       err.should.be.instanceof Error
       (++callbackCount).should.eql 1
       done()
-  
-  
+
+  'subscribe should create a new model if one is not passed in': (done) ->
+    store.subscribe 'a', 'b', (err, modelA) ->
+      should.equal undefined, err
+      store.subscribe 'c', (err, modelB) ->
+        modelA.should.not.eql modelB
+        done()
+
+  'subscribe should use the passed in model if present': (done) ->
+    store.subscribe 'a', 'b', (err, modelA) ->
+      should.equal undefined, err
+      store.subscribe modelA, 'c', (err, modelB) ->
+        modelA.should.eql modelB
+        done()
+

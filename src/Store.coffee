@@ -67,13 +67,24 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       callback err if err
       model._adapter.set path, value, ver
       return populateModel model, paths, callback
-  @subscribe = (paths..., callback) ->
-    # TODO: Attach to an existing model
+  @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
+    # If subscribe(callback)
+    if model && !paths.length && !callback
+      callback = model
+      model = null
+
+    if model
+      # If subscribe(model, paths..., callback)
+      if model instanceof Model
+        return populateModel model, paths, callback
+
+      # If subscribe(paths..., callback)
+      paths.unshift model
+
     nextClientId (clientId) ->
-      model = new Model clientId
-      return callback null, model unless paths
-      populateModel model, paths, callback
+      newModel = new Model clientId
+      populateModel newModel, paths, callback
   
   @unsubscribe = ->
     throw "Unimplemented"
