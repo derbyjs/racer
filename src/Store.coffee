@@ -17,7 +17,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       callback value.toString(36)
   
   # TODO: DRY this with Model
-  clientId = nextClientId()
+  clientId = ''
+  nextClientId (err, value) ->
+    clientId = value
   txnCount = 0
   nextTxnId = -> clientId + '.' + txnCount++
   
@@ -106,12 +108,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @get = adapter.get
   
-  @set = (path, value, ver, options, callback) ->
-    [options, callback] = [{}, options] unless callback
+  @set = (path, value, ver = 0, options, callback) ->
+    [options, callback] = [{}, options] if typeof options is 'function'
     @_commit [ver, nextTxnId(), 'set', path, value], options, callback
   
-  @del = (path, ver, options, callback) ->
-    [options, callback] = [{}, options] unless callback
+  @del = (path, ver = 0, options, callback) ->
+    [options, callback] = [{}, options] if typeof options is 'function'
     @_commit [ver, nextTxnId(), 'del', path], options, callback
   
   return

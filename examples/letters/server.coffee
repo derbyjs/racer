@@ -38,26 +38,24 @@ app.get '/', (req, res) ->
 
 # Clear any existing data, then initialize
 store.flush (err) ->
-  store.subscribe (err, model) ->
+  updatePlayers = -> store.set 'info.players', players, 0, force: true
+  players = 0; updatePlayers()
+  rally.sockets.on 'connection', (socket) ->
+    players++; updatePlayers()
+    socket.on 'disconnect', ->
+      players--; updatePlayers()
   
-    updatePlayers = -> model.set 'info.players', players
-    players = 0; updatePlayers()
-    rally.sockets.on 'connection', (socket) ->
-      players++; updatePlayers()
-      socket.on 'disconnect', ->
-        players--; updatePlayers()
-  
-    colors = ['red', 'yellow', 'blue', 'orange', 'green']
-    letters = {}
-    for row in [0..4]
-      for col in [0..25]
-        letters[row * 26 + col] =
-          color: colors[row]
-          value: String.fromCharCode(65 + col)
-          left: col * 24 + 72
-          top: row * 32 + 8
-    model.set 'letters', letters
-    app.listen 3000
+  colors = ['red', 'yellow', 'blue', 'orange', 'green']
+  letters = {}
+  for row in [0..4]
+    for col in [0..25]
+      letters[row * 26 + col] =
+        color: colors[row]
+        value: String.fromCharCode(65 + col)
+        left: col * 24 + 72
+        top: row * 32 + 8
+  store.set 'letters', letters
+  app.listen 3000
 
   # # Follows the same middleware interface as Connect:
   # rally.use rallyMongo
