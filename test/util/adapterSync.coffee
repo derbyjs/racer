@@ -1,3 +1,4 @@
+should = require 'should'
 require '../util'
 
 module.exports = (AdapterSync) ->
@@ -22,6 +23,14 @@ module.exports = (AdapterSync) ->
     
     adapterSync.set 'info', 'new'
     adapterSync.get().should.eql color: 'green', info: 'new'
+  
+  'getting an unset path should return undefined': ->
+    adapterSync = new AdapterSync
+    adapterSync.set 'info.numbers', {}
+    
+    should.equal undefined, adapterSync.get 'color'
+    should.equal undefined, adapterSync.get 'color.favorite'
+    should.equal undefined, adapterSync.get 'info.numbers.first'
 
   'test del': ->
     adapterSync = new AdapterSync

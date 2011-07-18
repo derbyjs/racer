@@ -51,8 +51,8 @@ Memory:: =
       # Traverse down the next segment in the path
       next = parent[prop]
       if next is undefined
-        # Return null if the object can't be found
-        return {obj: null} unless addPath
+        # Return undefined if the object can't be found
+        return {obj: next} unless addPath
         # If addPath is true, create empty parent objects implied by path
         next = parent[prop] = {}
       
