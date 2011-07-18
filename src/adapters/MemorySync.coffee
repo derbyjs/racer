@@ -33,9 +33,10 @@ Memory:: =
         parent.__proto__ = obj
     delete parent[prop]
   
-  _lookup: (path, {obj, addPath, proto, onRef}) ->
-    next = obj || @_data
-    props = if path and path.split then path.split '.' else []
+  _lookup: (path, options) ->
+    {addPath, proto, onRef} = options
+    next = options.obj || @_data
+    props = path.split '.'
     
     path = ''
     i = 0
@@ -58,11 +59,11 @@ Memory:: =
       
       # Check for model references
       if ref = next.$r
-        refObj = @get ref, obj
+        refObj = @_lookup(ref, options).obj
         if key = next.$k
-          keyObj = @get key, obj
+          keyObj = @_lookup(key, options).obj
           path = ref + '.' + keyObj
-          next = refObj[keyObj]
+          next = @_lookup(path, options).obj
         else
           path = ref
           next = refObj
