@@ -35,33 +35,32 @@ Memory:: =
   
   _lookup: (path, {obj, addPath, proto, onRef}) ->
     next = obj || @_data
-    get = @get
     props = if path and path.split then path.split '.' else []
     
     path = ''
     i = 0
     len = props.length
     while i < len
-      obj = next
+      parent = next
       prop = props[i++]
       
       # In speculative model operations, return a prototype referenced object
-      if proto && !Object::isPrototypeOf(obj)
-        obj = Object.create obj
+      if proto && !Object::isPrototypeOf(parent)
+        parent = Object.create parent
       
       # Traverse down the next segment in the path
-      next = obj[prop]
+      next = parent[prop]
       if next is undefined
         # Return null if the object can't be found
         return {obj: null} unless addPath
         # If addPath is true, create empty parent objects implied by path
-        next = obj[prop] = {}
+        next = parent[prop] = {}
       
       # Check for model references
       if ref = next.$r
-        refObj = get ref
+        refObj = @get ref, obj
         if key = next.$k
-          keyObj = get key
+          keyObj = @get key, obj
           path = ref + '.' + keyObj
           next = refObj[keyObj]
         else
@@ -74,4 +73,4 @@ Memory:: =
         # Store the absolute path traversed so far
         path = if path then path + '.' + prop else prop
     
-    return obj: next, path: path, parent: obj, prop: prop
+    return obj: next, path: path, parent: parent, prop: prop

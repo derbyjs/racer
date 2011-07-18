@@ -239,3 +239,28 @@ module.exports =
       done()
     model.set 'color', 'green'
   , 2
+  
+  'test model references': ->
+    model = new Model
+    model._adapter._data =
+      info:
+        numbers:
+          first: 2
+          second: 10
+      numbers: model.ref 'info.numbers'
+      numKey: 'first'
+      number: model.ref 'numbers', 'numKey'
+    
+    # Test non-keyed object reference
+    model.get('numbers').should.eql first: 2, second: 10
+    # Test property below object reference
+    model.get('numbers.second').should.eql 10
+    # Test keyed object reference
+    model.get('number').should.eql 2
+    
+    # Test changing key object reference with speculative set
+    model.set 'numKey', 'second'
+    model.get('number').should.eql 10
+    # Test changing referenced object wtih speculative set
+    model.set 'info', numbers: {first: 3, second: 7}
+    model.get('number').should.eql 7
