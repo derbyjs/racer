@@ -172,6 +172,65 @@ module.exports =
           first: 2
           second: 10
   
+  'test getting model references': ->
+    model = new Model
+    model._adapter._data =
+      info:
+        numbers:
+          first: 2
+          second: 10
+      numbers: model.ref 'info.numbers'
+      numKey: 'first'
+      number: model.ref 'numbers', 'numKey'
+    
+    # Test non-keyed object reference
+    model.get('numbers').should.eql first: 2, second: 10
+    # Test property below object reference
+    model.get('numbers.second').should.eql 10
+    # Test keyed object reference
+    model.get('number').should.eql 2
+    
+    # Test changing key object reference with speculative set
+    model.set 'numKey', 'second'
+    model.get('number').should.eql 10
+    # Test changing referenced object wtih speculative set
+    model.set 'info', numbers: {first: 3, second: 7}
+    model.get('number').should.eql 7
+  
+  'test setting to model references': ->
+    model = new Model
+    model.set 'color', model.ref 'colors', 'selected'
+    model.set 'selected', 'blue'
+    
+    # Setting a property on a reference should update the referenced object
+    model.set 'color.hex', '#0f0'
+    model.get().should.eql
+      colors:
+        blue:
+          hex: '#0f0'
+      selected: 'blue'
+      color: model.ref 'colors', 'selected'
+    
+    # Setting on a path that is currently a reference should modify the
+    # reference, similar to setting an object reference in Javascript
+    model.set 'color', model.ref 'colors.blue'
+    model.get().should.eql
+      colors:
+        blue:
+          hex: '#0f0'
+      selected: 'blue'
+      color: model.ref 'colors.blue'
+    
+    # Test setting on a non-keyed reference
+    model.set 'color.compliment', 'yellow'
+    model.get().should.eql
+      colors:
+        blue:
+          hex: '#0f0'
+          compliment: 'yellow'
+      selected: 'blue'
+      color: model.ref 'colors.blue'
+  
   'test internal creation of model event subscriptions': ->
     model = new Model
     model.on 'set', pattern for pattern in [
@@ -239,62 +298,3 @@ module.exports =
       done()
     model.set 'color', 'green'
   , 2
-  
-  'test getting model references': ->
-    model = new Model
-    model._adapter._data =
-      info:
-        numbers:
-          first: 2
-          second: 10
-      numbers: model.ref 'info.numbers'
-      numKey: 'first'
-      number: model.ref 'numbers', 'numKey'
-    
-    # Test non-keyed object reference
-    model.get('numbers').should.eql first: 2, second: 10
-    # Test property below object reference
-    model.get('numbers.second').should.eql 10
-    # Test keyed object reference
-    model.get('number').should.eql 2
-    
-    # Test changing key object reference with speculative set
-    model.set 'numKey', 'second'
-    model.get('number').should.eql 10
-    # Test changing referenced object wtih speculative set
-    model.set 'info', numbers: {first: 3, second: 7}
-    model.get('number').should.eql 7
-  
-  'test setting to model references': ->
-    model = new Model
-    model.set 'color', model.ref 'colors', 'selected'
-    model.set 'selected', 'blue'
-    
-    # Setting a property on a reference should update the referenced object
-    model.set 'color.hex', '#0f0'
-    model.get().should.eql
-      colors:
-        blue:
-          hex: '#0f0'
-      selected: 'blue'
-      color: model.ref 'colors', 'selected'
-    
-    # Setting on a path that is currently a reference should modify the
-    # reference, similar to setting an object reference in Javascript
-    model.set 'color', model.ref 'colors.blue'
-    model.get().should.eql
-      colors:
-        blue:
-          hex: '#0f0'
-      selected: 'blue'
-      color: model.ref 'colors.blue'
-    
-    # Test setting on a non-keyed reference
-    model.set 'color.compliment', 'yellow'
-    model.get().should.eql
-      colors:
-        blue:
-          hex: '#0f0'
-          compliment: 'yellow'
-      selected: 'blue'
-      color: model.ref 'colors.blue'
