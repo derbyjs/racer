@@ -23,8 +23,8 @@ userCount = 0
 
 app.get '/:groupId', (req, res) ->
   groupId = req.params.groupId
-  store.subscribe "groups.#{groupId}", (err, model) ->
-    if !model.get "groups.#{groupId}"
+  store.subscribe "groups.#{groupId}.*", (err, model) ->
+    if !model.get "groups.#{groupId}.*"
       model.set "groups.#{groupId}", { _id: userId, todos: [] }
 
     # user is a promise/future
@@ -34,7 +34,7 @@ app.get '/:groupId', (req, res) ->
     model.json (json) ->
       res.send """
       <!DOCTYPE html>
-      <title>Letters game</title>
+      <title>Todo List</title>
       <style>#{style}</style>
       <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
       <div id=container>

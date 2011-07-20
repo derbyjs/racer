@@ -5,6 +5,7 @@ module.exports =
   method: (txn) -> txn[2]
   args: (txn) -> txn.slice 3
   path: (txn) -> txn[3]
+  clientId: (txn) -> @id(txn).split('.')[0]
   
   # Test to see if path name contains a segment that starts with an underscore.
   # Such a path is private to the current session and should not be stored

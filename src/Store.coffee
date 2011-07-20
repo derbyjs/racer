@@ -2,7 +2,9 @@ redis = require 'redis'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model'
 Stm = require './Stm'
+PubSub = require './PubSub'
 transaction = require './transaction'
+pathParser = require './pathParser'
 
 PENDING_INTERVAL = 500
 
@@ -10,6 +12,25 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
+
+  # If I recall correctly from Redis doc, Redis clients used for
+  # pubsub should only be used for pubsub, so we don't pass
+  # @_redisClient to new PubSub
+  pubsub = new PubSub('Redis')
+  pubsub.onMessage = (clientId, txn) ->
+    socketForModel(clientId).emit 'txn', txn
+
+  socketForModel = (clientId, socket) ->
+    sockets._byClientId ||= {}
+    if socket
+      dummySocket = sockets._byClientId[clientId]
+      sockets._byClientId[clientId] = socket
+      if dummySocket
+        socket.emit args... for args in dummySocket._buffer
+    sockets._byClientId[clientId] ||= dummySocket =
+        _buffer: []
+        emit: () ->
+          @_buffer.push arguments
   
   @_nextClientId = nextClientId = (callback) ->
     redisClient.incr 'clientIdCount', (err, value) ->
@@ -27,6 +48,13 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_setSockets = (s) ->
     sockets = s
     sockets.on 'connection', (socket) ->
+      socket.on 'clientId', (clientId) ->
+        # TODO Once socket.io supports query params in the
+        # socket.io urls, then we can remove this. Instead,
+        # we can add the socket <-> clientId assoc in the
+        # `sockets.on 'connection'...` callback.
+        # TODO Clean  up _byClientId on socket disconnected event
+        socketForModel(clientId, socket)
       socket.on 'txn', (txn) ->
         commit txn, null, (err, txn) ->
           if err && err.code == 'STM_CONFLICT'
@@ -55,7 +83,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       txn[0] = ver
       callback err, txn if callback
       return if err
-      sockets.emit 'txn', txn if sockets
+      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
+      # and TxnPubSub can subtract out the payload of path from txn, too.
+      pubsub.publish transaction.clientId(txn), transaction.path(txn), txn
       pending[ver] = txn
   
   @_txnsSince = txnsSince = (ver, onTxn) ->
@@ -70,10 +100,13 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   populateModel = (model, paths, callback) ->
     return callback null, model unless path = paths.pop()
+    path = pathParser.forPopulate path
     adapter.get path, (err, value, ver) ->
       callback err if err
       model._adapter.set path, value, ver
       return populateModel model, paths, callback
+  subscribeModel = (model, paths) ->
+    pubsub.subscribe model._clientId, path for path in paths
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
     # If subscribe(callback)
@@ -84,6 +117,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     if model
       # If subscribe(model, paths..., callback)
       if model instanceof Model
+        subscribeModel model, paths
         return populateModel model, paths, callback
 
       # If subscribe(paths..., callback)
@@ -91,6 +125,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
 
     nextClientId (clientId) ->
       newModel = new Model clientId
+      subscribeModel newModel, paths
       populateModel newModel, paths, callback
   
   @unsubscribe = ->

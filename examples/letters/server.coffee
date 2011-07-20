@@ -17,7 +17,7 @@ app.get '/script.js', (req, res) ->
 app.get '/', (req, res) ->
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe 'letters', 'info', (err, model) ->
+  store.subscribe 'letters.*', 'info.*', (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->

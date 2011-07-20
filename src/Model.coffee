@@ -52,6 +52,7 @@ Model:: =
   _setSocket: (socket, config) ->
     self = this
     self.socket = socket
+    socket.emit 'clientId', self._clientId
     socket.on 'txn', self._onTxn
     socket.on 'txnFail', self._removeTxn
     
