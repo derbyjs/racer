@@ -20,6 +20,8 @@ redis = require 'redis'
 PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
   @_pathsBySubscriber = {}
   @_subscribersByPath = {}
+  @_patternsBySubscriber = {}
+  @_subscribersByPattern = {}
 
   @_publishClient = options.client || redis.createClient()
   @_subscribeClient = redis.createClient()
@@ -45,13 +47,13 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
     return
   @_subscribeClient.on 'pmessage', (pattern, channel, message) =>
     message = JSON.parse message
-    subscribers = @_subscribersByPath[pattern]
+    subscribers = @_subscribersByPattern[pattern]
     if subscribers
       for subscriberId in subscribers
         pubsub.onMessage subscriberId, message
     subscribers = @_subscribersByPath[channel]
     if subscribers
-      for subscriberId in @_subscribersByPath[channel]
+      for subscriberId in subscribers
         pubsub.onMessage subscriberId, message
   @_subscribeClient.on 'punsubcribe', (pattern, count) ->
     if @debug
@@ -61,30 +63,31 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
   return
 
 RedisAdapter:: =
-  _index: (subscriberId, path) ->
-    paths = @_pathsBySubscriber[subscriberId] ||= []
+  _index: (subscriberId, path, pathType) ->
+    paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId] ||= []
     paths.push path
 
-    subscribers = @_subscribersByPath[path] ||= []
+    subscribers = @['_subscribersBy' + pathType][path] ||= []
     subscribers.push subscriberId
 
-  _unindex: (subscriberId, path) ->
+  _unindex: (subscriberId, path, pathType) ->
     if (path)
-      paths = @_pathsBySubscriber[subscriberId]
+      paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
       paths.splice(paths.indexOf(path), 1)
 
-      subscribers = @_subscribersByPath[path]
+      subscribers = @['_subscribersBy' + pathType][path]
       subscribers.splice(subscribers.indexOf(subscriberId), 1)
     else
       # More efficient way to remove *all* traces of a subscriber
       # than evaling above if multiple times
-      paths = @_pathsBySubscriber[subscriberId]
-      delete @_pathsBySubscriber[subscriberId]
-      for path in paths
-        subscribers = @_subscribersByPath[path]
-        subscribers.splice(subscribers.indexOf(subscriberId), 1)
+      for pathType in ['Pattern', 'Path']
+        paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+        delete @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+        for path in paths
+          subscribers = @['_subscribersBy' + pathType][path]
+          subscribers.splice(subscribers.indexOf(subscriberId), 1)
 
-  _alreadySubscribed: (path) -> !!@_subscribersByPath[path]
+  _alreadySubscribed: (path) -> !!(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
   subscribe: (subscriberId, path, callback) ->
     return if 'undefined' == typeof subscriberId
@@ -92,10 +95,10 @@ RedisAdapter:: =
 
     for path in paths
       @_subscribeClient.subscribe path unless @_alreadySubscribed path
-      @_index subscriberId, path
+      @_index subscriberId, path, 'Path'
     for pattern in patterns
       @_subscribeClient.psubscribe pattern unless @_alreadySubscribed path
-      @_index subscriberId, path
+      @_index subscriberId, path, 'Pattern'
 
   publish: (publisherId, path, message) ->
     if @debug
@@ -104,13 +107,16 @@ RedisAdapter:: =
     @_publishClient.publish path, JSON.stringify message
 
   unsubscribe: (subscriberId, path, callback) ->
-    [paths, patterns, exceptions] = pathParser.forSubscribe path
+    if path
+      [paths, patterns, exceptions] = pathParser.forSubscribe path
 
-    for path in paths
-      @_subscribeClient.unsubscribe path unless @_alreadySubscribed path
-      @_unindex subscriberId, path
-    for pattern in patterns
-      @_subscribeClient.punsubscribe pattern unless @_alreadySubscribed path
-      @_unindex subscriberId, path
+      for path in paths
+        @_subscribeClient.unsubscribe path unless @_alreadySubscribed path
+        @_unindex subscriberId, path
+      for pattern in patterns
+        @_subscribeClient.punsubscribe pattern unless @_alreadySubscribed path
+        @_unindex subscriberId, path
+    else
+      @_subscribeClient.unsubscribe
 
 # TODO PubSub._adapters.Memory = MemoryAdapter
