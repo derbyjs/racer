@@ -40,6 +40,8 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
     return
 
   @_subscribeClient.on 'psubscribe', (pattern, count) ->
+    if @debug
+      console.log "PSUBSCRIBING #{pattern} - COUNT = #{count}"
     return
   @_subscribeClient.on 'pmessage', (pattern, channel, message) =>
     message = JSON.parse message
@@ -52,6 +54,8 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
       for subscriberId in @_subscribersByPath[channel]
         pubsub.onMessage subscriberId, message
   @_subscribeClient.on 'punsubcribe', (pattern, count) ->
+    if @debug
+      console.log "PUNSUBSCRIBING #{pattern} - COUNT = #{count}"
     return
 
   return
@@ -94,6 +98,9 @@ RedisAdapter:: =
       @_index subscriberId, path
 
   publish: (publisherId, path, message) ->
+    if @debug
+      console.log "PUBLISHING the following to #{path}:"
+      console.log message
     @_publishClient.publish path, JSON.stringify message
 
   unsubscribe: (subscriberId, path, callback) ->
