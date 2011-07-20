@@ -58,7 +58,9 @@ Model:: =
     
     self._send = send = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
-      socket.emit 'txn', txn
+      txnCopy = txn.slice()
+      txnCopy[3] = txn.absolutePath
+      socket.emit 'txn', txnCopy
     
     # Request any transactions that may have been missed
     self._reqNewTxns = -> socket.emit 'txnsSince', self._adapter.ver + 1
@@ -105,11 +107,17 @@ Model:: =
     else
       subs[method].push sub
   _emit: (method, [path, args...]) ->
-    return if !subs = @_subs[method]
-    for sub in subs
-      re = sub[0]
-      if re.test path
-        sub[1].apply null, re.exec(path).slice(1).concat(args)
+    return unless subs = @_subs[method]
+    
+    refs = @_adapter._refs(path).$
+    objs = Array::concat {p: path}, refs
+    i = 0
+    while obj = objs[i++]
+      path = obj.p
+      for sub in subs
+        re = sub[0]
+        if re.test path
+          sub[1].apply null, re.exec(path).slice(1).concat(args)
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (method, args...) ->
@@ -117,11 +125,12 @@ Model:: =
     id = @_nextTxnId()
     @_txns[id] = txn = [@_adapter.ver, id, method, args...]
     @_txnQueue.push id
+    # Store the dereferenced model path to be used when sending
+    txn.absolutePath = @_specModel()[1]
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
     @_send txn
-    return id
   _applyTxn: (txn) ->
     method = transaction.method txn
     args = transaction.args txn
@@ -131,7 +140,7 @@ Model:: =
     @_removeTxn transaction.id txn
     @_emit method, args
   
-  get: (path) ->
+  _specModel: ->
     adapter = @_adapter
     if len = @_txnQueue.length
       # Then generate a speculative model
@@ -142,8 +151,10 @@ Model:: =
         txn = @_txns[@_txnQueue[i++]]
         args = transaction.args txn
         args.push adapter.ver, obj: obj, proto: true
-        adapter[transaction.method txn].apply adapter, args
-    return adapter.get path, obj
+        path = adapter[transaction.method txn].apply adapter, args
+    return [obj, path]
+  
+  get: (path) -> @_adapter.get path, @_specModel()[0]
   
   set: (path, value) ->
     @_addTxn 'set', path, value

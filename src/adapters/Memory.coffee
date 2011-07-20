@@ -16,14 +16,20 @@ Memory:: =
     value = @_get path
     callback null, value, @ver
   
+  _set: MemorySync::set
+  set: (path, value, ver, callback) ->
+    try
+      @_set path, value, ver
+    catch err
+      return callback err
+    callback null, value
+  
+  _del: MemorySync::del
+  del: (path, ver, callback) ->
+    try
+      @_del path, ver
+    catch err
+      return callback err
+    callback null
+  
   _lookup: MemorySync::_lookup
-
-for name in ['set', 'del']
-  fn = MemorySync::[name]
-  do (fn) ->
-    Memory::[name] = (args..., callback) ->
-      try
-        out = fn.apply this, args
-      catch err
-        return callback err
-      callback null, out

@@ -5,19 +5,35 @@ Memory = module.exports = ->
 
 Memory:: =
   get: (path, obj = @_data) ->
-    value = if path then @_lookup(path, obj: obj).obj else obj
-    return value
+    if path then @_lookup(path, obj: obj).obj else obj
+  
+  _refs: (path, options = {}) ->
+    refs = @_lookup('$refs', options).obj
+    for prop in path.split '.'
+      refs = refs[prop] = refs[prop] || {}
+    return refs
   
   set: (path, value, ver, options = {}) ->
     @ver = ver
     options.addPath = true
     out = @_lookup path, options
     out.parent[out.prop] = value
-    return value
+    
+    # Save a record of any references being set
+    if value.$r
+      console.log path, value, out.path
+      refs = @_refs out.path, options
+      if refs.$
+        refs.$.push p: path
+      else
+        refs.$ = [p: path]
+    
+    return out.path
   
   del: (path, ver, options = {}) ->
     @ver = ver
-    {parent, prop} = @_lookup path, options
+    out = @_lookup path, options
+    {parent, prop} = out
     if options.proto
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
@@ -32,9 +48,10 @@ Memory:: =
               value
         parent.__proto__ = obj
     delete parent[prop]
+    return out.path
   
   _lookup: (path, options) ->
-    {addPath, proto, onRef} = options
+    {addPath, proto} = options
     next = options.obj || @_data
     props = path.split '.'
     
@@ -67,9 +84,6 @@ Memory:: =
         else
           path = ref
           next = refObj
-        if onRef
-          remainder = [path].concat props.slice(i)
-          onRef key, remainder.join('.')
       else
         # Store the absolute path traversed so far
         path = if path then path + '.' + prop else prop

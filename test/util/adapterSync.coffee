@@ -7,12 +7,10 @@ module.exports = (AdapterSync) ->
     adapterSync = new AdapterSync
     adapterSync.get().should.eql {}
     
-    out = adapterSync.set 'color', 'green'
-    out.should.eql 'green'
+    adapterSync.set 'color', 'green'
     adapterSync.get('color').should.eql 'green'
     
-    out = adapterSync.set 'info.numbers', first: 2, second: 10
-    out.should.eql first: 2, second: 10
+    adapterSync.set 'info.numbers', first: 2, second: 10
     adapterSync.get('info.numbers').should.eql first: 2, second: 10
     adapterSync.get().should.eql
       color: 'green'

@@ -23,7 +23,7 @@ protoSubset = (a, b) ->
   for i of a
     if typeof a[i] is 'object'
       return false unless typeof b[i] is 'object'
-      return protoSubset a[i], b[i]
+      return false unless protoSubset a[i], b[i]
     else
       return false unless a[i] == b[i]
   return true

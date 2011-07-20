@@ -6,7 +6,9 @@ module.exports = (store, ioUri) ->
   Model::_send = (txn) ->
     onTxn = @_onTxn
     removeTxn = @_removeTxn
-    store._commit txn, null, (err, txn) ->
+    txnCopy = txn.slice()
+    txnCopy[3] = txn.absolutePath
+    store._commit txnCopy, null, (err, txn) ->
       return removeTxn transaction.id txn if err
       onTxn txn
   
