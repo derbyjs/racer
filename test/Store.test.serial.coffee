@@ -68,3 +68,5 @@ module.exports =
         modelA.should.eql modelB
         done()
 
+  # TODO tests:
+  # 'should, upon socket.io disconnect, remove the socket from the sockets._byClientID index'
