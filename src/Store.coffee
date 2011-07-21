@@ -60,8 +60,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # socket.io urls, then we can remove this. Instead,
         # we can add the socket <-> clientId assoc in the
         # `sockets.on 'connection'...` callback.
-        # TODO Clean  up _byClientId on socket disconnected event
         socketForModel(clientId, socket)
+        # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
+        #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
         pubsub.unsubscribe socket.clientId
         socket.unregister()
