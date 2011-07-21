@@ -24,7 +24,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     sockets._byClientId ||= {}
     if socket
       socket.clientId = clientId
-      socket.unregister = () ->
+      socket.unregister = ->
         delete sockets._byClientId[clientId]
       dummySocket = sockets._byClientId[clientId]
       sockets._byClientId[clientId] = socket
@@ -33,9 +33,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     
     sockets._byClientId[clientId] ||= dummySocket =
         _buffer: []
-        emit: () ->
+        emit: ->
           @_buffer.push arguments
-        unregister: () ->
+        unregister: ->
           @_buffer = []
           delete sockets._byClientId[clientId]
   

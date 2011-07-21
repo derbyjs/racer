@@ -164,14 +164,14 @@ Collection = (name, db) ->
   return
 
 Collection:: =
-  onReady: () ->
+  onReady: ->
     for todo in @_pending
       @[todo[0]].apply @, todo[1]
     @_pending = []
 
 for name, fn of MongoCollection::
   do (name, fn) ->
-    Collection::[name] = () ->
+    Collection::[name] = ->
       collection = @collection
       args = arguments
       if @_ready
