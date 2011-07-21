@@ -14,7 +14,7 @@ module.exports = rally = (options) ->
   ioPort = options.ioPort || 80
   ioUri = options.ioUri || ':' + ioPort
   sockets = rally.sockets = options.ioSockets || io.listen(ioPort).sockets
-  store._setSockets sockets, ioUri
+  store._setSockets sockets
   
   # Adds server functions to Model's prototype
   require('./Model.server')(store, ioUri)
