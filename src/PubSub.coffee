@@ -5,13 +5,15 @@ PubSub = module.exports = (adapterName, options) ->
   return
 
 PubSub:: =
-  subscribe: (subscriberId, path, callback) ->
+  # subscribe(subscriberId, paths..., callback)
+  subscribe: ->
     @_adapter.subscribe arguments...
 
   publish: (publisherId, path, message) ->
     @_adapter.publish arguments...
   
-  unsubscribe: (subscriberId, path, callback) ->
+  # unsubscribe(subscriberId, paths..., callback)
+  unsubscribe: ->
     @_adapter.unsubscribe arguments...
 
 PubSub._adapters = {}
@@ -55,7 +57,7 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
     if subscribers
       for subscriberId in subscribers
         pubsub.onMessage subscriberId, message
-  @_subscribeClient.on 'punsubcribe', (pattern, count) ->
+  @_subscribeClient.on 'punsubscribe', (pattern, count) ->
     if @debug
       console.log "PUNSUBSCRIBING #{pattern} - COUNT = #{count}"
     return
@@ -77,6 +79,7 @@ RedisAdapter:: =
 
       subscribers = @['_subscribersBy' + pathType][path]
       subscribers.splice(subscribers.indexOf(subscriberId), 1)
+      delete @['_subscribersBy' + pathType][path] unless subscribers.length
     else
       # More efficient way to remove *all* traces of a subscriber
       # than evaling above if multiple times
@@ -86,19 +89,32 @@ RedisAdapter:: =
         for path in paths
           subscribers = @['_subscribersBy' + pathType][path]
           subscribers.splice(subscribers.indexOf(subscriberId), 1)
+          delete @['_subscribersBy' + pathType][path] unless subscribers.length
 
   _alreadySubscribed: (path) -> !!(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
-  subscribe: (subscriberId, path, callback) ->
-    return if 'undefined' == typeof subscriberId
-    [paths, patterns, exceptions] = pathParser.forSubscribe path
+  _lacksSubscribers: (path) ->
+    !(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
-    for path in paths
-      @_subscribeClient.subscribe path unless @_alreadySubscribed path
-      @_index subscriberId, path, 'Path'
-    for pattern in patterns
-      @_subscribeClient.psubscribe pattern unless @_alreadySubscribed path
-      @_index subscriberId, path, 'Pattern'
+  subscribe: (subscriberId, paths..., callback) ->
+    # return could occur if subscribe called in the context of rally.store
+    return if subscriberId is undefined
+
+    if 'function' != typeof callback
+      paths.push(callback)
+      callback = null
+
+    res = {paths, patterns, exceptions} = pathParser.forSubscribe paths
+
+    toSubscribe = paths.filter @_alreadySubscribed.bind(@)
+    if toSubscribe.length
+      @_subscribeClient.subscribe toSubscribe...
+    @_index subscriberId, path, 'Path' for path in paths
+
+    toSubscribe = patterns.filter @_alreadySubscribed.bind(@)
+    if toSubscribe.length
+      @_subscribeClient.psubscribe toSubscribe...
+    @_index subscriberId, path, 'Pattern' for path in patterns
 
   publish: (publisherId, path, message) ->
     if @debug
@@ -106,17 +122,32 @@ RedisAdapter:: =
       console.log message
     @_publishClient.publish path, JSON.stringify message
 
-  unsubscribe: (subscriberId, path, callback) ->
-    if path
-      [paths, patterns, exceptions] = pathParser.forSubscribe path
+  unsubscribe: (subscriberId, paths..., callback) ->
+    return if subscriberId is undefined
 
-      for path in paths
-        @_subscribeClient.unsubscribe path unless @_alreadySubscribed path
-        @_unindex subscriberId, path
-      for pattern in patterns
-        @_subscribeClient.punsubscribe pattern unless @_alreadySubscribed path
-        @_unindex subscriberId, path
-    else
-      @_subscribeClient.unsubscribe
+    if !paths.length
+      # For signature: unsbuscribe(subscriberId)
+      for pathType in ['path', 'pattern']
+        if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
+          @unsubscribe subscriberId, paths...
+      return
+
+    # For signature: unsubscribe(subscriberId, paths..., callback)
+    if 'function' != typeof callback
+      paths.push(callback)
+      callback = null
+
+    {paths, patterns, exceptions} = pathParser.forSubscribe paths
+
+    if paths.length
+      @_unindex subscriberId, path, 'Path' for path in paths
+      paths = paths.filter @_lacksSubscribers.bind(@)
+      @_subscribeClient.unsubscribe paths...
+    if patterns.length
+      @_unindex subscriberId, path, 'Pattern' for path in patterns
+      patterns = patterns.filter @_lacksSubscribers.bind(@)
+      @_subscribeClient.punsubscribe pattern for pattern in patterns
+      # TODO Replace above line with below line, after patching npm redis
+      # @_subscribeClient.punsubscribe patterns...
 
 # TODO PubSub._adapters.Memory = MemoryAdapter

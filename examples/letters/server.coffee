@@ -14,10 +14,11 @@ style = fs.readFileSync 'style.css'
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
-app.get '/', (req, res) ->
+app.get '/:room', (req, res) ->
+  room = req.params.room || 'default'
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe 'letters.*', 'info.*', (err, model) ->
+  store.subscribe "#{room}.letters.*", "#{room}.info.*", (err, model) ->
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
@@ -38,24 +39,33 @@ app.get '/', (req, res) ->
 
 # Clear any existing data, then initialize
 store.flush (err) ->
-  updatePlayers = -> store.set 'info.players', players
-  players = 0; updatePlayers()
-  rally.sockets.on 'connection', (socket) ->
-    players++; updatePlayers()
-    socket.on 'disconnect', ->
-      players--; updatePlayers()
-  
-  colors = ['red', 'yellow', 'blue', 'orange', 'green']
-  letters = {}
-  for row in [0..4]
-    for col in [0..25]
-      letters[row * 26 + col] =
-        color: colors[row]
-        value: String.fromCharCode(65 + col)
-        left: col * 24 + 72
-        top: row * 32 + 8
-  store.set 'letters', letters
+  populateRoom 'default'
   app.listen 3000
+
+populateRoom = (room) ->
+  store.get "#{room}.letters", (err, val) ->
+    throw err if err
+    return if val
+
+    players = 0
+    updatePlayers = -> store.set "#{room}.info.players", players
+    players = 0; updatePlayers()
+    rally.sockets.on 'connection', (socket) ->
+      players++; updatePlayers()
+      socket.on 'disconnect', ->
+        players--; updatePlayers()
+
+    colors = ['red', 'yellow', 'blue', 'orange', 'green']
+    letters = {}
+    for row in [0..4]
+      for col in [0..25]
+        letters[row * 26 + col] =
+          color: colors[row]
+          value: String.fromCharCode(65 + col)
+          left: col * 24 + 72
+          top: row * 32 + 8
+    store.set "#{room}.letters", letters
+
 
   # # Follows the same middleware interface as Connect:
   # rally.use rallyMongo

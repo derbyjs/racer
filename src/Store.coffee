@@ -23,14 +23,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   socketForModel = (clientId, socket) ->
     sockets._byClientId ||= {}
     if socket
+      socket.clientId = clientId
+      socket.unregister = () ->
+        delete sockets._byClientId[clientId]
       dummySocket = sockets._byClientId[clientId]
       sockets._byClientId[clientId] = socket
       if dummySocket
         socket.emit args... for args in dummySocket._buffer
+    
     sockets._byClientId[clientId] ||= dummySocket =
         _buffer: []
         emit: () ->
           @_buffer.push arguments
+        unregister: () ->
+          @_buffer = []
+          delete sockets._byClientId[clientId]
   
   @_nextClientId = nextClientId = (callback) ->
     redisClient.incr 'clientIdCount', (err, value) ->
@@ -55,6 +62,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # `sockets.on 'connection'...` callback.
         # TODO Clean  up _byClientId on socket disconnected event
         socketForModel(clientId, socket)
+      socket.on 'disconnect', ->
+        pubsub.unsubscribe socket.clientId
+        socket.unregister()
       socket.on 'txn', (txn) ->
         commit txn, null, (err, txn) ->
           if err && err.code == 'STM_CONFLICT'
@@ -106,7 +116,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       model._adapter.set path, value, ver
       return populateModel model, paths, callback
   subscribeModel = (model, paths) ->
-    pubsub.subscribe model._clientId, path for path in paths
+    pubsub.subscribe model._clientId, paths...
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
     # If subscribe(callback)
@@ -129,7 +139,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       populateModel newModel, paths, callback
   
   @unsubscribe = ->
-    throw "Unimplemented"
+    pubsub.unsubscribe socket.clientId
   
   @flush = (callback) ->
     done = false
@@ -141,7 +151,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     adapter.flush cb
     redisClient.flushdb cb
   
-  @get = adapter.get
+  @get = -> adapter.get arguments...
   
   @set = (path, value, ver = null, callback) ->
     @_commit [ver, nextTxnId(), 'set', path, value], callback
