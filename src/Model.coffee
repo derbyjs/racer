@@ -58,9 +58,7 @@ Model:: =
     
     self._send = send = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
-      txnCopy = txn.slice()
-      txnCopy[3] = txn.absolutePath
-      socket.emit 'txn', txnCopy
+      socket.emit 'txn', txn
     
     # Request any transactions that may have been missed
     self._reqNewTxns = -> socket.emit 'txnsSince', self._adapter.ver + 1
@@ -108,16 +106,28 @@ Model:: =
       subs[method].push sub
   _emit: (method, [path, args...]) ->
     return unless subs = @_subs[method]
-    
-    refs = @_adapter._refs(path).$
-    objs = Array::concat {p: path}, refs
-    i = 0
-    while obj = objs[i++]
-      path = obj.p
+    testPath = (path) ->
       for sub in subs
         re = sub[0]
         if re.test path
           sub[1].apply null, re.exec(path).slice(1).concat(args)
+    # Emit events on the path
+    testPath path
+    # Emit events on any references that point to the path
+    if refs = @get '$refs'
+      i = 0
+      props = path.split '.'
+      while prop = props[i++]
+        break unless next = refs[prop]
+        refs = next
+      refs = refs.$
+      # refs is now the last thing that was in $refs along the path
+      remainder = ''
+      i--
+      while prop = props[i++]
+        remainder += '.' + prop
+      @_adapter._forRef refs, @get(), (p) ->
+        testPath p + remainder
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   _addTxn: (method, args...) ->
@@ -125,8 +135,8 @@ Model:: =
     id = @_nextTxnId()
     @_txns[id] = txn = [@_adapter.ver, id, method, args...]
     @_txnQueue.push id
-    # Store the dereferenced model path to be used when sending
-    txn.absolutePath = @_specModel()[1]
+    # Update the transaction's path with a dereferenced path
+    txn[3] = args[0] = @_specModel()[1]
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server

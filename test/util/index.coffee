@@ -17,7 +17,7 @@ flatten = (a) ->
     obj[key] = flatten val
   return obj
 
-protoInspect = (a) -> inspect flatten a
+exports.protoInspect = protoInspect = (a) -> inspect flatten a
 
 protoSubset = (a, b) ->
   for i of a
