@@ -155,6 +155,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @get = -> adapter.get arguments...
   
   @set = (path, value, ver = null, callback) ->
+    if 'function' == typeof ver
+      # Just in case of @set(path, value, callback)
+      throw new Error 'You must pass null or a version number to set'
     @_commit [ver, nextTxnId(), 'set', path, value], callback
   
   @del = (path, ver = null, callback) ->
