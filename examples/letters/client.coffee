@@ -16,7 +16,6 @@ window.onload = ->
   model.on 'set', '_room.players', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'disconnect', updateInfo
-  updateInfo()
   
   html = ''
   if `/*@cc_on!@*/0`
