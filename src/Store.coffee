@@ -20,6 +20,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   pubsub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
 
+  # socketForModel(clientId) is a getter
+  # socketForModel(clientId, socket) is a setter
   socketForModel = (clientId, socket) ->
     sockets._byClientId ||= {}
     if socket
@@ -71,7 +73,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           if err && err.code == 'STM_CONFLICT'
             socket.emit 'txnFail', transaction.id txn
       socket.on 'txnsSince', (ver) ->
-        txnsSince ver, (txn) ->
+        eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
   
   # TODO: This algorithm will need to change when we go multi-process,
@@ -99,25 +101,54 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       pubsub.publish transaction.clientId(txn), transaction.path(txn), txn
       pending[ver] = txn
   
-  @_txnsSince = txnsSince = (ver, onTxn) ->
+  # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
+  @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
+      throw err if err
       txn = null
+      lastValIndex = vals.length-1
       for val, i in vals
         if i % 2
           txn[0] = +val
-          onTxn txn
+          index = i/2
+          isLast = i == lastValIndex
+          onTxn txn, index, isLast
         else
           txn = JSON.parse val
   
-  populateModel = (model, paths, callback) ->
-    return callback null, model unless path = paths.pop()
-    path = pathParser.forPopulate path
-    adapter.get path, (err, value, ver) ->
-      callback err if err
-      model._adapter.set path, value, ver
-      return populateModel model, paths, callback
   subscribeModel = (model, paths) ->
     pubsub.subscribe model._clientId, paths...
+  populateModel = (model, paths, callback) ->
+    txnsToApply = []
+    __while = paths.length + 1
+    applyMissingData = ->
+      modelAdapter = model._adapter
+      for txn in txnsToApply
+        # TODO Avoid double counting - Do not mutate a transaction that
+        #      may end up being sent to the client via pubsub.subscribe
+        method = transaction.method txn
+        args = transaction.args txn
+        args.push transaction.base txn
+        # It's important that adapter[method] is not async.
+        # If it is async, then we need to place callback inside
+        # one of the adapter[method]'s callbacks
+        modelAdapter[method].apply modelAdapter, args
+      callback null, model
+
+    # Fetch any missing data from the journal.
+    # i.e., transactions that are in the journal but not yet
+    # in the database
+    eachTxnSince adapter.ver, (txn, i, isLast) ->
+      txnsToApply.push txn
+      --__while || applyMissingData() if isLast
+
+    for path in paths
+      path = pathParser.forPopulate path
+      adapter.get path, (err, value, ver) ->
+        return callback err if err
+        model._adapter.set path, value, ver
+        --__while || applyMissingData()
+  
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
     # If subscribe(callback)

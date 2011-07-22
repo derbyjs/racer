@@ -2,6 +2,7 @@ rally = require 'rally'
 
 window.onload = ->
   model = rally.model
+  room = document.location.pathname.substr 1
   info = document.getElementById 'info'
   board = document.getElementById 'board'
   dragData = null
@@ -26,7 +27,7 @@ window.onload = ->
   else
     open = '<span'
     close = '</span>'
-  for id, letter of model.get 'letters'
+  for id, letter of model.get "#{room}.letters"
     html += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
     style=left:#{letter.left}px;top:#{letter.top}px>#{letter.value}#{close}"""
   board.innerHTML = html
@@ -63,7 +64,7 @@ window.onload = ->
     
     # Update the model to reflect the drop position
     dragTarget = dragData.target
-    letterPath = 'letters.' + dragTarget.id
+    letterPath = room + '.letters.' + dragTarget.id
     model.set letterPath + '.left', e.clientX - dragData.startLeft
     model.set letterPath + '.top', e.clientY - dragData.startTop
     
@@ -73,7 +74,7 @@ window.onload = ->
   # Update the letter's position when the model changes
   # Path wildcards are passed to the handler function as arguments in order.
   # The function arguments are: (wildcards..., value)
-  model.on 'set', 'letters.*.(left|top)', (id, prop, value) ->
+  model.on 'set', room + '.letters.*.(left|top)', (id, prop, value) ->
     el = document.getElementById id
     el.style[prop] = value + 'px'
 
