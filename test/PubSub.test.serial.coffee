@@ -118,7 +118,7 @@ module.exports =
     pubsub.publish publisher, 'channel.1', 'first'
     pubsub.publish publisher, 'channel.1', 'last'
 
-  'subscribing to a pattern, and then to a pattern-matching path, should still receive messages for the pattern and should only receive a given message for teh path once': (done) ->
+  'subscribing to a pattern, and then to a pattern-matching path, should still receive messages for the pattern and should only receive a given message for the path once': (done) ->
     counter = 0
     pubsub.onMessage = (subscriberId, message) ->
       subscriberId.should.equal '1'
@@ -134,7 +134,7 @@ module.exports =
     pubsub.publish publisher, 'channel.1', 'one'
     pubsub.publish publisher, 'channel.2', 'two'
 
-  'subscribing to a path, and then to a pattern that covers the path, should still receive messages for the path (once per given message) and should also start receiving messages for other paths covered by the path': (done) ->
+  'subscribing to a path, and then to a pattern that covers the path, should still receive messages for the path (once per given message) and should also start receiving messages for other paths covered by the pattern': (done) ->
     counter = 0
     pubsub.onMessage = (subscriberId, message) ->
       subscriberId.should.equal '1'
