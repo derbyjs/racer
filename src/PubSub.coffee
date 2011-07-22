@@ -109,6 +109,18 @@ RedisAdapter:: =
     patternIndex = @_subscribersByPattern[path]?.indexOf subscriberId
     pathIndex is not undefined && !!~pathIndex || patternIndex is not undefined && !!~patternIndex
 
+  _alreadySubscribedToViaPatterns: (subscriberId, paths) ->
+    patterns = @_patternsBySubscriber[subscriberId]
+    return {} unless patterns
+    conflictsWithPattern= pathParser.conflictsWithPattern
+    conflicts = patterns.reduce (conflicts, pattern) ->
+      conflictPaths = paths.filter (path) ->
+        conflictsWithPattern(path, pattern)
+      if conflictPaths.length
+        conflicts[pattern] = conflictPaths
+      conflicts
+    , {}
+
   subscribe: (subscriberId, paths..., callback) ->
     # return could occur if subscribe called in the context of rally.store
     return if subscriberId is undefined
@@ -119,12 +131,17 @@ RedisAdapter:: =
 
     {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
+    conflicts = @_alreadySubscribedToViaPatterns subscriberId, paths
+    if Object.keys(conflicts).length
+      errMsg = "The following patterns already give you subscriptions to the following paths/patterns:\n"
+      errMsg += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
+      throw new Error errMsg
+
     toSubscribe = paths.filter (path) => @_lacksSubscribers path
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
     @_index subscriberId, path, 'Path' for path in toIndex
-
     toSubscribe = patterns.filter (pattern) => @_lacksSubscribers pattern
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length

@@ -123,10 +123,12 @@ module.exports =
     subscriber = '1'
     pubsub.subscribe subscriber, 'channel.*'
     try
-      pubsub.subscribe 'channel.1'
+      pubsub.subscribe subscriber, 'channel.1'
     catch e
       didErr = true
     didErr.should.be.true
+    done()
+
   finishAll: (done) -> finishAll = true; done()
 
   ## !! PLACE ALL TESTS BEFORE finishAll !! ##
