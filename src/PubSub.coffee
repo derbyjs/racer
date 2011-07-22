@@ -39,8 +39,10 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
     # are expensive, so place for loop in the onMessage function
     # and do the same for `@_subscribeClient.on 'pmessage'...`
     throw new Error 'You must define pubsub.onMessage' unless onMessage = pubsub.onMessage
-    for subscriberId in @_subscribersByPath[path]
-      onMessage subscriberId, JSON.parse message
+    subscribers = @_subscribersByPath[path]
+    if subscribers
+      for subscriberId in subscribers
+        onMessage subscriberId, JSON.parse message
   @_subscribeClient.on 'unsubscribe', (path, count) =>
     if pubsub.debug
       console.log "UNSUBSCRIBING #{path} - COUNT = #{count}"
@@ -128,16 +130,18 @@ RedisAdapter:: =
     return if subscriberId is undefined
 
     if !paths.length
-      # For signature: unsbuscribe(subscriberId)
-      for pathType in ['path', 'pattern']
-        if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
-          @unsubscribe subscriberId, paths...
-      return
+      if 'string' != typeof callback
+        # For signature: unsbuscribe(subscriberId[, callback])
+        for pathType in ['path', 'pattern']
+          if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
+            @unsubscribe subscriberId, paths..., callback
+        return
+
+      # For signature: unsubscribe(subscriberId, path, callback)
+      paths.push callback
+      callback = null
 
     # For signature: unsubscribe(subscriberId, paths..., callback)
-    if 'function' != typeof callback
-      paths.push(callback)
-      callback = null
 
     {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
