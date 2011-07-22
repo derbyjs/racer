@@ -16,7 +16,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # If I recall correctly from Redis doc, Redis clients used for
   # pubsub should only be used for pubsub, so we don't pass
   # @_redisClient to new PubSub
-  pubsub = new PubSub('Redis')
+  @_pubsub = pubsub = new PubSub('Redis')
   pubsub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
 
@@ -102,11 +102,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       pending[ver] = txn
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
-  @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
+  @_eachTxnSince = eachTxnSince = (ver, onTxn, onEmpty) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
       txn = null
       lastValIndex = vals.length-1
+      return onEmpty() if lastValIndex == -1
       for val, i in vals
         if i % 2
           txn[0] = +val
@@ -138,9 +139,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     # Fetch any missing data from the journal.
     # i.e., transactions that are in the journal but not yet
     # in the database
-    eachTxnSince adapter.ver, (txn, i, isLast) ->
+    eachTxnSince adapter.ver, onTxn = (txn, i, isLast) ->
       txnsToApply.push txn
       --__while || applyMissingData() if isLast
+    , onEmpty = -> --__while || applyMissingData()
 
     for path in paths
       path = pathParser.forPopulate path
