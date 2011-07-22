@@ -117,7 +117,7 @@ RedisAdapter:: =
       paths.push(callback)
       callback = null
 
-    res = {paths, patterns, exceptions} = pathParser.forSubscribe paths
+    {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
     toSubscribe = paths.filter (path) => @_lacksSubscribers path
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
