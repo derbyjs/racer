@@ -61,6 +61,7 @@ module.exports =
     model.set '_color', 'green'
     model.get('_color').should.eql 'green'
     model._txnQueue.should.eql []
+    sockets._disconnect()
   , 0
   
   'transactions should be removed after failure': wrapTest (done) ->
