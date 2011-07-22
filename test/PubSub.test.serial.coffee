@@ -118,16 +118,21 @@ module.exports =
     pubsub.publish publisher, 'channel.1', 'first'
     pubsub.publish publisher, 'channel.1', 'last'
 
-  'subscribing to a path that is covered by a pattern should throw an error': (done) ->
-    didErr = false
-    subscriber = '1'
+  'subscribing to a pattern, and then to a pattern-matching path, should still receive messages for the pattern and should only receive a given message for teh path once': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      subscriberId.should.equal '1'
+      counter++
+      if message == 'two'
+        counter.should.equal 2
+        done()
+
+    [subscriber, publisher] = ['1', '2']
     pubsub.subscribe subscriber, 'channel.*'
-    try
-      pubsub.subscribe subscriber, 'channel.1'
-    catch e
-      didErr = true
-    didErr.should.be.true
-    done()
+    pubsub.subscribe subscriber, 'channel.1'
+
+    pubsub.publish publisher, 'channel.1', 'one'
+    pubsub.publish publisher, 'channel.2', 'two'
 
   finishAll: (done) -> finishAll = true; done()
 

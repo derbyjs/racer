@@ -133,9 +133,8 @@ RedisAdapter:: =
 
     conflicts = @_alreadySubscribedToViaPatterns subscriberId, paths
     if Object.keys(conflicts).length
-      errMsg = "The following patterns already give you subscriptions to the following paths/patterns:\n"
-      errMsg += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
-      throw new Error errMsg
+      for pattern, conflictPaths of conflicts
+        paths = paths.filter (path) -> (-1 == conflictPaths.indexOf path)
 
     toSubscribe = paths.filter (path) => @_lacksSubscribers path
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
