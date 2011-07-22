@@ -20,8 +20,9 @@ module.exports =
       message.should.equal 'value'
       done()
 
-    pubsub.subscribe subscriberId='1', 'channel'
-    pubsub.publish publisherId='2', 'channel', 'value'
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel'
+    pubsub.publish publisher, 'channel', 'value'
   
   'a published transaction to a patterned path should only be received if subscribed to': (done) ->
     pubsub.onMessage = (subscriberId, message) ->
@@ -29,8 +30,9 @@ module.exports =
       message.should.equal 'value'
       done()
 
-    pubsub.subscribe subscriberId='1', 'channel.*'
-    pubsub.publish publisherId='2', 'channel.1', 'value'
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel.*'
+    pubsub.publish publisher, 'channel.1', 'value'
 
   'unsubscribing from a path means the subscriber should no longer receive the path messages': (done) ->
     counter = 0
@@ -41,8 +43,7 @@ module.exports =
         counter.should.equal 3
         done()
 
-    subscriber = '1'
-    publisher = '2'
+    [subscriber, publisher] = ['1', '2']
     pubsub.subscribe subscriber, 'a'
     pubsub.subscribe subscriber, 'b'
 
@@ -68,8 +69,7 @@ module.exports =
         counter.should.equal 3
         done()
 
-    subscriber = '1'
-    publisher = '2'
+    [subscriber, publisher] = ['1', '2']
     pubsub.subscribe subscriber, 'a.*'
     pubsub.subscribe subscriber, 'b.*'
 
@@ -85,6 +85,23 @@ module.exports =
         , 200
       , 200
     , 200
+
+  'subscribing > 1 time to the same path should still only result in the subscriber receiving the message once': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      subscriberId.should.equal '1'
+      counter++
+      if message == 'last'
+        counter.should.equal 2
+        done()
+
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel'
+    pubsub.subscribe subscriber, 'channel'
+
+    pubsub.publish publisher, 'channel', 'first'
+    pubsub.publish publisher, 'channel', 'last'
+
 
   finishAll: (done) -> finishAll = true; done()
 
