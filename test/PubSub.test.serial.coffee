@@ -5,7 +5,6 @@ PubSub = require 'PubSub'
 pubsub = new PubSub
 #pubsub.debug = true
 
-# TODO
 module.exports =
   setup: (done) ->
     pubsub.flush done
