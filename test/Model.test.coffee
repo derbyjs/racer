@@ -354,7 +354,7 @@ module.exports =
     model.set 'color', 'green'
   , 2
   
-  'models events should be emitted on a reference': wrapTest (done) ->
+  'model events should be emitted on a reference': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn[0] = ++ver
@@ -368,3 +368,16 @@ module.exports =
     model.set 'color.hex', '#0f0'
   , 2
   
+  'model events should be emitted on a reference to a reference': wrapTest (done) ->
+    model = new Model
+    model.set 'color', model.ref 'colors.green'
+    model.set 'colors.green', model.ref 'bestColor'
+    model.on 'set', 'color.hex', (value) ->
+      value.should.eql '#0f0'
+      done()
+    model.on 'set', 'colors.**', (path, value) ->
+      path.should.eql 'green.hex'
+      value.should.eql '#0f0'
+      done()
+    model.set 'bestColor.hex', '#0f0'
+  , 2
