@@ -103,7 +103,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       pending[ver] = txn
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
-  @_eachTxnSince = eachTxnSince = (ver, onTxn, done) ->
+  @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
       txn = null
@@ -113,30 +113,20 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           onTxn txn
         else
           txn = JSON.parse val
-      done() if done
   
   subscribeModel = (model, paths) ->
     pubsub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
     modelAdapter = model._adapter
-    maxVer = 0
     getting = paths.length
     for path in paths
       # TODO: Select only the correct properties instead of everything under the path
       path = path.replace /\.\*$/, ''
       adapter.get path, (err, value, ver) ->
         return callback err if err
-        maxVer = Math.max maxVer, ver
         modelAdapter.set path, value, ver
         return if --getting
-        # Apply any transactions in the STM that have not yet been applied
-        # to the store
-        eachTxnSince maxVer + 1, onTxn = (txn) ->
-          method = transaction.method txn
-          args = transaction.args txn
-          args.push transaction.base txn
-          modelAdapter[method].apply modelAdapter, args
-        , done = -> callback null, model
+        callback null, model
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions

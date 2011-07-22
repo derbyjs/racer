@@ -20,46 +20,42 @@ app.get '/', (req, res) ->
 
 app.get '/:room', (req, res) ->
   room = req.params.room
-  populateRoom room, (err) ->
-    throw err if err
-    # Subscribe optionally accepts a model as an argument. If no model is
-    # specified, it will create a new model object
-    store.subscribe "#{room}.*", (err, model) ->
-      model.set '_roomName', room
-      model.set '_room', model.ref room
-      # model.json waits for any pending model operations to complete and then
-      # returns the data for initialization on the client
-      model.json (json) ->
-        res.send """
-        <!DOCTYPE html>
-        <title>Letters game</title>
-        <style>#{style}</style>
-        <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
-        <div id=back>
-          <div id=page>
-            <p id=info>
-            <div id=board></div>
-          </div>
+  # Subscribe optionally accepts a model as an argument. If no model is
+  # specified, it will create a new model object
+  store.subscribe "#{room}.*", (err, model) ->
+    initModel model, room
+    # model.json waits for any pending model operations to complete and then
+    # returns the data for initialization on the client
+    model.json (json) ->
+      res.send """
+      <!DOCTYPE html>
+      <title>Letters game</title>
+      <style>#{style}</style>
+      <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
+      <div id=back>
+        <div id=page>
+          <p id=info>
+          <div id=board></div>
         </div>
-        <script src=/script.js></script>
-        <script>rally.init(#{json})</script>
-        """
+      </div>
+      <script src=/script.js></script>
+      <script>rally.init(#{json})</script>
+      """
 
-populateRoom = (room, callback) ->
-  store.get room, (err, val) ->
-    throw err if err
-    return callback null if val
-
-    colors = ['red', 'yellow', 'blue', 'orange', 'green']
-    letters = {}
-    for row in [0..4]
-      for col in [0..25]
-        letters[row * 26 + col] =
-          color: colors[row]
-          value: String.fromCharCode(65 + col)
-          left: col * 24 + 72
-          top: row * 32 + 8
-    store.set room, {letters: letters, players: 0}, null, callback
+initModel = (model, room) ->
+  model.set '_roomName', room
+  model.set '_room', model.ref room
+  return if model.get room
+  colors = ['red', 'yellow', 'blue', 'orange', 'green']
+  letters = {}
+  for row in [0..4]
+    for col in [0..25]
+      letters[row * 26 + col] =
+        color: colors[row]
+        value: String.fromCharCode(65 + col)
+        left: col * 24 + 72
+        top: row * 32 + 8
+  model.set room, {letters: letters, players: 0}
 
 # Clear any existing data, then initialize
 store.flush (err) ->

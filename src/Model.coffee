@@ -120,7 +120,7 @@ Model:: =
       while prop = props[i++]
         break unless next = refs[prop]
         refs = next
-      refs = refs.$
+      return unless refs = refs.$
       # refs is now the last thing that was in $refs along the path
       remainder = ''
       i--
