@@ -15,7 +15,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # If I recall correctly from Redis doc, Redis clients used for
   # pubsub should only be used for pubsub, so we don't pass
   # @_redisClient to new PubSub
-  @_pubsub = pubsub = new PubSub('Redis')
+  @_pubsub = pubsub = new PubSub
   pubsub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
 

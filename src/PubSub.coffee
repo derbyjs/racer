@@ -1,6 +1,6 @@
 pathParser = require './pathParser'
 
-PubSub = module.exports = (adapterName, options) ->
+PubSub = module.exports = (adapterName = 'Redis', options) ->
   @_adapter = new PubSub._adapters[adapterName] this, options
   return
 
