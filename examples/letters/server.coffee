@@ -4,7 +4,6 @@ fs = require 'fs'
 
 rally ioPort: 3001
 store = rally.store
-presence = rally.presence
 app = express.createServer()
 app.use express.favicon()
 
@@ -26,10 +25,10 @@ app.get '/:room', (req, res) ->
     # Subscribe optionally accepts a model as an argument. If no model is
     # specified, it will create a new model object
     store.subscribe "#{room}.*", (err, model) ->
-      # model.json waits for any pending model operations to complete and then
-      # returns the data for initialization on the client
       model.set '_roomName', room
       model.set '_room', model.ref room
+      # model.json waits for any pending model operations to complete and then
+      # returns the data for initialization on the client
       model.json (json) ->
         res.send """
         <!DOCTYPE html>
