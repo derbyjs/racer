@@ -104,6 +104,11 @@ RedisAdapter:: =
   _lacksSubscribers: (path) ->
     !(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
+  _isIndexed: (path, subscriberId) ->
+    pathIndex = @_subscribersByPath[path]?.indexOf subscriberId
+    patternIndex = @_subscribersByPattern[path]?.indexOf subscriberId
+    pathIndex is not undefined && !!~pathIndex || patternIndex is not undefined && !!~patternIndex
+
   subscribe: (subscriberId, paths..., callback) ->
     # return could occur if subscribe called in the context of rally.store
     return if subscriberId is undefined
@@ -114,15 +119,17 @@ RedisAdapter:: =
 
     res = {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
-    toSubscribe = paths.filter @_lacksSubscribers.bind(@)
+    toSubscribe = paths.filter (path) => @_lacksSubscribers path
+    toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
-    @_index subscriberId, path, 'Path' for path in paths
+    @_index subscriberId, path, 'Path' for path in toIndex
 
-    toSubscribe = patterns.filter @_lacksSubscribers.bind(@)
+    toSubscribe = patterns.filter (pattern) => @_lacksSubscribers pattern
+    toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.psubscribe toSubscribe...
-    @_index subscriberId, path, 'Pattern' for path in patterns
+    @_index subscriberId, path, 'Pattern' for path in toIndex
 
   publish: (publisherId, path, message) ->
     if @pubsub.debug
