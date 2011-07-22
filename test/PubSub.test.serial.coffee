@@ -118,6 +118,15 @@ module.exports =
     pubsub.publish publisher, 'channel.1', 'first'
     pubsub.publish publisher, 'channel.1', 'last'
 
+  'subscribing to a path that is covered by a pattern should throw an error': (done) ->
+    didErr = false
+    subscriber = '1'
+    pubsub.subscribe subscriber, 'channel.*'
+    try
+      pubsub.subscribe 'channel.1'
+    catch e
+      didErr = true
+    didErr.should.be.true
   finishAll: (done) -> finishAll = true; done()
 
   ## !! PLACE ALL TESTS BEFORE finishAll !! ##
