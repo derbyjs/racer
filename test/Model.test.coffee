@@ -56,6 +56,13 @@ module.exports =
     model.del 'color'
     model._txnQueue.should.eql ['0.0']
   
+  'setting on a private path should only be applied locally': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '0', 'txn', done
+    model.set '_color', 'green'
+    model.get('_color').should.eql 'green'
+    model._txnQueue.should.eql []
+  , 0
+  
   'transactions should be removed after failure': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       sockets.emit 'txnFail', '0.0'

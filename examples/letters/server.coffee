@@ -28,6 +28,7 @@ app.get '/:room', (req, res) ->
     store.subscribe "#{room}.letters.*", "info.*", (err, model) ->
       # model.json waits for any pending model operations to complete and then
       # returns the data for initialization on the client
+      model.set '_room', model.ref room
       model.json (json) ->
         res.send """
         <!DOCTYPE html>

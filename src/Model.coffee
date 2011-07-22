@@ -136,7 +136,9 @@ Model:: =
     @_txns[id] = txn = [@_adapter.ver, id, method, args...]
     @_txnQueue.push id
     # Update the transaction's path with a dereferenced path
-    txn[3] = args[0] = @_specModel()[1]
+    path = txn[3] = args[0] = @_specModel()[1]
+    # Apply a private transaction immediately and don't send it to the store
+    return @_applyTxn txn if transaction.privatePath path
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
