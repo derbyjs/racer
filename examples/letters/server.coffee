@@ -55,6 +55,9 @@ store.flush (err) ->
     socket.on 'disconnect', ->
       players--; updatePlayers()
   app.listen 3000
+  console.log "Go to http://localhost:3000/"
+  console.log "Go to http://localhost:3000/nates_room"
+  console.log "Go to http://localhost:3000/brians_room"
 
 populateRoom = (room, callback) ->
   store.get "#{room}.letters", (err, val) ->
