@@ -134,6 +134,24 @@ module.exports =
     pubsub.publish publisher, 'channel.1', 'one'
     pubsub.publish publisher, 'channel.2', 'two'
 
+  'subscribing to a path, and then to a pattern that covers the path, should still receive messages for the path (once per given message) and should also start receiving messages for other paths covered by the path': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      subscriberId.should.equal '1'
+      counter++
+      if message == 'two'
+        counter.should.equal 2
+        done()
+
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel.1'
+    pubsub.subscribe subscriber, 'channel.*'
+
+    setTimeout ->
+      pubsub.publish publisher, 'channel.1', 'one'
+      pubsub.publish publisher, 'channel.2', 'two'
+    , 200
+
   finishAll: (done) -> finishAll = true; done()
 
   ## !! PLACE ALL TESTS BEFORE finishAll !! ##
