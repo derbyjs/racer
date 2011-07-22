@@ -44,6 +44,8 @@ Model = module.exports = (@_clientId = '') ->
     txnQueue = self._txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   
+  self.force = Object.create self, _force: value: true
+  
   return
 
 Model:: =
@@ -138,7 +140,8 @@ Model:: =
   _addTxn: (method, args...) ->
     # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
-    @_txns[id] = txn = [@_adapter.ver, id, method, args...]
+    ver = if @_force then null else @_adapter.ver
+    @_txns[id] = txn = [ver, id, method, args...]
     @_txnQueue.push id
     # Update the transaction's path with a dereferenced path
     path = txn[3] = args[0] = @_specModel()[1]
@@ -178,6 +181,7 @@ Model:: =
     return value
   del: (path) ->
     @_addTxn 'del', path
+  
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 

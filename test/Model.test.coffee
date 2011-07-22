@@ -8,8 +8,7 @@ mockSocketModel = require('./util/model').mockSocketModel
 module.exports =
   
   'test internal creation of client transactions on set': ->
-    model = new Model
-    model._clientId = '0'
+    model = new Model '0'
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['0.0']
@@ -104,8 +103,7 @@ module.exports =
     sockets.emit 'txn', [2, '_.0', 'set', 'color', 'blue']
   
   'test speculative value of set': ->
-    model = new Model
-    model._clientId = '0'
+    model = new Model '0'
     
     model.set 'color', 'green'
     model.get('color').should.eql 'green'
@@ -141,8 +139,7 @@ module.exports =
           third: 13
   
   'test speculative value of del': ->
-    model = new Model
-    model._clientId = '0'
+    model = new Model '0'
     model._adapter._data =
       color: 'green'
       info:
@@ -414,3 +411,13 @@ module.exports =
       done()
     model.set 'w.x.y.z', 'green'
   , 2
+  
+  'forcing a model method should create a transaction with a null version': ->
+    model = new Model '0'
+    model.set 'color', 'green'
+    model.force.set 'color', 'red'
+    model.force.del 'color'
+    model._txns['0.0'].slice().should.eql [0, '0.0', 'set', 'color', 'green']
+    model._txns['0.1'].slice().should.eql [null, '0.1', 'set', 'color', 'red']
+    model._txns['0.2'].slice().should.eql [null, '0.2', 'del', 'color']
+  
