@@ -1,3 +1,4 @@
+transaction = require './transaction'
 Model = require './Model'
 
 # Update Model's prototype to provide server-side functionality
@@ -6,7 +7,7 @@ module.exports = (store, ioUri) ->
   Model::_send = (txn) ->
     onTxn = @_onTxn
     removeTxn = @_removeTxn
-    store._commit txn, null, (err, txn) ->
+    store._commit txn, (err, txn) ->
       return removeTxn transaction.id txn if err
       onTxn txn
   

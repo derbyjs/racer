@@ -4,7 +4,6 @@ Model = require './Model'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
-pathParser = require './pathParser'
 
 PENDING_INTERVAL = 500
 
@@ -102,54 +101,40 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       pending[ver] = txn
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
-  @_eachTxnSince = eachTxnSince = (ver, onTxn, onEmpty) ->
+  @_eachTxnSince = eachTxnSince = (ver, onTxn, done) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
       txn = null
-      lastValIndex = vals.length-1
-      return onEmpty() if lastValIndex == -1
       for val, i in vals
         if i % 2
           txn[0] = +val
-          index = i/2
-          isLast = i == lastValIndex
-          onTxn txn, index, isLast
+          onTxn txn
         else
           txn = JSON.parse val
+      done() if done
   
   subscribeModel = (model, paths) ->
     pubsub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
-    txnsToApply = []
-    __while = paths.length + 1
-    applyMissingData = ->
-      modelAdapter = model._adapter
-      for txn in txnsToApply
-        # TODO Avoid double counting - Do not mutate a transaction that
-        #      may end up being sent to the client via pubsub.subscribe
-        method = transaction.method txn
-        args = transaction.args txn
-        args.push transaction.base txn
-        # It's important that adapter[method] is not async.
-        # If it is async, then we need to place callback inside
-        # one of the adapter[method]'s callbacks
-        modelAdapter[method].apply modelAdapter, args
-      callback null, model
-
-    # Fetch any missing data from the journal.
-    # i.e., transactions that are in the journal but not yet
-    # in the database
-    eachTxnSince adapter.ver, onTxn = (txn, i, isLast) ->
-      txnsToApply.push txn
-      --__while || applyMissingData() if isLast
-    , onEmpty = -> --__while || applyMissingData()
-
+    modelAdapter = model._adapter
+    maxVer = 0
+    getting = paths.length
     for path in paths
-      path = pathParser.forPopulate path
+      # TODO: Select only the correct properties instead of everything under the path
+      path = path.replace /\.\*$/, ''
       adapter.get path, (err, value, ver) ->
         return callback err if err
-        model._adapter.set path, value, ver
-        --__while || applyMissingData()
+        maxVer = Math.max maxVer, ver
+        modelAdapter.set path, value, ver
+        return if --getting
+        # Apply any transactions in the STM that have not yet been applied
+        # to the store
+        eachTxnSince maxVer + 1, onTxn = (txn) ->
+          method = transaction.method txn
+          args = transaction.args txn
+          args.push transaction.base txn
+          modelAdapter[method].apply modelAdapter, args
+        , done = -> callback null, model
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions

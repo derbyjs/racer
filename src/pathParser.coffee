@@ -49,12 +49,3 @@ module.exports =
         patterns: []
         exceptions: []
       }
-
-
-  # Returns a normalized path for use with an adapter
-  forPopulate: (path) ->
-    lastChar = path.charAt path.length-1
-    if lastChar == '*'
-      # Remove the .*
-      return path.substring(0, path.length-2)
-    return path
