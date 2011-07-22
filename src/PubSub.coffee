@@ -85,6 +85,7 @@ RedisAdapter:: =
   _unindex: (subscriberId, path, pathType) ->
     if (path)
       paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+      return unless paths
       paths.splice(paths.indexOf(path), 1)
 
       subscribers = @['_subscribersBy' + pathType][path]
