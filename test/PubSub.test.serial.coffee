@@ -102,6 +102,21 @@ module.exports =
     pubsub.publish publisher, 'channel', 'first'
     pubsub.publish publisher, 'channel', 'last'
 
+  'subscribing > 1 time to the same pattern should still only result in the subscriber receiving the message once': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      subscriberId.should.equal '1'
+      counter++
+      if message == 'last'
+        counter.should.equal 2
+        done()
+
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel.*'
+    pubsub.subscribe subscriber, 'channel.*'
+
+    pubsub.publish publisher, 'channel.1', 'first'
+    pubsub.publish publisher, 'channel.1', 'last'
 
   finishAll: (done) -> finishAll = true; done()
 
