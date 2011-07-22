@@ -59,6 +59,32 @@ module.exports =
       , 200
     , 200
 
+  'unsubscribing from a pattern means the subscriber should no longer receive the pattern messages': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      counter++
+      subscriberId.should.equal '1'
+      if message == 'last'
+        counter.should.equal 3
+        done()
+
+    subscriber = '1'
+    publisher = '2'
+    pubsub.subscribe subscriber, 'a.*'
+    pubsub.subscribe subscriber, 'b.*'
+
+    setTimeout ->
+      pubsub.publish publisher, 'a.1', 'first'
+      pubsub.publish publisher, 'b.1', 'second'
+
+      setTimeout ->
+        pubsub.unsubscribe subscriber, 'a.*'
+        setTimeout ->
+          pubsub.publish publisher, 'a.2', 'ignored'
+          pubsub.publish publisher, 'b.2', 'last'
+        , 200
+      , 200
+    , 200
 
   finishAll: (done) -> finishAll = true; done()
 
