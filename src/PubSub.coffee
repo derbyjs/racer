@@ -20,6 +20,8 @@ PubSub._adapters = {}
 redis = require 'redis'
 # redis.debug_mode = true
 PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
+  @pubsub = pubsub
+
   @_pathsBySubscriber = {}
   @_subscribersByPath = {}
   @_patternsBySubscriber = {}
@@ -29,36 +31,38 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
   @_subscribeClient = redis.createClient()
 
   @_subscribeClient.on 'subscribe', (path, count) =>
-    if @debug
+    if pubsub.debug
       console.log "SUBSCRIBING #{path} - COUNT = #{count}"
     return
   @_subscribeClient.on 'message', (path, message) =>
     # TODO Invert this for performance? i.e., function calls
     # are expensive, so place for loop in the onMessage function
     # and do the same for `@_subscribeClient.on 'pmessage'...`
+    throw new Error 'You must define pubsub.onMessage' unless onMessage = pubsub.onMessage
     for subscriberId in @_subscribersByPath[path]
-      pubsub.onMessage subscriberId, JSON.parse message
+      onMessage subscriberId, JSON.parse message
   @_subscribeClient.on 'unsubscribe', (path, count) =>
-    if @debug
+    if pubsub.debug
       console.log "UNSUBSCRIBING #{path} - COUNT = #{count}"
     return
 
   @_subscribeClient.on 'psubscribe', (pattern, count) ->
-    if @debug
+    if pubsub.debug
       console.log "PSUBSCRIBING #{pattern} - COUNT = #{count}"
     return
   @_subscribeClient.on 'pmessage', (pattern, channel, message) =>
+    throw new Error 'You must define pubsub.onMessage' unless onMessage = pubsub.onMessage
     message = JSON.parse message
     subscribers = @_subscribersByPattern[pattern]
     if subscribers
       for subscriberId in subscribers
-        pubsub.onMessage subscriberId, message
+        onMessage subscriberId, message
     subscribers = @_subscribersByPath[channel]
     if subscribers
       for subscriberId in subscribers
         pubsub.onMessage subscriberId, message
   @_subscribeClient.on 'punsubscribe', (pattern, count) ->
-    if @debug
+    if pubsub.debug
       console.log "PUNSUBSCRIBING #{pattern} - COUNT = #{count}"
     return
 
@@ -91,8 +95,6 @@ RedisAdapter:: =
           subscribers.splice(subscribers.indexOf(subscriberId), 1)
           delete @['_subscribersBy' + pathType][path] unless subscribers.length
 
-  _alreadySubscribed: (path) -> !!(@_subscribersByPath[path] || @_subscribersByPattern[path])
-
   _lacksSubscribers: (path) ->
     !(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
@@ -106,18 +108,18 @@ RedisAdapter:: =
 
     res = {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
-    toSubscribe = paths.filter @_alreadySubscribed.bind(@)
+    toSubscribe = paths.filter @_lacksSubscribers.bind(@)
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
     @_index subscriberId, path, 'Path' for path in paths
 
-    toSubscribe = patterns.filter @_alreadySubscribed.bind(@)
+    toSubscribe = patterns.filter @_lacksSubscribers.bind(@)
     if toSubscribe.length
       @_subscribeClient.psubscribe toSubscribe...
     @_index subscriberId, path, 'Pattern' for path in patterns
 
   publish: (publisherId, path, message) ->
-    if @debug
+    if @pubsub.debug
       console.log "PUBLISHING the following to #{path}:"
       console.log message
     @_publishClient.publish path, JSON.stringify message
