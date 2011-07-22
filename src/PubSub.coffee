@@ -15,6 +15,10 @@ PubSub:: =
   # unsubscribe(subscriberId, paths..., callback)
   unsubscribe: ->
     @_adapter.unsubscribe arguments...
+  flush: (callback) ->
+    @_adapter.flush callback
+  disconnect: (callback) ->
+    @_adapter.disconnect callback
 
 PubSub._adapters = {}
 redis = require 'redis'
@@ -155,5 +159,18 @@ RedisAdapter:: =
       @_subscribeClient.punsubscribe pattern for pattern in patterns
       # TODO Replace above line with below line, after patching npm redis
       # @_subscribeClient.punsubscribe patterns...
+
+  flush: (callback) ->
+    @_publishClient.flushdb =>
+      @_pathsBySubscriber = {}
+      @_subscribersByPath = {}
+      @_patternsBySubscriber = {}
+      @_subscribersByPattern = {}
+      callback()
+
+  disconnect: (callback) ->
+    @_subscribeClient.end()
+    @_publishClient.end()
+    callback()
 
 # TODO PubSub._adapters.Memory = MemoryAdapter
