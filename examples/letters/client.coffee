@@ -7,14 +7,14 @@ window.onload = ->
   dragData = null
   
   updateInfo = ->
-    players = model.get 'info.players'
+    players = model.get '_room.players'
     info.innerHTML =
       if model.socket.socket.connected
         players + ' Player' + if players > 1 then 's' else ''
       else
         'Offline'
-  model.on 'set', 'info.players', updateInfo
-  model.socket.on 'connect', updateInfo
+  model.on 'set', '_room.players', updateInfo
+  model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'disconnect', updateInfo
   updateInfo()
   

@@ -25,9 +25,10 @@ app.get '/:room', (req, res) ->
     throw err if err
     # Subscribe optionally accepts a model as an argument. If no model is
     # specified, it will create a new model object
-    store.subscribe "#{room}.letters.*", "info.*", (err, model) ->
+    store.subscribe "#{room}.*", (err, model) ->
       # model.json waits for any pending model operations to complete and then
       # returns the data for initialization on the client
+      model.set '_roomName', room
       model.set '_room', model.ref room
       model.json (json) ->
         res.send """
@@ -45,23 +46,8 @@ app.get '/:room', (req, res) ->
         <script>rally.init(#{json})</script>
         """
 
-# Clear any existing data, then initialize
-store.flush (err) ->
-  # TODO Once presence feature is implemented, change players
-  #      from total global players to total players in a room
-  updatePlayers = -> store.set 'info.players', players
-  players = 0; updatePlayers()
-  rally.sockets.on 'connection', (socket) ->
-    players++; updatePlayers()
-    socket.on 'disconnect', ->
-      players--; updatePlayers()
-  app.listen 3000
-  console.log "Go to http://localhost:3000/"
-  console.log "Go to http://localhost:3000/nates_room"
-  console.log "Go to http://localhost:3000/brians_room"
-
 populateRoom = (room, callback) ->
-  store.get "#{room}.letters", (err, val) ->
+  store.get room, (err, val) ->
     throw err if err
     return callback null if val
 
@@ -74,7 +60,21 @@ populateRoom = (room, callback) ->
           value: String.fromCharCode(65 + col)
           left: col * 24 + 72
           top: row * 32 + 8
-    store.set "#{room}.letters", letters, null, callback
+    store.set room, {letters: letters, players: 0}, null, callback
+
+# Clear any existing data, then initialize
+store.flush (err) ->
+  rally.sockets.on 'connection', (socket) ->
+    playersPath = ''
+    socket.on 'join', (room) ->
+      playersPath = "#{room}.players"
+      store.get playersPath, (err, val) -> store.set playersPath, val + 1
+    socket.on 'disconnect', ->
+      return unless playersPath
+      store.get playersPath, (err, val) -> store.set playersPath, val - 1
+  app.listen 3000
+  console.log "Go to http://localhost:3000/room1"
+  console.log "Go to http://localhost:3000/room2"
 
   # # Follows the same middleware interface as Connect:
   # rally.use rallyMongo
