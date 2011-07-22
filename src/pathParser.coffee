@@ -53,3 +53,6 @@ module.exports =
   conflictsWithPattern: (path, pattern) ->
     base = pattern.replace /\.\*$/, ''
     base == path.substr(0, base.length)
+
+  isPattern: (path) ->
+    /\.\*$/.test path

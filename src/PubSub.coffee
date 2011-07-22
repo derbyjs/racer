@@ -112,8 +112,21 @@ RedisAdapter:: =
   _alreadySubscribedToViaPatterns: (subscriberId, paths) ->
     patterns = @_patternsBySubscriber[subscriberId]
     return {} unless patterns
-    conflictsWithPattern= pathParser.conflictsWithPattern
-    conflicts = patterns.reduce (conflicts, pattern) ->
+    conflictsWithPattern = pathParser.conflictsWithPattern
+    patterns.reduce (conflicts, pattern) ->
+      conflictPaths = paths.filter (path) ->
+        conflictsWithPattern(path, pattern)
+      if conflictPaths.length
+        conflicts[pattern] = conflictPaths
+      conflicts
+    , {}
+
+  _toBeSubscribedToViaPatterns: (subscriberId, patterns) ->
+    paths = @_patternsBySubscriber[subscriberId]
+    paths = (paths ? []).concat(@_pathsBySubscriber[subscriberId] ? [])
+    return {} unless paths.length
+    conflictsWithPattern = pathParser.conflictsWithPattern
+    patterns.reduce (conflicts, pattern) ->
       conflictPaths = paths.filter (path) ->
         conflictsWithPattern(path, pattern)
       if conflictPaths.length
@@ -133,6 +146,10 @@ RedisAdapter:: =
 
     conflicts = @_alreadySubscribedToViaPatterns subscriberId, paths
     if Object.keys(conflicts).length
+      if @pubsub.debug
+        warning = "The following patterns already give you subscriptions to the following paths/patterns:\n"
+        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
+        console.log warning
       for pattern, conflictPaths of conflicts
         paths = paths.filter (path) -> (-1 == conflictPaths.indexOf path)
 
@@ -141,6 +158,26 @@ RedisAdapter:: =
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
     @_index subscriberId, path, 'Path' for path in toIndex
+
+
+    conflicts = @_toBeSubscribedToViaPatterns subscriberId, patterns
+    if Object.keys(conflicts).length
+      if @pubsub.debug
+        warning = "The following path subscriptions will now be covered by the following patterns:\n"
+        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
+        console.log warning
+      for pattern, conflictPaths of conflicts
+        @unsubscribe subscriberId, conflictPaths...
+
+    conflicts = @_alreadySubscribedToViaPatterns subscriberId, patterns
+    if Object.keys(conflicts).length
+      if @pubsub.debug
+        warning = "The following patterns already give you subscriptions to the following paths/patterns:\n"
+        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
+        console.log warning
+      for pattern, conflictPaths of conflicts
+        patterns = patterns.filter (currPattern) -> (-1 == conflictPaths.indexOf currPattern)
+
     toSubscribe = patterns.filter (pattern) => @_lacksSubscribers pattern
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
