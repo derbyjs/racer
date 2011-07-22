@@ -381,3 +381,36 @@ module.exports =
       done()
     model.set 'bestColor.hex', '#0f0'
   , 2
+  
+  'removing a reference should stop emission of events': wrapTest (done) ->
+    model = new Model
+    model.set 'color', model.ref 'colors.green'
+    model.set 'colors.green', model.ref 'bestColor'
+    model.on 'set', 'color.hex', done
+    model.on 'set', 'colors.**', done
+    model.del 'colors.green'
+    model.set 'bestColor.hex', '#0f0'
+  , 0
+  
+  'multiple references to the same path should all raise events': wrapTest (done) ->
+    model = new Model
+    model.set 'color', model.ref 'colors.green'
+    model.set 'bestColor', model.ref 'colors.green'
+    model.on 'set', 'color', done
+    model.on 'set', 'bestColor', done
+    model.set 'colors.green', {}
+  , 2
+  
+  'references should work on different parts of a nested path': wrapTest (done) ->
+    model = new Model
+    model.set 'a', model.ref 'w.x.y.z'
+    model.set 'b', model.ref 'w.x'
+    model.on 'set', 'a', (value) ->
+      value.should.eql 'green'
+      done()
+    model.on 'set', 'b.**', (path, value) ->
+      path.should.eql 'y.z'
+      value.should.eql 'green'
+      done()
+    model.set 'w.x.y.z', 'green'
+  , 2

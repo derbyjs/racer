@@ -116,23 +116,22 @@ Model:: =
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
-      checkRefs = (path) ->
-        i = 0
-        obj = refs
-        props = path.split '.'
-        while prop = props[i++]
-          break unless next = obj[prop]
-          obj = next
-        return unless obj = obj.$
-        # obj is now the last thing that was in $refs along the path
+      derefPath = (obj, props, i) ->
         remainder = ''
-        i--
         while prop = props[i++]
           remainder += '.' + prop
         self._adapter._forRef obj, self.get(), (path) ->
           path += remainder
           testPath path
           checkRefs path
+      checkRefs = (path) ->
+        i = 0
+        obj = refs
+        props = path.split '.'
+        while prop = props[i++]
+          break unless next = obj[prop]
+          derefPath next.$, props, i if next.$
+          obj = next
       checkRefs path
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
