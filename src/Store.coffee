@@ -105,7 +105,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
   @_eachTxnSince = eachTxnSince = (ver, onTxn, done) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
-      console.log ver, vals
       throw err if err
       txn = null
       for val, i in vals
