@@ -59,6 +59,10 @@ module.exports =
       , 200
     , 200
 
+  'unsubscribing from a path you are not subscribed to should be harmless': (done) ->
+    pubsub.unsubscribe 'subcriber', 'not-subscribed-to-this-channel'
+    done()
+
   'unsubscribing from a pattern means the subscriber should no longer receive the pattern messages': (done) ->
     counter = 0
     pubsub.onMessage = (subscriberId, message) ->
