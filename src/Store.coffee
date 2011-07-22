@@ -40,15 +40,13 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           @_buffer = []
           delete sockets._byClientId[clientId]
   
-  @_nextClientId = nextClientId = (callback) ->
+  nextClientId = (callback) ->
     redisClient.incr 'clientIdCount', (err, value) ->
       throw err if err
       callback value.toString(36)
   
-  # TODO: DRY this with Model
   clientId = ''
-  nextClientId (err, value) ->
-    clientId = value
+  nextClientId (value) -> clientId = value
   txnCount = 0
   nextTxnId = -> clientId + '.' + txnCount++
   
@@ -91,6 +89,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   , PENDING_INTERVAL
   
   @_commit = commit = (txn, callback) ->
+    ver = transaction.base txn
+    if ver && typeof ver != 'number'
+      # In case of something like @set(path, value, callback)
+      throw new Error 'Version must be null or a number'
     stm.commit txn, (err, ver) ->
       txn[0] = ver
       callback err, txn if callback
@@ -103,6 +105,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
   @_eachTxnSince = eachTxnSince = (ver, onTxn, done) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
+      console.log ver, vals
       throw err if err
       txn = null
       for val, i in vals
@@ -172,13 +175,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @get = -> adapter.get arguments...
   
-  @set = (path, value, ver = null, callback) ->
-    if 'function' == typeof ver
-      # Just in case of @set(path, value, callback)
-      throw new Error 'You must pass null or a version number to set'
+  @set = (path, value, ver, callback) ->
     @_commit [ver, nextTxnId(), 'set', path, value], callback
   
-  @del = (path, ver = null, callback) ->
+  @del = (path, ver, callback) ->
     @_commit [ver, nextTxnId(), 'del', path], callback
   
   return
