@@ -108,7 +108,7 @@ RedisAdapter:: =
   _isIndexed: (path, subscriberId) ->
     pathIndex = @_subscribersByPath[path]?.indexOf subscriberId
     patternIndex = @_subscribersByPattern[path]?.indexOf subscriberId
-    pathIndex is not undefined && !!~pathIndex || patternIndex is not undefined && !!~patternIndex
+    pathIndex isnt undefined && !!~pathIndex || (patternIndex isnt undefined && !!~patternIndex)
 
   # subscriberId wants to subscribe to [paths]. This method checks [paths]
   # against the patterns that subscriberId is subscribed to and returns a
@@ -174,7 +174,8 @@ RedisAdapter:: =
         paths = paths.filter (path) -> (-1 == coveredPaths.indexOf path)
 
     toSubscribe = paths.filter (path) => @_lacksSubscribers path
-    toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
+    toIndex = paths.filter (path) =>
+      !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
     @_index subscriberId, path, 'Path' for path in toIndex
@@ -201,7 +202,7 @@ RedisAdapter:: =
         patterns = patterns.filter (currPattern) -> (-1 == coveredPaths.indexOf currPattern)
 
     toSubscribe = patterns.filter (pattern) => @_lacksSubscribers pattern
-    toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
+    toIndex = patterns.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.psubscribe toSubscribe...
     @_index subscriberId, path, 'Pattern' for path in toIndex
