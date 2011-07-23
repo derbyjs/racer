@@ -43,13 +43,55 @@ body {
   cursor: default;
   position: absolute;
   font: 28px/23px Anton;
-  text-shadow:
-    0 0 1px #000,
-    0 1px 1px #000;
   text-decoration: none;
 }
-.red { color: #ed1c24 }
-.yellow { color: #fce600 }
-.blue { color: #008bce }
-.orange { color: #f58235 }
-.green { color: #54b948 }
+.red {
+  color: #ed2c33;
+  text-shadow:
+    0 1px #8b0005,
+    1px 0 #8b0005,
+    1px 2px #5a0003,
+    2px 1px #5a0003,
+    -1px 0 #8b0005,
+    0 -1px #8b0005;
+}
+.yellow {
+  color: #fce600;
+  text-shadow:
+    0 1px #8e8100,
+    1px 0 #8e8100,
+    1px 2px #4e4700,
+    2px 1px #4e4700,
+    -1px 0 #8e8100,
+    0 -1px #8e8100;
+}
+.blue {
+  color: #2697ce;
+  text-shadow:
+    0 1px #00496c,
+    1px 0 #00496c,
+    1px 2px #002e44,
+    2px 1px #002e44,
+    -1px 0 #00496c,
+    0 -1px #00496c;
+}
+.orange {
+  color: #f58235;
+  text-shadow:
+    0 1px #873600,
+    1px 0 #873600,
+    1px 2px #502000,
+    2px 1px #502000,
+    -1px 0 #873600,
+    0 -1px #873600;
+}
+.green {
+  color: #54b948;
+  text-shadow:
+    0 1px #0a5700,
+    1px 0 #0a5700,
+    1px 2px #052f00,
+    2px 1px #052f00,
+    -1px 0 #0a5700,
+    0 -1px #0a5700;
+}
