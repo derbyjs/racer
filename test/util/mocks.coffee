@@ -1,9 +1,10 @@
 EventEmitter = require('events').EventEmitter
 
-callEmit = (target, name, value, async) ->
+callEmit = (target, name, args, async) ->
   return if name == 'newListener'
-  return setTimeout callEmit, 0, target, name, value if async
-  EventEmitter::emit.call target, name, JSON.parse JSON.stringify value
+  return setTimeout callEmit, 0, target, name, args if async
+  args = JSON.parse JSON.stringify args
+  EventEmitter::emit.call target, name, args...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
@@ -15,18 +16,18 @@ ServerSocketsMock = exports.ServerSocketsMock = ->
     @_disconnect = -> EventEmitter::emit.call browserSocket, 'disconnect'
   return
 ServerSocketsMock:: =
-  emit: (name, value) -> callEmit socket, name, value for socket in @_sockets
+  emit: (name, args...) -> callEmit socket, name, args for socket in @_sockets
   __proto__: EventEmitter::
 
 ServerSocketMock = (@_serverSockets, @_browserSocket) ->
   EventEmitter.call this
   @broadcast =
-    emit: (name, value) =>
+    emit: (name, args...) =>
       for socket in @_serverSockets._sockets
-        callEmit socket, name, value if @_browserSocket != socket
+        callEmit socket, name, args if @_browserSocket != socket
   return
 ServerSocketMock:: =
-  emit: (name, value) -> callEmit @_browserSocket, name, value
+  emit: (name, args...) -> callEmit @_browserSocket, name, args
   __proto__: EventEmitter::
 
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
@@ -36,5 +37,5 @@ BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
 BrowserSocketMock:: =
   _connect: ->
     EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
-  emit: (name, value) -> callEmit @_serverSocket, name, value, 'async'
+  emit: (name, args...) -> callEmit @_serverSocket, name, args, 'async'
   __proto__: EventEmitter::

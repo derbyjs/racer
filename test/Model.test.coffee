@@ -1,5 +1,7 @@
 Model = require 'Model'
+should = require 'should'
 util = require './util'
+transaction = require 'transaction'
 wrapTest = util.wrapTest
 protoInspect = util.protoInspect
 
@@ -65,7 +67,7 @@ module.exports =
   
   'transactions should be removed after failure': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      sockets.emit 'txnFail', '0.0'
+      sockets.emit 'txnErr', 'conflict', '0.0'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
@@ -421,3 +423,29 @@ module.exports =
     model._txns['0.1'].slice().should.eql [null, '0.1', 'set', 'color', 'red']
     model._txns['0.2'].slice().should.eql [null, '0.2', 'del', 'color']
   
+  'model mutator methods should callback on completion': wrapTest (done) ->
+    ver = 0
+    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+      txn[0] = ++ver
+      sockets.emit 'txn', txn
+      sockets._disconnect()
+    model.set 'color', 'green', (err) ->
+      should.equal null, err
+      done()
+    model.del 'color', (err) ->
+      should.equal null, err
+      done()
+  , 2
+  
+  'model mutator methods should callback with error on confict': wrapTest (done) ->
+    ver = 0
+    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+      sockets.emit 'txnErr', 'conflict', transaction.id txn
+      sockets._disconnect()
+    model.set 'color', 'green', (err) ->
+      err.should.equal 'conflict'
+      done()
+    model.del 'color', (err) ->
+      err.should.equal 'conflict'
+      done()
+  , 2

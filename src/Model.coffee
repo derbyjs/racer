@@ -15,7 +15,11 @@ Model = module.exports = (@_clientId = '') ->
   # to only a subset of the model
   pending = {}
   pendingTimeout = null
-  self._onTxn = onTxn = (txn) ->
+  self._onTxn = (txn) ->
+    # Copy the callback onto this transaction if it matches one in the queue
+    queuedTxn = self._txns[transaction.id txn]
+    txn.callback = queuedTxn && queuedTxn.callback
+    
     base = transaction.base txn
     nextVer = self._adapter.ver + 1
     # Cache this transaction to be applied later if it is not the next version
@@ -39,10 +43,10 @@ Model = module.exports = (@_clientId = '') ->
       self._applyTxn txn
       delete pending[nextVer++]
   
-  self._removeTxn = (txnId) ->
-    delete self._txns[txnId]
-    txnQueue = self._txnQueue
-    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
+  self._onTxnErr = (err, txnId) ->
+    txn = self._txns[txnId]
+    callback err if txn && callback = txn.callback
+    self._removeTxn txnId
   
   self.force = Object.create self, _force: value: true
   
@@ -56,7 +60,7 @@ Model:: =
     self.socket = socket
     socket.emit 'clientId', self._clientId
     socket.on 'txn', self._onTxn
-    socket.on 'txnFail', self._removeTxn
+    socket.on 'txnErr', self._onTxnErr
     
     self._send = send = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
@@ -137,11 +141,12 @@ Model:: =
       checkRefs path
 
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
-  _addTxn: (method, args...) ->
+  _addTxn: (method, args..., callback) ->
     # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
     ver = if @_force then null else @_adapter.ver
     @_txns[id] = txn = [ver, id, method, args...]
+    txn.callback = callback
     @_txnQueue.push id
     # Update the transaction's path with a dereferenced path
     path = txn[3] = args[0] = @_specModel()[1]
@@ -151,6 +156,10 @@ Model:: =
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
     @_send txn
+  _removeTxn: (txnId) ->
+    delete @_txns[txnId]
+    txnQueue = @_txnQueue
+    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   _applyTxn: (txn) ->
     method = transaction.method txn
     args = transaction.args txn
@@ -159,6 +168,7 @@ Model:: =
     adapter[method].apply adapter, args
     @_removeTxn transaction.id txn
     @_emit method, args
+    callback null if callback = txn.callback
   
   _specModel: ->
     adapter = @_adapter
@@ -176,11 +186,11 @@ Model:: =
   
   get: (path) -> @_adapter.get path, @_specModel()[0]
   
-  set: (path, value) ->
-    @_addTxn 'set', path, value
+  set: (path, value, callback) ->
+    @_addTxn 'set', path, value, callback
     return value
-  del: (path) ->
-    @_addTxn 'del', path
+  del: (path, callback) ->
+    @_addTxn 'del', path, callback
   
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref

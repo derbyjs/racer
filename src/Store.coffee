@@ -68,7 +68,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       socket.on 'txn', (txn) ->
         commit txn, null, (err, txn) ->
           if err && err.code == 'STM_CONFLICT'
-            socket.emit 'txnFail', transaction.id txn
+            socket.emit 'txnErr', 'conflict', transaction.id txn
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
