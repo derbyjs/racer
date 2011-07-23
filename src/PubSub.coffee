@@ -233,5 +233,3 @@ RedisAdapter:: =
     @_subscribeClient.end()
     @_publishClient.end()
     callback()
-
-# TODO PubSub._adapters.Memory = MemoryAdapter
