@@ -65,10 +65,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
-        pubsub.unsubscribe socket.clientId
-        socket.unregister()
+        pubsub.unsubscribe socket.clientId if socket.clientId
+        socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
         commit txn, null, (err, txn) ->
+          return if err is 'duplicate'
           socket.emit 'txnErr', err, transaction.id txn if err
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->

@@ -65,10 +65,15 @@ window.onload = ->
       left: e.clientX - dragData.startLeft
       top: e.clientY - dragData.startTop
     , (err, path, value) ->
-      # clone = target.cloneNode
-      # clone.style.left = value.left
-      # clone.style.top = value.top
-      # clone.style.opacity = 0.5
+      # TODO: Present some UI that shows the conflict and lets the user choose
+      # what to do
+      if err is 'conflict'
+        clone = target.cloneNode true
+        clone.id += 'clone'
+        clone.style.left = value.left
+        clone.style.top = value.top
+        clone.style.opacity = 0.5
+        target.parentNode.appendChild clone
   
   # Update the letter's position when the model changes
   # Path wildcards are passed to the handler function as arguments in order.
