@@ -145,6 +145,14 @@ RedisAdapter:: =
       conflicts
     , {}
 
+  _handleCoverage: ({coverageMethod, subscriberId, incomingPathsOrPatterns, warningFn, overlapCallback}) ->
+    coverageMap = @[coverageMethod] subscriberId, incomingPathsOrPatterns
+    if Object.keys(coverageMap).length
+      if @pubsub.debug
+        console.log warningFn coverageMap
+      for pattern, coveredPaths of coverageMap
+        overlapCallback pattern, coveredPaths
+
   subscribe: (subscriberId, paths..., callback) ->
     # return could occur if subscribe called in the context of rally.store
     return if subscriberId is undefined
@@ -155,14 +163,15 @@ RedisAdapter:: =
 
     {paths, patterns, exceptions} = pathParser.forSubscribe paths
 
-    conflicts = @_alreadySubscribedToViaPatterns subscriberId, paths
-    if Object.keys(conflicts).length
-      if @pubsub.debug
+    @_handleCoverage
+      coverageMethod: '_alreadySubscribedToViaPatterns'
+      subscriberId: subscriberId
+      incomingPathsOrPatterns: paths
+      warningFn: (coverageMap) ->
         warning = "The following patterns already give you subscriptions to the following paths/patterns:\n"
-        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
-        console.log warning
-      for pattern, conflictPaths of conflicts
-        paths = paths.filter (path) -> (-1 == conflictPaths.indexOf path)
+        warning += "#{pattern}: #{coveredPaths.join(', ')}" for pattern, coveredPaths of coverageMap
+      overlapCallback: (pattern, coveredPaths) ->
+        paths = paths.filter (path) -> (-1 == coveredPaths.indexOf path)
 
     toSubscribe = paths.filter (path) => @_lacksSubscribers path
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
@@ -171,23 +180,25 @@ RedisAdapter:: =
     @_index subscriberId, path, 'Path' for path in toIndex
 
 
-    conflicts = @_toBeSubscribedToViaPatterns subscriberId, patterns
-    if Object.keys(conflicts).length
-      if @pubsub.debug
+    @_handleCoverage
+      coverageMethod: '_toBeSubscribedToViaPatterns'
+      subscriberId: subscriberId
+      incomingPathsOrPatterns: patterns
+      warningFn: (coverageMap) ->
         warning = "The following path subscriptions will now be covered by the following patterns:\n"
-        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
-        console.log warning
-      for pattern, conflictPaths of conflicts
-        @unsubscribe subscriberId, conflictPaths...
+        warning += "#{pattern}: #{coveredPaths.join(', ')}" for pattern, coveredPaths of coverageMap
+      overlapCallback: (pattern, coveredPaths) =>
+        @unsubscribe subscriberId, coveredPaths...
 
-    conflicts = @_alreadySubscribedToViaPatterns subscriberId, patterns
-    if Object.keys(conflicts).length
-      if @pubsub.debug
+    @_handleCoverage
+      coverageMethod: '_alreadySubscribedToViaPatterns'
+      subscriberId: subscriberId
+      incomingPathsOrPatterns: patterns
+      warningFn: (coverageMap) ->
         warning = "The following patterns already give you subscriptions to the following paths/patterns:\n"
-        warning += "#{pattern}: #{paths.join(', ')}" for pattern, paths of conflicts
-        console.log warning
-      for pattern, conflictPaths of conflicts
-        patterns = patterns.filter (currPattern) -> (-1 == conflictPaths.indexOf currPattern)
+        warning += "#{pattern}: #{coveredPaths.join(', ')}" for pattern, coveredPaths of coverageMap
+      overlapCallback: (pattern, coveredPaths) ->
+        patterns = patterns.filter (currPattern) -> (-1 == coveredPaths.indexOf currPattern)
 
     toSubscribe = patterns.filter (pattern) => @_lacksSubscribers pattern
     toIndex = toSubscribe.filter (path) => !@_isIndexed path, subscriberId
