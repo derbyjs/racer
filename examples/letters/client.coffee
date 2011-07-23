@@ -27,7 +27,7 @@ window.onload = ->
     close = '</span>'
   for id, letter of model.get "_room.letters"
     html += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
-    style=left:#{letter.left}px;top:#{letter.top}px>#{letter.value}#{close}"""
+    style=left:#{letter.position.left}px;top:#{letter.position.top}px>#{letter.value}#{close}"""
   board.innerHTML = html
   
   # Disable selection in IE
@@ -59,22 +59,24 @@ window.onload = ->
   addListener board, 'drop', (e) ->
     # Prevent Firefox from redirecting
     e.preventDefault() if e.preventDefault
-    
     # Update the model to reflect the drop position
-    dragTarget = dragData.target
-    letterPath = '_room.letters.' + dragTarget.id
-    model.set letterPath + '.left', e.clientX - dragData.startLeft
-    model.set letterPath + '.top', e.clientY - dragData.startTop
-    
-    # Put the most recently dragged letter on top
-    dragTarget.parentNode.appendChild dragTarget
+    target = dragData.target
+    model.set "_room.letters.#{target.id}.position",
+      left: e.clientX - dragData.startLeft
+      top: e.clientY - dragData.startTop
+    , (err, path, value) ->
+      # clone = target.cloneNode
+      # clone.style.left = value.left
+      # clone.style.top = value.top
+      # clone.style.opacity = 0.5
   
   # Update the letter's position when the model changes
   # Path wildcards are passed to the handler function as arguments in order.
   # The function arguments are: (wildcards..., value)
-  model.on 'set', '_room.letters.*.(left|top)', (id, prop, value) ->
+  model.on 'set', '_room.letters.*.position', (id, position) ->
     el = document.getElementById id
-    el.style[prop] = value + 'px'
+    el.style.left = position.left + 'px'
+    el.style.top = position.top + 'px'
 
 if document.addEventListener
   addListener = (el, type, listener) ->

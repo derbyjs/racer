@@ -429,11 +429,14 @@ module.exports =
       txn[0] = ++ver
       sockets.emit 'txn', txn
       sockets._disconnect()
-    model.set 'color', 'green', (err) ->
+    model.set 'color', 'green', (err, path, value) ->
       should.equal null, err
+      path.should.equal 'color'
+      value.should.equal 'green'
       done()
-    model.del 'color', (err) ->
+    model.del 'color', (err, path) ->
       should.equal null, err
+      path.should.equal 'color'
       done()
   , 2
   
@@ -442,10 +445,13 @@ module.exports =
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       sockets.emit 'txnErr', 'conflict', transaction.id txn
       sockets._disconnect()
-    model.set 'color', 'green', (err) ->
+    model.set 'color', 'green', (err, path, value) ->
       err.should.equal 'conflict'
+      path.should.equal 'color'
+      value.should.equal 'green'
       done()
-    model.del 'color', (err) ->
+    model.del 'color', (err, path) ->
       err.should.equal 'conflict'
+      path.should.equal 'color'
       done()
   , 2

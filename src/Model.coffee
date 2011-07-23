@@ -45,7 +45,7 @@ Model = module.exports = (@_clientId = '') ->
   
   self._onTxnErr = (err, txnId) ->
     txn = self._txns[txnId]
-    callback err if txn && callback = txn.callback
+    callback err, transaction.args(txn)... if txn && callback = txn.callback
     self._removeTxn txnId
   
   self.force = Object.create self, _force: value: true
@@ -168,7 +168,7 @@ Model:: =
     adapter[method].apply adapter, args
     @_removeTxn transaction.id txn
     @_emit method, args
-    callback null if callback = txn.callback
+    callback null, transaction.args(txn)... if callback = txn.callback
   
   _specModel: ->
     adapter = @_adapter

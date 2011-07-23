@@ -53,8 +53,9 @@ initModel = (model, room) ->
       letters[row * 26 + col] =
         color: colors[row]
         value: String.fromCharCode(65 + col)
-        left: col * 24 + 72
-        top: row * 32 + 8
+        position:
+          left: col * 24 + 72
+          top: row * 32 + 8
   model.set room, {letters: letters, players: 0}
 
 # Clear any existing data, then initialize
