@@ -155,6 +155,22 @@ module.exports =
       pubsub.publish publisher, 'channel.2', 'two'
     , 200
 
+  '2 subscribers to the same pattern should both receive messages': (done) ->
+    counter = 2
+    subscribersWithReceipt = []
+    pubsub.onMessage = (subscriberId, message) ->
+      message.should.equal 'value'
+      subscribersWithReceipt.push subscriberId
+      if subscribersWithReceipt.length ==2
+        subscribersWithReceipt.should.contain subscriberOne
+        subscribersWithReceipt.should.contain subscriberTwo
+        done()
+
+    [subscriberOne, subscriberTwo, publisher] = ['1', '2', '3']
+    pubsub.subscribe subscriberOne, 'channel.*'
+    pubsub.subscribe subscriberTwo, 'channel.*'
+    pubsub.publish publisher, 'channel.1', 'value'
+
   finishAll: (done) -> finishAll = true; done()
 
   ## !! PLACE ALL TESTS BEFORE finishAll !! ##
