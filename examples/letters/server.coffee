@@ -56,18 +56,23 @@ initModel = (model, room) ->
         position:
           left: col * 24 + 72
           top: row * 32 + 8
-  model.set room, {letters: letters, players: 0}
+  model.set "#{room}.letters", letters
 
 # Clear any existing data, then initialize
 store.flush (err) ->
+  incr = (path, byNum) ->
+    store.get path, (err, val = 0, ver) ->
+      store.set path, val + byNum, ver, (err) ->
+        setTimeout incr, 50, path, byNum if err is 'conflict'
+  
   rally.sockets.on 'connection', (socket) ->
     playersPath = ''
     socket.on 'join', (room) ->
       playersPath = "#{room}.players"
-      store.get playersPath, (err, val) -> store.set playersPath, val + 1
+      incr playersPath, 1
     socket.on 'disconnect', ->
       return unless playersPath
-      store.get playersPath, (err, val) -> store.set playersPath, val - 1
+      incr playersPath, -1
   app.listen 3000
   console.log "Go to http://localhost:3000/room1"
   console.log "Go to http://localhost:3000/room2"

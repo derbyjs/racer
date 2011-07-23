@@ -52,24 +52,29 @@ module.exports =
     txn5 = [0, '0.1', 'set', 'count', 1]
     txn6 = [0, '0.1', 'set', 'name', 'drago']
     
+    txn2s = [0, '$0.0', 'set', 'count', 0]
+    txn5s = [0, '$0.1', 'set', 'count', 1]
+    
     txn7 = [0, '1.0', 'set', 'obj.nested', 0]
     txn8 = [0, '2.0', 'set', 'obj.nested.a', 0]
     
-    transaction.conflict(txn1, txn2).should.be.true # Different arguments
-    transaction.conflict(txn1, txn3).should.be.true # Different method
-    transaction.conflict(txn1, txn4).should.be.true # Different number of arguments
+    transaction.conflict(txn1, txn2).should.eql 'conflict' # Different arguments
+    transaction.conflict(txn1, txn3).should.eql 'conflict' # Different method
+    transaction.conflict(txn1, txn4).should.eql 'conflict' # Different number of arguments
     
-    transaction.conflict(txn2, txn5).should.be.true # Same client, wrong order
+    transaction.conflict(txn2, txn5).should.eql 'conflict' # Same client, wrong order
     transaction.conflict(txn5, txn2).should.be.false # Same client, correct order
+    transaction.conflict(txn2s, txn5s).should.eql 'conflict' # Same store, wrong order
+    transaction.conflict(txn5s, txn2s).should.eql 'conflict' # Same store, correct order
     
     transaction.conflict(txn1, txn5).should.be.false # Same method, path, and arguments
     transaction.conflict(txn1, txn6).should.be.false # Non-conflicting paths
     
-    transaction.conflict(txn7, txn8).should.be.true # Conflicting nested paths
-    transaction.conflict(txn8, txn7).should.be.true # Conflicting nested paths
+    transaction.conflict(txn7, txn8).should.eql 'conflict' # Conflicting nested paths
+    transaction.conflict(txn8, txn7).should.eql 'conflict' # Conflicting nested paths
     
-    transaction.conflict(txn0, txn1).should.be.eql 'STM_DUPE' # Same transaction ID
-
+    transaction.conflict(txn0, txn1).should.eql 'duplicate' # Same transaction ID
+  
   'paths containing a segment starting with an underscore should be private': ->
     transaction.privatePath('_stuff').should.be.true
     transaction.privatePath('item._stu_ff').should.be.true

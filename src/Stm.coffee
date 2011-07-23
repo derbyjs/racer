@@ -12,22 +12,17 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
 Stm = module.exports = (redisClient) ->
   
-  error = (code, message) ->
-    err = new Error(message)
-    err.code = code
-    return err
-  
   # Callback has signature: fn(err, lockVal, txns)
   lock = (len, locks, txnsSince, callback, retries = MAX_RETRIES) ->
     redisClient.eval LOCK, len, locks..., txnsSince, (err, values) ->
-      throw err if err
+      return callback err if err
       if values[0]
         return callback null, values[0], values[1]
       if retries
         return setTimeout ->
           lock len, locks, txnsSince, callback, --retries
         , (1 << (MAX_RETRIES - retries)) * RETRY_DELAY
-      return callback error('STM_LOCK_MAX_RETRIES', 'Failed to aquire lock maximum times')
+      return callback 'lockMaxRetries'
   
   # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
   @_getLocks = getLocks = (path) ->
@@ -49,16 +44,13 @@ Stm = module.exports = (redisClient) ->
       # since one after the transaction's base version
       if txns && conflict = transaction.journalConflict txn, txns
         return redisClient.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
-          throw err if err
-          if conflict is 'STM_DUPE'
-            return callback error('STM_DUPE', 'Transaction already in journal')
-          callback error('STM_CONFLICT', 'Conflict with journal')
+          return callback err if err
+          callback conflict
       
       # Commit if there are no conflicts and the locks are still held
       redisClient.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
-        throw err if err
-        if ver is 0
-          return callback error('STM_LOCK_RELEASED', 'Lock was released before commit')
+        return callback err if err
+        return callback 'lockReleased' if ver is 0
         callback null, ver
   
   return
