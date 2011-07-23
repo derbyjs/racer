@@ -45,7 +45,10 @@ Model = module.exports = (@_clientId = '') ->
   
   self._onTxnErr = (err, txnId) ->
     txn = self._txns[txnId]
-    callback err, transaction.args(txn)... if txn && callback = txn.callback
+    if txn && (callback = txn.callback) && err != 'duplicate'
+      args = transaction.args txn
+      args.unshift err
+      callback args...
     self._removeTxn txnId
   
   self.force = Object.create self, _force: value: true
@@ -58,7 +61,6 @@ Model:: =
   _setSocket: (socket, config) ->
     self = this
     self.socket = socket
-    socket.emit 'clientId', self._clientId
     socket.on 'txn', self._onTxn
     socket.on 'txnErr', self._onTxnErr
     
@@ -83,6 +85,7 @@ Model:: =
     # Request missed transactions and send queued transactions on connect
     resendInterval = null
     socket.on 'connect', ->
+      socket.emit 'clientId', self._clientId
       self._reqNewTxns()
       resendAll()
       unless resendInterval

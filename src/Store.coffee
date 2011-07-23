@@ -68,8 +68,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         pubsub.unsubscribe socket.clientId if socket.clientId
         socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
-        commit txn, null, (err, txn) ->
-          return if err is 'duplicate'
+        commit txn, (err, txn) ->
           socket.emit 'txnErr', err, transaction.id txn if err
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->
