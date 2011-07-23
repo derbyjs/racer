@@ -110,22 +110,32 @@ RedisAdapter:: =
     patternIndex = @_subscribersByPattern[path]?.indexOf subscriberId
     pathIndex is not undefined && !!~pathIndex || patternIndex is not undefined && !!~patternIndex
 
+  # subscriberId wants to subscribe to [paths]. This method checks [paths]
+  # against the patterns that subscriberId is subscribed to and returns a
+  # hash that maps each relevant pattern to the [_paths_] they pattern-match
+  # from [paths]. This is used to figure out which paths we should not subscribe
+  # to despite subscribe being called on them.
   _alreadySubscribedToViaPatterns: (subscriberId, paths) ->
     patterns = @_patternsBySubscriber[subscriberId]
-    return {} unless patterns
-    conflictsWithPattern = pathParser.conflictsWithPattern
-    patterns.reduce (conflicts, pattern) ->
-      conflictPaths = paths.filter (path) ->
-        conflictsWithPattern(path, pattern)
-      if conflictPaths.length
-        conflicts[pattern] = conflictPaths
-      conflicts
-    , {}
+    @_generatePathPatternCoverageMap patterns, paths
 
+  # subscriberId wants to subscribe to [patterns]. This method checks [patterns]
+  # against the paths that subscriberId is subscribed to and returns a
+  # hash that maps each relevant pattern to the [_paths_] they pattern-match
+  # where [_paths_] is a subset of the paths that subscriberId is currently
+  # subscribed to. This is used to figure out which paths we are currently
+  # subscribed to that we should unsubscribe to, because we are about to
+  # subscribe to a pattern that pattern-matches the currently subscribed path.
   _toBeSubscribedToViaPatterns: (subscriberId, patterns) ->
     paths = @_patternsBySubscriber[subscriberId]
     paths = (paths ? []).concat(@_pathsBySubscriber[subscriberId] ? [])
-    return {} unless paths.length
+    @_generatePathPatternCoverageMap patterns, paths
+
+  # Returns a hash that maps pattern -> [paths]. The map is interpreted as:
+  # Each path in [paths] does not need to be subscribed to because the pattern
+  # that maps to [paths] will pattern match every path in [paths].
+  _generatePathPatternCoverageMap: (patterns, paths) ->
+    return {} unless patterns && patterns.length && paths && paths.length
     conflictsWithPattern = pathParser.conflictsWithPattern
     patterns.reduce (conflicts, pattern) ->
       conflictPaths = paths.filter (path) ->
