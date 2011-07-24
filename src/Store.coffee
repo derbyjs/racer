@@ -118,6 +118,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   subscribeModel = (model, paths) ->
     pubsub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
+    subscribeModel model, paths
     modelAdapter = model._adapter
     getting = paths.length
     for path in paths
@@ -131,26 +132,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
-    # If subscribe(callback)
-    if model && !paths.length && !callback
+    
+    if arguments.length == 1
+      # If subscribe(callback)
       callback = model
-      model = null
-
-    if model
+    else
       # If subscribe(model, paths..., callback)
-      if model instanceof Model
-        subscribeModel model, paths
-        return populateModel model, paths, callback
-
+      return populateModel model, paths, callback if model instanceof Model
       # If subscribe(paths..., callback)
       paths.unshift model
-
+    
     nextClientId (clientId) ->
-      newModel = new Model clientId
-      subscribeModel newModel, paths
-      populateModel newModel, paths, callback
+      populateModel new Model(clientId), paths, callback
   
   @unsubscribe = ->
+    # TODO: Debug: Pretty sure socket is undefined here
     pubsub.unsubscribe socket.clientId
   
   @flush = (callback) ->
