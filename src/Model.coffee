@@ -1,9 +1,9 @@
 transaction = require './transaction'
 MemorySync = require './adapters/MemorySync'
 
-Model = module.exports = (@_clientId = '') ->
+Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
-  self._adapter = new MemorySync
+  self._adapter = new AdapterClass
   self._subs = {}
   
   self._txnCount = 0
