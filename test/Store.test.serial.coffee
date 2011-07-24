@@ -10,7 +10,7 @@ module.exports =
     store.flush ->
       clearInterval store._pendingInterval
       store._redisClient.end()
-      {_subscribeClient, _publishClient} = store._pubsub._adapter
+      {_subscribeClient, _publishClient} = store._pubSub._adapter
       _subscribeClient.end()
       _publishClient.end()
       done()
@@ -59,16 +59,16 @@ module.exports =
 
   'subscribe should create a new model if one is not passed in': (done) ->
     store.subscribe 'a', 'b', (err, modelA) ->
-      should.equal undefined, err
+      should.equal null, err
       store.subscribe 'c', (err, modelB) ->
         modelA.should.not.eql modelB
         done()
 
   'subscribe should use the passed in model if present': (done) ->
     store.subscribe 'a', 'b', (err, modelA) ->
-      should.equal undefined, err
+      should.equal null, err
       store.subscribe modelA, 'c', (err, modelB) ->
-        modelA.should.eql modelB
+        modelA.should.equal modelB
         done()
 
   # TODO tests:

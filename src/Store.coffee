@@ -11,62 +11,33 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
-
+  
   # Redis clients used for subscribe, psubscribe, unsubscribe,
   # and punsubscribe cannot be used with any other commands.
   # Therefore, we can only pass the current `redisClient` as the
   # pubsub's @_publishClient.
-  @_pubsub = pubsub = new PubSub
-  pubsub.onMessage = (clientId, txn) ->
-    socketForModel(clientId).emit 'txn', txn
-
-  # socketForModel(clientId) is a getter
-  # socketForModel(clientId, socket) is a setter
-  socketForModel = (clientId, socket) ->
-    sockets._byClientId ||= {}
-    if socket
-      socket.clientId = clientId
-      socket.unregister = ->
-        delete sockets._byClientId[clientId]
-      dummySocket = sockets._byClientId[clientId]
-      sockets._byClientId[clientId] = socket
-      if dummySocket
-        socket.emit args... for args in dummySocket._buffer
-    
-    sockets._byClientId[clientId] ||= dummySocket =
-        _buffer: []
-        emit: ->
-          @_buffer.push arguments
-        unregister: ->
-          @_buffer = []
-          delete sockets._byClientId[clientId]
+  @_pubSub = pubSub = new PubSub
+  pubSub.onMessage = (clientId, txn) ->
+    socket.emit 'txn', txn if socket = clientSockets[clientId]
   
-  nextClientId = (callback) ->
-    redisClient.incr 'clientIdCount', (err, value) ->
-      throw err if err
-      callback value.toString(36)
+  clientSockets = {}
+  registerSocket = (clientId, socket) ->
+    socket.unregister = ->
+      pubSub.unsubscribe clientId
+      delete clientSockets[clientId]
+    clientSockets[clientId] = socket
   
-  # Note that Store clientIds MUST begin with '$', as this is used to treat
-  # conflict detection between Store and Model transactions differently
-  clientId = ''
-  nextClientId (value) -> clientId = '$' + value
-  txnCount = 0
-  nextTxnId = -> clientId + '.' + txnCount++
-  
-  sockets = null
-  @_setSockets = (s) ->
-    sockets = s
+  @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
       socket.on 'clientId', (clientId) ->
         # TODO Once socket.io supports query params in the
         # socket.io urls, then we can remove this. Instead,
         # we can add the socket <-> clientId assoc in the
         # `sockets.on 'connection'...` callback.
-        socketForModel(clientId, socket)
+        registerSocket clientId, socket
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
-        pubsub.unsubscribe socket.clientId if socket.clientId
         socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
         commit txn, (err, txn) ->
@@ -74,35 +45,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
-  
-  # TODO: This algorithm will need to change when we go multi-process,
-  # because we can't count on the version to increase sequentially
-  pending = {}
-  verToWrite = 1
-  @_pendingInterval = setInterval ->
-    while txn = pending[verToWrite]
-      args = transaction.args txn
-      args.push verToWrite, (err) ->
-        # TODO: Better adapter error handling and potentially a second callback
-        # to the caller of _commit when the adapter operation completes
-        throw err if err
-      adapter[transaction.method txn].apply adapter, args
-      delete pending[verToWrite++]
-  , PENDING_INTERVAL
-  
-  @_commit = commit = (txn, callback) ->
-    ver = transaction.base txn
-    if ver && typeof ver != 'number'
-      # In case of something like @set(path, value, callback)
-      throw new Error 'Version must be null or a number'
-    stm.commit txn, (err, ver) ->
-      txn[0] = ver
-      callback err, txn if callback
-      return if err
-      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
-      # and TxnPubSub can subtract out the payload of path from txn, too.
-      pubsub.publish transaction.clientId(txn), transaction.path(txn), txn
-      pending[ver] = txn
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
   @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
@@ -117,8 +59,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           txn = JSON.parse val
   
   subscribeModel = (model, paths) ->
-    pubsub.subscribe model._clientId, paths...
+    pubSub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
+    subscribeModel model, paths
     modelAdapter = model._adapter
     getting = paths.length
     for path in paths
@@ -132,27 +75,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
-    # If subscribe(callback)
-    if model && !paths.length && !callback
+    
+    if arguments.length == 1
+      # If subscribe(callback)
       callback = model
-      model = null
-
-    if model
+    else
       # If subscribe(model, paths..., callback)
-      if model instanceof Model
-        subscribeModel model, paths
-        return populateModel model, paths, callback
-
+      return populateModel model, paths, callback if model instanceof Model
       # If subscribe(paths..., callback)
       paths.unshift model
-
+    
     nextClientId (clientId) ->
-      newModel = new Model clientId
-      subscribeModel newModel, paths
-      populateModel newModel, paths, callback
+      populateModel new Model(clientId), paths, callback
   
   @unsubscribe = ->
-    pubsub.unsubscribe socket.clientId
+    throw new Error 'Unimplemented'
   
   @flush = (callback) ->
     done = false
@@ -167,9 +104,48 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @get = -> adapter.get arguments...
   
   @set = (path, value, ver, callback) ->
-    @_commit [ver, nextTxnId(), 'set', path, value], callback
-  
+    commit [ver, nextTxnId(), 'set', path, value], callback
   @del = (path, ver, callback) ->
-    @_commit [ver, nextTxnId(), 'del', path], callback
+    commit [ver, nextTxnId(), 'del', path], callback
+  
+  nextClientId = (callback) ->
+    redisClient.incr 'clientIdCount', (err, value) ->
+      throw err if err
+      callback value.toString(36)
+  # Note that Store clientIds MUST begin with '$', as this is used to treat
+  # conflict detection between Store and Model transactions differently
+  clientId = ''
+  nextClientId (value) -> clientId = '$' + value
+  txnCount = 0
+  nextTxnId = -> clientId + '.' + txnCount++
+  
+  @_commit = commit = (txn, callback) ->
+    ver = transaction.base txn
+    if ver && typeof ver != 'number'
+      # In case of something like @set(path, value, callback)
+      throw new Error 'Version must be null or a number'
+    stm.commit txn, (err, ver) ->
+      txn[0] = ver
+      callback err, txn if callback
+      return if err
+      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
+      # and TxnPubSub can subtract out the payload of path from txn, too.
+      pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
+      pending[ver] = txn
+  
+  # TODO: This algorithm will need to change when we go multi-process,
+  # because we can't count on the version to increase sequentially
+  pending = {}
+  verToWrite = 1
+  @_pendingInterval = setInterval ->
+    while txn = pending[verToWrite]
+      args = transaction.args txn
+      args.push verToWrite, (err) ->
+        # TODO: Better adapter error handling and potentially a second callback
+        # to the caller of commit when the adapter operation completes
+        throw err if err
+      adapter[transaction.method txn].apply adapter, args
+      delete pending[verToWrite++]
+  , PENDING_INTERVAL
   
   return
