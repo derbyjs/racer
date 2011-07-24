@@ -13,10 +13,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   stm = new Stm redisClient
 
   # If I recall correctly from Redis doc, Redis clients used for
-  # pubsub should only be used for pubsub, so we don't pass
+  # pubSub should only be used for pubSub, so we don't pass
   # @_redisClient to new PubSub
-  @_pubsub = pubsub = new PubSub
-  pubsub.onMessage = (clientId, txn) ->
+  @_pubSub = pubSub = new PubSub
+  pubSub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
 
   # socketForModel(clientId) is a getter
@@ -65,7 +65,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
-        pubsub.unsubscribe socket.clientId if socket.clientId
+        pubSub.unsubscribe socket.clientId if socket.clientId
         socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
         commit txn, (err, txn) ->
@@ -100,7 +100,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       return if err
       # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
       # and TxnPubSub can subtract out the payload of path from txn, too.
-      pubsub.publish transaction.clientId(txn), transaction.path(txn), txn
+      pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
       pending[ver] = txn
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
@@ -116,7 +116,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           txn = JSON.parse val
   
   subscribeModel = (model, paths) ->
-    pubsub.subscribe model._clientId, paths...
+    pubSub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
     subscribeModel model, paths
     modelAdapter = model._adapter
@@ -147,7 +147,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @unsubscribe = ->
     # TODO: Debug: Pretty sure socket is undefined here
-    pubsub.unsubscribe socket.clientId
+    pubSub.unsubscribe socket.clientId
   
   @flush = (callback) ->
     done = false
