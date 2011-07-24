@@ -12,9 +12,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
 
-  # If I recall correctly from Redis doc, Redis clients used for
-  # pubsub should only be used for pubsub, so we don't pass
-  # @_redisClient to new PubSub
+  # Redis clients used for subscribe, psubscribe, unsubscribe,
+  # and punsubscribe cannot be used with any other commands.
+  # Therefore, we can only pass the current `redisClient` as the
+  # pubsub's @_publishClient.
   @_pubsub = pubsub = new PubSub
   pubsub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
