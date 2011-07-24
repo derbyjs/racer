@@ -11,9 +11,33 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
+  
   # Redis clients used for pub/sub should only be used for pub/sub,
   # so we don't pass @_redisClient to new PubSub
   @_pubSub = pubSub = new PubSub
+  pubSub.onMessage = (clientId, txn) ->
+    socketForModel(clientId).emit 'txn', txn
+  
+  # socketForModel(clientId) is a getter
+  # socketForModel(clientId, socket) is a setter
+  clientSockets = {}
+  socketForModel = (clientId, socket) ->
+    if socket
+      socket.clientId = clientId
+      socket.unregister = ->
+        delete clientSockets[clientId]
+      dummySocket = clientSockets[clientId]
+      clientSockets[clientId] = socket
+      if dummySocket
+        socket.emit args... for args in dummySocket._buffer
+    
+    clientSockets[clientId] ||= dummySocket =
+      _buffer: []
+      emit: ->
+        @_buffer.push arguments
+      unregister: ->
+        @_buffer = []
+        delete clientSockets[clientId]
   
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
@@ -34,30 +58,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
-    
-    pubSub.onMessage = (clientId, txn) ->
-      socketForModel(clientId).emit 'txn', txn
-    
-    # socketForModel(clientId) is a getter
-    # socketForModel(clientId, socket) is a setter
-    socketForModel = (clientId, socket) ->
-      sockets._byClientId ||= {}
-      if socket
-        socket.clientId = clientId
-        socket.unregister = ->
-          delete sockets._byClientId[clientId]
-        dummySocket = sockets._byClientId[clientId]
-        sockets._byClientId[clientId] = socket
-        if dummySocket
-          socket.emit args... for args in dummySocket._buffer
-      
-      sockets._byClientId[clientId] ||= dummySocket =
-        _buffer: []
-        emit: ->
-          @_buffer.push arguments
-        unregister: ->
-          @_buffer = []
-          delete sockets._byClientId[clientId]
   
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
   @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
