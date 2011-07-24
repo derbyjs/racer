@@ -56,7 +56,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   return
 
 Model:: =
-  _send: -> false
+  _commit: -> false
   _reqNewTxns: ->
   _setSocket: (socket, config) ->
     self = this
@@ -64,7 +64,7 @@ Model:: =
     socket.on 'txn', self._onTxn
     socket.on 'txnErr', self._onTxnErr
     
-    self._send = send = (txn) ->
+    self._commit= commit = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn
     
@@ -73,14 +73,14 @@ Model:: =
     
     resendAll = ->
       txns = self._txns
-      send txns[id] for id in self._txnQueue
+      commit txns[id] for id in self._txnQueue
     resendExpired = ->
       now = +new Date
       txns = self._txns
       for id in self._txnQueue
         txn = txns[id]
         return if txn.timeout > now
-        send txn
+        commit txn
     
     # Request missed transactions and send queued transactions on connect
     resendInterval = null
@@ -158,7 +158,7 @@ Model:: =
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
-    @_send txn
+    @_commit txn
   _removeTxn: (txnId) ->
     delete @_txns[txnId]
     txnQueue = @_txnQueue

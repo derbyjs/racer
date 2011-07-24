@@ -4,7 +4,7 @@ Model = require './Model'
 # Update Model's prototype to provide server-side functionality
 module.exports = (store, ioUri) ->
 
-  Model::_send = (txn) ->
+  Model::_commit = (txn) ->
     onTxn = @_onTxn
     removeTxn = @_removeTxn
     store._commit txn, (err, txn) ->
