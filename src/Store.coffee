@@ -11,14 +11,14 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
   stm = new Stm redisClient
-
+  
   # If I recall correctly from Redis doc, Redis clients used for
   # pubSub should only be used for pubSub, so we don't pass
   # @_redisClient to new PubSub
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
     socketForModel(clientId).emit 'txn', txn
-
+  
   # socketForModel(clientId) is a getter
   # socketForModel(clientId, socket) is a setter
   socketForModel = (clientId, socket) ->
@@ -39,18 +39,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         unregister: ->
           @_buffer = []
           delete sockets._byClientId[clientId]
-  
-  nextClientId = (callback) ->
-    redisClient.incr 'clientIdCount', (err, value) ->
-      throw err if err
-      callback value.toString(36)
-  
-  # Note that Store clientIds MUST begin with '$', as this is used to treat
-  # conflict detection between Store and Model transactions differently
-  clientId = ''
-  nextClientId (value) -> clientId = '$' + value
-  txnCount = 0
-  nextTxnId = -> clientId + '.' + txnCount++
   
   sockets = null
   @_setSockets = (s) ->
@@ -134,9 +122,19 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @set = (path, value, ver, callback) ->
     commit [ver, nextTxnId(), 'set', path, value], callback
-  
   @del = (path, ver, callback) ->
     commit [ver, nextTxnId(), 'del', path], callback
+  
+  nextClientId = (callback) ->
+    redisClient.incr 'clientIdCount', (err, value) ->
+      throw err if err
+      callback value.toString(36)
+  # Note that Store clientIds MUST begin with '$', as this is used to treat
+  # conflict detection between Store and Model transactions differently
+  clientId = ''
+  nextClientId (value) -> clientId = '$' + value
+  txnCount = 0
+  nextTxnId = -> clientId + '.' + txnCount++
   
   @_commit = commit = (txn, callback) ->
     ver = transaction.base txn
