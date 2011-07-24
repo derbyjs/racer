@@ -1,29 +1,20 @@
 pathParser = require './pathParser'
+redis = require 'redis'
 
-PubSub = module.exports = (adapterName = 'Redis', options) ->
-  @_adapter = new PubSub._adapters[adapterName] this, options
+PubSub = module.exports = (adapterName = 'Redis') ->
+  @_adapter = new PubSub._adapters[adapterName] this
   return
 
 PubSub:: =
   # subscribe(subscriberId, paths..., callback)
-  subscribe: ->
-    @_adapter.subscribe arguments...
-
-  publish: (publisherId, path, message) ->
-    @_adapter.publish arguments...
-  
+  subscribe: -> @_adapter.subscribe arguments...
+  # publish(publisherId, path, message)
+  publish: -> @_adapter.publish arguments...
   # unsubscribe(subscriberId, paths..., callback)
-  unsubscribe: ->
-    @_adapter.unsubscribe arguments...
-  flush: (callback) ->
-    @_adapter.flush callback
-  disconnect: (callback) ->
-    @_adapter.disconnect callback
+  unsubscribe: -> @_adapter.unsubscribe arguments...
 
 PubSub._adapters = {}
-redis = require 'redis'
-# redis.debug_mode = true
-PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
+PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
   @pubsub = pubsub
 
   @_pathsBySubscriber = {}
@@ -31,7 +22,7 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
   @_patternsBySubscriber = {}
   @_subscribersByPattern = {}
 
-  @_publishClient = options.client || redis.createClient()
+  @_publishClient = redis.createClient()
   @_subscribeClient = redis.createClient()
 
   @_subscribeClient.on 'subscribe', (path, count) =>

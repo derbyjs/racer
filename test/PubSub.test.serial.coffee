@@ -7,11 +7,11 @@ pubsub = new PubSub
 
 module.exports =
   setup: (done) ->
-    pubsub.flush done
+    pubsub._adapter.flush done
   teardown: (done) ->
     if finishAll
-      return pubsub.disconnect done
-    pubsub.flush done
+      return pubsub._adapter.disconnect done
+    pubsub._adapter.flush done
 
   'a published transaction to a plain path should only be received if subscribed to': (done) ->
     pubsub.onMessage = (subscriberId, message) ->
