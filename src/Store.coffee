@@ -74,35 +74,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
   
-  # TODO: This algorithm will need to change when we go multi-process,
-  # because we can't count on the version to increase sequentially
-  pending = {}
-  verToWrite = 1
-  @_pendingInterval = setInterval ->
-    while txn = pending[verToWrite]
-      args = transaction.args txn
-      args.push verToWrite, (err) ->
-        # TODO: Better adapter error handling and potentially a second callback
-        # to the caller of _commit when the adapter operation completes
-        throw err if err
-      adapter[transaction.method txn].apply adapter, args
-      delete pending[verToWrite++]
-  , PENDING_INTERVAL
-  
-  @_commit = commit = (txn, callback) ->
-    ver = transaction.base txn
-    if ver && typeof ver != 'number'
-      # In case of something like @set(path, value, callback)
-      throw new Error 'Version must be null or a number'
-    stm.commit txn, (err, ver) ->
-      txn[0] = ver
-      callback err, txn if callback
-      return if err
-      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
-      # and TxnPubSub can subtract out the payload of path from txn, too.
-      pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
-      pending[ver] = txn
-  
   # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
   @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
@@ -162,9 +133,38 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @get = -> adapter.get arguments...
   
   @set = (path, value, ver, callback) ->
-    @_commit [ver, nextTxnId(), 'set', path, value], callback
+    commit [ver, nextTxnId(), 'set', path, value], callback
   
   @del = (path, ver, callback) ->
-    @_commit [ver, nextTxnId(), 'del', path], callback
+    commit [ver, nextTxnId(), 'del', path], callback
+  
+  @_commit = commit = (txn, callback) ->
+    ver = transaction.base txn
+    if ver && typeof ver != 'number'
+      # In case of something like @set(path, value, callback)
+      throw new Error 'Version must be null or a number'
+    stm.commit txn, (err, ver) ->
+      txn[0] = ver
+      callback err, txn if callback
+      return if err
+      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
+      # and TxnPubSub can subtract out the payload of path from txn, too.
+      pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
+      pending[ver] = txn
+  
+  # TODO: This algorithm will need to change when we go multi-process,
+  # because we can't count on the version to increase sequentially
+  pending = {}
+  verToWrite = 1
+  @_pendingInterval = setInterval ->
+    while txn = pending[verToWrite]
+      args = transaction.args txn
+      args.push verToWrite, (err) ->
+        # TODO: Better adapter error handling and potentially a second callback
+        # to the caller of commit when the adapter operation completes
+        throw err if err
+      adapter[transaction.method txn].apply adapter, args
+      delete pending[verToWrite++]
+  , PENDING_INTERVAL
   
   return
