@@ -16,28 +16,14 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # so we don't pass @_redisClient to new PubSub
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
-    socketForModel(clientId).emit 'txn', txn
+    socket.emit 'txn', txn if socket = clientSockets[clientId]
   
-  # socketForModel(clientId) is a getter
-  # socketForModel(clientId, socket) is a setter
   clientSockets = {}
-  socketForModel = (clientId, socket) ->
-    if socket
-      socket.clientId = clientId
-      socket.unregister = ->
-        delete clientSockets[clientId]
-      dummySocket = clientSockets[clientId]
-      clientSockets[clientId] = socket
-      if dummySocket
-        socket.emit args... for args in dummySocket._buffer
-    
-    clientSockets[clientId] ||= dummySocket =
-      _buffer: []
-      emit: ->
-        @_buffer.push arguments
-      unregister: ->
-        @_buffer = []
-        delete clientSockets[clientId]
+  registerSocket = (clientId, socket) ->
+    socket.unregister = ->
+      pubSub.unsubscribe clientId
+      delete clientSockets[clientId]
+    clientSockets[clientId] = socket
   
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
@@ -46,11 +32,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # socket.io urls, then we can remove this. Instead,
         # we can add the socket <-> clientId assoc in the
         # `sockets.on 'connection'...` callback.
-        socketForModel clientId, socket
+        registerSocket clientId, socket
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
-        pubSub.unsubscribe socket.clientId if socket.clientId
         socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
         commit txn, (err, txn) ->
@@ -102,8 +87,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       populateModel new Model(clientId), paths, callback
   
   @unsubscribe = ->
-    # TODO: Debug: Pretty sure socket is undefined here
-    pubSub.unsubscribe socket.clientId
+    throw new Error 'Unimplemented'
   
   @flush = (callback) ->
     done = false
