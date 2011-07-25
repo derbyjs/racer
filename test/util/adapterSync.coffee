@@ -145,3 +145,55 @@ module.exports = (AdapterSync) ->
     catch e
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
+
+  'test remove (from array)': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+
+    # on undefined
+    didThrowNotAnArray = false
+    try
+      adapterSync.remove 'undefined', 0, 3, ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
+    # on a defined non-array
+    didThrowNotAnArray = false
+    adapterSync.set 'nonArray', '9', ++ver
+    try
+      adapterSync.remove 'nonArray', 0, 3, ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
+    # on an empty array
+    adapterSync.set 'colors', [], ++ver
+    adapterSync.remove 'colors', 0, 3, ++ver
+    adapterSync.get('colors').should.eql []
+    
+    # on a non-empty array, with howMany to remove in-bounds
+    adapterSync.push 'colors', 'red', 'yellow', 'orange', ++ver
+    adapterSync.remove 'colors', 0, 2, ++ver
+    adapterSync.get('colors').should.eql ['orange']
+
+    # on a non-empty array, with howMany to remove out of bounds
+    adapterSync.remove 'colors', 0, 2, ++ver
+    adapterSync.get('colors').should.eql []
+
+    # on a non-empty array, with startAt index out-of-bounds
+    adapterSync.push 'colors', 'blue', 'green', 'pink', ++ver
+    adapterSync.get('colors').should.eql ['blue', 'green', 'pink']
+    didThrowOutOfBounds = false
+    try
+      adapterSync.remove 'colors', -1, 1, ++ver
+    catch e
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+    didThrowOutOfBounds = false
+    try
+      adapterSync.remove 'colors', 3, 1, ++ver
+    catch e
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true

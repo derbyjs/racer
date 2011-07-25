@@ -526,3 +526,18 @@ module.exports =
     model.insertBefore 'colors', 0, 'red'
     final = model.get 'colors'
     final.should.eql ['red', 'green']
+
+  # TODO Test return value of insertBefore
+
+  'model remove should work on an array, with a valid index': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
+    interim = model.get 'colors'
+    interim.should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    model.remove 'colors', 1, 4
+    final = model.get 'colors'
+    final.should.eql ['red', 'violet']
+
+  # TODO Test return value of remove

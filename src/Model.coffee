@@ -214,6 +214,9 @@ Model:: =
   insertBefore: (path, beforeIndex, value, callback) ->
     @_addTxn 'insertBefore', path, beforeIndex, value, callback
 
+  remove: (path, startIndex, howMany, callback) ->
+    @_addTxn 'remove', path, startIndex, howMany, callback
+
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
 # Timeout in milliseconds after which sent transactions will be resent
