@@ -103,6 +103,16 @@ Memory:: =
     throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
     arr.splice afterIndex+1, 0, value
     return out.path
+
+  insertBefore: (path, beforeIndex, value, ver, options = {}) ->
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
+    arr.splice beforeIndex, 0, value
+    return out.path
   
   _lookup: (path, addPath, options) ->
     proto = options.proto

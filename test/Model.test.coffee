@@ -513,3 +513,16 @@ module.exports =
     model.insertAfter 'colors', 0, 'red'
     final = model.get 'colors'
     final.should.eql ['green', 'red']
+
+  # TODO Test return value of insertAfter
+
+  'model insertBefore should work on an array, with a valid index': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'green'
+    interim = model.get 'colors'
+    interim.should.eql ['green']
+    model.insertBefore 'colors', 0, 'red'
+    final = model.get 'colors'
+    final.should.eql ['red', 'green']

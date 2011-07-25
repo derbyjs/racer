@@ -71,10 +71,9 @@ module.exports = (AdapterSync) ->
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
     adapterSync.get('colors').should.eql ['yellow']
 
+    # on an empty array
     adapterSync.pop 'colors', ++ver
     adapterSync.get('colors').should.eql []
-
-    # on an empty array
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
     adapterSync.get('colors').should.eql ['yellow']
 
@@ -99,6 +98,50 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'nonArray', '9', ++ver
     try
       adapterSync.insertAfter 'nonArray', -1, 'never added', ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
+  'test insertBefore': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+
+    # on undefined
+    adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
+    adapterSync.get('colors').should.eql ['yellow']
+
+    # on an empty array
+    adapterSync.pop 'colors', ++ver
+    adapterSync.get('colors').should.eql []
+    adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
+    adapterSync.get('colors').should.eql ['yellow']
+    
+    # like shift
+    adapterSync.insertBefore 'colors', 0, 'violet', ++ver
+    adapterSync.get('colors').should.eql ['violet', 'yellow']
+
+    # like push
+    adapterSync.insertBefore 'colors', 2, 'black', ++ver
+    adapterSync.get('colors').should.eql ['violet', 'yellow', 'black']
+    
+    # in-between an array with length >= 2
+    adapterSync.insertBefore 'colors', 1, 'orange', ++ver
+    adapterSync.get('colors').should.eql ['violet', 'orange', 'yellow', 'black']
+
+    # out of bounds
+    didThrowOutOfBounds = false
+    try
+      adapterSync.insertBefore 'colors', 100, 'violet', ++ver
+    catch e
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+
+    # not an array
+    didThrowNotAnArray = false
+    adapterSync.set 'nonArray', '9', ++ver
+    try
+      adapterSync.insertBefore 'nonArray', 0, 'never added', ++ver
     catch e
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
