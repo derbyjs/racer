@@ -18,6 +18,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # pubsub's @_publishClient.
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
+    return if clientId == transaction.clientId txn
     socket.emit 'txn', txn if socket = clientSockets[clientId]
   
   clientSockets = {}
@@ -39,7 +40,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         socket.unregister() if socket.unregister
       socket.on 'txn', (txn) ->
         commit txn, (err, txn) ->
-          socket.emit 'txnErr', err, transaction.id txn if err
+          return socket.emit 'txnErr', err, transaction.id(txn) if err
+          socket.emit 'txnOk', transaction.base(txn), transaction.id(txn)
       socket.on 'txnsSince', (ver) ->
         eachTxnSince ver, (txn) ->
           socket.emit 'txn', txn
