@@ -1,4 +1,5 @@
 transaction = require './transaction'
+pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
@@ -105,7 +106,7 @@ Model:: =
       resendInterval = null
 
   on: (method, pattern, callback) ->
-    re = transaction.pathRegExp pattern
+    re = pathParser.regExp pattern
     sub = [re, callback]
     subs = @_subs
     if subs[method] is undefined
@@ -153,7 +154,7 @@ Model:: =
     # Update the transaction's path with a dereferenced path
     path = txn[3] = args[0] = @_specModel()[1]
     # Apply a private transaction immediately and don't send it to the store
-    return @_applyTxn txn if transaction.privatePath path
+    return @_applyTxn txn if pathParser.isPrivate path
     # Emit an event on creation of the transaction
     @_emit method, args
     # Send it over Socket.IO or to the store on the server

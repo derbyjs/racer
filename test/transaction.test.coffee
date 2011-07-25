@@ -74,13 +74,3 @@ module.exports =
     transaction.conflict(txn8, txn7).should.eql 'conflict' # Conflicting nested paths
     
     transaction.conflict(txn0, txn1).should.eql 'duplicate' # Same transaction ID
-  
-  'paths containing a segment starting with an underscore should be private': ->
-    transaction.privatePath('_stuff').should.be.true
-    transaction.privatePath('item._stu_ff').should.be.true
-    transaction.privatePath('a.b.c.d._e.f.g').should.be.true
-    transaction.privatePath('a').should.be.false
-    transaction.privatePath('item.stuff').should.be.false
-    transaction.privatePath('item_.stuff').should.be.false
-    transaction.privatePath('item.stuff_').should.be.false
-    transaction.privatePath('item_sdf.s_tuff').should.be.false

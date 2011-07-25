@@ -5,54 +5,20 @@
 #      grammar. Possibly use jison - http://zaach.github.com/jison/
 
 module.exports =
-  # Return 3 sets:
-  # 1. A set of paths to subscribe to
-  # 2. A set of patterns to subscribe to
-  # 3. A set of paths to ignore upon a pmessage
-  # The first 2 sets form a minimum sized set that spans
-  # all potential paths representative by path.
-  #
-  # The 2nd set may send messages to the subscriber that it
-  # should ignore. The 3rd set returned is therefore a set of
-  # exceptions used to filter incoming pmessages.
-  #
-  # @param {String} path
-  # @return {Object} {paths, patterns, exceptions}
-  forSubscribe: (path) ->
-    if Array.isArray path
-      paths = path
-      triplets = paths.map (path) =>
-        res = {_paths, _patterns, _exceptions} = @forSubscribe path
-
-      paths = []
-      patterns = []
-      exceptions = []
-      for triplet in triplets
-        paths = paths.concat triplet.paths
-        patterns = patterns.concat triplet.patterns
-        exceptions = exceptions.concat triplet.exceptions
-      return {
-        paths: paths
-        patterns: patterns
-        exceptions: exceptions
-      }
-    else
-      lastChar = path.charAt path.length-1
-      if lastChar == '*'
-        return {
-          paths: []
-          patterns: [path]
-          exceptions: []
-        }
-      return {
-        paths: [path]
-        patterns: []
-        exceptions: []
-      }
-
-  conflictsWithPattern: (path, pattern) ->
-    base = pattern.replace /\.\*$/, ''
-    base == path.substr(0, base.length)
-
-  isPattern: (path) ->
-    /\.\*$/.test path
+  # Test to see if path name contains a segment that starts with an underscore.
+  # Such a path is private to the current session and should not be stored
+  # in persistent storage or synced with other clients.
+  isPrivate: (name) -> /(^_)|(\._)/.test name
+  
+  regExp: (pattern) -> if pattern instanceof RegExp then pattern else
+    new RegExp '^' + pattern.replace(/\.|\*{1,2}/g, (match, index) ->
+      # Escape periods
+      return '\\.' if match is '.'
+      # A single asterisk matches any single path segment
+      return '([^\\.]+)' if match is '*'
+      # A double asterisk matches any path segment or segments
+      return if match is '**'
+        # Use greedy matching at the end of the path and
+        # non-greedy matching otherwise
+        if pattern.length - index is 2 then '(.+)' else '(.+?)'
+    ) + '$'

@@ -1,4 +1,4 @@
-pathParser = require './pathParser'
+pathParser = require './pathParser.server'
 redis = require 'redis'
 
 PubSub = module.exports = (adapterName = 'Redis') ->
