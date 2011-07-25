@@ -40,7 +40,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
         clientSockets[clientId] = socket
-        clientSubs[clientId] = transaction.globToRegExp path for path in paths
+        clientSubs[clientId] = (transaction.globToRegExp path for path in paths)
         pubSub.subscribe clientId, paths...
         
         socket.on 'disconnect', ->
@@ -57,8 +57,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           redisClient.get 'txnClock.' + clientId, (err, value) ->
             throw err if err
             socket.emit 'txnNum', value || 0
-            eachTxnSince ver, clientId, (txn, num) ->
-              socket.emit 'txn', txn, num
+            eachTxnSince ver, clientId, (txn) ->
+              nextTxnNum clientId, (num) ->
+                socket.emit 'txn', txn, num
   
   @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
     return unless subs = clientSubs[clientId]
@@ -75,7 +76,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         if i % 2
           continue unless subscribed txn
           txn[0] = +val
-          nextTxnNum clientId, (num) -> onTxn txn, num
+          onTxn txn
         else
           txn = JSON.parse val
   
