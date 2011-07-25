@@ -15,33 +15,39 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # to only a subset of the model
   pending = {}
   pendingTimeout = null
-  self._onTxn = (txn) ->
+  nextNum = 1
+  self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
     if queuedTxn = self._txns[transaction.id txn]
       txn.callback = queuedTxn.callback
-
-    base = transaction.base txn
-    nextVer = self._adapter.ver + 1
+    
     # Cache this transaction to be applied later if it is not the next version
-    if base > nextVer
+    if num > nextNum
       unless pendingTimeout
         pendingTimeout = setTimeout ->
           self._reqNewTxns()
           pendingTimeout = null
         , PENDING_TIMEOUT
-      return pending[base] = txn
+      return pending[num] = txn
     # Ignore this transaction if it is older than the next version
-    return if base < nextVer
+    return if num < nextNum
     # Otherwise, apply it immediately
     self._applyTxn txn
     if pendingTimeout
       clearTimeout pendingTimeout
       pendingTimeout = null
     # And apply any transactions that were waiting for this one to be received
-    nextVer++
-    while txn = pending[nextVer]
+    nextNum++
+    while txn = pending[nextNum]
       self._applyTxn txn
-      delete pending[nextVer++]
+      delete pending[nextNum++]
+  
+  self._onTxnNum = (num) ->
+    # Reset the number used to keep track of pending transactions
+    nextNum = +num + 1
+    # Remove any old pending transactions
+    for i of pending
+      delete pending[i] if i < nextNum
   
   self.force = Object.create self, _force: value: true
   
@@ -55,10 +61,11 @@ Model:: =
     self.socket = socket
     
     socket.on 'txn', self._onTxn
-    socket.on 'txnOk', (base, txnId) ->
+    socket.on 'txnNum', self._onTxnNum
+    socket.on 'txnOk', (base, txnId, num) ->
       if txn = self._txns[txnId]
         txn[0] = base
-        self._onTxn txn 
+        self._onTxn txn, num
     socket.on 'txnErr', (err, txnId) ->
       txn = self._txns[txnId]
       if txn && (callback = txn.callback) && err != 'duplicate'
@@ -98,18 +105,7 @@ Model:: =
       resendInterval = null
 
   on: (method, pattern, callback) ->
-    re = if pattern instanceof RegExp then pattern else
-      new RegExp '^' + pattern.replace(/\.|\*{1,2}/g, (match, index) ->
-          # Escape periods
-          return '\\.' if match is '.'
-          # A single asterisk matches any single path segment
-          return '([^\\.]+)' if match is '*'
-          # A double asterisk matches any path segment or segments
-          return if match is '**'
-            # Use greedy matching at the end of the path and
-            # non-greedy matching otherwise
-            if pattern.length - index is 2 then '(.+)' else '(.+?)'
-        ) + '$'
+    re = transaction.pathRegExp pattern
     sub = [re, callback]
     subs = @_subs
     if subs[method] is undefined

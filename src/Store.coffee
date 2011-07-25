@@ -19,9 +19,17 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
     return if clientId == transaction.clientId txn
-    socket.emit 'txn', txn if socket = clientSockets[clientId]
+    if socket = clientSockets[clientId]
+      nextTxnNum clientId, (num) ->
+        socket.emit 'txn', txn, num
+  
+  @_nextTxnNum = nextTxnNum = (clientId, callback) ->
+    redisClient.incr 'txnClock.' + clientId, (err, value) ->
+      throw err if err
+      callback value
   
   clientSockets = {}
+  clientSubs = {}
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
       socket.on 'sub', (clientId, paths) ->
@@ -29,32 +37,45 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # socket.io urls, then we can remove this. Instead,
         # we can add the socket <-> clientId assoc in the
         # `sockets.on 'connection'...` callback.
-        socket.unregister = ->
-          pubSub.unsubscribe clientId
-          delete clientSockets[clientId]
-        clientSockets[clientId] = socket
-        pubSub.subscribe clientId, paths...
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
-      socket.on 'disconnect', ->
-        socket.unregister() if socket.unregister
-      socket.on 'txn', (txn) ->
-        commit txn, (err, txn) ->
-          return socket.emit 'txnErr', err, transaction.id(txn) if err
-          socket.emit 'txnOk', transaction.base(txn), transaction.id(txn)
-      socket.on 'txnsSince', (ver) ->
-        eachTxnSince ver, (txn) ->
-          socket.emit 'txn', txn
+        clientSockets[clientId] = socket
+        clientSubs[clientId] = transaction.globToRegExp path for path in paths
+        pubSub.subscribe clientId, paths...
+        
+        socket.on 'disconnect', ->
+          pubSub.unsubscribe clientId
+          delete clientSockets[clientId]
+          delete clientSubs[clientId]
+        socket.on 'txn', (txn) ->
+          commit txn, (err, txn) ->
+            return socket.emit 'txnErr', err, transaction.id(txn) if err
+            nextTxnNum clientId, (num) ->
+              socket.emit 'txnOk', transaction.base(txn), transaction.id(txn), num
+        socket.on 'txnsSince', (ver) ->
+          # Reset the pending transaction number in the model
+          redisClient.get 'txnClock.' + clientId, (err, value) ->
+            throw err if err
+            socket.emit 'txnNum', value || 0
+            eachTxnSince ver, clientId, (txn, num) ->
+              socket.emit 'txn', txn, num
   
-  # TODO Modify this to deal with subsets of data. Currently fetches all transactions since globally
-  @_eachTxnSince = eachTxnSince = (ver, onTxn) ->
+  @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
+    return unless subs = clientSubs[clientId]
+    subscribed = (txn) ->
+      path = transaction.path txn
+      for sub in subs
+        return true if sub.test path
+      return false
+    
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
       txn = null
       for val, i in vals
         if i % 2
+          continue unless subscribed txn
           txn[0] = +val
-          onTxn txn
+          nextTxnNum clientId, (num) -> onTxn txn, num
         else
           txn = JSON.parse val
   
@@ -109,7 +130,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     commit [ver, nextTxnId(), 'del', path], callback
   
   nextClientId = (callback) ->
-    redisClient.incr 'clientIdCount', (err, value) ->
+    redisClient.incr 'clientClock', (err, value) ->
       throw err if err
       callback value.toString(36)
   # Note that Store clientIds MUST begin with '$', as this is used to treat

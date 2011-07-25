@@ -1,5 +1,43 @@
 transaction = require './transaction'
 
+# Ported from Python implementation of fnmatch.py translate function
+# http://svn.python.org/view/python/branches/release27-maint/Lib/fnmatch.py?view=markup
+transaction.globToRegExp = (pattern) ->
+  # Translate a shell PATTERN to a regular expression.
+  # There is no way to quote meta-characters.
+  i = 0
+  n = pattern.length
+  res = ''
+  while i < n
+    c = pattern.charAt(i)
+    i++
+    if c == '*'
+      res += '.*'
+    else if c == '?'
+      res += '.'
+    else if c == '['
+      j = i
+      if j < n and pattern.charAt(j) == '!'
+        j++
+      if j < n and pattern.charAt(j) == ']'
+        j++
+      while j < n and pattern.charAt(j) != ']'
+        j++
+      if j >= n
+        res = res + '\\['
+      else
+        stuff = pattern.substring(i, j).replace('\\', '\\\\')
+        i = j + 1
+        if stuff.charAt(0) == '!'
+          stuff = '^' + stuff.substr(1)
+        else if stuff.charAt(0) == '^'
+          stuff = '\\' + stuff
+        res = "#{res}[#{stuff}]"
+    else
+      # Regular expression escaping from: http://xregexp.com/xregexp.js
+      res = res + c.replace(/[-[\]{}()*+?.,\\^$|#\s]/, '\\$&')
+  new RegExp res + '$'
+
 transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
   
