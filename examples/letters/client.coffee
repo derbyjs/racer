@@ -17,8 +17,8 @@ window.onload = ->
         'Offline'
     if conflicts
       html += ''' &ndash; Another player made conflicting moves:&nbsp;
-      <a href=javascript:resolve(),void(0)>Accept</a>&nbsp;
-      <a href=javascript:resolve(true),void(0)>Override</a>'''
+      <a href=# onclick=resolve()>Accept</a>&nbsp;
+      <a href=# onclick=resolve(true)>Override</a>'''
     info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
@@ -85,17 +85,15 @@ window.onload = ->
       # Only show the last conflicting move for each letter
       cloneId = id + 'clone'
       if existing = document.getElementById cloneId
-        console.log 'removing'
         board.removeChild existing
       # Show a ghost of conflicting move that was not able to be committed
       clone = document.getElementById(id).cloneNode true
       clone.id = cloneId
-      clone.style.left = left
-      clone.style.top = top
+      clone.style.left = left + 'px'
+      clone.style.top = top + 'px'
       clone.style.opacity = 0.5
       clone.draggable = false
       board.appendChild clone
-      console.log clone
       conflicts ||= {}
       conflicts[cloneId] = {clone, id, left, top}
       updateInfo()
