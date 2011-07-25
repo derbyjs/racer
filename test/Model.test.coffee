@@ -473,7 +473,7 @@ module.exports =
       done()
   , 2
 
-  'model push should instantiate an undefined path to a new array': ->
+  'model push should instantiate an undefined path to a new array and insert new members at the end': ->
     model = new Model '0'
     init = model.get 'colors'
     should.equal undefined, init
@@ -502,6 +502,30 @@ module.exports =
 #    model.push 'colors', 'green'
 #    rem = model.pop()
 #    rem.should.equal 'green'
+
+  'model unshift should instantiate an undefined path to a new array and insert new members at the beginning': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.unshift 'colors', 'green'
+    interim = model.get 'colors'
+    interim.should.eql ['green']
+    model.unshift 'colors', 'red', 'orange'
+    final = model.get 'colors'
+    final.should.eql ['red', 'orange', 'green']
+
+  # TODO Test return value of unshift
+
+  'model shift should remove the first member from an array': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.unshift 'colors', 'green', 'blue'
+    interim = model.get 'colors'
+    interim.should.eql ['green', 'blue']
+    model.shift 'colors'
+    final = model.get 'colors'
+    final.should.eql ['blue']
 
   'model insertAfter should work on an array, with a valid index': ->
     model = new Model '0'

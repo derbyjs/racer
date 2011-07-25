@@ -62,6 +62,38 @@ module.exports = (AdapterSync) ->
     adapterSync.push 'colors', 'orange', ++ver
     adapterSync.get('colors').should.eql ['red', 'blue', 'orange']
 
+  'test shift and unshift': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+    
+    adapterSync.unshift 'colors', 'green', ++ver
+    adapterSync.get('colors').should.eql ['green']
+
+    adapterSync.shift 'colors', ++ver
+    adapterSync.get('colors').should.eql []
+    adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
+    adapterSync.get('colors').should.eql ['red', 'blue', 'purple']
+    adapterSync.shift 'colors', ++ver
+    adapterSync.get('colors').should.eql ['blue', 'purple']
+    adapterSync.unshift 'colors', 'orange', ++ver
+    adapterSync.get('colors').should.eql ['orange', 'blue', 'purple']
+
+    adapterSync.set 'nonArray', '9', ++ver
+    didThrowNotAnArray = false
+    try
+      adapterSync.shift 'nonArray', ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+    
+    didThrowNotAnArray = false
+    try
+      adapterSync.unshift 'nonArray', 5, 6, ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
   'test insertAfter': ->
     adapterSync = new AdapterSync
     ver = 0

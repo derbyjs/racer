@@ -139,6 +139,31 @@ Memory:: =
     throw new Error 'Not an Array' unless Array.isArray arr
     arr.splice startIndex, removeCount, newMembers...
     return out.path
+
+  unshift: (path, newMembers..., ver, options = {}) ->
+    if options is undefined
+      options = {}
+    if options.constructor != Object
+      newMembers.push ver
+      ver = options
+      options = {}
+
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
+    arr.unshift newMembers...
+    return out.path
+
+  shift: (path, ver, options = {}) ->
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
+    arr.shift()
+    return out.path
   
   _lookup: (path, addPath, options) ->
     proto = options.proto

@@ -208,6 +208,15 @@ Model:: =
   pop: (path, callback) ->
     @_addTxn 'pop', path, callback
 
+  unshift: (path, values..., callback) ->
+    if 'function' != typeof callback && callback isnt undefined
+      values.push callback
+      callback = null
+    @_addTxn 'unshift', path, values..., callback
+
+  shift: (path, callback) ->
+    @_addTxn 'shift', path, callback
+
   insertAfter: (path, afterIndex, value, callback) ->
     @_addTxn 'insertAfter', path, afterIndex, value, callback
 
