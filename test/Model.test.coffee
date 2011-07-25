@@ -502,3 +502,14 @@ module.exports =
 #    model.push 'colors', 'green'
 #    rem = model.pop()
 #    rem.should.equal 'green'
+
+  'model insertAfter should work on an array, with a valid index': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'green'
+    interim = model.get 'colors'
+    interim.should.eql ['green']
+    model.insertAfter 'colors', 0, 'red'
+    final = model.get 'colors'
+    final.should.eql ['green', 'red']

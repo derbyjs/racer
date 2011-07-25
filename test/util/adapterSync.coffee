@@ -61,3 +61,44 @@ module.exports = (AdapterSync) ->
     adapterSync.get('colors').should.eql ['red', 'blue']
     adapterSync.push 'colors', 'orange', ++ver
     adapterSync.get('colors').should.eql ['red', 'blue', 'orange']
+
+  'test insertAfter': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+
+    # on undefined
+    adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
+    adapterSync.get('colors').should.eql ['yellow']
+
+    adapterSync.pop 'colors', ++ver
+    adapterSync.get('colors').should.eql []
+
+    # on an empty array
+    adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
+    adapterSync.get('colors').should.eql ['yellow']
+
+    # insertAfter like push
+    adapterSync.insertAfter 'colors', 0, 'black', ++ver
+
+    # in-between an array with length >= 2
+    adapterSync.get('colors').should.eql ['yellow', 'black']
+    adapterSync.insertAfter 'colors', 0, 'violet', ++ver
+    adapterSync.get('colors').should.eql ['yellow', 'violet', 'black']
+
+    # out of bounds
+    didThrowOutOfBounds = false
+    try
+      adapterSync.insertAfter 'colors', 100, 'violet', ++ver
+    catch e
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+
+    # not on an array
+    didThrowNotAnArray = false
+    adapterSync.set 'nonArray', '9', ++ver
+    try
+      adapterSync.insertAfter 'nonArray', -1, 'never added', ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true

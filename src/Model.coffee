@@ -208,6 +208,9 @@ Model:: =
   pop: (path, callback) ->
     @_addTxn 'pop', path, callback
 
+  insertAfter: (path, afterIndex, value, callback) ->
+    @_addTxn 'insertAfter', path, afterIndex, value, callback
+
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
 # Timeout in milliseconds after which sent transactions will be resent

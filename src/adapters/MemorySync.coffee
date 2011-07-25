@@ -93,6 +93,16 @@ Memory:: =
     arr = out.obj
     arr.pop()
     return out.path
+
+  insertAfter: (path, afterIndex, value, ver, options = {}) ->
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
+    arr.splice afterIndex+1, 0, value
+    return out.path
   
   _lookup: (path, addPath, options) ->
     proto = options.proto
