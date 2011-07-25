@@ -1,4 +1,5 @@
 rally = require 'rally'
+resolve = ->
 
 rally.onload = ->
   model = rally.model
