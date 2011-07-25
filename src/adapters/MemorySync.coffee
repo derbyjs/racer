@@ -72,6 +72,8 @@ Memory:: =
     return out.path
 
   push: (path, values..., ver, options) ->
+    if options is undefined
+      options = {}
     if options.constructor != Object
       values.push ver
       ver = options
@@ -79,9 +81,17 @@ Memory:: =
     @ver = ver
     options.array = true
     out = @_lookup path, true, options
-    arr = out.parent[out.prop]
+    arr = out.obj
     arr.push values...
     # TODO Array of references handling
+    return out.path
+
+  pop: (path, ver, options = {}) ->
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    arr.pop()
     return out.path
   
   _lookup: (path, addPath, options) ->

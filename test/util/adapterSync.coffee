@@ -44,3 +44,20 @@ module.exports = (AdapterSync) ->
     
     adapterSync.del 'info.numbers'
     adapterSync.get().should.eql info: {}
+
+  'test push and pop': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+    
+    adapterSync.push 'colors', 'green', ++ver
+    adapterSync.get('colors').should.eql ['green']
+
+    adapterSync.pop 'colors', ++ver
+    adapterSync.get('colors').should.eql []
+    adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
+    adapterSync.get('colors').should.eql ['red', 'blue', 'purple']
+    adapterSync.pop 'colors', ++ver
+    adapterSync.get('colors').should.eql ['red', 'blue']
+    adapterSync.push 'colors', 'orange', ++ver
+    adapterSync.get('colors').should.eql ['red', 'blue', 'orange']

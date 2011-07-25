@@ -204,6 +204,9 @@ Model:: =
       callback = null
     @_addTxn 'push', path, values..., callback
 
+  pop: (path, callback) ->
+    @_addTxn 'pop', path, callback
+
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
 # Timeout in milliseconds after which sent transactions will be resent

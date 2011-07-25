@@ -482,3 +482,20 @@ module.exports =
 #    model = new Model '0'
 #    len = model.push 'color', 'green'
 #    len.should.equal 1
+
+  'model pop should remove a member from an array': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'green'
+    interim = model.get 'colors'
+    interim.should.eql ['green']
+    model.pop 'colors'
+    final = model.get 'colors'
+    final.should.eql []
+
+#  'model pop should return the member it removed': ->
+#    model = new Model '0'
+#    model.push 'colors', 'green'
+#    rem = model.pop()
+#    rem.should.equal 'green'
