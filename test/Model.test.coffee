@@ -23,16 +23,17 @@ module.exports =
   
   'test client performs set on receipt of message': ->
     [sockets, model] = mockSocketModel()
-    sockets.emit 'txn', [1, 'server0.0', 'set', 'color', 'green']
+    sockets.emit 'txn', [1, 'server0.0', 'set', 'color', 'green'], 1
     model.get('color').should.eql 'green'
     model._adapter.ver.should.eql 1
     sockets._disconnect()
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
+    ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql [0, '0.0', 'set', 'color', 'green']
-      txn[0]++
-      sockets.emit 'txn', txn
+      txn[0] = ++ver
+      sockets.emit 'txn', txn, ver
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -43,10 +44,11 @@ module.exports =
     model._txnQueue.should.eql ['0.0']
   
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
+    ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql [0, '0.0', 'del', 'color']
-      txn[0]++
-      sockets.emit 'txn', txn
+      txn[0] = ++ver
+      sockets.emit 'txn', txn, ver
       model._adapter._data.should.eql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -58,10 +60,11 @@ module.exports =
     model._txnQueue.should.eql ['0.0']
 
   'test client push roundtrip with server echoing transaction': wrapTest (done) ->
+    ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql [0, '0.0', 'push', 'colors', 'red']
-      txn[0]++
-      sockets.emit 'txn', txn
+      txn[0] = ++ver
+      sockets.emit 'txn', txn, ver
       model.get('colors').should.eql ['red']
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -92,13 +95,13 @@ module.exports =
   
   'transactions received out of order should be applied in order': ->
     [sockets, model] = mockSocketModel()
-    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
+    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green'], 1
     model.get('color').should.eql 'green'
     
-    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']
+    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red'], 3
     model.get('color').should.eql 'green'
     
-    sockets.emit 'txn', [2, '_.0', 'set', 'number', 7]
+    sockets.emit 'txn', [2, '_.0', 'set', 'number', 7], 2
     model.get('color').should.eql 'red'
     model.get('number').should.eql 7
     sockets._disconnect()
@@ -114,9 +117,9 @@ module.exports =
       txnsSince.should.eql 1
       sockets._disconnect()
       done()
-    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green']
-    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red']
-    sockets.emit 'txn', [2, '_.0', 'set', 'color', 'blue']
+    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green'], 1
+    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red'], 3
+    sockets.emit 'txn', [2, '_.0', 'set', 'color', 'blue'], 2
   
   'test speculative value of set': ->
     model = new Model '0'
@@ -349,7 +352,7 @@ module.exports =
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn[0] = ++ver
-      sockets.emit 'txn', txn
+      sockets.emit 'txn', txn, ver
     count = 0
     model.on 'set', '*', (path, value) ->
       path.should.equal 'color'
@@ -371,7 +374,7 @@ module.exports =
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn[0] = ++ver
-      sockets.emit 'txn', txn
+      sockets.emit 'txn', txn, ver
     model.on 'set', 'color.*', (prop, value) ->
       prop.should.equal 'hex'
       value.should.equal '#0f0'
