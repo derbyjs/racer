@@ -58,7 +58,7 @@ Model:: =
     socket.on 'txnOk', (base, txnId) ->
       if txn = self._txns[txnId]
         txn[0] = base
-        self._onTxn txn 
+        self._onTxn txn
     socket.on 'txnErr', (err, txnId) ->
       txn = self._txns[txnId]
       if txn && (callback = txn.callback) && err != 'duplicate'
@@ -171,7 +171,7 @@ Model:: =
     args = transaction.args txn
     args.push transaction.base txn
     adapter = @_adapter
-    adapter[method].apply adapter, args
+    adapter[method] args...
     @_removeTxn transaction.id txn
     @_emit method, args
     callback null, transaction.args(txn)... if callback = txn.callback
