@@ -136,6 +136,7 @@ RedisAdapter:: =
       conflicts
     , {}
 
+  # Re-usable general pattern function used in @subscribe.
   _handleCoverage: ({coverageMethod, subscriberId, incomingPathsOrPatterns, warningFn, overlapCallback}) ->
     coverageMap = @[coverageMethod] subscriberId, incomingPathsOrPatterns
     if Object.keys(coverageMap).length

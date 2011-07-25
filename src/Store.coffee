@@ -19,7 +19,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # pubsub's @_publishClient.
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
-    return if clientId == transaction.clientId txn
+    publisherId = transaction.clientId txn
+    return if clientId == publisherId
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
         socket.emit 'txn', txn, num
