@@ -21,6 +21,11 @@ window.onload = ->
       <a href=# onclick=resolve(true)>Override</a>'''
     info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
+  # TODO This if statement is a dirty hack, imho. Perhaps, we should assign the
+  #      connect event handler to the model and let the model internally take
+  #      care of this if statement.
+  if model.socket.socket.connected
+    model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'disconnect', updateInfo
   
