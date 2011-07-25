@@ -82,6 +82,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
     arr.push values...
     # TODO Array of references handling
     return out.path
@@ -91,6 +92,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
     arr.pop()
     return out.path
 

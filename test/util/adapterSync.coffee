@@ -62,6 +62,23 @@ module.exports = (AdapterSync) ->
     adapterSync.push 'colors', 'orange', ++ver
     adapterSync.get('colors').should.eql ['red', 'blue', 'orange']
 
+    adapterSync.set 'nonArray', '9', ++ver
+    didThrowNotAnArray = false
+    try
+      adapterSync.pop 'nonArray', ++ver
+    catch e
+      e.message.should.equal 'Not an Array'
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+    
+    didThrowNotAnArray = false
+    try
+      adapterSync.push 'nonArray', 5, 6, ++ver
+    catch e
+      e.message.should.equal 'Not an Array'
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
   'test shift and unshift': ->
     adapterSync = new AdapterSync
     ver = 0
@@ -84,6 +101,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.shift 'nonArray', ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
     
@@ -91,6 +109,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.unshift 'nonArray', 5, 6, ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
@@ -122,6 +141,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.insertAfter 'colors', 100, 'violet', ++ver
     catch e
+      e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -131,6 +151,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.insertAfter 'nonArray', -1, 'never added', ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
@@ -166,6 +187,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.insertBefore 'colors', 100, 'violet', ++ver
     catch e
+      e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -175,6 +197,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.insertBefore 'nonArray', 0, 'never added', ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
@@ -188,6 +211,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.remove 'undefined', 0, 3, ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
@@ -197,6 +221,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.remove 'nonArray', 0, 3, ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
@@ -221,12 +246,14 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.remove 'colors', -1, 1, ++ver
     catch e
+      e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
     didThrowOutOfBounds = false
     try
       adapterSync.remove 'colors', 3, 1, ++ver
     catch e
+      e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -245,6 +272,7 @@ module.exports = (AdapterSync) ->
     try
       adapterSync.remove 'nonArray', 0, 3, ++ver
     catch e
+      e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
