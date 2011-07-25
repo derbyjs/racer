@@ -70,9 +70,23 @@ Memory:: =
         parent.__proto__ = obj
     delete parent[prop]
     return out.path
+
+  push: (path, values..., ver, options) ->
+    if options.constructor != Object
+      values.push ver
+      ver = options
+      options = {}
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.parent[out.prop]
+    arr.push values...
+    # TODO Array of references handling
+    return out.path
   
   _lookup: (path, addPath, options) ->
     proto = options.proto
+    array = options.array
     next = options.obj || @_data
     props = path.split '.'
     
@@ -93,7 +107,7 @@ Memory:: =
         # Return undefined if the object can't be found
         return {obj: next} unless addPath
         # If addPath is true, create empty parent objects implied by path
-        next = parent[prop] = {}
+        next = parent[prop] = if array && i == len then [] else {}
       
       # Store the absolute path traversed so far
       path = if path then path + '.' + prop else prop

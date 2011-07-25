@@ -56,6 +56,20 @@ module.exports =
     model._adapter._data = color: 'green'
     model.del 'color'
     model._txnQueue.should.eql ['0.0']
+
+  'test client push roundtrip with server echoing transaction': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+      txn.should.eql [0, '0.0', 'push', 'colors', 'red']
+      txn[0]++
+      sockets.emit 'txn', txn
+      model.get('colors').should.eql ['red']
+      model._txnQueue.should.eql []
+      model._txns.should.eql {}
+      sockets._disconnect()
+      done()
+  
+    model.push 'colors', 'red'
+    model._txnQueue.should.eql ['0.0']
   
   'setting on a private path should only be applied locally': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0', 'txn', done
@@ -455,3 +469,16 @@ module.exports =
       path.should.equal 'color'
       done()
   , 2
+
+  'model push should instantiate an undefined path to a new array': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'green'
+    final = model.get 'colors'
+    final.should.eql ['green']
+
+#  'model push should return the length of the speculative array': ->
+#    model = new Model '0'
+#    len = model.push 'color', 'green'
+#    len.should.equal 1

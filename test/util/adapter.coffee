@@ -76,3 +76,14 @@ module.exports = (Adapter) ->
           value.should.eql {}
           ver.should.eql 0
           done()
+
+  'test push': wrapTest (done) ->
+    adapter = new Adapter
+    adapter.push 'colors', 'green', (err, value) ->
+      should.equal null, err
+#      value.should.eql 1
+      adapter.get 'colors', (err, value, ver) ->
+        should.equal null, err
+        value.should.eql ['green']
+        ver.should.eql 1
+        done()

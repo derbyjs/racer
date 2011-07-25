@@ -183,7 +183,7 @@ Model:: =
         txn = @_txns[@_txnQueue[i++]]
         args = transaction.args txn
         args.push adapter.ver, obj: obj, proto: true
-        path = adapter[transaction.method txn].apply adapter, args
+        path = adapter[transaction.method txn] args...
     return [obj, path]
   
   get: (path) -> @_adapter.get path, @_specModel()[0]
@@ -196,6 +196,13 @@ Model:: =
   
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
+
+  ## Array Methods ##
+  push: (path, values..., callback) ->
+    if 'function' != typeof callback && callback isnt undefined
+      values.push callback
+      callback = null
+    @_addTxn 'push', path, values..., callback
 
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500

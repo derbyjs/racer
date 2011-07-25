@@ -9,7 +9,7 @@ test-single:
 		--serial \
 		$(TESTFLAGS) \
 		--timeout 6000 \
-		test/PubSub.test.serial.coffee
+		test/Model.test.coffee
 
 test-async-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
