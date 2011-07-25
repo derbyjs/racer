@@ -89,7 +89,7 @@ Model:: =
     # Request missed transactions and send queued transactions on connect
     resendInterval = null
     socket.on 'connect', ->
-      socket.emit 'clientId', self._clientId
+      socket.emit 'sub', self._clientId, self.get '$subs'
       self._reqNewTxns()
       resendAll()
       unless resendInterval

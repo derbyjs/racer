@@ -21,20 +21,18 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     socket.emit 'txn', txn if socket = clientSockets[clientId]
   
   clientSockets = {}
-  registerSocket = (clientId, socket) ->
-    socket.unregister = ->
-      pubSub.unsubscribe clientId
-      delete clientSockets[clientId]
-    clientSockets[clientId] = socket
-  
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
-      socket.on 'clientId', (clientId) ->
+      socket.on 'sub', (clientId, paths) ->
         # TODO Once socket.io supports query params in the
         # socket.io urls, then we can remove this. Instead,
         # we can add the socket <-> clientId assoc in the
         # `sockets.on 'connection'...` callback.
-        registerSocket clientId, socket
+        socket.unregister = ->
+          pubSub.unsubscribe clientId
+          delete clientSockets[clientId]
+        clientSockets[clientId] = socket
+        pubSub.subscribe clientId, paths...
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
@@ -58,11 +56,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         else
           txn = JSON.parse val
   
-  subscribeModel = (model, paths) ->
-    pubSub.subscribe model._clientId, paths...
   populateModel = (model, paths, callback) ->
-    subscribeModel model, paths
     modelAdapter = model._adapter
+    subs = modelAdapter.get('$subs') || []
+    modelAdapter.set '$subs', subs.concat paths
+    
     getting = paths.length
     for path in paths
       # TODO: Select only the correct properties instead of everything under the path
