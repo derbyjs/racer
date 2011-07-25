@@ -1,8 +1,6 @@
 rally = require 'rally'
 
-resolve = ->
-
-window.onload = ->
+rally.onload = ->
   model = rally.model
   info = document.getElementById 'info'
   board = document.getElementById 'board'
@@ -27,7 +25,7 @@ window.onload = ->
   if model.socket.socket.connected
     model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  model.socket.on 'disconnect', updateInfo
+  model.socket.on 'disconnect', -> updateInfo
   
   html = ''
   if `/*@cc_on!@*/0`

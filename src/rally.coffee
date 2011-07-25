@@ -1,8 +1,8 @@
 Model = require './Model'
 Store = require './Store'
 io = require 'socket.io'
+ioClient = require 'socket.io-client'
 browserify = require 'browserify'
-fs = require 'fs'
 
 ioUri = ''
 sockets = null
@@ -40,7 +40,9 @@ module.exports = rally = (options) ->
 
 rally.use = -> throw 'Unimplemented'
 
-rally.js = -> browserify.bundle(require: ['rally', 'es5-shim']) +
-  fs.readFileSync(require('socket.io-client').dist + '/socket.io.js')
+rally.js = (callback) ->
+  ioClient.builder ['websocket', 'xhr-polling'], minify: false, (err, value) ->
+    throw err if err
+    callback value + browserify.bundle(require: ['rally', 'es5-shim'])
 
 rally.store = store = new Store

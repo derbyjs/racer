@@ -9,7 +9,8 @@ app.use express.favicon()
 
 # rally.js returns a browserify bundle of the rally client side code and the
 # socket.io client side code
-script = rally.js() + fs.readFileSync 'client.js'
+script = ''
+rally.js (js) -> script = js + fs.readFileSync 'client.js'
 style = fs.readFileSync 'style.css'
 
 app.get '/script.js', (req, res) ->
@@ -31,15 +32,15 @@ app.get '/:room', (req, res) ->
       <!DOCTYPE html>
       <title>Letters game</title>
       <style>#{style}</style>
-      <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
+      <link href=http://fonts.googleapis.com/css?family=Anton&v2 rel=stylesheet>
       <div id=back>
         <div id=page>
           <p id=info>
           <div id=board></div>
         </div>
       </div>
-      <script src=/script.js></script>
-      <script>rally.init(#{json})</script>
+      <script src=/script.js defer></script>
+      <script>window.onload=function(){rally.init(#{json})}</script>
       """
 
 initModel = (model, room) ->

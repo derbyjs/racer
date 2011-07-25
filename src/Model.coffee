@@ -57,7 +57,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 Model:: =
   _commit: -> false
   _reqNewTxns: ->
-  _setSocket: (socket, config) ->
+  _setSocket: (socket) ->
     self = this
     self.socket = socket
     

@@ -7,4 +7,5 @@ require 'es5-shim'
   model._clientId = clientId
   model._txnCount = txnCount
   model._setSocket io.connect ioUri
+  @onload() if @onload
   return this
