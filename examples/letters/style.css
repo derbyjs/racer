@@ -7,6 +7,9 @@ body {
   background: #ccc;
   font: 13px/1 arial;
 }
+a {
+  color: #01c;
+}
 #back {
   border-top: 1px solid #eee;
   background: -moz-linear-gradient(#ddd, #ccc) repeat-x;

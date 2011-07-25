@@ -40,7 +40,7 @@ module.exports = rally = (options) ->
 
 rally.use = -> throw 'Unimplemented'
 
-rally.js = -> browserify.bundle(require: 'rally') +
+rally.js = -> browserify.bundle(require: ['rally', 'es5-shim']) +
   fs.readFileSync(require('socket.io-client').dist + '/socket.io.js')
 
 rally.store = store = new Store

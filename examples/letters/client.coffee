@@ -1,5 +1,7 @@
 rally = require 'rally'
 
+resolve = ->
+
 window.onload = ->
   model = rally.model
   info = document.getElementById 'info'
@@ -8,11 +10,16 @@ window.onload = ->
   
   updateInfo = ->
     players = model.get '_room.players'
-    info.innerHTML =
+    html =
       if model.socket.socket.connected
         players + ' Player' + if players > 1 then 's' else ''
       else
         'Offline'
+    if conflicts
+      html += ''' &ndash; Another player made conflicting moves:&nbsp;
+      <a href=javascript:resolve(),void(0)>Accept</a>&nbsp;
+      <a href=javascript:resolve(true),void(0)>Override</a>'''
+    info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'disconnect', updateInfo
@@ -60,20 +67,38 @@ window.onload = ->
     # Prevent Firefox from redirecting
     e.preventDefault() if e.preventDefault
     # Update the model to reflect the drop position
-    target = dragData.target
-    model.set "_room.letters.#{target.id}.position",
-      left: e.clientX - dragData.startLeft
-      top: e.clientY - dragData.startTop
-    , (err, path, value) ->
-      # TODO: Present some UI that shows the conflict and lets the user choose
-      # what to do
-      if err is 'conflict'
-        clone = target.cloneNode true
-        clone.id += 'clone'
-        clone.style.left = value.left
-        clone.style.top = value.top
-        clone.style.opacity = 0.5
-        target.parentNode.appendChild clone
+    moveLetter dragData.target.id,
+      e.clientX - dragData.startLeft,
+      e.clientY - dragData.startTop
+  
+  conflicts = null
+  resolve = (override) ->
+    for i, conflict of conflicts
+      board.removeChild conflict.clone
+      moveLetter conflict.id, conflict.left, conflict.top if override
+    conflicts = null
+    updateInfo()
+  
+  moveLetter = (id, left, top) ->
+    model.set "_room.letters.#{id}.position", {left, top}, (err) ->
+      return unless err is 'conflict'
+      # Only show the last conflicting move for each letter
+      cloneId = id + 'clone'
+      if existing = document.getElementById cloneId
+        console.log 'removing'
+        board.removeChild existing
+      # Show a ghost of conflicting move that was not able to be committed
+      clone = document.getElementById(id).cloneNode true
+      clone.id = cloneId
+      clone.style.left = left
+      clone.style.top = top
+      clone.style.opacity = 0.5
+      clone.draggable = false
+      board.appendChild clone
+      console.log clone
+      conflicts ||= {}
+      conflicts[cloneId] = {clone, id, left, top}
+      updateInfo()
   
   # Update the letter's position when the model changes
   # Path wildcards are passed to the handler function as arguments in order.

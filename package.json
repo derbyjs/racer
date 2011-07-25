@@ -8,7 +8,8 @@
   "dependencies": {
     "redis": ">=0.5.11",
     "socket.io": ">=0.7",
-    "socket.io-client": ">=0.7"
+    "socket.io-client": ">=0.7",
+    "es5-shim": ">=1.2.3"
   },
   "devDependencies": {
     "expresso": ">=0.7.9",

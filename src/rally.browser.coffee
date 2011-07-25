@@ -1,3 +1,4 @@
+require 'es5-shim'
 @model = model = new (require './Model')
 
 @init = ({data, base, clientId, txnCount, ioUri}) ->
