@@ -4,6 +4,7 @@ Model = require './Model'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
+pathParser = require './pathParser.server'
 
 PENDING_INTERVAL = 500
 
@@ -40,7 +41,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
         clientSockets[clientId] = socket
-        clientSubs[clientId] = (transaction.globToRegExp path for path in paths)
+        clientSubs[clientId] = (pathParser.globToRegExp path for path in paths)
         pubSub.subscribe clientId, paths...
         
         socket.on 'disconnect', ->
