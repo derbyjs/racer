@@ -11,3 +11,16 @@ module.exports =
   # Such a path is private to the current session and should not be stored
   # in persistent storage or synced with other clients.
   privatePath: (name) -> /(^_)|(\._)/.test name
+  
+  pathRegExp: (pattern) -> if pattern instanceof RegExp then pattern else
+    new RegExp '^' + pattern.replace(/\.|\*{1,2}/g, (match, index) ->
+      # Escape periods
+      return '\\.' if match is '.'
+      # A single asterisk matches any single path segment
+      return '([^\\.]+)' if match is '*'
+      # A double asterisk matches any path segment or segments
+      return if match is '**'
+        # Use greedy matching at the end of the path and
+        # non-greedy matching otherwise
+        if pattern.length - index is 2 then '(.+)' else '(.+?)'
+    ) + '$'

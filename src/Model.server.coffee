@@ -5,13 +5,11 @@ Model = require './Model'
 module.exports = (store, ioUri) ->
 
   Model::_commit = (txn) ->
-    onTxn = @_onTxn
-    removeTxn = @_removeTxn
+    self = this
     store._commit txn, (err, txn) ->
-      return removeTxn transaction.id txn if err
-      onTxn txn
-  
-  Model::_reqNewTxns = -> store._eachTxnSince @_adapter.ver + 1, @_onTxn
+      return self._removeTxn transaction.id txn if err
+      store._nextTxnNum self._clientId, (num) ->
+        self._onTxn txn, num
 
   Model::json = modelJson = (callback, self = this) ->
     return setTimeout modelJson, 10, callback, self if self._txnQueue.length
