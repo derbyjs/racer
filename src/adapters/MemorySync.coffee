@@ -123,6 +123,22 @@ Memory:: =
     throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
     arr.splice startIndex, howMany
     return out.path
+
+  splice: (path, startIndex, removeCount, newMembers..., ver, options) ->
+    if options is undefined
+      options = {}
+    if options.constructor != Object
+      newMembers.push ver
+      ver = options
+      options = {}
+
+    @ver = ver
+    options.array = true
+    out = @_lookup path, true, options
+    arr = out.obj
+    throw new Error 'Not an Array' unless Array.isArray arr
+    arr.splice startIndex, removeCount, newMembers...
+    return out.path
   
   _lookup: (path, addPath, options) ->
     proto = options.proto

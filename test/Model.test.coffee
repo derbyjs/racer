@@ -541,3 +541,16 @@ module.exports =
     final.should.eql ['red', 'violet']
 
   # TODO Test return value of remove
+
+  'model splice should work on an array, just like JS Array::splice': ->
+    model = new Model '0'
+    init = model.get 'colors'
+    should.equal undefined, init
+    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
+    interim = model.get 'colors'
+    interim.should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    model.splice 'colors', 1, 4, 'oak'
+    final = model.get 'colors'
+    final.should.eql ['red', 'oak', 'violet']
+
+  # TODO Test return value of splice

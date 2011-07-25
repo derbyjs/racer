@@ -197,3 +197,50 @@ module.exports = (AdapterSync) ->
     catch e
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
+
+  'test splice': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {}
+
+    # on undefined
+    adapterSync.splice 'undefined', 0, 3, 1, 2, ++ver
+    adapterSync.get('undefined').should.eql [1, 2]
+
+    # on a defined non-array
+    didThrowNotAnArray = false
+    adapterSync.set 'nonArray', '9', ++ver
+    try
+      adapterSync.remove 'nonArray', 0, 3, ++ver
+    catch e
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
+    # on an empty array
+    adapterSync.set 'colors', [], ++ver
+    adapterSync.splice 'colors', 0, 0, 'red', 'orange', 'yellow', 'green', 'blue', 'violet', ++ver
+    adapterSync.get('colors').should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    
+    # on a non-empty array
+    adapterSync.splice 'colors', 2, 3, 'pink', 'gray', ++ver
+    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet']
+
+    # like push
+    adapterSync.splice 'colors', 5, 0, 'peach', ++ver
+    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet', 'peach']
+
+    # like pop
+    adapterSync.splice 'colors', 5, 1, ++ver
+    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet']
+
+    # like remove
+    adapterSync.splice 'colors', 1, 2, ++ver
+    adapterSync.get('colors').should.eql ['red', 'gray', 'violet']
+
+    # like shift
+    adapterSync.splice 'colors', 0, 1, ++ver
+    adapterSync.get('colors').should.eql ['gray', 'violet']
+
+    # with an out-of-bounds index
+    adapterSync.splice 'colors', 100, 50, 'blue', ++ver
+    adapterSync.get('colors').should.eql ['gray', 'violet', 'blue']

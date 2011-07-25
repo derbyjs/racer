@@ -217,6 +217,12 @@ Model:: =
   remove: (path, startIndex, howMany, callback) ->
     @_addTxn 'remove', path, startIndex, howMany, callback
 
+  splice: (path, startIndex, removeCount, newMembers..., callback) ->
+    if 'function' != typeof callback && callback isnt undefined
+      newMembers.push callback
+      callback = null
+    @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
+
 # Timeout in milliseconds after which missed transactions will be requested
 Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
 # Timeout in milliseconds after which sent transactions will be resent
