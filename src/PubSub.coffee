@@ -129,25 +129,6 @@ RedisAdapter:: =
           delete @['_subscribersBy' + pathType][path] unless subscribers.length
       delete @_regExpsBySubscriber[subscriberId]
 
-#    if (path)
-#      paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
-#      return unless paths
-#      paths.splice(paths.indexOf(path), 1)
-#
-#      subscribers = @['_subscribersBy' + pathType][path]
-#      subscribers.splice(subscribers.indexOf(subscriberId), 1)
-#      delete @['_subscribersBy' + pathType][path] unless subscribers.length
-#    else
-#      # More efficient way to remove *all* traces of a subscriber
-#      # than evaling above if multiple times
-#      for pathType in ['Pattern', 'Path']
-#        paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
-#        delete @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
-#        for path in paths
-#          subscribers = @['_subscribersBy' + pathType][path]
-#          subscribers.splice(subscribers.indexOf(subscriberId), 1)
-#          delete @['_subscribersBy' + pathType][path] unless subscribers.length
-
   _lacksSubscribers: (path) ->
     !(@_subscribersByPath[path] || @_subscribersByPattern[path])
 
