@@ -5,6 +5,7 @@ require 'es5-shim'
 io.Socket::onClose = ->
   @open = false
   @publish 'close'
+  @onDisconnect()
 
 @init = ({data, base, clientId, txnCount, ioUri}) ->
   model._adapter._data = data
