@@ -16,7 +16,7 @@ rally.onload = ->
       html = players + ' Player' + if players > 1 then 's' else ''
       roomsDiv.style.visibility = 'visible'
     else
-      html = 'Offline &ndash; <a href=# onclick=connect()>Reconnect</a>'
+      html = 'Offline<span id=reconnect> &ndash; <a href=# onclick=connect()>Reconnect</a></span>'
       roomsDiv.style.visibility = 'hidden'
     if conflicts
       html += ''' &ndash; Another player made conflicting moves:&nbsp;
@@ -24,9 +24,13 @@ rally.onload = ->
       <a href=# onclick=resolve(true)>Override</a>'''
     info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
-  model.socket.on 'disconnect', updateInfo
+  model.socket.on 'disconnect', -> setTimeout updateInfo, 200
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  connect = -> model.socket.socket.connect()
+  connect = ->
+    reconnect = document.getElementById 'reconnect'
+    reconnect.style.display = 'none'
+    setTimeout (-> reconnect.style.display = ''), 1000
+    model.socket.socket.connect()
   
   model.on 'set', 'rooms.*.players', ->
     rooms = []
