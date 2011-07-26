@@ -195,7 +195,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
   txnApplier.waitForDependencies = (self = this) ->
-    setInterval -> self.flushValidPending()
+    setInterval -> self.flushValidPending(), @PERIOD
   txnApplier.applyTxn = (txn) ->
     args = transaction.args txn
     verToWrite = @_serializingIndex
