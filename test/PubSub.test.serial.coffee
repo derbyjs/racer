@@ -23,7 +23,7 @@ module.exports =
     pubsub.subscribe subscriber, 'channel'
     pubsub.publish publisher, 'channel', 'value'
   
-  'a published transaction to a patterned path should only be received if subscribed to': (done) ->
+  'a published transaction to a patterned `prefix.*` path should only be received if subscribed to': (done) ->
     pubsub.onMessage = (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
@@ -32,6 +32,22 @@ module.exports =
     [subscriber, publisher] = ['1', '2']
     pubsub.subscribe subscriber, 'channel.*'
     pubsub.publish publisher, 'channel.1', 'value'
+
+  'a published transaction to a patterned `prefix.*.suffix` path should only be received if subscribed to': (done) ->
+    counter = 0
+    pubsub.onMessage = (subscriberId, message) ->
+      counter++
+      subscriberId.should.equal '1'
+      message.substr(0, message.length-1).should.equal 'valueA'
+      if message == 'valueA2'
+        counter.should.equal 2
+        done()
+
+    [subscriber, publisher] = ['1', '2']
+    pubsub.subscribe subscriber, 'channel.*.suffix'
+    pubsub.publish publisher, 'channel.1.suffix', 'valueA1'
+    pubsub.publish publisher, 'channel.1.nomatch', 'valueB'
+    pubsub.publish publisher, 'channel.1.suffix', 'valueA2'
 
   'unsubscribing from a path means the subscriber should no longer receive the path messages': (done) ->
     counter = 0

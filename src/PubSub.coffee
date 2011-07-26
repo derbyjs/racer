@@ -153,7 +153,7 @@ RedisAdapter:: =
       paths.push(callback)
       callback = null
 
-    {paths, patterns, exceptions} = pathParser.forSubscribe paths
+    [paths, patterns] = pathParser.forSubscribe paths
 
     @_handleCoverage
       coverageMethod: '_alreadySubscribedToViaPatterns'
@@ -222,7 +222,7 @@ RedisAdapter:: =
 
     # For signature: unsubscribe(subscriberId, paths..., callback)
 
-    {paths, patterns, exceptions} = pathParser.forSubscribe paths
+    [paths, patterns] = pathParser.forSubscribe paths
 
     if paths.length
       @_unindex subscriberId, path, 'Path' for path in paths

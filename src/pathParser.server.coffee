@@ -14,36 +14,23 @@ pathParser = require './pathParser'
   # @param {String} path
   # @return {Object} {paths, patterns, exceptions}
 pathParser.forSubscribe = (path) ->
+  globRe = /\*/
+  _paths = []
+  _patterns = []
+
   if Array.isArray path
     paths = path
-    triplets = paths.map (path) =>
-      res = {_paths, _patterns, _exceptions} = @forSubscribe path
-
-    paths = []
-    patterns = []
-    exceptions = []
-    for triplet in triplets
-      paths = paths.concat triplet.paths
-      patterns = patterns.concat triplet.patterns
-      exceptions = exceptions.concat triplet.exceptions
-    return {
-      paths: paths
-      patterns: patterns
-      exceptions: exceptions
-    }
+    for path in paths
+      if globRe.test path
+        _patterns.push path
+      else
+        _paths.push path
   else
-    lastChar = path.charAt path.length-1
-    if lastChar == '*'
-      return {
-        paths: []
-        patterns: [path]
-        exceptions: []
-      }
-    return {
-      paths: [path]
-      patterns: []
-      exceptions: []
-    }
+    if globRe.test path
+      _patterns.push path
+    else
+      _paths.push path
+  return [_paths, _patterns]
 
 pathParser.conflictsWithPattern = (path, pattern) ->
   base = pattern.replace /\.\*$/, ''
