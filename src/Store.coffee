@@ -65,8 +65,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
     return unless pubSub.anySubscriptionsFor clientId
 
-    return unless subs = pubSub.subscriptionsFor clientId
-    subscribed = transaction.subscribedToTxn
+    subscribed = -> pubSub.subscribedToTxn arguments...
     
     # TODO Replace with a LUA script that does filtering?
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
