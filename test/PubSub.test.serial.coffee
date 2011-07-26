@@ -187,6 +187,16 @@ module.exports =
     pubsub.subscribe subscriberTwo, 'channel.*'
     pubsub.publish publisher, 'channel.1', 'value'
 
+  'subscribedToTxn should test if a client id is subscribed to a given transaction': ->
+    subscriber = '100'
+    pubsub.subscribe subscriber, 'b.*'
+    txnOne = [0, '1.0', 'set', 'a.b.c', 1]
+    txnTwo = [0, '1.0', 'set', 'b.c', 1]
+    txnThree = [0, '1.0', 'set', 'b.c.d', 1]
+    pubsub.subscribedToTxn(subscriber, txnOne).should.be.false
+    pubsub.subscribedToTxn(subscriber, txnTwo).should.be.true
+    pubsub.subscribedToTxn(subscriber, txnThree).should.be.true
+
   finishAll: (done) -> finishAll = true; done()
 
   ## !! PLACE ALL TESTS BEFORE finishAll !! ##

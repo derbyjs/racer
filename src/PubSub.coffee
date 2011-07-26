@@ -1,4 +1,5 @@
 pathParser = require './pathParser.server'
+transaction = require './transaction.server'
 redis = require 'redis'
 
 PubSub = module.exports = (adapterName = 'Redis') ->
@@ -13,6 +14,9 @@ PubSub:: =
   # unsubscribe(subscriberId, paths..., callback)
   unsubscribe: -> @_adapter.unsubscribe arguments...
 
+  anySubscriptionsFor: (subscriberId) -> @_adapter.anySubscriptionsFor subscriberId
+  subscribedToTxn: (subscriberId, txn) -> @_adapter.subscribedToTxn subscriberId, txn
+
 PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
   @pubsub = pubsub
@@ -21,6 +25,7 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
   @_subscribersByPath = {}
   @_patternsBySubscriber = {}
   @_subscribersByPattern = {}
+  @_regExpsBySubscriber = {}
 
   @_publishClient = redis.createClient()
   @_subscribeClient = redis.createClient()
@@ -66,22 +71,47 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
   return
 
 RedisAdapter:: =
-  _index: (subscriberId, path, pathType) ->
-    paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId] ||= []
-    paths.push path
+  _index: (subscriberId, path, indexNames) ->
+    for indexName in indexNames
+      switch indexName
+        when '_pathsBySubscriber', '_patternsBySubscriber'
+          indexBy = subscriberId
+          val = path
+        when '_subscribersByPath', '_subscribersByPattern'
+          indexBy = path
+          val = subscriberId
+        when '_regExpsBySubscriber'
+          indexBy = subscriberId
+          val = pathParser.globToRegExp path
+        else throw new Error "Unrecognized index: #{indexName}"
+      index = @[indexName]
+      list = index[indexBy] ||= []
+      list.push val
 
-    subscribers = @['_subscribersBy' + pathType][path] ||= []
-    subscribers.push subscriberId
+  _unindex: (subscriberId, path, indexNames) ->
+    if indexNames is undefined
+      # fn signature: _unindex(subscriberId, indexNames)
+      indexNames = path
+      path = null
 
-  _unindex: (subscriberId, path, pathType) ->
-    if (path)
-      paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
-      return unless paths
-      paths.splice(paths.indexOf(path), 1)
-
-      subscribers = @['_subscribersBy' + pathType][path]
-      subscribers.splice(subscribers.indexOf(subscriberId), 1)
-      delete @['_subscribersBy' + pathType][path] unless subscribers.length
+    if path
+      for indexName in indexNames
+        index = @[indexName]
+        switch indexName
+          when '_pathsBySubscriber', '_patternsBySubscriber'
+            continue unless paths = index[subscriberId]
+            paths.splice paths.indexOf(path), 1
+            delete index[subscriberId] unless paths.length
+          when '_subscribersByPath', '_subscribersByPattern'
+            continue unless subscribers = index[path]
+            subscribers.splice subscribers.indexOf(subscriberId), 1
+            delete index[path] unless subscribers.length
+          when '_regExpsBySubscriber'
+            continue unless regExps = index[subscriberId]
+            regExp = pathParser.globToRegExp
+            regExps.splice regExps.indexOf(regExp), 1
+            delete index[subscriberId] unless regExps.length
+          else throw new Error "Unrecognized index: #{indexName}"
     else
       # More efficient way to remove *all* traces of a subscriber
       # than evaling above if multiple times
@@ -92,6 +122,26 @@ RedisAdapter:: =
           subscribers = @['_subscribersBy' + pathType][path]
           subscribers.splice(subscribers.indexOf(subscriberId), 1)
           delete @['_subscribersBy' + pathType][path] unless subscribers.length
+      delete @_regExpsBySubscriber[subscriberId]
+
+#    if (path)
+#      paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+#      return unless paths
+#      paths.splice(paths.indexOf(path), 1)
+#
+#      subscribers = @['_subscribersBy' + pathType][path]
+#      subscribers.splice(subscribers.indexOf(subscriberId), 1)
+#      delete @['_subscribersBy' + pathType][path] unless subscribers.length
+#    else
+#      # More efficient way to remove *all* traces of a subscriber
+#      # than evaling above if multiple times
+#      for pathType in ['Pattern', 'Path']
+#        paths = @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+#        delete @['_' + pathType.toLowerCase() + 'sBySubscriber'][subscriberId]
+#        for path in paths
+#          subscribers = @['_subscribersBy' + pathType][path]
+#          subscribers.splice(subscribers.indexOf(subscriberId), 1)
+#          delete @['_subscribersBy' + pathType][path] unless subscribers.length
 
   _lacksSubscribers: (path) ->
     !(@_subscribersByPath[path] || @_subscribersByPattern[path])
@@ -170,8 +220,8 @@ RedisAdapter:: =
       !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.subscribe toSubscribe...
-    @_index subscriberId, path, 'Path' for path in toIndex
-
+    for path in toIndex
+      @_index subscriberId, path, ['_pathsBySubscriber', '_regExpsBySubscriber', '_subscribersByPath']
 
     @_handleCoverage
       coverageMethod: '_toBeSubscribedToViaPatterns'
@@ -197,7 +247,8 @@ RedisAdapter:: =
     toIndex = patterns.filter (path) => !@_isIndexed path, subscriberId
     if toSubscribe.length
       @_subscribeClient.psubscribe toSubscribe...
-    @_index subscriberId, path, 'Pattern' for path in toIndex
+    for path in toIndex
+      @_index subscriberId, path, ['_patternsBySubscriber', '_subscribersByPattern', '_regExpsBySubscriber']
 
   publish: (publisherId, path, message) ->
     if @pubsub.debug
@@ -225,15 +276,25 @@ RedisAdapter:: =
     [paths, patterns] = pathParser.forSubscribe paths
 
     if paths.length
-      @_unindex subscriberId, path, 'Path' for path in paths
+      for path in paths
+        @_unindex subscriberId, path, ['_subscribersByPath', '_pathsBySubscriber', '_regExpsBySubscriber']
       paths = paths.filter @_lacksSubscribers.bind(@)
       @_subscribeClient.unsubscribe paths...
     if patterns.length
-      @_unindex subscriberId, path, 'Pattern' for path in patterns
+      for path in patterns
+        @_unindex subscriberId, path, ['_subscribersByPattern', '_patternsBySubscriber', '_regExpsBySubscriber']
       patterns = patterns.filter @_lacksSubscribers.bind(@)
       @_subscribeClient.punsubscribe pattern for pattern in patterns
       # TODO Replace above line with below line, after patching npm redis
       # @_subscribeClient.punsubscribe patterns...
+
+  anySubscriptionsFor: (subscriberId) ->
+    return false unless regExps = @_regExpsBySubscriber[subscriberId]
+    return !!regExps.length
+
+  subscribedToTxn: (subscriberId, txn) ->
+    path = transaction.path txn
+    pathParser.matchesAnyPattern path, @_regExpsBySubscriber[subscriberId]
 
   flush: (callback) ->
     @_publishClient.flushdb =>
