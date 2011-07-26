@@ -5,19 +5,20 @@ redis = require 'redis'
 PubSub = module.exports = (adapterName = 'Redis') ->
   @_adapter = adapter = new PubSub._adapters[adapterName] this
   
-  @subscribe = (subscriberId, paths, callback) ->
-    adapter.subscribe subscriberId, paths, callback
-  @publish = (publisherId, path, message) ->
-    adapter.publish publisherId, path, message
-  @unsubscribe = (subscriberId, paths, callback) ->
-    adapter.unsubscribe subscriberId, paths, callback
-
-  @anySubscriptionsFor = (subscriberId) ->
-    adapter.anySubscriptionsFor subscriberId
-  @subscribedToTxn = (subscriberId, txn) ->
-    adapter.subscribedToTxn subscriberId, txn
-  
   return
+
+PubSub:: =
+  subscribe: (subscriberId, paths, callback) ->
+    @_adapter.subscribe subscriberId, paths, callback
+  publish: (publisherId, path, message) ->
+    @_adapter.publish publisherId, path, message
+  unsubscribe: (subscriberId, paths, callback) ->
+    @_adapter.unsubscribe subscriberId, paths, callback
+  anySubscriptionsFor: (subscriberId) ->
+    @_adapter.anySubscriptionsFor subscriberId
+  subscribedToTxn: (subscriberId, txn) ->
+    @_adapter.subscribedToTxn subscriberId, txn
+  
 
 
 PubSub._adapters = {}
