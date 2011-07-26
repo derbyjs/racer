@@ -90,7 +90,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     getting = paths.length
     for path in paths
       # TODO: Select only the correct properties instead of everything under the path
-      path = path.replace /\.\*$/, ''
+      path = path.replace /\.\*.*/, ''
       adapter.get path, (err, value, ver) ->
         return callback err if err
         modelAdapter.set path, value, ver

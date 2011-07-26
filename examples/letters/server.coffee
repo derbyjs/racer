@@ -23,7 +23,7 @@ app.get '/:room', (req, res) ->
   room = req.params.room
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe "#{room}.*", (err, model) ->
+  store.subscribe "rooms.#{room}.*", 'rooms.*.players', (err, model) ->
     initModel model, room
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
@@ -32,11 +32,11 @@ app.get '/:room', (req, res) ->
       <!DOCTYPE html>
       <title>Letters game</title>
       <style>#{style}</style>
-      <link href=http://fonts.googleapis.com/css?family=Anton&v2 rel=stylesheet>
+      <link href=http://fonts.googleapis.com/css?family=Anton rel=stylesheet>
       <div id=back>
         <div id=page>
           <p id=info>
-          <div id=board></div>
+          <div id=board></div><ul id=roomlist></ul>
         </div>
       </div>
       <script src=/script.js defer></script>
@@ -45,8 +45,8 @@ app.get '/:room', (req, res) ->
 
 initModel = (model, room) ->
   model.set '_roomName', room
-  model.set '_room', model.ref room
-  return if model.get room
+  model.set '_room', model.ref "rooms.#{room}"
+  return if model.get '_room'
   colors = ['red', 'yellow', 'blue', 'orange', 'green']
   letters = {}
   for row in [0..4]
@@ -57,7 +57,7 @@ initModel = (model, room) ->
         position:
           left: col * 24 + 72
           top: row * 32 + 8
-  model.set "#{room}.letters", letters
+  model.set '_room.letters', letters
 
 # Clear any existing data, then initialize
 store.flush (err) ->
@@ -67,13 +67,11 @@ store.flush (err) ->
         setTimeout incr, 50, path, byNum if err is 'conflict'
   
   rally.sockets.on 'connection', (socket) ->
-    playersPath = ''
     socket.on 'join', (room) ->
-      playersPath = "#{room}.players"
+      playersPath = "rooms.#{room}.players"
       incr playersPath, 1
-    socket.on 'disconnect', ->
-      return unless playersPath
-      incr playersPath, -1
+      socket.on 'disconnect', ->
+        incr playersPath, -1
   app.listen 3000
   console.log "Go to http://localhost:3000/room1"
   console.log "Go to http://localhost:3000/room2"

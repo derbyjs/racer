@@ -5,6 +5,7 @@ rally.onload = ->
   model = rally.model
   info = document.getElementById 'info'
   board = document.getElementById 'board'
+  roomlist = document.getElementById 'roomlist'
   dragData = null
   
   updateInfo = ->
@@ -22,6 +23,13 @@ rally.onload = ->
   model.on 'set', '_room.players', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   model.socket.on 'disconnect', -> updateInfo
+  
+  model.on 'set', 'rooms.*.players', ->
+    rooms = []
+    for name, room of model.get 'rooms'
+      rooms.push {name, players} if players = room.players
+    rooms.sort (a, b) -> return b.players - a.players
+    roomlist.innerHTML = ("<li>#{room.name} (#{room.players})" for room in rooms)
   
   html = ''
   if `/*@cc_on!@*/0`
