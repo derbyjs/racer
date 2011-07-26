@@ -18,10 +18,18 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # Therefore, we can only pass the current `redisClient` as the
   # pubsub's @_publishClient.
   @_pubSub = pubSub = new PubSub
+  @_localModels = localModels = {}
   pubSub.onMessage = (clientId, txn) ->
-    publisherId = transaction.clientId txn
-    # clientId == publisherId emits 'txnOk' below
-    return if clientId == publisherId
+    # Don't send transactions back to the model that created them.
+    # On the server, the model directly handles the store._commit callback.
+    # Over Socket.io, a 'txnOk' message is sent below.
+    return if clientId == transaction.clientId txn
+    # For models only present on the server, process the transaction
+    # directly in the model
+    if model = localModels[clientId]
+      return nextTxnNum clientId, (num) ->
+        model._onTxn txn, num
+    # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
         socket.emit 'txn', txn, num
@@ -66,7 +74,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
               nextTxnNum clientId, (num) ->
                 socket.emit 'txn', txn, num
   
-  @_forTxnSince = forTxnSince = (ver, clientId, onTxn) ->
+  @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
     
     # TODO Replace with a LUA script that does filtering?
@@ -80,21 +88,41 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           onTxn txn
         else
           txn = JSON.parse val
+      done() if done
   
   populateModel = (model, paths, callback) ->
     modelAdapter = model._adapter
+    # Store subscriptions in the model so that it can submit them to the
+    # server when it connects
     subs = modelAdapter.get('$subs') || []
     modelAdapter.set '$subs', subs.concat paths
+    # Subscribe while the model still only resides on the server
+    # The model is unsubscribed before sending to the browser
+    clientId = model._clientId
+    pubSub.subscribe clientId, paths
     
+    maxVer = 0
     getting = paths.length
     for path in paths
       # TODO: Select only the correct properties instead of everything under the path
       path = path.replace /\.\*.*/, ''
       adapter.get path, (err, value, ver) ->
         return callback err if err
+        maxVer = Math.max maxVer, ver
         modelAdapter.set path, value, ver
         return if --getting
-        callback null, model
+        modelAdapter.ver = maxVer
+        
+        # Apply any transactions in the STM that have not yet been applied
+        # to the store
+        forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
+          method = transaction.method txn
+          args = transaction.args txn
+          args.push transaction.base txn
+          modelAdapter[method] args...
+        , done = ->
+          localModels[clientId] = model
+          callback null, model
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
