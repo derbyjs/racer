@@ -50,6 +50,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           pubSub.unsubscribe clientId
           delete clientSockets[clientId]
           delete clientSubs[clientId]
+          redisClient.del 'txnClock.' + clientId, (err, value) ->
+            throw err if err
         socket.on 'txn', (txn) ->
           commit txn, (err, txn) ->
             return socket.emit 'txnErr', err, transaction.id(txn) if err
@@ -66,18 +68,15 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
     return unless subs = clientSubs[clientId]
-    subscribed = (txn) ->
-      path = transaction.path txn
-      for sub in subs
-        return true if sub.test path
-      return false
+    subscribed = transaction.subscribed
     
+    # TODO Replace with a LUA script that does filtering?
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
       txn = null
       for val, i in vals
         if i % 2
-          continue unless subscribed txn
+          continue unless subscribed txn, subs
           txn[0] = +val
           onTxn txn
         else
@@ -158,6 +157,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
       pending[ver] = txn
   
+  ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   pending = {}
@@ -169,7 +169,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of commit when the adapter operation completes
         throw err if err
-      adapter[transaction.method txn].apply adapter, args
+      adapter[transaction.method txn] args...
       delete pending[verToWrite++]
   , PENDING_INTERVAL
   

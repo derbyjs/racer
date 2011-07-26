@@ -49,6 +49,11 @@ pathParser.conflictsWithPattern = (path, pattern) ->
   base = pattern.replace /\.\*$/, ''
   base == path.substr(0, base.length)
 
+pathParser.matchesAnyPattern = (path, patterns) ->
+  for pattern in patterns
+    return true if pattern.test path
+  return false
+
 pathParser.isPattern = (path) ->
   /\.\*$/.test path
 
@@ -88,7 +93,7 @@ pathParser.globToRegExp = (pattern) ->
     else
       # Regular expression escaping from: http://xregexp.com/xregexp.js
       res = res + c.replace(/[-[\]{}()*+?.,\\^$|#\s]/, '\\$&')
-  new RegExp res + '$'
+  new RegExp '^' + res + '$'
 
 
 module.exports = pathParser

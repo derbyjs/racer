@@ -1,6 +1,7 @@
 # Tests for Op(erations)
 should = require 'should'
 transaction = require 'transaction'
+pathParser = require 'pathParser.server'
 require 'transaction.server'
 
 # transaction object literal
@@ -74,3 +75,9 @@ module.exports =
     transaction.conflict(txn8, txn7).should.eql 'conflict' # Conflicting nested paths
     
     transaction.conflict(txn0, txn1).should.eql 'duplicate' # Same transaction ID
+
+  'subscribed should test if a transaction matches at least one pattern in a set of patterns': ->
+    txn = [0, '1.0', 'set', 'a.b.c', 1]
+    transaction.subscribed(txn, ['a.*'].map pathParser.globToRegExp).should.be.true
+    transaction.subscribed(txn, ['b.*'].map pathParser.globToRegExp).should.be.false
+    transaction.subscribed(txn, ['b.*', 'a.*'].map pathParser.globToRegExp).should.be.true

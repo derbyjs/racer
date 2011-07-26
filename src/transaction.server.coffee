@@ -1,4 +1,5 @@
 transaction = require './transaction'
+pathParser = require './pathParser.server'
 
 transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
@@ -47,5 +48,9 @@ transaction.journalConflict = (txn, txns) ->
   while i--
     return conflict if conflict = @conflict txn, JSON.parse(txns[i])
   return false
+
+transaction.subscribed = (txn, subs) ->
+  path = transaction.path txn
+  return pathParser.matchesAnyPattern path, subs
 
 module.exports = transaction
