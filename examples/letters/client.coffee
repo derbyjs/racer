@@ -29,7 +29,15 @@ rally.onload = ->
     for name, room of model.get 'rooms'
       rooms.push {name, players} if players = room.players
     rooms.sort (a, b) -> return b.players - a.players
-    roomlist.innerHTML = ("<li>#{room.name} (#{room.players})" for room in rooms)
+    html = ''
+    currentName = model.get '_roomName'
+    for room in rooms
+      name = room.name
+      display = (name.charAt(0).toUpperCase() + name.substr(1)).replace /-/g, ' '
+      text = "#{display} (#{room.players})"
+      html += if name == currentName then """<li><b>#{text}</b>""" else
+        """<li><a href="/#{name}">#{text}</a>"""
+    roomlist.innerHTML = html
   
   html = ''
   if `/*@cc_on!@*/0`

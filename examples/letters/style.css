@@ -1,39 +1,67 @@
-html,body,p {
+html,body,p,ul,li {
   margin: 0;
   padding: 0;
 }
 body {
   color: #000;
   background: #ccc;
-  font: 13px/1 arial;
+  font: 13px/1 Arial, sans-serif;
 }
 a {
   color: #01c;
+  text-decoration: none;
 }
 #back {
   border-top: 1px solid #eee;
   background: -moz-linear-gradient(#ddd, #ccc) repeat-x;
   background: -webkit-linear-gradient(#ddd, #ccc) repeat-x;
+  background: linear-gradient(#ddd, #ccc) repeat-x;
 }
 #page {
-  width: 760px;
-  padding: 12px 0;
-  margin: 0 auto;
+  width: 912px;
+  padding: 12px 0 12px 12px;
 }
 #info {
+  margin-left: 140px;
   text-align: center;
   font-weight: bold;
   height: 1em;
   margin-bottom: 12px;
+}
+#info, #rooms {
   text-shadow: 0 1px 0 #f3f3f3;
+}
+#rooms {
+  margin-top: 4px;
+  line-height: 20px;
+  float: left;
+  width: 140px;
+  color: #444;
+}
+#roomlist {
+  color: #000;
+  width: 100%;
+  list-style: none;
+}
+#roomlist > li {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 #board {
   background: #fff;
+  -moz-border-radius: 3px;
   border-radius: 3px;
+  -moz-box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.2),
+    inset 0 1px 2px #d0d0d0,
+    0 1px #e0e0e0;
   box-shadow:
     inset 0 0 0 1px rgba(0,0,0,.2),
     inset 0 1px 2px #d0d0d0,
     0 1px #e0e0e0;
+  margin-left: 152px;
   width: 760px;
   height: 540px;
   position: relative;
@@ -45,7 +73,7 @@ a {
 .letter {
   cursor: default;
   position: absolute;
-  font: 28px/23px Anton;
+  font: 28px/23px Anton, sans-serif;
   text-decoration: none;
 }
 .red {

@@ -17,10 +17,13 @@ app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
 app.get '/', (req, res) ->
-  res.redirect '/default'
+  res.redirect '/lobby'
 
 app.get '/:room', (req, res) ->
   room = req.params.room
+  return res.redirect '/lobby' unless /^[-\w ]+$/.test room
+  _room = room.toLowerCase().replace /[_ ]/g, '-'
+  return res.redirect _room if _room != room
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
   store.subscribe "rooms.#{room}.*", 'rooms.*.players', (err, model) ->
@@ -36,7 +39,11 @@ app.get '/:room', (req, res) ->
       <div id=back>
         <div id=page>
           <p id=info>
-          <div id=board></div><ul id=roomlist></ul>
+          <div id=rooms>
+            <p>Rooms:
+            <ul id=roomlist></ul>
+          </div>
+          <div id=board></div>
         </div>
       </div>
       <script src=/script.js defer></script>
@@ -73,8 +80,8 @@ store.flush (err) ->
       socket.on 'disconnect', ->
         incr playersPath, -1
   app.listen 3000
-  console.log "Go to http://localhost:3000/room1"
-  console.log "Go to http://localhost:3000/room2"
+  console.log "Go to http://localhost:3000/lobby"
+  console.log "Go to http://localhost:3000/powder-room"
 
   # # Follows the same middleware interface as Connect:
   # rally.use rallyMongo
