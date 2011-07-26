@@ -1,20 +1,23 @@
 rally = require 'rally'
 resolve = ->
+connect = ->
 
 rally.onload = ->
   model = rally.model
   info = document.getElementById 'info'
   board = document.getElementById 'board'
+  roomsDiv = document.getElementById 'rooms'
   roomlist = document.getElementById 'roomlist'
   dragData = null
   
   updateInfo = ->
-    players = model.get '_room.players'
-    html =
-      if model.socket.socket.connected
-        players + ' Player' + if players > 1 then 's' else ''
-      else
-        'Offline'
+    players = model.get '_room.players'    
+    if model.socket.socket.open
+      html = players + ' Player' + if players > 1 then 's' else ''
+      roomsDiv.style.visibility = 'visible'
+    else
+      html = 'Offline &ndash; <a href=# onclick=connect()>Reconnect</a>'
+      roomsDiv.style.visibility = 'hidden'
     if conflicts
       html += ''' &ndash; Another player made conflicting moves:&nbsp;
       <a href=# onclick=resolve()>Accept</a>&nbsp;
@@ -22,7 +25,9 @@ rally.onload = ->
     info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  model.socket.on 'disconnect', -> updateInfo
+  model.socket.on 'close', updateInfo
+  
+  connect = -> model.socket.socket.connect()
   
   model.on 'set', 'rooms.*.players', ->
     rooms = []
