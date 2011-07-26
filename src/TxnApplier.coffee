@@ -4,10 +4,10 @@ transaction = require './transaction'
 # It figures out what to apply immediately and what to buffer
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
-module.exports = TxnApplier = ->
+module.exports = TxnApplier = (startingIndex) ->
   # corresponds to verToWrite in Store
   # corresponds to nextNum in Model
-  @_serializingIndex = 1
+  @_serializingIndex = if startingIndex isnt undefined then startingIndex else 1
   @_pending = {}
   return
 
@@ -26,7 +26,7 @@ TxnApplier::=
     # Otherwise apply it immediately
     @applyTxn txn
     # And apply any transactions that were waiting for txn
-    serializingIndex++
+    @_serializingIndex++
     @flushValidPending()
     return true
   flushValidPending: ->
