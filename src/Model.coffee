@@ -5,6 +5,9 @@ MemorySync = require './adapters/MemorySync'
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._adapter = new AdapterClass
+
+  # for local events. different than subscriptions to store,
+  # which live in @_adapter._data.$subs
   self._subs = {}
   
   self._txnCount = 0

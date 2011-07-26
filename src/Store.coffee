@@ -20,6 +20,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_pubSub = pubSub = new PubSub
   pubSub.onMessage = (clientId, txn) ->
     publisherId = transaction.clientId txn
+    # clientId == publisherId emits 'txnOk' below
     return if clientId == publisherId
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
@@ -33,6 +34,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   clientSockets = {}
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
+      # TODO Potential bug here is browser will miss transactions
+      #      that occur after it has loaded the page but before it
+      #      has established a 'sub' event with socket.io server.
       socket.on 'sub', (clientId, paths) ->
         # TODO Once socket.io supports query params in the
         # socket.io urls, then we can remove this. Instead,
@@ -107,8 +111,14 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     nextClientId (clientId) ->
       populateModel new Model(clientId), paths, callback
   
-  @unsubscribe = ->
+  @unsubscribe = (model, paths..., callback) ->
     throw new Error 'Unimplemented'
+    modelAdapter = model._adapter
+    if !paths.length
+      # If unsubscribe(model, callback)
+      modelAdapter.flush() # unpopulate
+    else
+      # If unsubscribe(model, paths..., callback)
   
   @flush = (callback) ->
     done = false
