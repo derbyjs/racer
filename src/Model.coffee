@@ -1,9 +1,10 @@
 transaction = require './transaction'
 pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
+TxnApplier = require './TxnApplier'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
-  self = this
+  model = self = this
   self._adapter = new AdapterClass
 
   # for local events. different than subscriptions to store,
@@ -17,41 +18,30 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # TODO: This makes transactions get applied in order, but it only works when
   # every version is received. It needs to be updated to handle subscriptions
   # to only a subset of the model
-  pending = {}
-  pendingTimeout = null
-  nextNum = 1
+  txnApplier = new TxnApplier
+  txnApplier.waitForDependencies = (self = this) ->
+    setTimeout ->
+      model._reqNewTxns()
+      txnApplier.stopWaitingForDependencies()
+    , @PERIOD
+  txnApplier.clearWaiter = (timeout) ->
+    clearTimeout timeout
+  txnApplier.applyTxn = (txn) ->
+    model._applyTxn txn
+    txnApplier.stopWaitingForDependencies()
+
   self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
     if queuedTxn = self._txns[transaction.id txn]
       txn.callback = queuedTxn.callback
-    
-    # Cache this transaction to be applied later if it is not the next version
-    if num > nextNum
-      unless pendingTimeout
-        pendingTimeout = setTimeout ->
-          self._reqNewTxns()
-          pendingTimeout = null
-        , PENDING_TIMEOUT
-      return pending[num] = txn
-    # Ignore this transaction if it is older than the next version
-    return if num < nextNum
-    # Otherwise, apply it immediately
-    self._applyTxn txn
-    if pendingTimeout
-      clearTimeout pendingTimeout
-      pendingTimeout = null
-    # And apply any transactions that were waiting for this one to be received
-    nextNum++
-    while txn = pending[nextNum]
-      self._applyTxn txn
-      delete pending[nextNum++]
+
+    txnApplier.add num, txn
   
   self._onTxnNum = (num) ->
     # Reset the number used to keep track of pending transactions
     nextNum = +num + 1
     # Remove any old pending transactions
-    for i of pending
-      delete pending[i] if i < nextNum
+    txnApplier.clear()
   
   self.force = Object.create self, _force: value: true
   
@@ -235,8 +225,6 @@ Model:: =
       callback = null
     @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
 
-# Timeout in milliseconds after which missed transactions will be requested
-Model._PENDING_TIMEOUT = PENDING_TIMEOUT = 500
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
 # Interval in milliseconds to check timeouts for queued transactions

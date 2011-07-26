@@ -5,8 +5,7 @@ Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
 pathParser = require './pathParser.server'
-
-PENDING_INTERVAL = 500
+TxnApplier = require './TxnApplier'
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
@@ -188,22 +187,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
       # and TxnPubSub can subtract out the payload of path from txn, too.
       pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
-      pending[ver] = txn
+      txnApplier.add ver, txn
   
   ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
-  pending = {}
-  verToWrite = 1
-  @_pendingInterval = setInterval ->
-    while txn = pending[verToWrite]
-      args = transaction.args txn
-      args.push verToWrite, (err) ->
-        # TODO: Better adapter error handling and potentially a second callback
-        # to the caller of commit when the adapter operation completes
-        throw err if err
-      adapter[transaction.method txn] args...
-      delete pending[verToWrite++]
-  , PENDING_INTERVAL
-  
+  txnApplier = new TxnApplier
+  txnApplier.waitForDependencies = (self = this) ->
+    setInterval -> self.flushValidPending()
+  txnApplier.applyTxn = (txn) ->
+    args = transaction.args txn
+    verToWrite = @_serializingIndex
+    args.push verToWrite, (err) ->
+      # TODO: Better adapter error handling and potentially a second callback
+      # to the caller of commit when the adapter operation completes
+      throw err if err
+    adapter[transaction.method txn] args...
+
   return
