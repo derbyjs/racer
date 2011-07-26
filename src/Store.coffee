@@ -26,7 +26,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         socket.emit 'txn', txn, num
   
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
-    # TODO Free this memory after a long enough socket disconnect
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
       throw err if err
       callback value
