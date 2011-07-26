@@ -62,12 +62,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           redisClient.get 'txnClock.' + clientId, (err, value) ->
             throw err if err
             socket.emit 'txnNum', value || 0
-            eachTxnSince ver, clientId, (txn) ->
+            forTxnSince ver, clientId, (txn) ->
               nextTxnNum clientId, (num) ->
                 socket.emit 'txn', txn, num
   
-  @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
-    return unless pubSub.anySubscriptionsFor clientId
+  @_forTxnSince = forTxnSince = (ver, clientId, onTxn) ->
+    return unless pubSub.hasSubscriptions clientId
     
     # TODO Replace with a LUA script that does filtering?
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
@@ -150,7 +150,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @_commit = commit = (txn, callback) ->
     ver = transaction.base txn
-    if ver && typeof ver != 'number'
+    if ver && typeof ver isnt 'number'
       # In case of something like @set(path, value, callback)
       throw new Error 'Version must be null or a number'
     stm.commit txn, (err, ver) ->

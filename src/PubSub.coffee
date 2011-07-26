@@ -3,8 +3,7 @@ transaction = require './transaction.server'
 redis = require 'redis'
 
 PubSub = module.exports = (adapterName = 'Redis') ->
-  @_adapter = adapter = new PubSub._adapters[adapterName] this
-  
+  @_adapter = new PubSub._adapters[adapterName] this
   return
 
 PubSub:: =
@@ -14,11 +13,10 @@ PubSub:: =
     @_adapter.publish publisherId, path, message
   unsubscribe: (subscriberId, paths, callback) ->
     @_adapter.unsubscribe subscriberId, paths, callback
-  anySubscriptionsFor: (subscriberId) ->
+  hasSubscriptions: (subscriberId) ->
     @_adapter.anySubscriptionsFor subscriberId
   subscribedToTxn: (subscriberId, txn) ->
     @_adapter.subscribedToTxn subscriberId, txn
-  
 
 
 PubSub._adapters = {}
@@ -271,7 +269,7 @@ RedisAdapter:: =
       # TODO Replace above line with below line, after patching npm redis
       # @_subscribeClient.punsubscribe patterns...
 
-  anySubscriptionsFor: (subscriberId) ->
+  hasSubscriptions: (subscriberId) ->
     return false unless regExps = @_regExpsBySubscriber[subscriberId]
     return !!regExps.length
 
