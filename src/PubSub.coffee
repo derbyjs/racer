@@ -64,7 +64,7 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
     subscribers = @_subscribersByPath[channel]
     if subscribers
       for subscriberId in subscribers
-        pubsub.onMessage subscriberId, message
+        onMessage subscriberId, message
   @_subscribeClient.on 'punsubscribe', (pattern, count) ->
     if pubsub.debug
       console.log "PUNSUBSCRIBING #{pattern} - COUNT = #{count}"

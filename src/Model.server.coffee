@@ -9,6 +9,7 @@ module.exports = (store, ioUri) ->
     store._commit txn, (err, txn) ->
       return self._removeTxn transaction.id txn if err
       store._nextTxnNum self._clientId, (num) ->
+        self._txnNum = num
         self._onTxn txn, num
 
   Model::json = modelJson = (callback, self = this) ->
@@ -26,4 +27,5 @@ module.exports = (store, ioUri) ->
       base: self._adapter.ver
       clientId: self._clientId
       txnCount: self._txnCount
+      txnNum: self._txnNum
       ioUri: ioUri

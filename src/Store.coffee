@@ -27,6 +27,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     # directly in the model
     if model = localModels[clientId]
       return nextTxnNum clientId, (num) ->
+        model._txnNum = num
         model._onTxn txn, num
     # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]

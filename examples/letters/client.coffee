@@ -11,7 +11,7 @@ rally.onload = ->
   dragData = null
   
   updateInfo = ->
-    players = model.get '_room.players'    
+    players = model.get '_room.players'
     if model.socket.socket.connected
       html = players + ' Player' + if players > 1 then 's' else ''
       roomsDiv.style.visibility = 'visible'

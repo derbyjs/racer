@@ -18,7 +18,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # TODO: This makes transactions get applied in order, but it only works when
   # every version is received. It needs to be updated to handle subscriptions
   # to only a subset of the model
-  txnApplier = new TxnApplier
+  @_txnApplier = txnApplier = new TxnApplier
   txnApplier.waitForDependencies = (self = this) ->
     setTimeout ->
       model._reqNewTxns()
@@ -34,7 +34,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     # Copy the callback onto this transaction if it matches one in the queue
     if queuedTxn = self._txns[transaction.id txn]
       txn.callback = queuedTxn.callback
-
     txnApplier.add num, txn
   
   self._onTxnNum = (num) ->
