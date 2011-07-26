@@ -41,7 +41,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
         clientSockets[clientId] = socket
-        pubSub.subscribe clientId, paths...
+        pubSub.subscribe clientId, paths
         
         socket.on 'disconnect', ->
           pubSub.unsubscribe clientId
@@ -64,8 +64,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   
   @_eachTxnSince = eachTxnSince = (ver, clientId, onTxn) ->
     return unless pubSub.anySubscriptionsFor clientId
-
-    subscribed = -> pubSub.subscribedToTxn arguments...
     
     # TODO Replace with a LUA script that does filtering?
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
@@ -73,7 +71,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       txn = null
       for val, i in vals
         if i % 2
-          continue unless subscribed clientId, txn
+          continue unless pubSub.subscribedToTxn clientId, txn
           txn[0] = +val
           onTxn txn
         else
@@ -122,7 +120,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     adapter.flush cb
     redisClient.flushdb cb
   
-  @get = -> adapter.get arguments...
+  @get = (path, callback) -> adapter.get path, callback
   
   @set = (path, value, ver, callback) ->
     commit [ver, nextTxnId(), 'set', path, value], callback

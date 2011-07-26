@@ -3,19 +3,22 @@ transaction = require './transaction.server'
 redis = require 'redis'
 
 PubSub = module.exports = (adapterName = 'Redis') ->
-  @_adapter = new PubSub._adapters[adapterName] this
+  @_adapter = adapter = new PubSub._adapters[adapterName] this
+  
+  @subscribe = (subscriberId, paths, callback) ->
+    adapter.subscribe subscriberId, paths, callback
+  @publish = (publisherId, path, message) ->
+    adapter.publish publisherId, path, message
+  @unsubscribe = (subscriberId, paths, callback) ->
+    adapter.unsubscribe subscriberId, paths, callback
+
+  @anySubscriptionsFor = (subscriberId) ->
+    adapter.anySubscriptionsFor subscriberId
+  @subscribedToTxn = (subscriberId, txn) ->
+    adapter.subscribedToTxn subscriberId, txn
+  
   return
 
-PubSub:: =
-  # subscribe(subscriberId, paths..., callback)
-  subscribe: -> @_adapter.subscribe arguments...
-  # publish(publisherId, path, message)
-  publish: -> @_adapter.publish arguments...
-  # unsubscribe(subscriberId, paths..., callback)
-  unsubscribe: -> @_adapter.unsubscribe arguments...
-
-  anySubscriptionsFor: (subscriberId) -> @_adapter.anySubscriptionsFor subscriberId
-  subscribedToTxn: (subscriberId, txn) -> @_adapter.subscribedToTxn subscriberId, txn
 
 PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
@@ -72,6 +75,7 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
 
 RedisAdapter:: =
   _index: (subscriberId, path, indexNames) ->
+    return unless path
     for indexName in indexNames
       switch indexName
         when '_pathsBySubscriber', '_patternsBySubscriber'
@@ -108,7 +112,7 @@ RedisAdapter:: =
             delete index[path] unless subscribers.length
           when '_regExpsBySubscriber'
             continue unless regExps = index[subscriberId]
-            regExp = pathParser.globToRegExp
+            regExp = pathParser.globToRegExp path
             regExps.splice regExps.indexOf(regExp), 1
             delete index[subscriberId] unless regExps.length
           else throw new Error "Unrecognized index: #{indexName}"
@@ -195,13 +199,9 @@ RedisAdapter:: =
       for pattern, coveredPaths of coverageMap
         overlapCallback pattern, coveredPaths
 
-  subscribe: (subscriberId, paths..., callback) ->
-    # return could occur if subscribe called in the context of rally.store
+  subscribe: (subscriberId, paths, callback) ->
+    # TODO: Call the callback
     return if subscriberId is undefined
-
-    if 'function' != typeof callback
-      paths.push(callback)
-      callback = null
 
     [paths, patterns] = pathParser.forSubscribe paths
 
@@ -231,7 +231,7 @@ RedisAdapter:: =
         warning = "The following path subscriptions will now be covered by the following patterns:\n"
         warning += "#{pattern}: #{coveredPaths.join(', ')}" for pattern, coveredPaths of coverageMap
       overlapCallback: (pattern, coveredPaths) =>
-        @unsubscribe subscriberId, coveredPaths...
+        @unsubscribe subscriberId, coveredPaths
 
     @_handleCoverage
       coverageMethod: '_alreadySubscribedToViaPatterns'
@@ -256,22 +256,23 @@ RedisAdapter:: =
       console.log message
     @_publishClient.publish path, JSON.stringify message
 
-  unsubscribe: (subscriberId, paths..., callback) ->
+  unsubscribe: (subscriberId, paths, callback) ->
+    # TODO: Call the callback
     return if subscriberId is undefined
 
-    if !paths.length
-      if 'string' != typeof callback
-        # For signature: unsbuscribe(subscriberId[, callback])
-        for pathType in ['path', 'pattern']
-          if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
-            @unsubscribe subscriberId, paths..., callback
-        return
+    # For signature: unsbuscribe(subscriberId, callback)
+    if typeof paths is 'function'
+      callback = paths
+      paths = null
 
-      # For signature: unsubscribe(subscriberId, path, callback)
-      paths.push callback
-      callback = null
+    # For signature: unsbuscribe(subscriberId[, callback])
+    unless paths
+      for pathType in ['path', 'pattern']
+        if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
+          @unsubscribe subscriberId, paths, callback
+      return
 
-    # For signature: unsubscribe(subscriberId, paths..., callback)
+    # For signature: unsubscribe(subscriberId, paths[, callback])
 
     [paths, patterns] = pathParser.forSubscribe paths
 

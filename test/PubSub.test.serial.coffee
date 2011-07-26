@@ -20,7 +20,7 @@ module.exports =
       done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel'
+    pubsub.subscribe subscriber, ['channel']
     pubsub.publish publisher, 'channel', 'value'
   
   'a published transaction to a patterned `prefix.*` path should only be received if subscribed to': (done) ->
@@ -30,7 +30,7 @@ module.exports =
       done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel.*'
+    pubsub.subscribe subscriber, ['channel.*']
     pubsub.publish publisher, 'channel.1', 'value'
 
   'a published transaction to a patterned `prefix.*.suffix` path should only be received if subscribed to': (done) ->
@@ -44,7 +44,7 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel.*.suffix'
+    pubsub.subscribe subscriber, ['channel.*.suffix']
     pubsub.publish publisher, 'channel.1.suffix', 'valueA1'
     pubsub.publish publisher, 'channel.1.nomatch', 'valueB'
     pubsub.publish publisher, 'channel.1.suffix', 'valueA2'
@@ -59,15 +59,15 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'a'
-    pubsub.subscribe subscriber, 'b'
+    pubsub.subscribe subscriber, ['a']
+    pubsub.subscribe subscriber, ['b']
 
     setTimeout ->
       pubsub.publish publisher, 'a', 'first'
       pubsub.publish publisher, 'b', 'second'
 
       setTimeout ->
-        pubsub.unsubscribe subscriber, 'a'
+        pubsub.unsubscribe subscriber, ['a']
         setTimeout ->
           pubsub.publish publisher, 'a', 'ignored'
           pubsub.publish publisher, 'b', 'last'
@@ -76,7 +76,7 @@ module.exports =
     , 200
 
   'unsubscribing from a path you are not subscribed to should be harmless': (done) ->
-    pubsub.unsubscribe 'subcriber', 'not-subscribed-to-this-channel'
+    pubsub.unsubscribe 'subcriber', ['not-subscribed-to-this-channel']
     done()
 
   'unsubscribing from a pattern means the subscriber should no longer receive the pattern messages': (done) ->
@@ -89,15 +89,15 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'a.*'
-    pubsub.subscribe subscriber, 'b.*'
+    pubsub.subscribe subscriber, ['a.*']
+    pubsub.subscribe subscriber, ['b.*']
 
     setTimeout ->
       pubsub.publish publisher, 'a.1', 'first'
       pubsub.publish publisher, 'b.1', 'second'
 
       setTimeout ->
-        pubsub.unsubscribe subscriber, 'a.*'
+        pubsub.unsubscribe subscriber, ['a.*']
         setTimeout ->
           pubsub.publish publisher, 'a.2', 'ignored'
           pubsub.publish publisher, 'b.2', 'last'
@@ -115,8 +115,8 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel'
-    pubsub.subscribe subscriber, 'channel'
+    pubsub.subscribe subscriber, ['channel']
+    pubsub.subscribe subscriber, ['channel']
 
     pubsub.publish publisher, 'channel', 'first'
     pubsub.publish publisher, 'channel', 'last'
@@ -131,8 +131,8 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel.*'
-    pubsub.subscribe subscriber, 'channel.*'
+    pubsub.subscribe subscriber, ['channel.*']
+    pubsub.subscribe subscriber, ['channel.*']
 
     pubsub.publish publisher, 'channel.1', 'first'
     pubsub.publish publisher, 'channel.1', 'last'
@@ -147,8 +147,8 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel.*'
-    pubsub.subscribe subscriber, 'channel.1'
+    pubsub.subscribe subscriber, ['channel.*']
+    pubsub.subscribe subscriber, ['channel.1']
 
     pubsub.publish publisher, 'channel.1', 'one'
     pubsub.publish publisher, 'channel.2', 'two'
@@ -163,8 +163,8 @@ module.exports =
         done()
 
     [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, 'channel.1'
-    pubsub.subscribe subscriber, 'channel.*'
+    pubsub.subscribe subscriber, ['channel.1']
+    pubsub.subscribe subscriber, ['channel.*']
 
     setTimeout ->
       pubsub.publish publisher, 'channel.1', 'one'
@@ -183,13 +183,13 @@ module.exports =
         done()
 
     [subscriberOne, subscriberTwo, publisher] = ['1', '2', '3']
-    pubsub.subscribe subscriberOne, 'channel.*'
-    pubsub.subscribe subscriberTwo, 'channel.*'
+    pubsub.subscribe subscriberOne, ['channel.*']
+    pubsub.subscribe subscriberTwo, ['channel.*']
     pubsub.publish publisher, 'channel.1', 'value'
 
   'subscribedToTxn should test if a client id is subscribed to a given transaction': ->
     subscriber = '100'
-    pubsub.subscribe subscriber, 'b.*'
+    pubsub.subscribe subscriber, ['b.*']
     txnOne = [0, '1.0', 'set', 'a.b.c', 1]
     txnTwo = [0, '1.0', 'set', 'b.c', 1]
     txnThree = [0, '1.0', 'set', 'b.c.d', 1]
