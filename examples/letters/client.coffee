@@ -12,7 +12,7 @@ rally.onload = ->
   
   updateInfo = ->
     players = model.get '_room.players'    
-    if model.socket.socket.open
+    if model.socket.socket.connected
       html = players + ' Player' + if players > 1 then 's' else ''
       roomsDiv.style.visibility = 'visible'
     else
@@ -24,9 +24,8 @@ rally.onload = ->
       <a href=# onclick=resolve(true)>Override</a>'''
     info.innerHTML = html
   model.on 'set', '_room.players', updateInfo
+  model.socket.on 'disconnect', updateInfo
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  model.socket.on 'close', updateInfo
-  
   connect = -> model.socket.socket.connect()
   
   model.on 'set', 'rooms.*.players', ->
