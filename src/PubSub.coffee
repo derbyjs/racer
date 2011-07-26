@@ -14,7 +14,7 @@ PubSub:: =
   unsubscribe: (subscriberId, paths, callback) ->
     @_adapter.unsubscribe subscriberId, paths, callback
   hasSubscriptions: (subscriberId) ->
-    @_adapter.anySubscriptionsFor subscriberId
+    @_adapter.hasSubscriptions subscriberId
   subscribedToTxn: (subscriberId, txn) ->
     @_adapter.subscribedToTxn subscriberId, txn
 
