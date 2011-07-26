@@ -69,7 +69,7 @@ initModel = (model, room) ->
 # Clear any existing data, then initialize
 store.flush (err) ->
   incr = (path, byNum) ->
-    store.get path, (err, val = 0, ver) ->
+    store.get path, (err, val, ver) ->
       val = if val > 0 then val else 0
       store.set path, val + byNum, ver, (err) ->
         setTimeout incr, 50, path, byNum if err is 'conflict'
