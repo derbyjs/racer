@@ -240,12 +240,12 @@ RedisAdapter:: =
     # TODO: Call the callback
     return if subscriberId is undefined
 
-    # For signature: unsbuscribe(subscriberId, callback)
+    # For signature: unsubscribe(subscriberId, callback)
     if typeof paths is 'function'
       callback = paths
       paths = null
 
-    # For signature: unsbuscribe(subscriberId[, callback])
+    # For signature: unsubscribe(subscriberId[, callback])
     unless paths
       for pathType in ['path', 'pattern']
         if paths = @['_' + pathType + 'sBySubscriber'][subscriberId]
