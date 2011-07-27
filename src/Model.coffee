@@ -176,9 +176,9 @@ Model:: =
   
   _initAdapter: (adapter) ->
     self = this
-    adapter._set = adapter.set
+    adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
-      out = adapter._set path, value, ver, options
+      out = adapter.__set path, value, ver, options
       # Save a record of any references being set
       self._setRefs path, ref, value.$k, options if value && ref = value.$r
       # Check to see if setting to a reference's key. If so, update references
