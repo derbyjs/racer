@@ -99,15 +99,17 @@ Model:: =
     else
       subs[method].push sub
   
+  _testPath: (path, subs) ->
+    for sub in subs
+      re = sub[0]
+      if re.test path
+        sub[1].apply null, re.exec(path).slice(1).concat(args)
+
   _emit: (method, [path, args...]) ->
     return unless subs = @_eventSubs[method]
-    testPath = (path) ->
-      for sub in subs
-        re = sub[0]
-        if re.test path
-          sub[1].apply null, re.exec(path).slice(1).concat(args)
+    testPath = @_testPath
     # Emit events on the path
-    testPath path
+    testPath path, subs
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
@@ -117,7 +119,7 @@ Model:: =
           remainder += '.' + prop
         self._forRef obj, self.get(), (path) ->
           path += remainder
-          testPath path
+          testPath path, subs
           checkRefs path
       checkRefs = (path) ->
         i = 0
