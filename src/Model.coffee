@@ -116,13 +116,14 @@ Model:: =
         while prop = props[i++]
           return unless refPos = refPos[prop]
           fn refSet, props.slice(i).join('.') if refSet = refPos.$
-      emitRefs = (path) ->
-        eachRefSetPointingTo path, (refSet, pathRemainder) ->
-          # refSet has signature: { "#{path}$#{ref}": [path, ref], ... }
-          self._eachValidRef refSet, self.get(), (path) ->
-            path += '.' + pathRemainder if pathRemainder
-            emitPathEvents path
-            emitRefs path
+      emitRefs = (targetPath) ->
+        eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
+          # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
+          self._eachValidRef refSet, self.get(), (pointingPath) ->
+            derefPath = pointingPath
+            derefPath += '.' + targetPathRemainder if targetPathRemainder
+            emitPathEvents derefPath
+            emitRefs derefPath
 
       emitRefs path
   
