@@ -40,9 +40,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   clientSockets = {}
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
-      # TODO Potential bug here is browser will miss transactions
-      #      that occur after it has loaded the page but before it
-      #      has established a 'sub' event with socket.io server.
       socket.on 'sub', (clientId, paths) ->
         # TODO Once socket.io supports query params in the
         # socket.io urls, then we can remove this. Instead,
