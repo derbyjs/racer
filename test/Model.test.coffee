@@ -578,3 +578,45 @@ module.exports =
     final.should.eql ['red', 'oak', 'violet']
 
   # TODO Test return value of splice
+
+  'test getting array of references': ->
+    model = new Model
+    model._adapter._data =
+      todos: [
+          { text: 'finish rally', status: 'ongoing' }
+        , { text: 'run several miles', status: 'complete' }
+        , { text: 'meet with obama', status: 'complete' }
+      ]
+      mine: model.ref ['todos.0', 'todos.2']
+      textKey: 'text'
+      mineTexts: model.ref ['todos.0', 'todos.2'], 'textKey'
+
+    # Test non-keyed array of references
+    model.get('mine').should.eql [
+        { text: 'finish rally', status: 'ongoing' }
+      , { text: 'meet with obama', status: 'complete' }
+    ]
+
+    # Test access to single reference in the array
+    model.get('mine.0').should.eql { text: 'finish rally', status: 'ongoing' }
+
+    # Test access to a property below a single reference in the array
+    model.get('mine.0.text').should.equal 'finish rally'
+
+    # Test keyed array of references
+    model.get('mineTexts').should.eql ['finish rally', 'meet with obama']
+
+    # Test changing the key object reference with speculative set
+    model.set 'textKey', 'status'
+    model.get('mineTexts').should.eql ['ongoing', 'complete']
+
+    # Test changing referenced objects with speculative set
+    model.set 'todos', [
+          { text: 'costco run', status: 'complete' }
+        , { text: 'party hard', status: 'ongoing' }
+        , { text: 'bounce', status: 'ongoing' }
+    ]
+    model.get('mine').should.eql [
+        { text: 'costco run', status: 'complete' }
+      , { text: 'bounce', status: 'ongoing' }
+    ]

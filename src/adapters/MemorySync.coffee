@@ -159,9 +159,16 @@ Memory:: =
       
       # Check for model references
       if ref = next.$r
-        if key = next.$k
-          ref = ref + '.' + @_lookup(key, false, options).obj
-        next = @_lookup(ref, addPath, options).obj
+        key = next.$k
+        if Array.isArray ref
+          next = ref.map (memberRef) =>
+            if key
+              memberRef = memberRef + '.' + @_lookup(key, false, options).obj
+            @_lookup(memberRef, addPath, options).obj
+        else
+          if key
+            ref = ref + '.' + @_lookup(key, false, options).obj
+          next = @_lookup(ref, addPath, options).obj
         path = ref if i < len
     
     return obj: next, path: path, parent: parent, prop: prop
