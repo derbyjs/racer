@@ -109,11 +109,6 @@ Model:: =
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
-      derefPath = (refSet, remainderPath) ->
-        self._eachValidRef refSet, self.get(), (path) ->
-          path += '.' + remainderPath if remainderPath
-          emitPathEvents path
-          emitRefs path
       eachRefSetPointingTo = (path, fn) ->
         i = 0
         refPos = refs
@@ -124,7 +119,10 @@ Model:: =
       emitRefs = (path) ->
         eachRefSetPointingTo path, (refSet, pathRemainder) ->
           # refSet has signature: { "#{path}$#{ref}": [path, ref], ... }
-          derefPath refSet, pathRemainder
+          self._eachValidRef refSet, self.get(), (path) ->
+            path += '.' + pathRemainder if pathRemainder
+            emitPathEvents path
+            emitRefs path
 
       emitRefs path
   
