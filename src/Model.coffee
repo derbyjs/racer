@@ -128,6 +128,7 @@ Model:: =
     # ancestor paths.
     if refs = @get '$refs'
       self = this
+      _data = self.get()
       # Passes back a set of references when we find references to path.
       # Also passes back a set of references and a path remainder
       # every time we find references to any of path's ancestor paths
@@ -142,7 +143,7 @@ Model:: =
       emitRefs = (targetPath) ->
         eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
           # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-          self._eachValidRef refSet, self.get(), (pointingPath) ->
+          self._eachValidRef refSet, _data, (pointingPath) ->
             pointingPath += '.' + targetPathRemainder if targetPathRemainder
             emitPathEvents pointingPath
             emitRefs pointingPath
