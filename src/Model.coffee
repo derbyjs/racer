@@ -109,8 +109,7 @@ Model:: =
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
-      # Passes back a set of references every time we find
-      # references to path.
+      # Passes back a set of references when we find references to path.
       # Also passes back a set of references and a path remainder
       # every time we find references to any of path's ancestor paths
       # such that `ancestor_path + path_remainder == path`
