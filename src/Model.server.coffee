@@ -3,14 +3,18 @@ Model = require './Model'
 
 # Update Model's prototype to provide server-side functionality
 module.exports = (store, ioUri) ->
-
+  
+  Model::__onTxn = (txn) ->
+    self = this
+    store._nextTxnNum self._clientId, (num) ->
+      self._txnNum = num
+      self._onTxn txn, num
+  
   Model::_commit = (txn) ->
     self = this
     store._commit txn, (err, txn) ->
       return self._removeTxn transaction.id txn if err
-      store._nextTxnNum self._clientId, (num) ->
-        self._txnNum = num
-        self._onTxn txn, num
+      self.__onTxn txn
 
   Model::json = modelJson = (callback, self = this) ->
     # Wait for all pending transactions to complete before returning

@@ -13,7 +13,7 @@ io.Socket::onClose = ->
   model._clientId = clientId
   model._storeSubs = storeSubs
   model._txnCount = txnCount
-  model._txnApplier._serializingIndex = txnNum + 1
+  model._onTxnNum txnNum
   model._setSocket io.connect ioUri,
     'reconnection delay': 50
     'max reconnection attempts': 20

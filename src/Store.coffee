@@ -25,10 +25,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     return if clientId == transaction.clientId txn
     # For models only present on the server, process the transaction
     # directly in the model
-    if model = localModels[clientId]
-      return nextTxnNum clientId, (num) ->
-        model._txnNum = num
-        model._onTxn txn, num
+    return model.__onTxn txn if model = localModels[clientId]
     # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
@@ -187,18 +184,16 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
       # and TxnPubSub can subtract out the payload of path from txn, too.
       pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
-      txnApplier.add ver, txn
+      txnApplier.add txn, ver
   
   ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
-    waitForDependencies: (self = this) ->
-      setInterval (-> self.flushValidPending()), @PERIOD
-    applyTxn: (txn) ->
+    waiter: 'interval'
+    applyTxn: (txn, ver) ->
       args = transaction.args txn
-      verToWrite = @_serializingIndex
-      args.push verToWrite, (err) ->
+      args.push ver, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of commit when the adapter operation completes
         throw err if err

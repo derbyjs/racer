@@ -14,29 +14,21 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._txns = {}
   self._txnQueue = []
   
-  @_txnApplier = txnApplier = new TxnApplier
-    waitForDependencies: (self = this) ->
-      setTimeout ->
-        model._reqNewTxns()
-        txnApplier.stopWaitingForDependencies()
-      , @PERIOD
-    clearWaiter: (timeout) ->
-      clearTimeout timeout
-    applyTxn: (txn) ->
-      model._applyTxn txn
-      @stopWaitingForDependencies()
-
+  txnApplier = new TxnApplier
+    waiter: 'timeout'
+    applyTxn: (txn) -> self._applyTxn txn
+    onTimeout: -> self._reqNewTxns()
+  
   self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
     if queuedTxn = self._txns[transaction.id txn]
       txn.callback = queuedTxn.callback
-    txnApplier.add num, txn
+    txnApplier.add txn, num
   
   self._onTxnNum = (num) ->
     # Reset the number used to keep track of pending transactions
-    nextNum = +num + 1
-    # Remove any old pending transactions
-    txnApplier.clear()
+    txnApplier.setIndex (+num || 0) + 1
+    txnApplier.clearPending()
   
   self.force = Object.create self, _force: value: true
   

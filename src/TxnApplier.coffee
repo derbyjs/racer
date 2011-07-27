@@ -5,46 +5,58 @@ transaction = require './transaction'
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
 
-# @_serializingIndex corresponds to verToWrite in Store and nextNum in Model
-module.exports = TxnApplier = (conf, @_serializingIndex = 1) ->
-  for method in ['waitForDependencies', 'applyTxn']
-    throw new Error 'Missing ' + method unless conf[method]
-  for method, fn of conf
-    @[method] = fn
-  @_pending = {}
+module.exports = TxnApplier = ({waiter, delay, @applyTxn, onTimeout}) ->
+  self = this
+  delay = 500 if delay is undefined
+  if waiter is 'timeout'
+    self._timeout = true
+    self._clearWaiter = clearTimeout
+    self._setWaiter = ->
+      setTimeout ->
+        onTimeout() if onTimeout
+        self.clearWaiter()
+      , delay
+  else
+    self._clearWaiter = clearInterval
+    self._setWaiter = ->
+      setInterval ->
+        self.flushValidPending()
+      , delay
+  self._pending = {}
+  self._index = 1  # Corresponds to ver in Store and txnNum in Model
   return
 
 TxnApplier::=
-  PERIOD: 500
-  add: (index, txn) ->
-    serializingIndex = @_serializingIndex
-    # Cache this transaction to be applied later if it is not the next
-    # serializingIndex
-    if index > serializingIndex
+  add: (txn, index) ->
+    _index = @_index
+    # Cache this transaction to be applied later if it is not the next index
+    if index > _index
       @_pending[index] = txn
-      @waiter ||= @waitForDependencies()
+      @_waiter ||= @_setWaiter()
       return true
     # Ignore this transaction if it is older than the current index
-    return false if index < serializingIndex
+    return false if index < _index
     # Otherwise apply it immediately
-    @applyTxn txn
+    @applyTxn txn, index
+    @clearWaiter() if @_timeout
     # And apply any transactions that were waiting for txn
-    @_serializingIndex++
+    @_index++
     @flushValidPending()
     return true
   flushValidPending: ->
     pending = @_pending
-    serializingIndex = @_serializingIndex
-    while txn = pending[serializingIndex]
-      @applyTxn txn
-      delete pending[serializingIndex++]
-    @_serializingIndex = serializingIndex
-  clear: ->
-    serializingIndex = @_serializingIndex
+    index = @_index
+    while txn = pending[index]
+      @applyTxn txn, index
+      delete pending[index++]
+    @_index = index
+  setIndex: (@_index) ->
+  clearPending: ->
+    index = @_index
     pending = @_pending
     for i of pending
-      delete pending[i] if i < serializingIndex
-  stopWaitingForDependencies: ->
-    if @waiter
-      @clearWaiter @waiter if @clearWaiter
-      @waiter = null
+      delete pending[i] if i < index
+  clearWaiter: ->
+    if @_waiter
+      @_clearWaiter @_waiter
+      @_waiter = null
