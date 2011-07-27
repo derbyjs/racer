@@ -15,16 +15,20 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
       return if @_waiter
       @_waiter = setTimeout ->
         onTimeout()
-        self.clearWaiter()
+        self._clearWaiter()
       , timeout
-  else
-    self._setWaiter = ->
-    self._clearWaiter = ->
+    self._clearWaiter: ->
+      if @_waiter
+        clearTimeout @_waiter
+        @_waiter = null
+  
   self._pending = {}
   self._index = 1  # Corresponds to ver in Store and txnNum in Model
   return
 
 TxnApplier::=
+  self._setWaiter = ->
+  self._clearWaiter = ->
   add: (txn, txnIndex) ->
     index = @_index
     # Cache this transaction to be applied later if it is not the next index
@@ -36,7 +40,7 @@ TxnApplier::=
     return false if txnIndex < index
     # Otherwise apply it immediately
     @applyTxn txn, index
-    @clearWaiter()
+    @_clearWaiter()
     # And apply any transactions that were waiting for txn
     index++
     pending = @_pending
@@ -51,7 +55,3 @@ TxnApplier::=
     pending = @_pending
     for i of pending
       delete pending[i] if i < index
-  clearWaiter: ->
-    if @_waiter
-      clearTimeout @_waiter
-      @_waiter = null
