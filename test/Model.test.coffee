@@ -627,7 +627,15 @@ module.exports =
 #
 #    # Setting a reference before a key should make a record of the key but
 #    # not the reference
-#    model.set 'mine', model.ref(['todos.1', 'todos.3'], 'status')
+#    model.set 'mine', model.ref('todos', '_mine'])
 #    model.get().should.protoEql
-#      mine: model.ref ['todos.1', 'todos.3'], 'status'
-#      $keys: { status: $: 'mine$' }
+#      mine: model.ref('todos', '_mine')
+#      $keys: { status: $: 'mine$todos$_mine' }
+#
+#    # Setting a key value should update the reference
+#    model.set '_mine', ['1', '3']
+#    model.get().should.protoEql
+#      mine: model.ref 'todos', '_mine'
+#      _mine: ['1', '3']
+#      $keys: {_mine: $: 'mine$todos$_mine': ['mine', 'todos', '_mine']}
+#      $refs: {todos: ??: $: 'mine$todos$_mine': ['mine', 'todos', 'mine']}

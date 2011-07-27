@@ -129,20 +129,36 @@ Model:: =
           obj = next
       checkRefs path
   
+  _fastLookup: (path, obj) ->
+    for prop in path.split '.'
+      return unless obj = obj[prop]
+    return obj
   _forRef: (refs, obj = @_adapter._data, callback) ->
-    fastLookup = (path, obj) ->
-      for prop in path.split '.'
-        return unless obj = obj[prop]
-      return obj
-
-    for i, [p, r, k] of refs
+    fastLookup = @_fastLookup
+    for i, [path, ref, key] of refs
       # Check to see if the reference is still the same
-      o = fastLookup p, obj
-      if o && o.$r == r && o.$k == k
-        callback p, r, k
+      o = fastLookup path, obj
+      if o && o.$r == ref && o.$k == key
+        callback path, ref, key
       else
         delete refs[i]
 
+  # If a key is present, sets:
+  # "$keys":
+  #   "#{key}":
+  #     $:
+  #       "#{path}$#{ref}$#{key}": [path, ref, key]
+  #
+  # "$refs":
+  #   "#{ref}.#{keyObj}": 
+  #     $:
+  #       "#{path}$#{ref}": [path, ref]
+  #
+  # If key is not present, sets:
+  # "$refs":
+  #   "#{ref}": 
+  #     $:
+  #       "#{path}$#{ref}": [path, ref]
   _setRefs: (path, ref, key, options) ->
     adapter = @_adapter
     if key
@@ -167,8 +183,8 @@ Model:: =
       self._setRefs path, ref, value.$k, options if value && ref = value.$r
       # Check to see if setting to a reference's key. If so, update references
       if refs = adapter._lookup("$keys.#{path}.$", false, options).obj
-        self._forRef refs, options.obj, (p, r, k) ->
-          self._setRefs p, r, k, options
+        self._forRef refs, options.obj, (path, ref, key) ->
+          self._setRefs path, ref, key, options
       return out
   
   # Creates a reference object for use in model data methods

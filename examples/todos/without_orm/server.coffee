@@ -5,7 +5,8 @@ fs = require 'fs'
 rally ioPort: 3001
 store = rally.store
 app = express.createServer(
-    express.bodyParser()
+    express.favicon()
+  , express.bodyParser()
   , express.cookieParser()
   , express.session secret: 'shhhh_dont_tell'
   , rally()
@@ -13,7 +14,7 @@ app = express.createServer(
 
 # rally.js returns a browserify bundle of the rally client side code and the
 # socket.io client side code
-script = rally.js() + fs.readFileSync 'client.js'
+rally.js (js) -> script = js + fs.readFileSync 'client.js'
 style = fs.readFileSync 'style.css'
 
 app.get '/script.js', (req, res) ->
