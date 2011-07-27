@@ -1,13 +1,12 @@
 transaction = require './transaction'
 
-# You throw transactions at this.
-# It figures out what to apply immediately and what to buffer
+# Given a stream of out of order transactions and an index, TxnApplier
+# figures out what to apply immediately and what to buffer
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
-module.exports = TxnApplier = (startingIndex) ->
-  # corresponds to verToWrite in Store
-  # corresponds to nextNum in Model
-  @_serializingIndex = if startingIndex isnt undefined then startingIndex else 1
+
+# @_serializingIndex corresponds to verToWrite in Store and nextNum in Model
+module.exports = TxnApplier = (@_serializingIndex = 1) ->
   @_pending = {}
   return
 
@@ -41,7 +40,7 @@ TxnApplier::=
     pending = @_pending
     for i of pending
       delete pending[i] if i < serializingIndex
-  stopWaitingForDependencies: ()->
+  stopWaitingForDependencies: ->
     if @waiter
       @clearWaiter @waiter if @clearWaiter
       @waiter = null
