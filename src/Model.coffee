@@ -15,7 +15,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._txnQueue = []
   
   txnApplier = new TxnApplier
-    waiter: 'timeout'
     applyTxn: (txn) -> self._applyTxn txn
     onTimeout: -> self._reqNewTxns()
   

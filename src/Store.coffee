@@ -197,7 +197,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
-    waiter: 'interval'
     applyTxn: (txn, ver) ->
       args = transaction.args txn
       args.push ver, (err) ->

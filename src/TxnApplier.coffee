@@ -5,51 +5,42 @@ transaction = require './transaction'
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
 
-module.exports = TxnApplier = ({waiter, delay, @applyTxn, onTimeout}) ->
+DEFAULT_TIMEOUT = 500
+
+module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
   self = this
-  delay = 500 if delay is undefined
-  if waiter is 'timeout'
-    self._timeout = true
-    self._clearWaiter = clearTimeout
+  if onTimeout
+    timeout = DEFAULT_TIMEOUT if timeout is undefined
     self._setWaiter = ->
       setTimeout ->
         onTimeout() if onTimeout
         self.clearWaiter()
-      , delay
-  else
-    self._clearWaiter = clearInterval
-    self._setWaiter = ->
-      setInterval ->
-        self.flushValidPending()
-      , delay
+      , timeout
   self._pending = {}
   self._index = 1  # Corresponds to ver in Store and txnNum in Model
   return
 
 TxnApplier::=
-  add: (txn, index) ->
-    _index = @_index
+  add: (txn, txnIndex) ->
+    index = @_index
     # Cache this transaction to be applied later if it is not the next index
-    if index > _index
-      @_pending[index] = txn
-      @_waiter ||= @_setWaiter()
+    if txnIndex > index
+      @_pending[txnIndex] = txn
+      @_waiter ||= @_setWaiter() if @_setWaiter
       return true
     # Ignore this transaction if it is older than the current index
-    return false if index < _index
+    return false if txnIndex < index
     # Otherwise apply it immediately
     @applyTxn txn, index
-    @clearWaiter() if @_timeout
+    @clearWaiter()
     # And apply any transactions that were waiting for txn
-    @_index++
-    @flushValidPending()
-    return true
-  flushValidPending: ->
+    index++
     pending = @_pending
-    index = @_index
     while txn = pending[index]
       @applyTxn txn, index
       delete pending[index++]
     @_index = index
+    return true
   setIndex: (@_index) ->
   clearPending: ->
     index = @_index
@@ -58,5 +49,5 @@ TxnApplier::=
       delete pending[i] if i < index
   clearWaiter: ->
     if @_waiter
-      @_clearWaiter @_waiter
+      clearTimeout @_waiter
       @_waiter = null
