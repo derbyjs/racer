@@ -26,7 +26,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     return if clientId == transaction.clientId txn
     # For models only present on the server, process the transaction
     # directly in the model
-    return model.__onTxn txn if model = localModels[clientId]
+    return model._onTxn txn if model = localModels[clientId]
     # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
