@@ -12,10 +12,14 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
   if onTimeout
     timeout = DEFAULT_TIMEOUT if timeout is undefined
     self._setWaiter = ->
-      setTimeout ->
-        onTimeout() if onTimeout
+      return if @_waiter
+      @_waiter = setTimeout ->
+        onTimeout()
         self.clearWaiter()
       , timeout
+  else
+    self._setWaiter = ->
+    self._clearWaiter = ->
   self._pending = {}
   self._index = 1  # Corresponds to ver in Store and txnNum in Model
   return
@@ -26,7 +30,7 @@ TxnApplier::=
     # Cache this transaction to be applied later if it is not the next index
     if txnIndex > index
       @_pending[txnIndex] = txn
-      @_waiter ||= @_setWaiter() if @_setWaiter
+      @_setWaiter()
       return true
     # Ignore this transaction if it is older than the current index
     return false if txnIndex < index
