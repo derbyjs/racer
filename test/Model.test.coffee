@@ -582,14 +582,13 @@ module.exports =
   'test getting array of references': ->
     model = new Model
     model._adapter._data =
-      todos: [
-          { text: 'finish rally', status: 'ongoing' }
-        , { text: 'run several miles', status: 'complete' }
-        , { text: 'meet with obama', status: 'complete' }
-      ]
-      mine: model.ref ['todos.0', 'todos.2']
-      textKey: 'text'
-      mineTexts: model.ref ['todos.0', 'todos.2'], 'textKey'
+      todos:
+        1: { text: 'finish rally', status: 'ongoing' }
+        2: { text: 'run several miles', status: 'complete' }
+        3: { text: 'meet with obama', status: 'complete' }
+      _mine: ['1', '3']
+      mine: model.ref 'todos', '_mine'
+      mineTexts: model.ref 'todos', '_mine', 'text'
 
     # Test non-keyed array of references
     model.get('mine').should.eql [
@@ -603,20 +602,32 @@ module.exports =
     # Test access to a property below a single reference in the array
     model.get('mine.0.text').should.equal 'finish rally'
 
-    # Test keyed array of references
+    # Test scoped array of references
     model.get('mineTexts').should.eql ['finish rally', 'meet with obama']
 
     # Test changing the key object reference with speculative set
-    model.set 'textKey', 'status'
-    model.get('mineTexts').should.eql ['ongoing', 'complete']
+    model.set '_mine', ['1', '2']
+    model.get('mine').should.eql [
+        { text: 'finish rally', status: 'ongoing' }
+      , { text: 'run several miles', status: 'complete' }
+    ]
 
     # Test changing referenced objects with speculative set
-    model.set 'todos', [
-          { text: 'costco run', status: 'complete' }
-        , { text: 'party hard', status: 'ongoing' }
-        , { text: 'bounce', status: 'ongoing' }
-    ]
+    model.set 'todos',
+        1: { text: 'costco run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
     model.get('mine').should.eql [
         { text: 'costco run', status: 'complete' }
-      , { text: 'bounce', status: 'ongoing' }
+      , { text: 'party hard', status: 'ongoing' }
     ]
+
+#  'test setting to array of references': ->
+#    model = new Model
+#
+#    # Setting a reference before a key should make a record of the key but
+#    # not the reference
+#    model.set 'mine', model.ref(['todos.1', 'todos.3'], 'status')
+#    model.get().should.protoEql
+#      mine: model.ref ['todos.1', 'todos.3'], 'status'
+#      $keys: { status: $: 'mine$' }

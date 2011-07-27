@@ -160,14 +160,24 @@ Memory:: =
       # Check for model references
       if ref = next.$r
         key = next.$k
-        if Array.isArray ref
-          next = ref.map (memberRef) =>
-            if key
-              memberRef = memberRef + '.' + @_lookup(key, false, options).obj
-            @_lookup(memberRef, addPath, options).obj
-        else
-          if key
+        if key
+          keyVal = @_lookup(key, false, options).obj
+          if Array.isArray keyVal
+            only = next.$o
+            next = keyVal.map (key) =>
+              mem = @_lookup(ref + '.' + key, false, options).obj
+              if Array.isArray only
+                scopedMem = {}
+                for k, v of mem
+                  scopedMem[k] = v if ~only.indexOf k
+                mem = scopedMem
+              else if only
+                mem = mem[only]
+              next = mem
+          else
             ref = ref + '.' + @_lookup(key, false, options).obj
+            next = @_lookup(ref, addPath, options).obj
+        else
           next = @_lookup(ref, addPath, options).obj
         path = ref if i < len
     
