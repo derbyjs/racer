@@ -101,13 +101,12 @@ Model:: =
   
   _emit: (method, [path, args...]) ->
     return unless subs = @_eventSubs[method]
-    testPath = (path) ->
+    emitPathEvents = (path) ->
       for sub in subs
-        re = sub[0]
+        [re, callback] = sub
         if re.test path
-          sub[1].apply null, re.exec(path).slice(1).concat(args)
-    # Emit events on the path
-    testPath path
+          callback.apply null, re.exec(path).slice(1).concat(args)
+    emitPathEvents path
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
@@ -117,7 +116,7 @@ Model:: =
           remainder += '.' + prop
         self._forRef obj, self.get(), (path) ->
           path += remainder
-          testPath path
+          emitPathEvents path
           checkRefs path
       checkRefs = (path) ->
         i = 0
@@ -159,6 +158,10 @@ Model:: =
   #   "#{ref}": 
   #     $:
   #       "#{path}$#{ref}": [path, ref]
+  #
+  # $refs is a kind of index that allows us to lookup
+  # which references pointed to the path, `ref`, or to
+  # a path that `ref` is a descendant of.
   _setRefs: (path, ref, key, options) ->
     adapter = @_adapter
     if key
@@ -228,6 +231,8 @@ Model:: =
     @_emit method, args
     callback null, transaction.args(txn)... if callback = txn.callback
   
+  # TODO Will re-calculation of speculative model every time result
+  #      in assignemnts to vars becoming stale?
   _specModel: ->
     adapter = @_adapter
     if len = @_txnQueue.length

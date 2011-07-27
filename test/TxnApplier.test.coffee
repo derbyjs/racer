@@ -27,7 +27,7 @@ module.exports =
     
     txn1 = [1, '0.1', 'set', 'foo', 'bar']
     txn2 = [2, '0.1', 'set', 'foo', 'bart']
-    txn3 = [3, '0.1', 'set', 'foo', 'muni']    
+    txn3 = [3, '0.1', 'set', 'foo', 'muni']
     txnApplier.add txn3, 3
     txnApplier.add txn2, 2
     txnApplier.add txn1, 1
