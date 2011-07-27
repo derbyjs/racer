@@ -10,8 +10,9 @@ TxnApplier = require './TxnApplier'
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
-  stm = new Stm redisClient
   
+  ## Downstream Transactional Interface ##
+
   # Redis clients used for subscribe, psubscribe, unsubscribe,
   # and punsubscribe cannot be used with any other commands.
   # Therefore, we can only pass the current `redisClient` as the
@@ -144,6 +145,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     else
       # If unsubscribe(model, paths..., callback)
   
+
+  ## Mutator Interface ##
+
   @flush = (callback) ->
     done = false
     cb = (err) ->
@@ -154,10 +158,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     adapter.flush cb
     redisClient.flushdb cb
   
-  @get = (path, callback) -> adapter.get path, callback
+  @get = (path, callback) -> @_adapter.get path, callback
   
   @set = (path, value, ver, callback) ->
     commit [ver, nextTxnId(), 'set', path, value], callback
+
   @del = (path, ver, callback) ->
     commit [ver, nextTxnId(), 'del', path], callback
   
@@ -172,6 +177,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   txnCount = 0
   nextTxnId = -> clientId + '.' + txnCount++
   
+  ## Upstream Transaction Interface ##
+  stm = new Stm redisClient
   @_commit = commit = (txn, callback) ->
     ver = transaction.base txn
     if ver && typeof ver isnt 'number'
