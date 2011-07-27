@@ -17,7 +17,7 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
         onTimeout()
         self._clearWaiter()
       , timeout
-    self._clearWaiter: ->
+    self._clearWaiter = ->
       if @_waiter
         clearTimeout @_waiter
         @_waiter = null
@@ -27,8 +27,8 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
   return
 
 TxnApplier::=
-  self._setWaiter = ->
-  self._clearWaiter = ->
+  _setWaiter: ->
+  _clearWaiter: ->
   add: (txn, txnIndex) ->
     index = @_index
     # Cache this transaction to be applied later if it is not the next index
