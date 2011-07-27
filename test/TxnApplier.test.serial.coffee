@@ -67,3 +67,5 @@ module.exports =
     setTimeout ->
       txnApplier.add 1, txn1
     , txnApplier.PERIOD * 2 + 100
+
+  # TODO Add tests for clear(), stopWaitingForDependencies(), and flushValidPending()
