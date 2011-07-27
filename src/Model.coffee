@@ -102,37 +102,37 @@ Model:: =
   _emit: (method, [path, args...]) ->
     return unless subs = @_eventSubs[method]
     emitPathEvents = (path) ->
-      for sub in subs
-        [re, callback] = sub
+      for [re, callback] in subs
         if re.test path
           callback.apply null, re.exec(path).slice(1).concat(args)
     emitPathEvents path
     # Emit events on any references that point to the path
     if refs = @get '$refs'
       self = this
-      derefPath = (obj, props, i) ->
-        remainder = ''
-        while prop = props[i++]
-          remainder += '.' + prop
-        self._forRef obj, self.get(), (path) ->
-          path += remainder
+      derefPath = (refSet, remainderPath) ->
+        self._eachValidRef refSet, self.get(), (path) ->
+          path += '.' + remainderPath if remainderPath
           emitPathEvents path
-          checkRefs path
-      checkRefs = (path) ->
+          emitRefs path
+      eachRefSetPointingTo = (path, fn) ->
         i = 0
-        obj = refs
+        refPos = refs
         props = path.split '.'
         while prop = props[i++]
-          break unless next = obj[prop]
-          derefPath next.$, props, i if next.$
-          obj = next
-      checkRefs path
+          return unless refPos = refPos[prop]
+          fn refSet, props.slice(i).join('.') if refSet = refPos.$
+      emitRefs = (path) ->
+        eachRefSetPointingTo path, (refSet, pathRemainder) ->
+          # refSet has signature: { "#{path}$#{ref}": [path, ref], ... }
+          derefPath refSet, pathRemainder
+
+      emitRefs path
   
   _fastLookup: (path, obj) ->
     for prop in path.split '.'
       return unless obj = obj[prop]
     return obj
-  _forRef: (refs, obj = @_adapter._data, callback) ->
+  _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = @_fastLookup
     for i, [path, ref, key] of refs
       # Check to see if the reference is still the same
@@ -142,26 +142,38 @@ Model:: =
       else
         delete refs[i]
 
-  # If a key is present, sets:
-  # "$keys":
-  #   "#{key}":
-  #     $:
-  #       "#{path}$#{ref}$#{key}": [path, ref, key]
+  # If a key is present, merges
+  #     { "#{path}$#{ref}#{key}": [path, ref, key] }
+  # into
+  #     "$keys":
+  #       "#{key}":
+  #         $:
   #
-  # "$refs":
-  #   "#{ref}.#{keyObj}": 
-  #     $:
-  #       "#{path}$#{ref}": [path, ref]
+  # and merges
+  #     { "#{path}$#{ref}": [path, ref] }
+  # into
+  #     "$refs":
+  #       "#{ref}.#{keyObj}": 
+  #         $:
   #
-  # If key is not present, sets:
-  # "$refs":
-  #   "#{ref}": 
-  #     $:
-  #       "#{path}$#{ref}": [path, ref]
+  # If key is not present, merges
+  #     "#{path}$#{ref}": [path, ref]
+  # into
+  #     "$refs":
+  #       "#{ref}": 
+  #         $:
   #
   # $refs is a kind of index that allows us to lookup
   # which references pointed to the path, `ref`, or to
   # a path that `ref` is a descendant of.
+  #
+  # @param {String} path that is de-referenced to a true path represented by
+  #                 lookup(ref + '.' + lookup(key))
+  # @param {String} ref is what would be the `value` of $r: `value`.
+  #                 It's what we are pointing to
+  # @param {String} key is a path that points to a pathB or array of paths
+  #                 as another lookup chain on the dereferenced `ref`
+  # @param {Object} options
   _setRefs: (path, ref, key, options) ->
     adapter = @_adapter
     if key
@@ -186,7 +198,7 @@ Model:: =
       self._setRefs path, ref, value.$k, options if value && ref = value.$r
       # Check to see if setting to a reference's key. If so, update references
       if refs = adapter._lookup("$keys.#{path}.$", false, options).obj
-        self._forRef refs, options.obj, (path, ref, key) ->
+        self._eachValidRef refs, options.obj, (path, ref, key) ->
           self._setRefs path, ref, key, options
       return out
   
