@@ -18,7 +18,7 @@ TxnApplier::=
     # serializingIndex
     if index > serializingIndex
       @_pending[index] = txn
-      @waiter ||= @waitForDependencies
+      @waiter ||= @waitForDependencies()
       return true
     # Ignore this transaction if it is older than the current index
     return false if index < serializingIndex
