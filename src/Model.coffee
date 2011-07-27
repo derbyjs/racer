@@ -106,7 +106,8 @@ Model:: =
         if re.test path
           callback.apply null, re.exec(path).slice(1).concat(args)
     emitPathEvents path
-    # Emit events on any references that point to the path
+    # Emit events on any references that point to the path or any of its
+    # ancestor paths.
     if refs = @get '$refs'
       self = this
       # Passes back a set of references when we find references to path.
@@ -124,10 +125,9 @@ Model:: =
         eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
           # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
           self._eachValidRef refSet, self.get(), (pointingPath) ->
-            derefPath = pointingPath
-            derefPath += '.' + targetPathRemainder if targetPathRemainder
-            emitPathEvents derefPath
-            emitRefs derefPath
+            pointingPath += '.' + targetPathRemainder if targetPathRemainder
+            emitPathEvents pointingPath
+            emitRefs pointingPath
 
       emitRefs path
   
