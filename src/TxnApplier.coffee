@@ -6,7 +6,11 @@ transaction = require './transaction'
 # another transaction.
 
 # @_serializingIndex corresponds to verToWrite in Store and nextNum in Model
-module.exports = TxnApplier = (@_serializingIndex = 1) ->
+module.exports = TxnApplier = (conf, @_serializingIndex = 1) ->
+  for method in ['waitForDependencies', 'applyTxn']
+    throw new Error 'Missing ' + method unless conf[method]
+  for method, fn of conf
+    @[method] = fn
   @_pending = {}
   return
 

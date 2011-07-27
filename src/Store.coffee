@@ -194,15 +194,15 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
-  txnApplier.waitForDependencies = (self = this) ->
-    setInterval -> self.flushValidPending(), @PERIOD
-  txnApplier.applyTxn = (txn) ->
-    args = transaction.args txn
-    verToWrite = @_serializingIndex
-    args.push verToWrite, (err) ->
-      # TODO: Better adapter error handling and potentially a second callback
-      # to the caller of commit when the adapter operation completes
-      throw err if err
-    adapter[transaction.method txn] args...
+    waitForDependencies: (self = this) ->
+      setInterval -> self.flushValidPending(), @PERIOD
+    applyTxn: (txn) ->
+      args = transaction.args txn
+      verToWrite = @_serializingIndex
+      args.push verToWrite, (err) ->
+        # TODO: Better adapter error handling and potentially a second callback
+        # to the caller of commit when the adapter operation completes
+        throw err if err
+      adapter[transaction.method txn] args...
 
   return

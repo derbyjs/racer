@@ -16,16 +16,16 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._txnQueue = []
   
   @_txnApplier = txnApplier = new TxnApplier
-  txnApplier.waitForDependencies = (self = this) ->
-    setTimeout ->
-      model._reqNewTxns()
-      txnApplier.stopWaitingForDependencies()
-    , @PERIOD
-  txnApplier.clearWaiter = (timeout) ->
-    clearTimeout timeout
-  txnApplier.applyTxn = (txn) ->
-    model._applyTxn txn
-    txnApplier.stopWaitingForDependencies()
+    waitForDependencies: (self = this) ->
+      setTimeout ->
+        model._reqNewTxns()
+        txnApplier.stopWaitingForDependencies()
+      , @PERIOD
+    clearWaiter: (timeout) ->
+      clearTimeout timeout
+    applyTxn: (txn) ->
+      model._applyTxn txn
+      @stopWaitingForDependencies()
 
   self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
