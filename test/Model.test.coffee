@@ -340,7 +340,7 @@ module.exports =
       ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y', '.color.y', 'x.color.']
       ['colorx']
     ]
-    for sub, i in model._subs['set']
+    for sub, i in model._eventSubs['set']
       re = sub[0]
       re.source.should.equal sources[i]
       for obj in matches[i]

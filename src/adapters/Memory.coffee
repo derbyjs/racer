@@ -16,8 +16,6 @@ Memory:: =
     value = @_get path
     callback null, value, @ver
   
-  _forRef: ->
-  _setRefs: ->
   _set: MemorySync::set
   set: (path, value, ver, callback) ->
     try

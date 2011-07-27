@@ -7,10 +7,11 @@ io.Socket::onClose = ->
   @publish 'close'
   @onDisconnect()
 
-@init = ({data, base, clientId, txnCount, txnNum, ioUri}) ->
+@init = ({data, base, clientId, storeSubs, txnCount, txnNum, ioUri}) ->
   model._adapter._data = data
   model._adapter.ver = base
   model._clientId = clientId
+  model._storeSubs = storeSubs
   model._txnCount = txnCount
   model._txnApplier._serializingIndex = txnNum + 1
   model._setSocket io.connect ioUri,

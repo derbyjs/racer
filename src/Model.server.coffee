@@ -25,7 +25,8 @@ module.exports = (store, ioUri) ->
     callback JSON.stringify
       data: self.get()
       base: self._adapter.ver
-      clientId: self._clientId
+      clientId: clientId
+      storeSubs: self._storeSubs
       txnCount: self._txnCount
       txnNum: self._txnNum
       ioUri: ioUri

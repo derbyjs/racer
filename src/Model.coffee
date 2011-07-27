@@ -5,11 +5,10 @@ TxnApplier = require './TxnApplier'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   model = self = this
-  self._adapter = new AdapterClass
-
-  # for local events. different than subscriptions to store,
-  # which live in @_adapter._data.$subs
-  self._subs = {}
+  self._initAdapter self._adapter = new AdapterClass
+  
+  self._storeSubs = []  # Paths in the store that this model is subscribed to
+  self._eventSubs = {}  # Record of Model.on event subscriptions
   
   self._txnCount = 0
   self._txns = {}
@@ -44,6 +43,9 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   return
 
 Model:: =
+
+  ## Socket.io communication ##
+  
   _commit: -> false
   _reqNewTxns: ->
   _setSocket: (socket) ->
@@ -85,7 +87,7 @@ Model:: =
     # Request missed transactions and send queued transactions on connect
     resendInterval = null
     socket.on 'connect', ->
-      socket.emit 'sub', self._clientId, self.get '$subs'
+      socket.emit 'sub', self._clientId, self._storeSubs
       self._reqNewTxns()
       resendAll()
       unless resendInterval
@@ -94,16 +96,20 @@ Model:: =
       clearInterval resendInterval
       resendInterval = null
 
+
+  ## Model events ##
+  
   on: (method, pattern, callback) ->
     re = pathParser.regExp pattern
     sub = [re, callback]
-    subs = @_subs
+    subs = @_eventSubs
     if subs[method] is undefined
       subs[method] = [sub]
     else
       subs[method].push sub
+  
   _emit: (method, [path, args...]) ->
-    return unless subs = @_subs[method]
+    return unless subs = @_eventSubs[method]
     testPath = (path) ->
       for sub in subs
         re = sub[0]
@@ -118,7 +124,7 @@ Model:: =
         remainder = ''
         while prop = props[i++]
           remainder += '.' + prop
-        self._adapter._forRef obj, self.get(), (path) ->
+        self._forRef obj, self.get(), (path) ->
           path += remainder
           testPath path
           checkRefs path
@@ -131,8 +137,57 @@ Model:: =
           derefPath next.$, props, i if next.$
           obj = next
       checkRefs path
+  
+  _forRef: (refs, obj = @_adapter._data, callback) ->
+    fastLookup = (path, obj) ->
+      for prop in path.split '.'
+        return unless obj = obj[prop]
+      return obj
 
+    for i, [p, r, k] of refs
+      # Check to see if the reference is still the same
+      o = fastLookup p, obj
+      if o && o.$r == r && o.$k == k
+        callback p, r, k
+      else
+        delete refs[i]
+
+  _setRefs: (path, ref, key, options) ->
+    adapter = @_adapter
+    if key
+      value = [path, ref, key]
+      i = value.join '$'
+      adapter._lookup("$keys.#{key}.$", true, options).obj[i] = value
+      keyObj = adapter._lookup(key, false, options).obj
+      # keyObj is only valid if it can be a valid path segment
+      return if keyObj is undefined
+      ref = ref + '.' + keyObj
+    else
+      value = [path, ref]
+      i = value.join '$'
+    adapter._lookup("$refs.#{ref}.$", true, options).obj[i] = value
+  
+  _initAdapter: (adapter) ->
+    self = this
+    adapter._set = adapter.set
+    adapter.set = (path, value, ver, options = {}) ->
+      out = adapter._set path, value, ver, options
+      # Save a record of any references being set
+      self._setRefs path, ref, value.$k, options if value && ref = value.$r
+      # Check to see if setting to a reference's key. If so, update references
+      if refs = adapter._lookup("$keys.#{path}.$", false, options).obj
+        self._forRef refs, options.obj, (p, r, k) ->
+          self._setRefs p, r, k, options
+      return out
+  
+  # Creates a reference object for use in model data methods
+  ref: (ref, key) -> if key? then $r: ref, $k: key else $r: ref
+  
+  
+  ## Transaction handling ##
+  
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
+  
   _addTxn: (method, args..., callback) ->
     # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
@@ -148,16 +203,17 @@ Model:: =
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
     @_commit txn
+  
   _removeTxn: (txnId) ->
     delete @_txns[txnId]
     txnQueue = @_txnQueue
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
+  
   _applyTxn: (txn) ->
     method = transaction.method txn
     args = transaction.args txn
     args.push transaction.base txn
-    adapter = @_adapter
-    adapter[method] args...
+    @_adapter[method] args...
     @_removeTxn transaction.id txn
     @_emit method, args
     callback null, transaction.args(txn)... if callback = txn.callback
@@ -176,18 +232,20 @@ Model:: =
         path = adapter[transaction.method txn] args...
     return [obj, path]
   
+  
+  ## Data accessor and mutator methods ##
+  
   get: (path) -> @_adapter.get path, @_specModel()[0]
   
   set: (path, value, callback) ->
     @_addTxn 'set', path, value, callback
     return value
+  
   del: (path, callback) ->
     @_addTxn 'del', path, callback
-  
-  ref: (ref, key) ->
-    if key? then $r: ref, $k: key else $r: ref
 
-  ## Array Methods ##
+  ## Array methods ##
+  
   push: (path, values..., callback) ->
     if 'function' != typeof callback && callback isnt undefined
       values.push callback

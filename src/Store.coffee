@@ -91,11 +91,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       done() if done
   
   populateModel = (model, paths, callback) ->
-    modelAdapter = model._adapter
     # Store subscriptions in the model so that it can submit them to the
     # server when it connects
-    subs = modelAdapter.get('$subs') || []
-    modelAdapter.set '$subs', subs.concat paths
+    model._storeSubs = model._storeSubs.concat paths
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
     clientId = model._clientId
@@ -103,6 +101,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     
     maxVer = 0
     getting = paths.length
+    modelAdapter = model._adapter
     for path in paths
       # TODO: Select only the correct properties instead of everything under the path
       path = path.replace /\.\*.*/, ''
@@ -195,7 +194,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
     waitForDependencies: (self = this) ->
-      setInterval -> self.flushValidPending(), @PERIOD
+      setInterval (-> self.flushValidPending()), @PERIOD
     applyTxn: (txn) ->
       args = transaction.args txn
       verToWrite = @_serializingIndex

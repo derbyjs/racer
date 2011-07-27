@@ -7,48 +7,10 @@ Memory:: =
   get: (path, obj = @_data) ->
     if path then @_lookup(path, false, obj: obj).obj else obj
   
-  _forRef: (refs, obj = @_data, callback) ->
-    fastLookup = (path, obj) ->
-      for prop in path.split '.'
-        return unless obj = obj[prop]
-      return obj
-    
-    for i, [p, r, k] of refs
-      # Check to see if the reference is still the same
-      o = fastLookup p, obj
-      if o && o.$r == r && o.$k == k
-        callback p, r, k
-      else
-        delete refs[i]
-  
-  _setRefs: (path, ref, key, options) ->
-    if key
-      value = [path, ref, key]
-      i = value.join '$'
-      @_lookup("$keys.#{key}.$", true, options).obj[i] = value
-      keyObj = @_lookup(key, false, options).obj
-      # keyObj is only valid if it can be a valid path segment
-      return if keyObj is undefined
-      ref = ref + '.' + keyObj
-    else
-      value = [path, ref]
-      i = value.join '$'
-    @_lookup("$refs.#{ref}.$", true, options).obj[i] = value
-  
   set: (path, value, ver, options = {}) ->
     @ver = ver
     out = @_lookup path, true, options
     out.parent[out.prop] = value
-    
-    # Save a record of any references being set
-    @_setRefs path, ref, value.$k, options if value && ref = value.$r
-    
-    # Check to see if setting to a reference's key. If so, update references
-    if refs = @_lookup("$keys.#{path}.$", false, options).obj
-      self = this
-      @_forRef refs, options.obj, (p, r, k) ->
-        self._setRefs p, r, k, options
-    
     return out.path
   
   del: (path, ver, options = {}) ->
