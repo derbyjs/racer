@@ -132,13 +132,13 @@ Model:: =
     return obj
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = @_fastLookup
-    for i, [path, ref, key] of refs
+    for path$ref$key, [path, ref, key] of refs
       # Check to see if the reference is still the same
       o = fastLookup path, obj
       if o && o.$r == ref && o.$k == key
         callback path, ref, key
       else
-        delete refs[i]
+        delete refs[path$ref$key]
 
   # If a key is present, merges
   #     { "#{path}$#{ref}#{key}": [path, ref, key] }
