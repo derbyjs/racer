@@ -2,6 +2,7 @@ transaction = require './transaction'
 pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
+RefHelper = require './RefHelper'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -17,7 +18,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   txnApplier = new TxnApplier
     applyTxn: (txn) -> self._applyTxn txn
     onTimeout: -> self._reqNewTxns()
-  
+
   self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
     if queuedTxn = txns[transaction.id txn]
@@ -119,6 +120,7 @@ Model:: =
   
   _emit: (method, [path, args...]) ->
     return unless subs = @_eventSubs[method]
+    refHelper = @_refHelper
     emitPathEvents = (path) ->
       for [re, callback] in subs
         if re.test path
@@ -143,97 +145,23 @@ Model:: =
       emitRefs = (targetPath) ->
         eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
           # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-          self._eachValidRef refSet, _data, (pointingPath) ->
+          refHelper._eachValidRef refSet, _data, (pointingPath) ->
             pointingPath += '.' + targetPathRemainder if targetPathRemainder
             emitPathEvents pointingPath
             emitRefs pointingPath
 
       emitRefs path
   
-  _fastLookup: (path, obj) ->
-    for prop in path.split '.'
-      return unless obj = obj[prop]
-    return obj
-  _eachValidRef: (refs, obj = @_adapter._data, callback) ->
-    fastLookup = @_fastLookup
-    for path, refMap of refs
-      for ref, keyMap of refMap
-        for key of keyMap
-          key = undefined if key == '$'
-          # Check to see if the reference is still the same
-          o = fastLookup path, obj
-          if o && o.$r == ref && o.$k == key
-            callback path, ref, key
-          else
-            delete keyMap[key]
-        if Object.keys(keyMap).length == 0
-          delete refMap[ref]
-      if Object.keys(refMap).length == 0
-        delete refMap[path]
-
-  # If a key is present, merges
-  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
-  # into
-  #     "$keys":
-  #       "#{key}":
-  #         $:
-  #
-  # and merges
-  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
-  # into
-  #     "$refs":
-  #       "#{ref}.#{keyObj}": 
-  #         $:
-  #
-  # If key is not present, merges
-  #     "#{path}": { "#{ref}": { $: 1 } }
-  # into
-  #     "$refs":
-  #       "#{ref}": 
-  #         $:
-  #
-  # $refs is a kind of index that allows us to lookup
-  # which references pointed to the path, `ref`, or to
-  # a path that `ref` is a descendant of.
-  #
-  # @param {String} path that is de-referenced to a true path represented by
-  #                 lookup(ref + '.' + lookup(key))
-  # @param {String} ref is what would be the `value` of $r: `value`.
-  #                 It's what we are pointing to
-  # @param {String} key is a path that points to a pathB or array of paths
-  #                 as another lookup chain on the dereferenced `ref`
-  # @param {Object} options
-  _setRefs: (path, ref, key, options) ->
-    adapter = @_adapter
-    if key
-      refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] ||= {}
-      keyMap = refMap[ref] ||= {}
-      keyMap[key] = 1
-      keyObj = adapter._lookup(key, false, options).obj
-      # keyObj is only valid if it can be a valid path segment
-      return if keyObj is undefined
-      refsKey = ref + '.' + keyObj
-    else
-      refsKey = ref
-    
-    refMap = adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] ||= {}
-    keyMap = refMap[ref] ||= {}
-    if key
-      keyMap[key] = 1
-    else
-      keyMap['$'] = 1
-  
   _initAdapter: (adapter) ->
     self = this
+    @_refHelper = refHelper = new RefHelper adapter
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
       out = adapter.__set path, value, ver, options
       # Save a record of any references being set
-      self._setRefs path, ref, value.$k, options if value && ref = value.$r
+      refHelper.setRefs path, ref, value.$k, options if value && ref = value.$r
       # Check to see if setting to a reference's key. If so, update references
-      if refs = adapter._lookup("$keys.#{path}.$", false, options).obj
-        self._eachValidRef refs, options.obj, (path, ref, key) ->
-          self._setRefs path, ref, key, options
+      refHelper.updateRefsForKey path, options
       return out
   
   # Creates a reference object for use in model data methods
