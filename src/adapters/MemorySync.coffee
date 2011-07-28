@@ -11,28 +11,28 @@ Memory:: =
     @ver = ver
     out = @_lookup path, true, options
     out.parent[out.prop] = value
-    return out.path
+    return if options.returnMeta then out else out.obj
   
   del: (path, ver, options = {}) ->
     @ver = ver
-    out = @_lookup path, false, options
-    {parent, prop} = out
-    return out.path unless parent
+    {parent, prop, obj, path} = out = @_lookup path, false, options
+    unless parent
+      return if options.returnMeta then out else obj
     if options.proto
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
       if prop of parent.__proto__
-        obj = {}
+        curr = {}
         for key, value of parent.__proto__
           unless key is prop
-            obj[key] = if typeof value is 'object'
+            curr[key] = if typeof value is 'object'
               Object.create value
             else
               value
-        parent.__proto__ = obj
+        parent.__proto__ = curr
     delete parent[prop]
-    return out.path
+    return if options.returnMeta then out else obj
 
   push: (path, values..., ver, options) ->
     if options is undefined
@@ -46,9 +46,9 @@ Memory:: =
     out = @_lookup path, true, options
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
-    arr.push values...
     # TODO Array of references handling
-    return out.path
+    ret = arr.push values...
+    return if options.returnMeta then out else ret
 
   pop: (path, ver, options = {}) ->
     @ver = ver
@@ -56,8 +56,8 @@ Memory:: =
     out = @_lookup path, true, options
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
-    arr.pop()
-    return out.path
+    ret = arr.pop()
+    return if options.returnMeta then out else ret
 
   insertAfter: (path, afterIndex, value, ver, options = {}) ->
     @ver = ver
@@ -66,8 +66,8 @@ Memory:: =
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
     throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
-    arr.splice afterIndex+1, 0, value
-    return out.path
+    ret = arr.splice afterIndex+1, 0, value
+    return if options.returnMeta then out else ret
 
   insertBefore: (path, beforeIndex, value, ver, options = {}) ->
     @ver = ver
@@ -76,8 +76,8 @@ Memory:: =
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
     throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
-    arr.splice beforeIndex, 0, value
-    return out.path
+    ret = arr.splice beforeIndex, 0, value
+    return if options.returnMeta then out else ret
 
   remove: (path, startIndex, howMany, ver, options = {}) ->
     @ver = ver
@@ -86,8 +86,8 @@ Memory:: =
     throw new Error 'Not an Array' unless Array.isArray arr
     upperBound = if arr.length then arr.length - 1 else 0
     throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
-    arr.splice startIndex, howMany
-    return out.path
+    ret = arr.splice startIndex, howMany
+    return if options.returnMeta then out else ret
 
   splice: (path, startIndex, removeCount, newMembers..., ver, options) ->
     if options is undefined
@@ -102,8 +102,8 @@ Memory:: =
     out = @_lookup path, true, options
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
-    arr.splice startIndex, removeCount, newMembers...
-    return out.path
+    ret = arr.splice startIndex, removeCount, newMembers...
+    return if options.returnMeta then out else ret
 
   unshift: (path, newMembers..., ver, options = {}) ->
     if options is undefined
@@ -118,8 +118,8 @@ Memory:: =
     out = @_lookup path, true, options
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
-    arr.unshift newMembers...
-    return out.path
+    ret = arr.unshift newMembers...
+    return if options.returnMeta then out else ret
 
   shift: (path, ver, options = {}) ->
     @ver = ver
@@ -127,8 +127,8 @@ Memory:: =
     out = @_lookup path, true, options
     arr = out.obj
     throw new Error 'Not an Array' unless Array.isArray arr
-    arr.shift()
-    return out.path
+    ret = arr.shift()
+    return if options.returnMeta then out else ret
   
   _lookup: (path, addPath, options) ->
     proto = options.proto

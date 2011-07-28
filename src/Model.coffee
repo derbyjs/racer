@@ -134,8 +134,7 @@ Model:: =
     refHelper.notifyPointersTo path, method, args, emitPathEvents
   
   _initAdapter: (adapter) ->
-    self = this
-    @_refHelper = refHelper = new RefHelper self
+    @_refHelper = refHelper = new RefHelper @
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
       out = @__set path, value, ver, options
@@ -194,8 +193,9 @@ Model:: =
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
         args = transaction.args txn
-        args.push adapter.ver, obj: obj, proto: true
-        path = adapter[transaction.method txn] args...
+        args.push adapter.ver, obj: obj, proto: true, returnMeta: true
+        meta = adapter[transaction.method txn] args...
+        path = meta.path
     return [obj, path]
   
   
