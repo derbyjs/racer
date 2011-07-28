@@ -3,6 +3,7 @@ pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
+EventEmitter = require('events').EventEmitter
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -73,7 +74,7 @@ Model:: =
         args.unshift err
         callback args...
       removeTxn txnId
-    socket.on 'fatalErr', -> self._emitSimple 'fatal_error'
+    socket.on 'fatalErr', -> self.emit 'fatal_error'
     
     clientId = @_clientId
     storeSubs = @_storeSubs
@@ -97,41 +98,9 @@ Model:: =
       # Stop resending transactions while disconnected
       clearInterval resendInterval if resendInterval
       resendInterval = null
-
-
-  ## Model events ##
   
-  on: (method, pattern, callback) ->
-    # Test for function, since pattern can be a regex or string
-    if pattern.call
-      # on(name, callback)
-      sub = pattern
-    else
-      # on(method, pattern, callback)
-      re = pathParser.regExp pattern
-      sub = [re, callback]
-    subs = @_eventSubs
-    if subs[method] is undefined
-      subs[method] = [sub]
-    else
-      subs[method].push sub
   
-  _emitSimple: (name) ->
-    return unless subs = @_eventSubs[name]
-    for callback in subs
-      callback()
-  
-  _emit: (method, [path, args...]) ->
-    return unless subs = @_eventSubs[method]
-    refHelper = @_refHelper
-    emitPathEvents = (path) ->
-      for [re, callback] in subs
-        if re.test path
-          callback.apply null, re.exec(path).slice(1).concat(args)
-    emitPathEvents path
-    # Emit events on any references that point to the path or any of its
-    # ancestor paths.
-    refHelper.notifyPointersTo path, method, args, emitPathEvents
+  ## Model references handling ##
   
   _initAdapter: (adapter) ->
     @_refHelper = refHelper = new RefHelper @
@@ -152,6 +121,7 @@ Model:: =
   # Creates a reference object for use in model data methods
   ref: (ref, key, arrOnly) -> @_refHelper.ref ref, key, arrOnly
   
+  
   ## Transaction handling ##
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
@@ -170,7 +140,7 @@ Model:: =
     # Apply a private transaction immediately and don't send it to the store
     return @_applyTxn txn if pathParser.isPrivate path
     # Emit an event on creation of the transaction
-    @_emit method, args
+    @emit method, args
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   
@@ -180,11 +150,12 @@ Model:: =
     args.push transaction.base txn
     @_adapter[method] args...
     @_removeTxn transaction.id txn
-    @_emit method, args
+    @emit method, args
     callback null, transaction.args(txn)... if callback = txn.callback
   
   # TODO Will re-calculation of speculative model every time result
   #      in assignemnts to vars becoming stale?
+  # TODO: Do caching of speculative model instead of recreating it from scratch
   _specModel: ->
     adapter = @_adapter
     if len = @_txnQueue.length
@@ -251,3 +222,34 @@ Model:: =
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
 # Interval in milliseconds to check timeouts for queued transactions
 Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
+
+
+## Model events ##
+
+for name, fn of EventEmitter::
+  Model::[name] = fn
+
+Model::_on = EventEmitter::on
+Model::on = Model::addListener = (type, pattern, callback) ->
+  # Test for function, since pattern can be a regex or string
+  if pattern.call
+    # on(type, listener)
+    listener = pattern
+  else
+    # on(method, pattern, callback)
+    re = pathParser.regExp pattern
+    refHelper = @_refHelper
+    listener = ([path, args...]) ->
+      emitPathEvent = (path) ->
+        callback re.exec(path).slice(1).concat(args)... if re.test path
+      emitPathEvent path
+      # Emit events on any references that point to the path or any of its
+      # ancestor paths
+      refHelper.notifyPointersTo path, type, args, emitPathEvent
+  @_on type, listener
+  # EventEmitter::addListener returns this. Model subscribers return the
+  # listener instead, since it is made internally for method subscriptions
+  # and may need to be passed to removeListener
+  return listener
+
+# TODO: Implement once

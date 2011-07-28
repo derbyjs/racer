@@ -316,53 +316,6 @@ module.exports =
     model.set 'color.hex', '#0f0'
   , 2
   
-  'test internal creation of model event subscriptions': ->
-    model = new Model
-    model.on 'set', pattern for pattern in [
-      'color'
-      '*'
-      '*.color.*'
-      '**'
-      '**.color.**'
-      /^(colors?)$/
-    ]
-    sources = [
-      '^color$'
-      '^([^\\.]+)$'
-      '^([^\\.]+)\\.color\\.([^\\.]+)$'
-      '^(.+)$'
-      '^(.+?)\\.color\\.(.+)$'
-      '^(colors?)$'
-    ]
-    matches = [
-      ['color': []]
-      ['any-thing': ['any-thing']]
-      ['x.color.y': ['x', 'y'],
-       'any-thing.color.x': ['any-thing', 'x']]
-      ['x': ['x'],
-       'x.y': ['x.y']]
-      ['x.color.y': ['x', 'y'],
-       'a.b-c.color.x.y': ['a.b-c', 'x.y']]
-      ['color': ['color'],
-       'colors': ['colors']]
-    ]
-    nonMatches = [
-      ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
-      ['', 'x.y', '.x', 'x.']
-      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
-       '.color.y', 'x.color.', 'a.x.color.y', 'x.color.y.b']
-      ['']
-      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y', '.color.y', 'x.color.']
-      ['colorx']
-    ]
-    for sub, i in model._eventSubs['set']
-      re = sub[0]
-      re.source.should.equal sources[i]
-      for obj in matches[i]
-        for match, captures of obj
-          re.exec(match).slice(1).should.eql captures
-      re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
-  
   'model events should get emitted properly': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->

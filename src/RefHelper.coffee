@@ -107,7 +107,7 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (path, method, args, emitPathEvents) ->
+  notifyPointersTo: (path, method, args, emitPathEvent) ->
     model = @_model
     self = this
     if refs = model.get '$refs'
@@ -128,6 +128,6 @@ RefHelper:: =
           # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
           self._eachValidRef refSet, _data, (pointingPath) ->
             pointingPath += '.' + targetPathRemainder if targetPathRemainder
-            emitPathEvents pointingPath
+            emitPathEvent pointingPath
             emitRefs pointingPath
       emitRefs path
