@@ -11,8 +11,8 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._eventSubs = {}  # Record of Model.on event subscriptions
   
   self._txnCount = 0
-  self._txns = {}
-  self._txnQueue = []
+  self._txns = txns = {}
+  self._txnQueue = txnQueue = []
   
   txnApplier = new TxnApplier
     applyTxn: (txn) -> self._applyTxn txn
@@ -20,7 +20,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   
   self._onTxn = (txn, num) ->
     # Copy the callback onto this transaction if it matches one in the queue
-    if queuedTxn = self._txns[transaction.id txn]
+    if queuedTxn = txns[transaction.id txn]
       txn.callback = queuedTxn.callback
     txnApplier.add txn, num
   
@@ -28,6 +28,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     # Reset the number used to keep track of pending transactions
     txnApplier.setIndex (+num || 0) + 1
     txnApplier.clearPending()
+  
+  self._removeTxn = (txnId) ->
+    delete txns[txnId]
+    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   
   self.force = Object.create self, _force: value: true
   
@@ -37,54 +41,58 @@ Model:: =
 
   ## Socket.io communication ##
   
-  _commit: -> false
+  _commit: ->
   _reqNewTxns: ->
   _setSocket: (socket) ->
-    self = this
-    self.socket = socket
+    @socket = socket
+    adapter = @_adapter
+    txns = @_txns
+    txnQueue = @_txnQueue
+    onTxn = @_onTxn
+    removeTxn = @_removeTxn
     
-    socket.on 'txn', self._onTxn
-    socket.on 'txnNum', self._onTxnNum
-    socket.on 'txnOk', (base, txnId, num) ->
-      if txn = self._txns[txnId]
-        txn[0] = base
-        self._onTxn txn, num
-    socket.on 'txnErr', (err, txnId) ->
-      txn = self._txns[txnId]
-      if txn && (callback = txn.callback) && err != 'duplicate'
-        args = transaction.args txn
-        args.unshift err
-        callback args...
-      self._removeTxn txnId
-    
-    self._commit = commit = (txn) ->
+    @_commit = commit = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn
     
     # Request any transactions that may have been missed
-    self._reqNewTxns = -> socket.emit 'txnsSince', self._adapter.ver + 1
+    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1
     
-    resendAll = ->
-      txns = self._txns
-      commit txns[id] for id in self._txnQueue
-    resendExpired = ->
+    socket.on 'txn', @_onTxn
+    socket.on 'txnNum', @_onTxnNum
+    socket.on 'txnOk', (base, txnId, num) ->
+      if txn = txns[txnId]
+        txn[0] = base
+        onTxn txn, num
+    socket.on 'txnErr', (err, txnId) ->
+      txn = txns[txnId]
+      if txn && (callback = txn.callback) && err != 'duplicate'
+        args = transaction.args txn
+        args.unshift err
+        callback args...
+      removeTxn txnId
+    
+    clientId = @_clientId
+    storeSubs = @_storeSubs
+    resendInterval = null
+    resend = ->
       now = +new Date
-      txns = self._txns
-      for id in self._txnQueue
+      for id in txnQueue
         txn = txns[id]
         return if txn.timeout > now
         commit txn
-    
-    # Request missed transactions and send queued transactions on connect
-    resendInterval = null
     socket.on 'connect', ->
-      socket.emit 'sub', self._clientId, self._storeSubs
-      self._reqNewTxns()
-      resendAll()
-      unless resendInterval
-        resendInterval = setInterval resendExpired, RESEND_INTERVAL
+      # Establish subscriptions upon connecting and get any transactions
+      # that may have been missed
+      socket.emit 'sub', clientId, storeSubs, adapter.ver
+      # Resend all transactions in the queue
+      commit txns[id] for id in txnQueue
+      # Set an interval to check for transactions that have been in the queue
+      # for too long and resend them
+      resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
     socket.on 'disconnect', ->
-      clearInterval resendInterval
+      # Stop resending transactions while disconnected
+      clearInterval resendInterval if resendInterval
       resendInterval = null
 
 
@@ -231,11 +239,6 @@ Model:: =
     @_emit method, args
     # Send it over Socket.IO or to the store on the server
     @_commit txn
-  
-  _removeTxn: (txnId) ->
-    delete @_txns[txnId]
-    txnQueue = @_txnQueue
-    if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   
   _applyTxn: (txn) ->
     method = transaction.method txn

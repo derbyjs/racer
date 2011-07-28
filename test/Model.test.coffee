@@ -106,20 +106,13 @@ module.exports =
     model.get('number').should.eql 7
     sockets._disconnect()
   
-  'new transactions should be requested on socket.io connect': wrapTest (done) ->
-    [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
-      txnsSince.should.eql 1
+  'sub event should be sent on socket.io connect': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
+      clientId.should.eql '0'
+      storeSubs.should.eql []
+      ver.should.eql 0
       sockets._disconnect()
       done()
-  
-  'transactions should not be requested if pending less than timeout': wrapTest (done) ->
-    [sockets, model] = mockSocketModel '', 'txnsSince', (txnsSince) ->
-      txnsSince.should.eql 1
-      sockets._disconnect()
-      done()
-    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green'], 1
-    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red'], 3
-    sockets.emit 'txn', [2, '_.0', 'set', 'color', 'blue'], 2
   
   'test speculative value of set': ->
     model = new Model '0'

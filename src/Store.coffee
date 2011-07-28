@@ -40,16 +40,13 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   clientSockets = {}
   @_setSockets = (sockets) ->
     sockets.on 'connection', (socket) ->
-      socket.on 'sub', (clientId, paths) ->
-        # TODO Once socket.io supports query params in the
-        # socket.io urls, then we can remove this. Instead,
-        # we can add the socket <-> clientId assoc in the
-        # `sockets.on 'connection'...` callback.
+      # TODO Once socket.io supports query params in the
+      # socket.io urls, then we can remove this. Instead,
+      # we can add the socket <-> clientId assoc in the
+      # `sockets.on 'connection'...` callback.
+      socket.on 'sub', (clientId, paths, ver) ->
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
-        clientSockets[clientId] = socket
-        pubSub.subscribe clientId, paths
-        
         socket.on 'disconnect', ->
           pubSub.unsubscribe clientId
           delete clientSockets[clientId]
@@ -60,7 +57,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
             return socket.emit 'txnErr', err, transaction.id(txn) if err
             nextTxnNum clientId, (num) ->
               socket.emit 'txnOk', transaction.base(txn), transaction.id(txn), num
-        socket.on 'txnsSince', (ver) ->
+        socket.on 'txnsSince', txnsSince = (ver) ->
           # Reset the pending transaction number in the model
           redisClient.get 'txnClock.' + clientId, (err, value) ->
             throw err if err
@@ -68,6 +65,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
             forTxnSince ver, clientId, (txn) ->
               nextTxnNum clientId, (num) ->
                 socket.emit 'txn', txn, num
+        
+        # Set up subscriptions to the store for the model
+        clientSockets[clientId] = socket
+        pubSub.subscribe clientId, paths
+        # Return any transactions that the model may have missed
+        txnsSince ver + 1
   
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
