@@ -83,24 +83,3 @@ store.flush (err) ->
   app.listen 3000
   console.log "Go to http://localhost:3000/lobby"
   console.log "Go to http://localhost:3000/powder-room"
-
-  # # Follows the same middleware interface as Connect:
-  # rally.use rallyMongo
-  #   server: 'mongodb://localhost/rally-letters'
-  #   load: () ->
-  #     store = rally.store
-  #     store.get 'letters', (err, letters) ->
-  #       return if err or letters
-  #       # Initialize data if letters object has not been created
-  #       colors = ['red', 'yellow', 'blue', 'orange', 'green']
-  #       letters = {}
-  #       for row in [0..4]
-  #         for col in [0..25]
-  #           letters[row * 26 + col] =
-  #             color: colors[row]
-  #             value: String.fromCharCode(65 + col)
-  #             left: col * 24 + 72
-  #             top: row * 32 + 8
-  #       store.set 'letters', letters
-
-  # Follows the same middleware interface as Connect:
