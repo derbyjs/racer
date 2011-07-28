@@ -225,15 +225,15 @@ module.exports =
     model.set 'color', model.ref 'colors', 'selected'
     model.get().should.protoEql
       color: model.ref 'colors', 'selected'
-      $keys: {selected: $: 'color$colors$selected': ['color', 'colors', 'selected']}
+      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
     
     # Setting a key value should update the reference
     model.set 'selected', 'blue'
     model.get().should.protoEql
       color: model.ref 'colors', 'selected'
       selected: 'blue'
-      $keys: {selected: $: 'color$colors$selected': ['color', 'colors', 'selected']}
-      $refs: {colors: blue: $: 'color$colors$selected': ['color', 'colors', 'selected']}
+      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
+      $refs: {colors: blue: $: 'color': 'colors': 'selected': 1 }
     
     # Setting a property on a reference should update the referenced object
     model.set 'color.hex', '#0f0'
@@ -243,8 +243,8 @@ module.exports =
           hex: '#0f0'
       color: model.ref 'colors', 'selected'
       selected: 'blue'
-      $keys: {selected: $: 'color$colors$selected': ['color', 'colors', 'selected']}
-      $refs: {colors: blue: $: 'color$colors$selected': ['color', 'colors', 'selected']}
+      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
+      $refs: {colors: blue: $: 'color': 'colors': 'selected': 1 }
     
     # Setting on a path that is currently a reference should modify the
     # reference, similar to setting an object reference in Javascript
@@ -255,13 +255,14 @@ module.exports =
           hex: '#0f0'
       color: model.ref 'colors.blue'
       selected: 'blue'
-      $keys: {selected: $: 'color$colors$selected': ['color', 'colors', 'selected']}
+      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
       $refs:
         colors:
           blue:
             $:
-              'color$colors$selected': ['color', 'colors', 'selected']
-              'color$colors.blue': ['color', 'colors.blue']
+              'color':
+                'colors': {'selected': 1}
+                'colors.blue': {$: 1}
     
     # Test setting on a non-keyed reference
     model.set 'color.compliment', 'yellow'
@@ -272,13 +273,14 @@ module.exports =
           compliment: 'yellow'
       color: model.ref 'colors.blue'
       selected: 'blue'
-      $keys: {selected: $: 'color$colors$selected': ['color', 'colors', 'selected']}
+      $keys: {selected: $: 'color': 'colors': 'selected': 1}
       $refs:
         colors:
           blue:
             $:
-              'color$colors$selected': ['color', 'colors', 'selected']
-              'color$colors.blue': ['color', 'colors.blue']
+              'color':
+                'colors': {'selected': 1}
+                'colors.blue': {$: 1}
   
   'transactions should dereference paths': wrapTest (done) ->
     count = 0
