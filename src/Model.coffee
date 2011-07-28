@@ -60,7 +60,7 @@ Model:: =
     # Request any transactions that may have been missed
     @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1
     
-    socket.on 'txn', @_onTxn
+    socket.on 'txn', onTxn
     socket.on 'txnNum', @_onTxnNum
     socket.on 'txnOk', (base, txnId, num) ->
       if txn = txns[txnId]
@@ -131,33 +131,11 @@ Model:: =
     emitPathEvents path
     # Emit events on any references that point to the path or any of its
     # ancestor paths.
-    if refs = @get '$refs'
-      self = this
-      _data = self.get()
-      # Passes back a set of references when we find references to path.
-      # Also passes back a set of references and a path remainder
-      # every time we find references to any of path's ancestor paths
-      # such that `ancestor_path + path_remainder == path`
-      eachRefSetPointingTo = (path, fn) ->
-        i = 0
-        refPos = refs
-        props = path.split '.'
-        while prop = props[i++]
-          return unless refPos = refPos[prop]
-          fn refSet, props.slice(i).join('.') if refSet = refPos.$
-      emitRefs = (targetPath) ->
-        eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
-          # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-          refHelper._eachValidRef refSet, _data, (pointingPath) ->
-            pointingPath += '.' + targetPathRemainder if targetPathRemainder
-            emitPathEvents pointingPath
-            emitRefs pointingPath
-
-      emitRefs path
+    refHelper.notifyPointersTo path, method, args, emitPathEvents
   
   _initAdapter: (adapter) ->
     self = this
-    @_refHelper = refHelper = new RefHelper adapter
+    @_refHelper = refHelper = new RefHelper self
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
       out = adapter.__set path, value, ver, options
