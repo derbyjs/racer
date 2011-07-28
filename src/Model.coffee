@@ -9,8 +9,9 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._initAdapter self._adapter = new AdapterClass
   
-  self._storeSubs = []  # Paths in the store that this model is subscribed to
-  self._eventSubs = {}  # Record of Model.on event subscriptions
+  # Paths in the store that this model is subscribed to. These get set with
+  # store.subscribe, and must be sent to the store upon connecting
+  self._storeSubs = []
   
   self._txnCount = 0
   self._txns = txns = {}
