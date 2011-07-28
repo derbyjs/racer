@@ -53,7 +53,7 @@ app.get '/:room', (req, res) ->
 initModel = (model, room) ->
   model.set '_roomName', room
   model.set '_room', model.ref "rooms.#{room}"
-  return if model.get '_room'
+  return if model.get '_room.letters'
   colors = ['red', 'yellow', 'blue', 'orange', 'green']
   letters = {}
   for row in [0..4]

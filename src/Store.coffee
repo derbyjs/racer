@@ -38,13 +38,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       callback value
   
   clientSockets = {}
-  @_setSockets = (sockets) ->
-    sockets.on 'connection', (socket) ->
-      # TODO Once socket.io supports query params in the
-      # socket.io urls, then we can remove this. Instead,
-      # we can add the socket <-> clientId assoc in the
-      # `sockets.on 'connection'...` callback.
-      socket.on 'sub', (clientId, paths, ver) ->
+  @_setSockets = (sockets) -> sockets.on 'connection', (socket) ->
+    # TODO Once socket.io supports query params in the
+    # socket.io urls, then we can remove this. Instead,
+    # we can add the socket <-> clientId assoc in the
+    # `sockets.on 'connection'...` callback.
+    socket.on 'sub', (clientId, paths, ver) ->
+      redisClient.get 'ver', (err, value) ->
+        # If the model connecting has a version number greater than the STM's
+        # current version, we can't recover, so send a fatal error signal
+        # and don't subscribe the model
+        # TODO: Fix this implementation, since the STM version number might
+        # have been incremented after losing versions in the client model
+        throw err if err
+        return socket.emit 'fatalErr' if ver > value
+        
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
         socket.on 'disconnect', ->

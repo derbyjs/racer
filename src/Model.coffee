@@ -4,7 +4,7 @@ MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
-  model = self = this
+  self = this
   self._initAdapter self._adapter = new AdapterClass
   
   self._storeSubs = []  # Paths in the store that this model is subscribed to
