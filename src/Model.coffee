@@ -163,7 +163,9 @@ Model:: =
     @_txns[id] = txn = [ver, id, method, args...]
     txn.callback = callback
     @_txnQueue.push id
-    # Update the transaction's path with a dereferenced path
+    # Update the transaction's path with a dereferenced path.
+    # It works via _specModel, which automatically dereferences 
+    # every transaction path including the just added path.
     path = txn[3] = args[0] = @_specModel()[1]
     # Apply a private transaction immediately and don't send it to the store
     return @_applyTxn txn if pathParser.isPrivate path
