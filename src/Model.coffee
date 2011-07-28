@@ -229,27 +229,33 @@ Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
 for name, fn of EventEmitter::
   Model::[name] = fn
 
+Model::_eventListener = (method, pattern, callback) ->
+  # on(type, listener)
+  # Test for function by looking for call, since pattern can be a regex,
+  # which has a typeof == 'function' as well
+  return pattern if pattern.call
+  
+  # on(method, pattern, callback)
+  re = pathParser.regExp pattern
+  refHelper = @_refHelper
+  return ([path, args...]) ->
+    emitPathEvent = (path) ->
+      callback re.exec(path).slice(1).concat(args)... if re.test path
+    emitPathEvent path
+    # Emit events on any references that point to the path or any of its
+    # ancestor paths
+    refHelper.notifyPointersTo path, method, args, emitPathEvent
+
+# EventEmitter::addListener and once return this. The Model equivalents return
+# the listener instead, since it is made internally for method subscriptions
+# and may need to be passed to removeListener
+
 Model::_on = EventEmitter::on
 Model::on = Model::addListener = (type, pattern, callback) ->
-  # Test for function, since pattern can be a regex or string
-  if pattern.call
-    # on(type, listener)
-    listener = pattern
-  else
-    # on(method, pattern, callback)
-    re = pathParser.regExp pattern
-    refHelper = @_refHelper
-    listener = ([path, args...]) ->
-      emitPathEvent = (path) ->
-        callback re.exec(path).slice(1).concat(args)... if re.test path
-      emitPathEvent path
-      # Emit events on any references that point to the path or any of its
-      # ancestor paths
-      refHelper.notifyPointersTo path, type, args, emitPathEvent
-  @_on type, listener
-  # EventEmitter::addListener returns this. Model subscribers return the
-  # listener instead, since it is made internally for method subscriptions
-  # and may need to be passed to removeListener
+  @_on type, listener = @_eventListener type, pattern, callback
   return listener
 
-# TODO: Implement once
+Model::_once = EventEmitter::once
+Model::once = (type, pattern, callback) ->
+  @_once type, listener = @_eventListener type, pattern, callback
+  return listener
