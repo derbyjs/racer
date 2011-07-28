@@ -21,6 +21,7 @@ Memory:: =
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
+      return out.path unless parent
       if prop of parent.__proto__
         obj = {}
         for key, value of parent.__proto__
@@ -180,5 +181,8 @@ Memory:: =
         else
           next = @_lookup(ref, addPath, options).obj
         path = ref if i < len
+        
+        # Return undefined if the reference points to nothing and getting
+        return {obj: next} if next is undefined && !addPath && i < len
     
-    return obj: next, path: path, parent: parent, prop: prop
+    return {path, parent, prop, obj: next}

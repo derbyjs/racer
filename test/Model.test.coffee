@@ -282,6 +282,23 @@ module.exports =
                 'colors': {'selected': 1}
                 'colors.blue': {$: 1}
   
+  'test getting and setting on a reference pointing to an undefined location': ->
+    model = new Model
+    
+    model.set 'color', model.ref 'green'
+    should.equal undefined, model.get 'color'
+    should.equal undefined, model.get 'color.hex'
+    
+    model.set 'color.hex', '#0f0'
+    model.get('green').should.eql hex: '#0f0'
+    
+    model.del 'color.hex'
+    model.get('green').should.eql {}
+    
+    model.del 'green'
+    model.push 'color', 'item'
+    model.get('green').should.eql ['item']
+  
   'transactions should dereference paths': wrapTest (done) ->
     count = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->

@@ -102,9 +102,12 @@ Model:: =
   ## Model events ##
   
   on: (method, pattern, callback) ->
-    if typeof pattern is 'function'
+    # Test for function, since pattern can be a regex or string
+    if pattern.call
+      # on(name, callback)
       sub = pattern
     else
+      # on(method, pattern, callback)
       re = pathParser.regExp pattern
       sub = [re, callback]
     subs = @_eventSubs
