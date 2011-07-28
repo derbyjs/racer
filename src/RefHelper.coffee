@@ -70,7 +70,13 @@ RefHelper:: =
       refsKey = ref
     update$refs refsKey
 
-
+  # If path is a reference's key ($k), then update all entries in the
+  # $refs index that use this key. i.e., update the following
+  #
+  #     $refs: <ref>.<dereferencedKey>: $: <path>: <ref>: <key>: 1
+  #                         *
+  #                         |
+  #                       Update <dereferencedKey>
   updateRefsForKey: (path, options) ->
     self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
