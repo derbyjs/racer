@@ -17,11 +17,11 @@ Memory:: =
     @ver = ver
     out = @_lookup path, false, options
     {parent, prop} = out
+    return out.path unless parent
     if options.proto
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
-      return out.path unless parent
       if prop of parent.__proto__
         obj = {}
         for key, value of parent.__proto__

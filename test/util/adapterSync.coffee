@@ -44,6 +44,9 @@ module.exports = (AdapterSync) ->
     
     adapterSync.del 'info.numbers'
     adapterSync.get().should.eql info: {}
+    
+    # Make sure deleting something that doesn't exist isn't a problem
+    adapterSync.del 'a.b.c'
 
   'test push and pop': ->
     adapterSync = new AdapterSync

@@ -191,6 +191,9 @@ module.exports =
         numbers:
           first: 2
           second: 10
+    
+    # Make sure deleting something that doesn't exist isn't a problem
+    model.del 'a.b.c'
   
   'test getting model references': ->
     model = new Model
