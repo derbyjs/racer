@@ -11,24 +11,24 @@ RefHelper:: =
   
   # If a key is present, merges
   #     TODO key is redundant here
-  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
+  #     { <path>: { <ref>: { <key>: 1 } } }
   # into
   #     "$keys":
   #       "#{key}":
   #         $:
   #
   # and merges
-  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
+  #     { <path>: { <ref>: { <key>: 1 } } }
   # into
-  #     "$refs":
-  #       "#{ref}.#{keyObj}": 
+  #     $refs:
+  #       <ref>.<lookup(key)>: 
   #         $:
   #
   # If key is not present, merges
-  #     "#{path}": { "#{ref}": { $: 1 } }
+  #     <path>: { <ref>: { $: 1 } }
   # into
-  #     "$refs":
-  #       "#{ref}": 
+  #     $refs:
+  #       <ref>: 
   #         $:
   #
   # $refs is a kind of index that allows us to lookup
@@ -73,10 +73,10 @@ RefHelper:: =
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
   #
-  #     $refs: <ref>.<dereferencedKey>: $: <path>: <ref>: <key>: 1
+  #     $refs: <ref>.<keyVal>: $: <path>: <ref>: <key>: 1
   #                         *
   #                         |
-  #                       Update <dereferencedKey>
+  #                       Update <keyVal> = <lookup(key)>
   updateRefsForKey: (path, options) ->
     self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
