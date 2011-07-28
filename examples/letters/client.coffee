@@ -32,6 +32,9 @@ rally.onload = ->
     setTimeout (-> reconnect.style.display = ''), 1000
     model.socket.socket.connect()
   
+  model.on 'fatal_error', ->
+    info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
+  
   model.on 'set', 'rooms.*.players', ->
     rooms = []
     for name, room of model.get 'rooms'

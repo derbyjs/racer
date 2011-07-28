@@ -45,6 +45,7 @@ Model:: =
   _reqNewTxns: ->
   _setSocket: (socket) ->
     @socket = socket
+    self = this
     adapter = @_adapter
     txns = @_txns
     txnQueue = @_txnQueue
@@ -71,6 +72,7 @@ Model:: =
         args.unshift err
         callback args...
       removeTxn txnId
+    socket.on 'fatalErr', -> self._emitSimple 'fatal_error'
     
     clientId = @_clientId
     storeSubs = @_storeSubs
@@ -99,13 +101,21 @@ Model:: =
   ## Model events ##
   
   on: (method, pattern, callback) ->
-    re = pathParser.regExp pattern
-    sub = [re, callback]
+    if typeof pattern is 'function'
+      sub = pattern
+    else
+      re = pathParser.regExp pattern
+      sub = [re, callback]
     subs = @_eventSubs
     if subs[method] is undefined
       subs[method] = [sub]
     else
       subs[method].push sub
+  
+  _emitSimple: (name) ->
+    return unless subs = @_eventSubs[name]
+    for callback in subs
+      callback()
   
   _emit: (method, [path, args...]) ->
     return unless subs = @_eventSubs[method]
