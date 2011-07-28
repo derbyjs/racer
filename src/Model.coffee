@@ -146,10 +146,7 @@ Model:: =
       return out
   
   # Creates a reference object for use in model data methods
-  ref: (ref, key, arrOnly) ->
-    if arrOnly
-      return $r: ref, $k: key, $o: arrOnly
-    if key? then $r: ref, $k: key else $r: ref
+  ref: (ref, key, arrOnly) -> @_refHelper.ref ref, key, arrOnly
   
   
   ## Transaction handling ##

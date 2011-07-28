@@ -4,6 +4,11 @@ module.exports = RefHelper = (model) ->
   return
 
 RefHelper:: =
+  ref: (ref, key, arrOnly) ->
+    if arrOnly
+      return $r: ref, $k: key, $o: arrOnly
+    if key? then $r: ref, $k: key else $r: ref
+  
   # If a key is present, merges
   #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
   # into
