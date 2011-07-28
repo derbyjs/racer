@@ -172,21 +172,21 @@ Model:: =
         delete refMap[path]
 
   # If a key is present, merges
-  #     { "#{path}$#{ref}$#{key}": [path, ref, key] }
+  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
   # into
   #     "$keys":
   #       "#{key}":
   #         $:
   #
   # and merges
-  #     { "#{path}$#{ref}": [path, ref] }
+  #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
   # into
   #     "$refs":
   #       "#{ref}.#{keyObj}": 
   #         $:
   #
   # If key is not present, merges
-  #     "#{path}$#{ref}": [path, ref]
+  #     "#{path}": { "#{ref}": { $: 1 } }
   # into
   #     "$refs":
   #       "#{ref}": 
