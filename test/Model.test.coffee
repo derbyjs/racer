@@ -365,6 +365,22 @@ module.exports =
       done()
     model.set 'bestColor.hex', '#0f0'
   , 2
+
+  'model events should not be emitted infinitely in the case of circular references': wrapTest (done) ->
+    model = new Model
+    model.set 'users.1.bestFriend', model.ref 'users.2'
+    model.set 'users.2.bestFriend', model.ref 'users.1'
+
+    counter = 0
+    model.on 'set', 'users.**', (value) ->
+      counter++
+      if counter == 2
+        setTimeout ->
+          counter.should.equal 2
+          done()
+        , 500
+    model.set 'users.1.bestFriend.age', '50'
+  , 1
   
   'removing a reference should stop emission of events': wrapTest (done) ->
     model = new Model
