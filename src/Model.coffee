@@ -148,7 +148,6 @@ Model:: =
   # Creates a reference object for use in model data methods
   ref: (ref, key, arrOnly) -> @_refHelper.ref ref, key, arrOnly
   
-  
   ## Transaction handling ##
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++

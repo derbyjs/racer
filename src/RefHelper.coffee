@@ -10,6 +10,7 @@ RefHelper:: =
     if key? then $r: ref, $k: key else $r: ref
   
   # If a key is present, merges
+  #     TODO key is redundant here
   #     { "#{path}": { "#{ref}": { "#{key}": 1 } } }
   # into
   #     "$keys":
@@ -34,6 +35,10 @@ RefHelper:: =
   # which references pointed to the path, `ref`, or to
   # a path that `ref` is a descendant of.
   #
+  # [*] The only purpose of these data structures appears to be for
+  # mutator events also emitting to references that pointed at the original
+  # mutated path
+  #
   # @param {String} path that is de-referenced to a true path represented by
   #                 lookup(ref + '.' + lookup(key))
   # @param {String} ref is what would be the `value` of $r: `value`.
@@ -43,6 +48,13 @@ RefHelper:: =
   # @param {Object} options
   setRefs: (path, ref, key, options) ->
     adapter = @_adapter
+    update$refs = (refsKey) ->
+      refMap = adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] ||= {}
+      keyMap = refMap[ref] ||= {}
+      if key
+        keyMap[key] = 1
+      else
+        keyMap['$'] = 1
     if key
       refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] ||= {}
       keyMap = refMap[ref] ||= {}
@@ -50,16 +62,14 @@ RefHelper:: =
       keyObj = adapter._lookup(key, false, options).obj
       # keyObj is only valid if it can be a valid path segment
       return if keyObj is undefined
+      if Array.isArray keyObj
+        refsKeys = keyObj.map (keyVal) -> ref + '.' + keyVal
+        return refsKeys.forEach update$refs
       refsKey = ref + '.' + keyObj
     else
       refsKey = ref
-    
-    refMap = adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] ||= {}
-    keyMap = refMap[ref] ||= {}
-    if key
-      keyMap[key] = 1
-    else
-      keyMap['$'] = 1
+    update$refs refsKey
+
 
   updateRefsForKey: (path, options) ->
     self = this
@@ -88,6 +98,9 @@ RefHelper:: =
       if Object.keys(refMap).length == 0
         delete refMap[path]
 
+  # Notify any path that referenced the `path`. And
+  # notify any path that referenced the path that referenced the path.
+  # And notify ... etc...
   notifyPointersTo: (path, method, args, emitPathEvents) ->
     model = @_model
     self = this
