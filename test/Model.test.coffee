@@ -657,3 +657,53 @@ module.exports =
         todos:
           1: { $: mine: todos: _mine: 1 }
           3: { $: mine: todos: _mine: 1 }
+
+    # Setting a property on an array reference member should update the referenced member
+    model.set 'todos',
+        1: { text: 'costco run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+    model.set 'mine.0.text', 'trader joes run'
+    model.get('todos.1.text').should.equal 'trader joes run'
+
+    # Setting on a path that is currently a reference should modify the
+    # reference, similar to setting an object reference in Javascript
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
+#    model.get().should.protoEql
+#      dogs:
+#        1: { name: 'banana' }
+#        2: { name: 'squeak' }
+#        3: { name: 'pogo' }
+#      todos:
+#        1: { text: 'costco run', status: 'complete' }
+#        2: { text: 'party hard', status: 'ongoing' }
+#        3: { text: 'bounce', status: 'ongoing' }
+#      mine: model.ref 'dogs', '_mine'
+#      _mine: ['1', '3']
+#      $keys: { _mine: $: mine: todos: _mine: 1 }
+#      $refs:
+#        dogs:
+#          1: { $: mine: dogs: _mine: 1 }
+#          3: { $: mine: dogs: _mine: 1 }
+#
+#    # Pushing onto an array reference should update the key array
+#    model.set 'todos.4', id: 4, text: 'new todo', status: 'ongoing'
+#    newTodo = model.get 'todos.4'
+#    model.push 'mine', newTodo
+#    model.get().should.protoEql
+#      mine: model.ref 'todos', '_mine'
+#      _mine: ['1', '3', '4']
+#      $keys: { _mine: $: mine: todos: _mine: 1 }
+#      $refs:
+#        todos:
+#          1: { $: mine: todos: _mine: 1 }
+#          3: { $: mine: todos: _mine: 1 }
+#          4: { $: mine: todos: _mine: 1 }
