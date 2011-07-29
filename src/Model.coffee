@@ -7,7 +7,7 @@ EventEmitter = require('events').EventEmitter
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
-  self._initAdapter self._adapter = new AdapterClass
+  self._initRefs self._adapter = new AdapterClass
   
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
@@ -36,6 +36,8 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     delete txns[txnId]
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
   
+  # The value of @_force is checked in the @_addTxn method. It can be used to
+  # create a transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
   
   return
@@ -101,28 +103,6 @@ Model:: =
       resendInterval = null
   
   
-  ## Model references handling ##
-  
-  _initAdapter: (adapter) ->
-    @_refHelper = refHelper = new RefHelper @
-    adapter.__set = adapter.set
-    adapter.set = (path, value, ver, options = {}) ->
-      out = @__set path, value, ver, options
-      # Save a record of any references being set
-      refHelper.setRefs path, ref, value.$k, options if value && ref = value.$r
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, options
-      return out
-
-#    adapter.__push = adapter.push
-#    adapter.push = (path, values..., ver, options) ->
-#      out = @__push path, values..., ver, options
-#      values.map ({id}) ->
-  
-  # Creates a reference object for use in model data methods
-  ref: (ref, key, arrOnly) -> @_refHelper.ref ref, key, arrOnly
-  
-  
   ## Transaction handling ##
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
@@ -171,6 +151,28 @@ Model:: =
         meta = adapter[transaction.method txn] args...
         path = meta.path
     return [obj, path]
+  
+  
+  ## Model references handling ##
+
+  _initRefs: (adapter) ->
+    @_refHelper = refHelper = new RefHelper @
+    adapter.__set = adapter.set
+    adapter.set = (path, value, ver, options = {}) ->
+      out = @__set path, value, ver, options
+      # Save a record of any references being set
+      refHelper.setRefs path, ref, value.$k, options if value && ref = value.$r
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, options
+      return out
+
+#    adapter.__push = adapter.push
+#    adapter.push = (path, values..., ver, options) ->
+#      out = @__push path, values..., ver, options
+#      values.map ({id}) ->
+
+  # Creates a reference object for use in model data methods
+  ref: RefHelper::ref
   
   
   ## Data accessor and mutator methods ##
