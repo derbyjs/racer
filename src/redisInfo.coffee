@@ -4,7 +4,7 @@ setStarts = (client, startsLength, ver, callback) ->
     .publish('$redisInfo', 'starts')
     .exec (err) ->
       throw err if err
-      callback() if callback
+      callback null if callback
 
 redisInfo = module.exports =
 

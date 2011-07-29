@@ -6,7 +6,9 @@ PubSub = require './PubSub'
 transaction = require './transaction'
 pathParser = require './pathParser.server'
 TxnApplier = require './TxnApplier'
-redisStarts = require('./redisInfo').starts
+redisInfo = require './redisInfo'
+
+redisInfo.subscribeToStarts
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
@@ -165,7 +167,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         callback = null
       done = true
     adapter.flush cb
-    redisClient.flushdb cb
+    redisClient.flushdb (err) ->
+      if err && callback
+        callback err
+        return callback = null
+      redisInfo.onStart redisClient, cb
   
   @get = (path, callback) -> @_adapter.get path, callback
   
