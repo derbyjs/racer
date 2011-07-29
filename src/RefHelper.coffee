@@ -48,18 +48,32 @@ RefHelper:: =
   # @param {Object} options
   setRefs: (path, ref, key, options) ->
     adapter = @_adapter
+    oldRefLookupOptions = dontFollowLastRef: true
+    oldRefLookupOptions[k] = v for k, v of options
+    oldRefObj = adapter._lookup(path, false, oldRefLookupOptions).obj
     update$refs = (refsKey) ->
-      refObj = {}
-      keyMap = refObj[ref] = {}
-      if key
-        keyMap[key] = 1
-      else
-        keyMap['$'] = 1
-      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = refObj
+      deleteRef = (ref, key) -> # for deleting old refs
+        ref += '.' + key if key
+        refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
+        delete refEntries[path]
+        pathsExistForRef = false
+        for k of refEntries[path]
+          pathsExistForRef = true
+          break
+        unless pathsExistForRef
+          adapter.del "$refs.#{ref}", null, options
+      if oldRefObj && oldRef = oldRefObj.$r
+        oldKey = oldRefObj.$k
+        dereffedOldKey = adapter._lookup(oldKey, false, options).obj
+        if Array.isArray dereffedOldKey
+          dereffedOldKey.forEach (oldKeyMem) ->
+            deleteRef oldRef, oldKeyMem
+          deleteRef oldRef, null
+        else
+          deleteRef oldRef, dereffedOldKey
+      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = [ref, key]
     if key
-      refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] ||= {}
-      keyMap = refMap[ref] ||= {}
-      keyMap[key] = 1
+      refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] = [ref, key]
       keyObj = adapter._lookup(key, false, options).obj
       # keyObj is only valid if it can be a valid path segment
       return if keyObj is undefined
@@ -68,6 +82,15 @@ RefHelper:: =
         return refsKeys.forEach update$refs
       refsKey = ref + '.' + keyObj
     else
+      if oldRefObj && oldKey = oldRefObj.$k
+        refs = adapter._lookup("$keys.#{oldKey}.$", false, options).obj
+        if refs && refs[path]
+          delete refs[path]
+          refsExistForKey = false
+          for k of refs
+            refsExistForKey = true
+            break
+          adapter.del "$keys.#{oldKey}", null, options unless refsExistForKey
       refsKey = ref
     update$refs refsKey
 
@@ -90,20 +113,14 @@ RefHelper:: =
     return obj
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = @_fastLookup
-    for path, refMap of refs
-      for ref, keyMap of refMap
-        for key of keyMap
-          key = undefined if key == '$'
-          # Check to see if the reference is still the same
-          o = fastLookup path, obj
-          if o && o.$r == ref && o.$k == key
-            callback path, ref, key
-          else
-            delete keyMap[key]
-        if Object.keys(keyMap).length == 0
-          delete refMap[ref]
-      if Object.keys(refMap).length == 0
-        delete refMap[path]
+    for path, [ref, key] of refs
+      # Check to see if the reference is still the same
+      o = fastLookup path, obj
+      if o && o.$r == ref && o.$k == key
+        callback path, ref, key
+      else
+        delete refs[path]
+        # Lazy cleanup
 
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.

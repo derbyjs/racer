@@ -148,6 +148,8 @@ Memory:: =
         parent = Object.create parent
       
       # Traverse down the next segment in the path
+      pathSegment = prop.dereffedProp || prop
+      prop = if prop.arrIndex isnt undefined then prop.arrIndex else prop
       next = parent[prop]
       if next is undefined
         # Return undefined if the object can't be found
@@ -156,12 +158,13 @@ Memory:: =
         next = parent[prop] = if array && i == len then [] else {}
       
       # Store the absolute path traversed so far
-      path = if path then path + '.' + prop else prop
+      path = if path then path + '.' + pathSegment else pathSegment
       
       # Check for model references
       if ref = next.$r
-        key = next.$k
-        if key
+        if i == len && options.dontFollowLastRef
+          return {path, parent, prop, obj: next}
+        if key = next.$k
           keyVal = @_lookup(key, false, options).obj
           if Array.isArray keyVal
             only = next.$o
@@ -171,10 +174,15 @@ Memory:: =
                 scopedMem = {}
                 for k, v of mem
                   scopedMem[k] = v if ~only.indexOf k
-                mem = scopedMem
-              else if only
-                mem = mem[only]
-              next = mem
+                return scopedMem
+              return mem[only] if only
+              return mem
+            # Map array index to key it should be in the dereferenced
+            # object
+            if props[i]
+              props[i] =
+                arrIndex: arrIndex = parseInt props[i], 10
+                dereffedProp: keyVal[arrIndex]
           else
             ref = ref + '.' + @_lookup(key, false, options).obj
             next = @_lookup(ref, addPath, options).obj

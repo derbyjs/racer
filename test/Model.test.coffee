@@ -228,15 +228,15 @@ module.exports =
     model.set 'color', model.ref 'colors', 'selected'
     model.get().should.protoEql
       color: model.ref 'colors', 'selected'
-      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
+      $keys: {selected: $: 'color': ['colors', 'selected'] }
     
     # Setting a key value should update the reference
     model.set 'selected', 'blue'
     model.get().should.protoEql
       color: model.ref 'colors', 'selected'
       selected: 'blue'
-      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
-      $refs: {colors: blue: $: 'color': 'colors': 'selected': 1 }
+      $keys: {selected: $: 'color': ['colors', 'selected'] }
+      $refs: {colors: blue: $: 'color': ['colors', 'selected'] }
     
     # Setting a property on a reference should update the referenced object
     model.set 'color.hex', '#0f0'
@@ -246,8 +246,8 @@ module.exports =
           hex: '#0f0'
       color: model.ref 'colors', 'selected'
       selected: 'blue'
-      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
-      $refs: {colors: blue: $: 'color': 'colors': 'selected': 1 }
+      $keys: {selected: $: 'color': ['colors', 'selected'] }
+      $refs: {colors: blue: $: 'color': ['colors', 'selected'] }
     
     # Setting on a path that is currently a reference should modify the
     # reference, similar to setting an object reference in Javascript
@@ -258,13 +258,8 @@ module.exports =
           hex: '#0f0'
       color: model.ref 'colors.blue'
       selected: 'blue'
-      $keys: {selected: $: 'color': 'colors': 'selected': 1 }
-      $refs:
-        colors:
-          blue:
-            $:
-              'color':
-                'colors.blue': {$: 1}
+      $keys: {}
+      $refs: {colors: blue: $: color: ['colors.blue', undefined] }
 
     # Test setting on a non-keyed reference
     model.set 'color.compliment', 'yellow'
@@ -275,13 +270,8 @@ module.exports =
           compliment: 'yellow'
       color: model.ref 'colors.blue'
       selected: 'blue'
-      $keys: {selected: $: 'color': 'colors': 'selected': 1}
-      $refs:
-        colors:
-          blue:
-            $:
-              'color':
-                'colors.blue': {$: 1}
+      $keys: {}
+      $refs: {colors: blue: $: color: ['colors.blue'] }
   
   'test getting and setting on a reference pointing to an undefined location': ->
     model = new Model
@@ -662,18 +652,18 @@ module.exports =
     model.set 'mine', model.ref('todos', '_mine')
     model.get().should.protoEql
       mine: model.ref('todos', '_mine')
-      $keys: { _mine: $: mine: todos: _mine: 1 }
+      $keys: { _mine: $: mine: ['todos', '_mine'] }
 
     # Setting a key value should update the reference
     model.set '_mine', ['1', '3']
     model.get().should.protoEql
       mine: model.ref 'todos', '_mine'
       _mine: ['1', '3']
-      $keys: { _mine: $: mine: todos: _mine: 1 }
+      $keys: { _mine: $: mine: ['todos', '_mine'] }
       $refs:
         todos:
-          1: { $: mine: todos: _mine: 1 }
-          3: { $: mine: todos: _mine: 1 }
+          1: { $: mine: ['todos', '_mine'] }
+          3: { $: mine: ['todos', '_mine'] }
 
     # Setting a property on an array reference member should update the referenced member
     model.set 'todos',
@@ -682,6 +672,18 @@ module.exports =
         3: { text: 'bounce', status: 'ongoing' }
     model.set 'mine.0.text', 'trader joes run'
     model.get('todos.1.text').should.equal 'trader joes run'
+    model.get().should.protoEql
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'todos', '_mine'
+      _mine: ['1', '3']
+      $keys: { _mine: $: mine: ['todos', '_mine'] }
+      $refs:
+        todos:
+          1: { $: mine: ['todos', '_mine'] }
+          3: { $: mine: ['todos', '_mine'] }
 
     # Setting on a path that is currently a reference should modify the
     # reference, similar to setting an object reference in Javascript
@@ -694,23 +696,23 @@ module.exports =
       { name: 'banana' }
       { name: 'pogo' }
     ]
-#    model.get().should.protoEql
-#      dogs:
-#        1: { name: 'banana' }
-#        2: { name: 'squeak' }
-#        3: { name: 'pogo' }
-#      todos:
-#        1: { text: 'costco run', status: 'complete' }
-#        2: { text: 'party hard', status: 'ongoing' }
-#        3: { text: 'bounce', status: 'ongoing' }
-#      mine: model.ref 'dogs', '_mine'
-#      _mine: ['1', '3']
-#      $keys: { _mine: $: mine: todos: _mine: 1 }
-#      $refs:
-#        dogs:
-#          1: { $: mine: dogs: _mine: 1 }
-#          3: { $: mine: dogs: _mine: 1 }
-#
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['1', '3']
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] }
+          3: { $: mine: ['dogs', '_mine'] }
+
 #    # Pushing onto an array reference should update the key array
 #    model.set 'todos.4', id: 4, text: 'new todo', status: 'ongoing'
 #    newTodo = model.get 'todos.4'
