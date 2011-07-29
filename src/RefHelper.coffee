@@ -123,10 +123,16 @@ RefHelper:: =
         while prop = props[i++]
           return unless refPos = refPos[prop]
           fn refSet, props.slice(i).join('.') if refSet = refPos.$
+      ignoreRoots = []
       emitRefs = (targetPath) ->
         eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
           # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-          self._eachValidRef refSet, _data, (pointingPath) ->
+          self._eachValidRef refSet, _data, (pointingPath, ref, key) ->
+            alreadySeen = ignoreRoots.some (root) ->
+              root == pointingPath.substr(0, root.length)
+            if alreadySeen
+              return
+            ignoreRoots.push ref
             pointingPath += '.' + targetPathRemainder if targetPathRemainder
             emitPathEvent pointingPath
             emitRefs pointingPath
