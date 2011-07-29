@@ -6,6 +6,7 @@ PubSub = require './PubSub'
 transaction = require './transaction'
 pathParser = require './pathParser.server'
 TxnApplier = require './TxnApplier'
+redisStarts = require('./redisInfo').starts
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
