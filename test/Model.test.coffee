@@ -264,9 +264,8 @@ module.exports =
           blue:
             $:
               'color':
-                'colors': {'selected': 1}
                 'colors.blue': {$: 1}
-    
+
     # Test setting on a non-keyed reference
     model.set 'color.compliment', 'yellow'
     model.get().should.protoEql
@@ -282,7 +281,6 @@ module.exports =
           blue:
             $:
               'color':
-                'colors': {'selected': 1}
                 'colors.blue': {$: 1}
   
   'test getting and setting on a reference pointing to an undefined location': ->

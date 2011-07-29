@@ -49,12 +49,13 @@ RefHelper:: =
   setRefs: (path, ref, key, options) ->
     adapter = @_adapter
     update$refs = (refsKey) ->
-      refMap = adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] ||= {}
-      keyMap = refMap[ref] ||= {}
+      refObj = {}
+      keyMap = refObj[ref] = {}
       if key
         keyMap[key] = 1
       else
         keyMap['$'] = 1
+      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = refObj
     if key
       refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] ||= {}
       keyMap = refMap[ref] ||= {}
