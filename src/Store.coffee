@@ -179,10 +179,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     redisClient.incr 'clientClock', (err, value) ->
       throw err if err
       callback value.toString(36)
-  # Note that Store clientIds MUST begin with '$', as this is used to treat
+  # Note that Store clientIds MUST begin with '#', as this is used to treat
   # conflict detection between Store and Model transactions differently
   clientId = ''
-  nextClientId (value) -> clientId = '$' + value
+  nextClientId (value) -> clientId = '#' + value
   txnCount = 0
   nextTxnId = -> clientId + '.' + txnCount++
   

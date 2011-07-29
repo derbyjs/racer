@@ -53,8 +53,8 @@ module.exports =
     txn5 = [0, '0.1', 'set', 'count', 1]
     txn6 = [0, '0.1', 'set', 'name', 'drago']
     
-    txn2s = [0, '$0.0', 'set', 'count', 0]
-    txn5s = [0, '$0.1', 'set', 'count', 1]
+    txn2s = [0, '#0.0', 'set', 'count', 0]
+    txn5s = [0, '#0.1', 'set', 'count', 1]
     
     txn7 = [0, '1.0', 'set', 'obj.nested', 0]
     txn8 = [0, '2.0', 'set', 'obj.nested.a', 0]

@@ -9,8 +9,8 @@ transaction.conflict = (txnA, txnB) ->
   
   # There is no conflict if the transactions are from the same model client
   # and the new transaction was from a later client version.
-  # However, this is not true for stores, whose IDs start with a '$'
-  if txnA[1].charAt(0) != '$'
+  # However, this is not true for stores, whose IDs start with a '#'
+  if txnA[1].charAt(0) != '#'
     idA = txnA[1].split '.'
     idB = txnB[1].split '.'
     clientIdA = idA[0]
