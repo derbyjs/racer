@@ -176,11 +176,27 @@ RefHelper:: =
         else
           txn[3] = path = @_model._specModel()[1]
         return txn
-      when 'pop', 'shift'
+      when 'pop', 'shift', 'remove'
         path = transaction.path txn
         obj = @_model._specModel(before: 'last')[0]
         if { $r, $k } = @isArrayRef path, obj
           txn[3] = path = $k
+        else
+          txn[3] = path = @_model._specModel()[1]
+        return txn
+      when 'insertAfter', 'insertBefore'
+        path = transaction.path txn
+        obj = @_model._specModel(before: 'last')[0]
+        if { $r, $k } = @isArrayRef path, obj
+          txn[3] = path = $k
+          oldPushArgs = transaction.args(txn).slice 2
+          newPushArgs = oldPushArgs.map (refObjToAdd) ->
+            if refObjToAdd.$r is undefined
+              throw new Error 'Trying to push a non-ref onto an array ref'
+            if $r != refObjToAdd.$r
+              throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
+            return refObjToAdd.$k
+          txn.splice 5, oldPushArgs.length, newPushArgs...
         else
           txn[3] = path = @_model._specModel()[1]
         return txn

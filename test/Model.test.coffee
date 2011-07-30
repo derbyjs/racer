@@ -797,3 +797,66 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           # '4' removed
+
+    # insertAfter for array references should update the key array
+    model.insertAfter 'mine', 0, model.ref 'dogs', '4'
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'} # new data
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['1', '4', '3'] # new data '4' inserted()
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] }
+          3: { $: mine: ['dogs', '_mine'] }
+          4: { $: mine: ['dogs', '_mine'] } # new data
+
+    # remove for array references should update the key array
+    model.remove 'mine', 1
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'} # new data
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['1', '3'] # '4' removed()
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] }
+          3: { $: mine: ['dogs', '_mine'] }
+          # '4' removed
+
+    # insertBefore for array references should update the key array
+    model.insertBefore 'mine', 1, model.ref('dogs', '4')
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'} # new data
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['1', '4', '3'] # new data '4' inserted()
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] }
+          3: { $: mine: ['dogs', '_mine'] }
+          4: { $: mine: ['dogs', '_mine'] } # new data

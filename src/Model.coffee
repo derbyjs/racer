@@ -205,7 +205,7 @@ Model:: =
   insertBefore: (path, beforeIndex, value, callback) ->
     @_addTxn 'insertBefore', path, beforeIndex, value, callback
 
-  remove: (path, startIndex, howMany, callback) ->
+  remove: (path, startIndex, howMany = 1, callback) ->
     @_addTxn 'remove', path, startIndex, howMany, callback
 
   splice: (path, startIndex, removeCount, newMembers..., callback) ->
