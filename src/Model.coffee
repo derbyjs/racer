@@ -8,7 +8,12 @@ EventEmitter = require('events').EventEmitter
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._initRefs self._adapter = new AdapterClass
-  
+
+  self._cache =
+    invalidateSpecModelCache: ->
+      delete @obj
+      delete @lastReplayedTxnId
+      delete @path
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
   self._storeSubs = []
@@ -35,6 +40,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._removeTxn = (txnId) ->
     delete txns[txnId]
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
+    self._cache.invalidateSpecModelCache()
   
   # The value of @_force is checked in the @_addTxn method. It can be used to
   # create a transaction without conflict detection, such as model.force.set
@@ -117,7 +123,9 @@ Model:: =
     txn = @_refHelper.dereferenceTxn txn
     args[0] = path = txn[3]
     # Apply a private transaction immediately and don't send it to the store
-    return @_applyTxn txn if pathParser.isPrivate path
+    if pathParser.isPrivate path
+      @_cache.invalidateSpecModelCache()
+      return @_applyTxn txn
     # Emit an event on creation of the transaction
     @emit method, args
     # Send it over Socket.IO or to the store on the server
@@ -134,13 +142,22 @@ Model:: =
   
   # TODO Will re-calculation of speculative model every time result
   #      in assignemnts to vars becoming stale?
-  # TODO: Do caching of speculative model instead of recreating it from scratch
   _specModel: ->
+    cache = @_cache
+    if lastReplayedTxnId = cache.lastReplayedTxnId
+      if cache.lastReplayedTxnId == @_txnQueue[@_txnQueue.length-1]
+        return [cache.obj, cache.path]
+      obj = cache.obj
+      replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
+    else
+      replayFrom = 0
+
     adapter = @_adapter
     if len = @_txnQueue.length
       # Then generate a speculative model
-      obj = Object.create adapter.get()
-      i = 0
+      unless obj
+        obj = cache.obj = Object.create adapter.get()
+      i = replayFrom
       while i < len
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
@@ -148,8 +165,10 @@ Model:: =
         args.push adapter.ver, obj: obj, proto: true, returnMeta: true
         meta = adapter[transaction.method txn] args...
         path = meta.path
+      cache.obj = obj
+      cache.path = path
+      cache.lastReplayedTxnId = transaction.id txn
     return [obj, path]
-  
   
   ## Model references handling ##
 
@@ -157,7 +176,7 @@ Model:: =
     @_refHelper = refHelper = new RefHelper @
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
-      # Save a record of any references being set
+    # Save a record of any references being set
       refHelper.setRefs path, ref, value.$k, options if value && ref = value.$r
       out = @__set path, value, ver, options
       # Check to see if setting to a reference's key. If so, update references

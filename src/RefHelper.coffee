@@ -173,7 +173,7 @@ RefHelper:: =
           throw new Error 'Unimplemented for method ' + method
 
       path = transaction.path txn
-      obj = @_model._specModel(before: 'last')[0]
+      obj = @_model._specModel()[0]
       if { $r, $k } = @isArrayRef path, obj
         txn[3] = path = $k
         oldPushArgs = transaction.args(txn).slice sliceFrom
