@@ -160,7 +160,7 @@ RefHelper:: =
   
   dereferenceTxn: (txn) ->
     switch transaction.method txn
-      when 'push'
+      when 'push', 'unshift'
         path = transaction.path txn
         obj = @_model._specModel(before: 'last')[0]
         if { $r, $k } = @isArrayRef path, obj
@@ -176,7 +176,7 @@ RefHelper:: =
         else
           txn[3] = path = @_model._specModel()[1]
         return txn
-      when 'pop'
+      when 'pop', 'shift'
         path = transaction.path txn
         obj = @_model._specModel(before: 'last')[0]
         if { $r, $k } = @isArrayRef path, obj
