@@ -159,53 +159,41 @@ RefHelper:: =
       emitRefs path
   
   dereferenceTxn: (txn) ->
-    switch transaction.method txn
-      when 'push', 'unshift'
-        path = transaction.path txn
-        obj = @_model._specModel(before: 'last')[0]
-        if { $r, $k } = @isArrayRef path, obj
-          txn[3] = path = $k
-          oldPushArgs = transaction.args(txn).slice 1
-          newPushArgs = oldPushArgs.map (refObjToAdd) ->
-            if refObjToAdd.$r is undefined
-              throw new Error 'Trying to push a non-ref onto an array ref'
-            if $r != refObjToAdd.$r
-              throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
-            return refObjToAdd.$k
-          txn.splice 4, oldPushArgs.length, newPushArgs...
+    method = transaction.method txn
+    if ~['push', 'unshift', 'pop', 'shift', 'remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
+      args = transaction.args txn
+      sliceFrom = switch method
+        when 'push', 'unshift' then 1
+        when 'pop', 'shift' then 2
+        when 'remove'
+          if args.length == 2 then 2 else 3
+        when 'insertAfter', 'insertBefore' then 2
+        when 'splice' then 3
         else
-          txn[3] = path = @_model._specModel()[1]
-        return txn
-      when 'pop', 'shift', 'remove'
-        path = transaction.path txn
-        obj = @_model._specModel(before: 'last')[0]
-        if { $r, $k } = @isArrayRef path, obj
-          txn[3] = path = $k
-        else
-          txn[3] = path = @_model._specModel()[1]
-        return txn
-      when 'insertAfter', 'insertBefore'
-        path = transaction.path txn
-        obj = @_model._specModel(before: 'last')[0]
-        if { $r, $k } = @isArrayRef path, obj
-          txn[3] = path = $k
-          oldPushArgs = transaction.args(txn).slice 2
-          newPushArgs = oldPushArgs.map (refObjToAdd) ->
-            if refObjToAdd.$r is undefined
-              throw new Error 'Trying to push a non-ref onto an array ref'
-            if $r != refObjToAdd.$r
-              throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
-            return refObjToAdd.$k
-          txn.splice 5, oldPushArgs.length, newPushArgs...
-        else
-          txn[3] = path = @_model._specModel()[1]
-        return txn
+          throw new Error 'Unimplemented for method ' + method
+
+      path = transaction.path txn
+      obj = @_model._specModel(before: 'last')[0]
+      if { $r, $k } = @isArrayRef path, obj
+        txn[3] = path = $k
+        oldPushArgs = transaction.args(txn).slice sliceFrom
+        newPushArgs = oldPushArgs.map (refObjToAdd) ->
+          if refObjToAdd.$r is undefined
+            throw new Error 'Trying to push a non-ref onto an array ref'
+          if $r != refObjToAdd.$r
+            throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
+          return refObjToAdd.$k
+        txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
       else
         # Update the transaction's path with a dereferenced path.
-        # It works via _specModel, which automatically dereferences 
-        # every transaction path including the just added path.
         txn[3] = path = @_model._specModel()[1]
-        return txn
+      return txn
+
+    # Update the transaction's path with a dereferenced path.
+    # It works via _specModel, which automatically dereferences 
+    # every transaction path including the just added path.
+    txn[3] = path = @_model._specModel()[1]
+    return txn
 
   isArrayRef: (path, data) ->
     options = proto: true, obj: data, dontFollowLastRef: true

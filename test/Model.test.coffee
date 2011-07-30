@@ -742,7 +742,7 @@ module.exports =
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
-        4: { name: 'boo boo'} # new data
+        4: { name: 'boo boo'}
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -763,7 +763,7 @@ module.exports =
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
-        4: { name: 'boo boo'} # new data
+        4: { name: 'boo boo'}
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -784,7 +784,7 @@ module.exports =
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
-        4: { name: 'boo boo'} # new data
+        4: { name: 'boo boo'}
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -817,7 +817,7 @@ module.exports =
         dogs:
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
-          4: { $: mine: ['dogs', '_mine'] } # new data
+          4: { $: mine: ['dogs', '_mine'] }
 
     # remove for array references should update the key array
     model.remove 'mine', 1
@@ -826,7 +826,7 @@ module.exports =
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
-        4: { name: 'boo boo'} # new data
+        4: { name: 'boo boo'}
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -847,7 +847,7 @@ module.exports =
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
-        4: { name: 'boo boo'} # new data
+        4: { name: 'boo boo'}
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -860,3 +860,45 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] } # new data
+
+    # remove multiple items at once for array references should update the key array
+    model.remove 'mine', 0, 2
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'}
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['3'] # '1' and '4' removed()
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          3: { $: mine: ['dogs', '_mine'] }
+          # '1' removed
+          # '4' removed
+
+    # splice for array references should update the key array
+    model.splice 'mine', 0, 1, model.ref('dogs', '4'), model.ref('dogs', '1')
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'} # new data
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['4', '1'] # new data '4', '1' spliced in; '3' spliced out
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] } # new data
+          4: { $: mine: ['dogs', '_mine'] } # new data
+          # '3' removed
