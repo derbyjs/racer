@@ -734,3 +734,24 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] } # new data
+
+    # Popping an array reference should update the key array
+    model.pop 'mine'
+    model.get().should.protoEql
+      dogs:
+        1: { name: 'banana' }
+        2: { name: 'squeak' }
+        3: { name: 'pogo' }
+        4: { name: 'boo boo'} # new data
+      todos:
+        1: { text: 'trader joes run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+      mine: model.ref 'dogs', '_mine'
+      _mine: ['1', '3'] # new data '4' popped()
+      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', '_mine'] }
+          3: { $: mine: ['dogs', '_mine'] }
+          # '4' removed

@@ -176,6 +176,14 @@ RefHelper:: =
         else
           txn[3] = path = @_model._specModel()[1]
         return txn
+      when 'pop'
+        path = transaction.path txn
+        obj = @_model._specModel(before: 'last')[0]
+        if { $r, $k } = @isArrayRef path, obj
+          txn[3] = path = $k
+        else
+          txn[3] = path = @_model._specModel()[1]
+        return txn
       else
         # Update the transaction's path with a dereferenced path.
         # It works via _specModel, which automatically dereferences 
