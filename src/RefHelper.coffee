@@ -1,3 +1,5 @@
+transaction = require './transaction'
+
 module.exports = RefHelper = (model) ->
   @_model = model
   @_adapter = model._adapter
@@ -155,3 +157,38 @@ RefHelper:: =
             emitPathEvent pointingPath
             emitRefs pointingPath
       emitRefs path
+  
+  dereferenceTxn: (txn) ->
+    switch transaction.method txn
+      when 'push'
+        path = transaction.path txn
+        obj = @_model._specModel(before: 'last')[0]
+        if { $r, $k } = @isArrayRef path, obj
+          txn[3] = path = $k
+          oldPushArgs = transaction.args(txn).slice 1
+          newPushArgs = oldPushArgs.map (refObjToAdd) ->
+            if refObjToAdd.$r is undefined
+              throw new Error 'Trying to push a non-ref onto an array ref'
+            if $r != refObjToAdd.$r
+              throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
+            return refObjToAdd.$k
+          txn.splice 4, oldPushArgs.length, newPushArgs...
+        else
+          txn[3] = path = @_model._specModel()[1]
+        return txn
+      else
+        # Update the transaction's path with a dereferenced path.
+        # It works via _specModel, which automatically dereferences 
+        # every transaction path including the just added path.
+        txn[3] = path = @_model._specModel()[1]
+        return txn
+
+  isArrayRef: (path, data) ->
+    options = proto: true, obj: data, dontFollowLastRef: true
+    refObj = @_adapter._lookup(path, false, options).obj
+    return false if refObj is undefined
+    {$r, $k} = refObj
+    return false unless $r && $k # this is not a ref
+    keyObj = @_adapter._lookup($k, false, options).obj
+    return false unless Array.isArray keyObj
+    return { $r, $k }

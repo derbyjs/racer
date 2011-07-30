@@ -114,10 +114,8 @@ Model:: =
     @_txns[id] = txn = [ver, id, method, args...]
     txn.callback = callback
     @_txnQueue.push id
-    # Update the transaction's path with a dereferenced path.
-    # It works via _specModel, which automatically dereferences 
-    # every transaction path including the just added path.
-    path = txn[3] = args[0] = @_specModel()[1]
+    txn = @_refHelper.dereferenceTxn txn
+    args[0] = path = txn[3]
     # Apply a private transaction immediately and don't send it to the store
     return @_applyTxn txn if pathParser.isPrivate path
     # Emit an event on creation of the transaction
@@ -165,11 +163,6 @@ Model:: =
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, options
       return out
-
-#    adapter.__push = adapter.push
-#    adapter.push = (path, values..., ver, options) ->
-#      out = @__push path, values..., ver, options
-#      values.map ({id}) ->
 
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
