@@ -692,10 +692,6 @@ module.exports =
       1: { name: 'banana' }
       2: { name: 'squeak' }
       3: { name: 'pogo' }
-    model.get('mine').should.eql [
-      { name: 'banana' }
-      { name: 'pogo' }
-    ]
     model.get().should.protoEql
       dogs:
         1: { name: 'banana' }
@@ -712,6 +708,12 @@ module.exports =
         dogs:
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
 
     # Pushing onto an array reference should update the key array
     model.set 'dogs.4', name: 'boo boo'
@@ -734,6 +736,13 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] } # new data
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+      { name: 'boo boo'}
+    ]
 
     # Popping an array reference should update the key array
     model.pop 'mine'
@@ -755,6 +764,12 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           # '4' removed
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
 
     # Unshifting an array reference should update the key array
     model.unshift 'mine', model.ref 'dogs', '4'
@@ -776,6 +791,13 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] } # new data
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'boo boo'}
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
 
     # Shifting an array reference should update the key array
     model.shift 'mine'
@@ -797,6 +819,12 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           # '4' removed
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
 
     # insertAfter for array references should update the key array
     model.insertAfter 'mine', 0, model.ref 'dogs', '4'
@@ -818,6 +846,13 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] }
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'boo boo'}
+      { name: 'pogo' }
+    ]
 
     # remove for array references should update the key array
     model.remove 'mine', 1
@@ -839,6 +874,12 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           # '4' removed
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'pogo' }
+    ]
 
     # insertBefore for array references should update the key array
     model.insertBefore 'mine', 1, model.ref('dogs', '4')
@@ -860,6 +901,13 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] }
           3: { $: mine: ['dogs', '_mine'] }
           4: { $: mine: ['dogs', '_mine'] } # new data
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'banana' }
+      { name: 'boo boo'}
+      { name: 'pogo' }
+    ]
 
     # remove multiple items at once for array references should update the key array
     model.remove 'mine', 0, 2
@@ -881,6 +929,11 @@ module.exports =
           3: { $: mine: ['dogs', '_mine'] }
           # '1' removed
           # '4' removed
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'pogo' }
+    ]
 
     # splice for array references should update the key array
     model.splice 'mine', 0, 1, model.ref('dogs', '4'), model.ref('dogs', '1')
@@ -902,3 +955,9 @@ module.exports =
           1: { $: mine: ['dogs', '_mine'] } # new data
           4: { $: mine: ['dogs', '_mine'] } # new data
           # '3' removed
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { name: 'boo boo'}
+      { name: 'banana' }
+    ]
