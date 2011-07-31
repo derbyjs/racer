@@ -13,21 +13,21 @@ RefHelper:: =
   
   # If a key is present, merges
   #     TODO key is redundant here
-  #     { <path>: { <ref>: { <key>: 1 } } }
+  #     { <path>: [<ref>, <key>] }
   # into
   #     "$keys":
   #       "#{key}":
   #         $:
   #
   # and merges
-  #     { <path>: { <ref>: { <key>: 1 } } }
+  #     { <path>: [<ref>, <key>] }
   # into
   #     $refs:
   #       <ref>.<lookup(key)>: 
   #         $:
   #
   # If key is not present, merges
-  #     <path>: { <ref>: { $: 1 } }
+  #     <path>: [<ref>, undefined]
   # into
   #     $refs:
   #       <ref>: 
@@ -99,7 +99,7 @@ RefHelper:: =
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
   #
-  #     $refs: <ref>.<keyVal>: $: <path>: <ref>: <key>: 1
+  #     $refs: <ref>.<keyVal>: $: <path>: [<ref>, <key>]
   #                         *
   #                         |
   #                       Update <keyVal> = <lookup(key)>
