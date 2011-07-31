@@ -1,4 +1,5 @@
 transaction = require './transaction'
+{merge, anyKeys} = require './utils'
 
 module.exports = RefHelper = (model) ->
   @_model = model
@@ -50,49 +51,41 @@ RefHelper:: =
   # @param {Object} options
   setRefs: (path, ref, key, options) ->
     adapter = @_adapter
-    oldRefLookupOptions = dontFollowLastRef: true
-    oldRefLookupOptions[k] = v for k, v of options
-    oldRefObj = adapter._lookup(path, false, oldRefLookupOptions).obj
+    options2 = merge {dontFollowLastRef: true}, options
+    oldRefObj = adapter._lookup(path, false, options2).obj
+    removeFrom$refs = (ref, key) -> # for deleting old refs
+      ref += '.' + key if key
+      refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
+      delete refEntries[path]
+      unless anyKeys refEntries
+        adapter.del "$refs.#{ref}", null, options
     update$refs = (refsKey) ->
-      deleteRef = (ref, key) -> # for deleting old refs
-        ref += '.' + key if key
-        refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
-        delete refEntries[path]
-        pathsExistForRef = false
-        for k of refEntries[path]
-          pathsExistForRef = true
-          break
-        unless pathsExistForRef
-          adapter.del "$refs.#{ref}", null, options
       if oldRefObj && oldRef = oldRefObj.$r
         oldKey = oldRefObj.$k
-        dereffedOldKey = adapter._lookup(oldKey, false, options).obj
-        if Array.isArray dereffedOldKey
-          dereffedOldKey.forEach (oldKeyMem) ->
-            deleteRef oldRef, oldKeyMem
-          deleteRef oldRef, null
+        oldKeyVal = adapter._lookup(oldKey, false, options).obj
+        if Array.isArray oldKeyVal
+          # If this key was used in an array ref: {$r: path, $k: [...]}
+          oldKeyVal.forEach (oldKeyMem) ->
+            removeFrom$refs oldRef, oldKeyMem
+          removeFrom$refs oldRef, null
         else
-          deleteRef oldRef, dereffedOldKey
+          removeFrom$refs oldRef, oldKeyVal
       adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = [ref, key]
     if key
-      refMap = adapter._lookup("$keys.#{key}.$", true, options).obj[path] = [ref, key]
-      keyObj = adapter._lookup(key, false, options).obj
-      # keyObj is only valid if it can be a valid path segment
-      return if keyObj is undefined
-      if Array.isArray keyObj
-        refsKeys = keyObj.map (keyVal) -> ref + '.' + keyVal
+      adapter._lookup("$keys.#{key}.$", true, options).obj[path] = [ref, key]
+      keyVal = adapter._lookup(key, false, options).obj
+      # keyVal is only valid if it can be a valid path segment
+      return if keyVal is undefined
+      if Array.isArray keyVal
+        refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         return refsKeys.forEach update$refs
-      refsKey = ref + '.' + keyObj
+      refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
         refs = adapter._lookup("$keys.#{oldKey}.$", false, options).obj
         if refs && refs[path]
           delete refs[path]
-          refsExistForKey = false
-          for k of refs
-            refsExistForKey = true
-            break
-          adapter.del "$keys.#{oldKey}", null, options unless refsExistForKey
+          adapter.del "$keys.#{oldKey}", null, options unless anyKeys refs
       refsKey = ref
     update$refs refsKey
 
@@ -161,6 +154,15 @@ RefHelper:: =
       emitPathEvent pointingPath
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
 
+  cleanupPointersTo: (path) ->
+
+  setupRefGC: ->
+    adapter = @_adapter
+    adapter.__del = adapter.del
+    adapter.del = (path, ver, options) ->
+      adapter.__del path, ver, options
+      refHelper.cleanupPointersTo path
+  
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue
   dereferenceTxn: (txn) ->
@@ -200,6 +202,9 @@ RefHelper:: =
     txn[3] = path = @_model._specModel()[1]
     return txn
 
+  # isArrayRef
+  # @param {String} path that we want to determine is a pointer or not
+  # @param {Object} data is the speculative or true model data
   isArrayRef: (path, data) ->
     options = proto: true, obj: data, dontFollowLastRef: true
     refObj = @_adapter._lookup(path, false, options).obj
