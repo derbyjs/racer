@@ -124,40 +124,45 @@ RefHelper:: =
         delete refs[path]
         # Lazy cleanup
 
+  # Passes back a set of references when we find references to path.
+  # Also passes back a set of references and a path remainder
+  # every time we find references to any of path's ancestor paths
+  # such that `ancestor_path + path_remainder == path`
+  _eachRefSetPointingTo: (path, refs, fn) ->
+    i = 0
+    refPos = refs
+    props = path.split '.'
+    while prop = props[i++]
+      return unless refPos = refPos[prop]
+      fn refSet, props.slice(i).join('.') if refSet = refPos.$
+
+  eachValidRefPointingTo: (targetPath, fn) ->
+    self = this
+    model = @_model
+    return unless refs = model.get '$refs'
+    _data = model.get()
+    self._eachRefSetPointingTo targetPath, refs, (refSet, targetPathRemainder) ->
+      # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
+      self._eachValidRef refSet, _data, (pointingPath, ref, key) ->
+        fn pointingPath, targetPathRemainder, ref, key
+
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (path, method, args, emitPathEvent) ->
-    model = @_model
+  notifyPointersTo: (targetPath, method, args, emitPathEvent, ignoreRoots = []) ->
     self = this
-    if refs = model.get '$refs'
-      _data = model.get()
-      # Passes back a set of references when we find references to path.
-      # Also passes back a set of references and a path remainder
-      # every time we find references to any of path's ancestor paths
-      # such that `ancestor_path + path_remainder == path`
-      eachRefSetPointingTo = (path, fn) ->
-        i = 0
-        refPos = refs
-        props = path.split '.'
-        while prop = props[i++]
-          return unless refPos = refPos[prop]
-          fn refSet, props.slice(i).join('.') if refSet = refPos.$
-      ignoreRoots = []
-      emitRefs = (targetPath) ->
-        eachRefSetPointingTo targetPath, (refSet, targetPathRemainder) ->
-          # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-          self._eachValidRef refSet, _data, (pointingPath, ref, key) ->
-            alreadySeen = ignoreRoots.some (root) ->
-              root == pointingPath.substr(0, root.length)
-            if alreadySeen
-              return
-            ignoreRoots.push ref
-            pointingPath += '.' + targetPathRemainder if targetPathRemainder
-            emitPathEvent pointingPath
-            emitRefs pointingPath
-      emitRefs path
-  
+    self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key) ->
+      alreadySeen = ignoreRoots.some (root) ->
+        # For avoiding infinite event emission
+        root == pointingPath.substr(0, root.length)
+      return if alreadySeen
+      ignoreRoots.push ref
+      pointingPath += '.' + targetPathRemainder if targetPathRemainder
+      emitPathEvent pointingPath
+      self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
+
+  # Used to normalize a transaction to its de-referenced parts before
+  # adding it to the model's txnQueue
   dereferenceTxn: (txn) ->
     method = transaction.method txn
     if ~['push', 'unshift', 'pop', 'shift', 'remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
