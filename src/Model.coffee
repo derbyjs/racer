@@ -177,7 +177,7 @@ Model:: =
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
     # Save a record of any references being set
-      refHelper.setRefs path, ref, value.$k, options if value && ref = value.$r
+      refHelper.$indexRefs path, ref, value.$k, options if value && ref = value.$r
       out = @__set path, value, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, options

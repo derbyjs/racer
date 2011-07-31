@@ -49,7 +49,7 @@ RefHelper:: =
   # @param {String} key is a path that points to a pathB or array of paths
   #                 as another lookup chain on the dereferenced `ref`
   # @param {Object} options
-  setRefs: (path, ref, key, options) ->
+  $indexRefs: (path, ref, key, options) ->
     adapter = @_adapter
     options2 = merge {dontFollowLastRef: true}, options
     oldRefObj = adapter._lookup(path, false, options2).obj
@@ -100,7 +100,7 @@ RefHelper:: =
     self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
       @_eachValidRef refs, options.obj, (path, ref, key) ->
-        self.setRefs path, ref, key, options
+        self.$indexRefs path, ref, key, options
 
   _fastLookup: (path, obj) ->
     for prop in path.split '.'
