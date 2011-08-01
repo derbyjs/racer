@@ -69,7 +69,7 @@ RefHelper:: =
           # If this key was used in an array ref: {$r: path, $k: [...]}
           oldKeyVal.forEach (oldKeyMem) ->
             removeFrom$refs oldRef, oldKeyMem
-          removeFrom$refs oldRef, null
+          removeFrom$refs oldRef
         else
           removeFrom$refs oldRef, oldKeyVal
     update$refs = (refsKey) ->

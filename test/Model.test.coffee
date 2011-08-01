@@ -361,6 +361,19 @@ module.exports =
     model.set 'bestColor.hex', '#0f0'
   , 2
 
+  'model events should be emitted on a private path reference (client-side)': wrapTest (done) ->
+    serverModel = new Model
+    serverModel.set '_room', serverModel.ref 'rooms.lobby'
+    model = new Model
+    model._adapter._data = JSON.parse JSON.stringify serverModel.get()
+    model.on 'set', '_room.letters.*.position', (id, value) ->
+      id.should.equal 'A'
+      value.should.equal 5
+      done()
+    model.set '_room.players', 1
+    model.set '_room.letters.A.position', 5
+  , 1
+
   'model events should not be emitted infinitely in the case of circular references': wrapTest (done) ->
     model = new Model
     # refs for test ops 1
