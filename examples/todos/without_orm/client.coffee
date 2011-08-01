@@ -1,20 +1,30 @@
 rally = require 'rally'
 
-window.onload = ->
+rally.onload = ->
   model = rally.model
 
   todoList = document.getElementById 'todos'
 
-  addTodo = (id, index, member) ->
-    todos = model.get "groups.#{groupId}.todos"
-    # TODO Add todo to user todos
-    todoList # TODO Add todo to DOM
+  addTodo = (index) ->
+    nextId = model.get 'todos.nextId'
+    model.set 'todos.nextId', ++nextId
+    model.set "todos.#{nextId}", { text: '' }
+    model.insertAfter "groups.#{groupId}.todos", index-1, model.ref('todos', nextId)
+  removeTodo = (id) ->
+    model.del 'todos.' + id
+  removeTodoAt = (index) ->
+    model.remove "groups.#{groupId}", index
+  updateTodo = (id, text) ->
+    model.set "todos.#{id}.text", text
+
+  addTodoToUi = (id, index, member) ->
+    todoList.innerHtml
 
   removeTodo = (todoId) ->
-    # TODO model.del "todos.#{todoId}"
+    model.del "todos.#{todoId}"
 
   model.on 'insertAfter', "groups.#{groupId}.todos", addTodo
-  model.on 'removeAfter', "groups.#{groupId}.todos", removeTodo
+  model.on 'remove', "groups.#{groupId}.todos", removeTodo
 
   addListener todoList, 'click', (e) ->
     e.preventDefault() if e.preventDefault
