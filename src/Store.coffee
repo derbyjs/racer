@@ -121,7 +121,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         clientSockets[clientId] = socket
         pubSub.subscribe clientId, paths
         # Return any transactions that the model may have missed
-        txnsSince ver + 1
+        txnsSince ver + 1, clientStartId
   
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
