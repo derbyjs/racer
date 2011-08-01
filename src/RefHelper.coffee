@@ -6,6 +6,8 @@ module.exports = RefHelper = (model) ->
   @_adapter = model._adapter
   return
 
+ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1
+
 RefHelper:: =
   ref: (ref, key, arrOnly) ->
     if arrOnly
@@ -176,7 +178,7 @@ RefHelper:: =
   # adding it to the model's txnQueue
   dereferenceTxn: (txn) ->
     method = transaction.method txn
-    if ~['push', 'unshift', 'pop', 'shift', 'remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
+    if ARRAY_OPS[method]
       args = transaction.args txn
       sliceFrom = switch method
         when 'push', 'unshift' then 1
