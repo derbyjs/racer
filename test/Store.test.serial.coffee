@@ -1,5 +1,6 @@
 should = require 'should'
 Store = require 'Store'
+redis = require 'redis'
 
 store = null
 module.exports =
@@ -10,6 +11,7 @@ module.exports =
     store.flush ->
       clearInterval store._pendingInterval
       store._redisClient.end()
+      store._subClient.end()
       {_subscribeClient, _publishClient} = store._pubSub._adapter
       _subscribeClient.end()
       _publishClient.end()
@@ -31,9 +33,10 @@ module.exports =
               store._adapter.get null, (err, value) ->
                 value.should.eql {}
                 store._redisClient.keys '*', (err, value) ->
+                  # Once again, the key starts should exist after the flush
                   value.should.eql ['starts']
                   done()
-
+  
   'flush should return an error if the adapter fails to flush': (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error

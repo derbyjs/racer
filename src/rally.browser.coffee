@@ -7,14 +7,15 @@ io.Socket::onClose = ->
   @publish 'close'
   @onDisconnect()
 
-@init = ({data, base, clientId, storeSubs, txnCount, txnNum, ioUri}) ->
-  model._adapter._data = data
-  model._adapter.ver = base
-  model._clientId = clientId
-  model._storeSubs = storeSubs
-  model._txnCount = txnCount
-  model._onTxnNum txnNum
-  model._setSocket io.connect ioUri,
+@init = (options) ->
+  model._adapter._data = options.data
+  model._adapter.ver = options.base
+  model._clientId = options.clientId
+  model._storeSubs = options.storeSubs
+  model._startId = options.startId
+  model._txnCount = options.txnCount
+  model._onTxnNum options.txnNum
+  model._setSocket io.connect options.ioUri,
     'reconnection delay': 50
     'max reconnection attempts': 20
   @onload() if @onload

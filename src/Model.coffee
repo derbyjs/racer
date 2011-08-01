@@ -18,6 +18,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
   self._storeSubs = []
+  # The startId is the ID of the last Redis restart. This is sent along with
+  # each versioned message from the Model so that the Store can map the model's
+  # version number to the version number of the Stm in case of a Redis failure
+  self._startId = ''
   
   self._txnCount = 0
   self._txns = txns = {}
@@ -66,10 +70,10 @@ Model:: =
     
     @_commit = commit = (txn) ->
       txn.timeout = +new Date + SEND_TIMEOUT
-      socket.emit 'txn', txn
+      socket.emit 'txn', txn, self._startId
     
     # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1
+    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1, self._startId
     
     socket.on 'txn', onTxn
     socket.on 'txnNum', @_onTxnNum
@@ -98,7 +102,7 @@ Model:: =
     socket.on 'connect', ->
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
-      socket.emit 'sub', clientId, storeSubs, adapter.ver
+      socket.emit 'sub', clientId, storeSubs, adapter.ver, self._startId
       # Resend all transactions in the queue
       commit txns[id] for id in txnQueue
       # Set an interval to check for transactions that have been in the queue

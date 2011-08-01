@@ -32,6 +32,7 @@ module.exports = (store, ioUri) ->
       base: self._adapter.ver
       clientId: clientId
       storeSubs: self._storeSubs
+      startId: self._startId
       txnCount: self._txnCount
       txnNum: self._txnNum
       ioUri: ioUri

@@ -8,11 +8,10 @@ pathParser = require './pathParser.server'
 TxnApplier = require './TxnApplier'
 redisInfo = require './redisInfo'
 
-redisInfo.subscribeToStarts
-
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   @_redisClient = redisClient = redis.createClient()
+  @_subClient = subClient = redis.createClient()
   
   ## Downstream Transactional Interface ##
 
@@ -40,21 +39,35 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       throw err if err
       callback value
   
+  # TODO: Make sure there are no weird race conditions here, since we are
+  # caching the value of starts and it could potentially be stale when a
+  # transaction is received
+  redisStarts = null
+  startId = null
+  startVer = null
+  redisClient.on 'connect', ->
+    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
+      redisStarts = starts
+      [startId, startVer] = starts[0]
+  redisClient.on 'end', ->
+    redisStarts = null
+    startId = null
+    startVer = null
+  
   clientSockets = {}
   @_setSockets = (sockets) -> sockets.on 'connection', (socket) ->
     # TODO Once socket.io supports query params in the
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
-    socket.on 'sub', (clientId, paths, ver) ->
+    socket.on 'sub', (clientId, paths, ver, clientStartId) ->
       redisClient.get 'ver', (err, value) ->
         # If the model connecting has a version number greater than the STM's
         # current version, we can't recover, so send a fatal error signal
         # and don't subscribe the model
-        # TODO: Fix this implementation, since the STM version number might
-        # have been incremented after losing versions in the client model
+        # TODO: Map the client's version number to the Stm's
         throw err if err
-        return socket.emit 'fatalErr' if ver > value
+        return socket.emit 'fatalErr' if clientStartId != startId
         
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
@@ -63,12 +76,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           delete clientSockets[clientId]
           redisClient.del 'txnClock.' + clientId, (err, value) ->
             throw err if err
-        socket.on 'txn', (txn) ->
+        socket.on 'txn', (txn, clientStartId) ->
           commit txn, (err, txn) ->
             return socket.emit 'txnErr', err, transaction.id(txn) if err
             nextTxnNum clientId, (num) ->
               socket.emit 'txnOk', transaction.base(txn), transaction.id(txn), num
-        socket.on 'txnsSince', txnsSince = (ver) ->
+        socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
           # Reset the pending transaction number in the model
           redisClient.get 'txnClock.' + clientId, (err, value) ->
             throw err if err
@@ -145,7 +158,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       paths.unshift model
     
     nextClientId (clientId) ->
-      populateModel new Model(clientId), paths, callback
+      model = new Model(clientId)
+      model._startId = startId
+      populateModel model, paths, callback
   
   @unsubscribe = (model, paths..., callback) ->
     throw new Error 'Unimplemented'
