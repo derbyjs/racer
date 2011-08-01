@@ -664,8 +664,11 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine'] }
           3: { $: mine: ['todos', '_mine'] }
-
-    # Setting a property on an array reference member should update the referenced member
+  
+  'setting a property on an array reference member should update the referenced member': ->
+    model = new Model
+    model.set 'mine', model.ref('todos', '_mine')
+    model.set '_mine', ['1', '3']
     model.set 'todos',
         1: { text: 'costco run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -685,8 +688,17 @@ module.exports =
           1: { $: mine: ['todos', '_mine'] }
           3: { $: mine: ['todos', '_mine'] }
 
-    # Setting on a path that is currently a reference should modify the
-    # reference, similar to setting an object reference in Javascript
+  '''setting on a path that is currently a ref should modify the ref,
+  similar to setting an object reference in Javascript''': ->
+    model = new Model
+    model.set 'mine', model.ref('todos', '_mine')
+    model.set '_mine', ['1', '3']
+    model.set 'todos',
+        1: { text: 'costco run', status: 'complete' }
+        2: { text: 'party hard', status: 'ongoing' }
+        3: { text: 'bounce', status: 'ongoing' }
+    model.set 'mine.0.text', 'trader joes run'
+
     model.set 'mine', model.ref 'dogs', '_mine'
     model.set 'dogs',
       1: { name: 'banana' }
@@ -715,7 +727,15 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # Pushing onto an array reference should update the key array
+  'pushing onto an array reference should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+
     model.set 'dogs.4', name: 'boo boo'
     model.push 'mine', model.ref('dogs', '4')
     model.get().should.protoEql
@@ -724,10 +744,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '3', '4'] # new data '4'
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -744,7 +760,16 @@ module.exports =
       { name: 'boo boo'}
     ]
 
-    # Popping an array reference should update the key array
+  'popping an array reference should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '3', '4']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.pop 'mine'
     model.get().should.protoEql
       dogs:
@@ -752,10 +777,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '3'] # new data '4' popped()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -771,7 +792,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # Unshifting an array reference should update the key array
+  'unshifting an array reference should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.unshift 'mine', model.ref 'dogs', '4'
     model.get().should.protoEql
       dogs:
@@ -779,10 +809,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['4', '1', '3'] # new data '4'
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -799,7 +825,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # Shifting an array reference should update the key array
+  'shifting an array reference should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['4', '1', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.shift 'mine'
     model.get().should.protoEql
       dogs:
@@ -807,10 +842,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '3'] # new data '4' shifted()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -826,7 +857,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # insertAfter for array references should update the key array
+  'insertAfter for array references should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.insertAfter 'mine', 0, model.ref 'dogs', '4'
     model.get().should.protoEql
       dogs:
@@ -834,10 +874,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '4', '3'] # new data '4' inserted()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -854,7 +890,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # remove for array references should update the key array
+  'remove for array references should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '4', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.remove 'mine', 1
     model.get().should.protoEql
       dogs:
@@ -862,10 +907,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '3'] # '4' removed()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -881,7 +922,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # insertBefore for array references should update the key array
+  'insertBefore for array references should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.insertBefore 'mine', 1, model.ref('dogs', '4')
     model.get().should.protoEql
       dogs:
@@ -889,10 +939,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['1', '4', '3'] # new data '4' inserted()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -909,7 +955,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # remove multiple items at once for array references should update the key array
+  'removing multiple items at once for array references should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1', '4', '3']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.remove 'mine', 0, 2
     model.get().should.protoEql
       dogs:
@@ -917,10 +972,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['3'] # '1' and '4' removed()
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
@@ -935,7 +986,16 @@ module.exports =
       { name: 'pogo' }
     ]
 
-    # splice for array references should update the key array
+  'splice for array references should update the key array': ->
+    model = new Model
+    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set '_mine', ['1']
+    model.set 'dogs',
+      1: { name: 'banana' }
+      2: { name: 'squeak' }
+      3: { name: 'pogo' }
+      4: { name: 'boo boo'}
+
     model.splice 'mine', 0, 1, model.ref('dogs', '4'), model.ref('dogs', '1')
     model.get().should.protoEql
       dogs:
@@ -943,10 +1003,6 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      todos:
-        1: { text: 'trader joes run', status: 'complete' }
-        2: { text: 'party hard', status: 'ongoing' }
-        3: { text: 'bounce', status: 'ongoing' }
       mine: model.ref 'dogs', '_mine'
       _mine: ['4', '1'] # new data '4', '1' spliced in; '3' spliced out
       $keys: { _mine: $: mine: ['dogs', '_mine'] }
