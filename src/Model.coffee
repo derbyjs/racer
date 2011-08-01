@@ -126,7 +126,7 @@ Model:: =
     @_txns[id] = txn = [ver, id, method, args...]
     txn.callback = callback
     @_txnQueue.push id
-    txn = @_refHelper.dereferenceTxn txn
+    txn = @_refHelper.dereferenceTxn txn, @_specModel()
     args[0] = path = txn[3]
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path

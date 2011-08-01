@@ -180,7 +180,7 @@ RefHelper:: =
   
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue
-  dereferenceTxn: (txn) ->
+  dereferenceTxn: (txn, specModel) ->
     method = transaction.method txn
     if ARRAY_OPS[method]
       args = transaction.args txn
@@ -195,8 +195,7 @@ RefHelper:: =
           throw new Error 'Unimplemented for method ' + method
 
       path = transaction.path txn
-      obj = @_model._specModel()[0]
-      if { $r, $k } = @isArrayRef path, obj
+      if { $r, $k } = @isArrayRef path, specModel[0]
         # TODO Instead of invalidating, roll back the spec model cache by 1 txn
         @_model._cache.invalidateSpecModelCache()
         txn[3] = path = $k
@@ -210,13 +209,13 @@ RefHelper:: =
         txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
       else
         # Update the transaction's path with a dereferenced path.
-        txn[3] = path = @_model._specModel()[1]
+        txn[3] = path = specModel[1]
       return txn
 
     # Update the transaction's path with a dereferenced path.
     # It works via _specModel, which automatically dereferences 
     # every transaction path including the just added path.
-    txn[3] = path = @_model._specModel()[1]
+    txn[3] = path = specModel[1]
     return txn
 
   # isArrayRef
