@@ -193,6 +193,8 @@ RefHelper:: =
       path = transaction.path txn
       obj = @_model._specModel()[0]
       if { $r, $k } = @isArrayRef path, obj
+        # TODO Instead of invalidating, roll back the spec model cache by 1 txn
+        @_model._cache.invalidateSpecModelCache()
         txn[3] = path = $k
         oldPushArgs = transaction.args(txn).slice sliceFrom
         newPushArgs = oldPushArgs.map (refObjToAdd) ->

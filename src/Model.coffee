@@ -194,21 +194,55 @@ Model:: =
       refHelper.cleanupPointersTo path, options
       return out
 
-#    ['remove', 'push'].forEach (method) ->
-#      adapter['__' + method] = adapter[method]
-#      adapter[method] = ->
-#        args = [].slice.call arguments, 0
-#        options = args[@['__' + method].length - 1] ||= {}
-#        out = @['__' + method] args...
-#        # Check to see if setting to a reference's key. If so, update references
-#        path = args[0]
-#        refHelper.updateRefsForKey path, options
-#        return out
     adapter.__remove = adapter.remove
     adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
       out = @__remove path, startIndex, howMany, ver, options
       # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, options
+      refHelper.updateRefsForKey path, ver, options
+      return out
+    
+    ['push', 'unshift'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = (path, values..., ver, options) ->
+        if options is undefined
+          options = {}
+        if options.constructor != Object
+          values.push ver
+          ver = options
+          options = {}
+        out = @['__' + method] path, values..., ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    ['pop', 'shift'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = (path, ver, options = {}) ->
+        out = @['__' + method] path, ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    ['insertAfter', 'insertBefore'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = (path, index, value, ver, options = {}) ->
+        out = @['__' + method] path, index, value, ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    adapter.__splice = adapter.splice
+    adapter.splice = (path, startIndex, removeCount, newMembers..., ver, options) ->
+      if options is undefined
+        options = {}
+      if options.constructor != Object
+        newMembers.push ver
+        ver = options
+        options = {}
+
+      out = @__splice path, startIndex, removeCount, newMembers..., ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, ver, options
       return out
 
   # Creates a reference object for use in model data methods
