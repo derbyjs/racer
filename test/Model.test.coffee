@@ -106,6 +106,13 @@ module.exports =
     model.get('number').should.eql 7
     sockets._disconnect()
   
+  'duplicate transaction versions should not be applied': ->
+    [sockets, model] = mockSocketModel()
+    sockets.emit 'txn', [1, '_.0', 'push', 'colors', 'green'], 1
+    sockets.emit 'txn', [1, '_.0', 'push', 'colors', 'green'], 2
+    model.get('colors').should.eql ['green']
+    sockets._disconnect()
+  
   'sub event should be sent on socket.io connect': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
       clientId.should.eql '0'

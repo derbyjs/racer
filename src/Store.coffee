@@ -32,7 +32,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]
       nextTxnNum clientId, (num) ->
-        socket.emit 'txn', txn, num
+        # Prevent sending duplicate transactions by only sending new versions
+        base = transaction.base txn
+        if base > socket.__ver
+          socket.__ver = base
+          socket.emit 'txn', txn, num
   
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
@@ -44,15 +48,27 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # transaction is received
   redisStarts = null
   startId = null
-  startVer = null
   redisClient.on 'connect', ->
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
-      [startId, startVer] = starts[0]
+      startId = starts[0][0]
   redisClient.on 'end', ->
     redisStarts = null
     startId = null
-    startVer = null
+  
+  hasInvalidVer = (socket, ver, clientStartId) ->
+    # Don't allow a client to connect unless there is a valid startId to
+    # compare the model's against
+    unless startId
+      socket.disconnect()
+      return true
+    # TODO: Map the client's version number to the Stm's and update the client
+    # with the new startId unless the client's version includes versions that
+    # can't be mapped
+    if clientStartId != startId
+      socket.emit 'fatalErr'
+      return true
+    return false
   
   clientSockets = {}
   @_setSockets = (sockets) -> sockets.on 'connection', (socket) ->
@@ -62,12 +78,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     # `sockets.on 'connection'...` callback.
     socket.on 'sub', (clientId, paths, ver, clientStartId) ->
       redisClient.get 'ver', (err, value) ->
-        # If the model connecting has a version number greater than the STM's
-        # current version, we can't recover, so send a fatal error signal
-        # and don't subscribe the model
-        # TODO: Map the client's version number to the Stm's
         throw err if err
-        return socket.emit 'fatalErr' if clientStartId != startId
+        return if hasInvalidVer socket, ver, clientStartId
         
         # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
         #      to subscribers of the relevant namespace(s)
@@ -76,12 +88,21 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           delete clientSockets[clientId]
           redisClient.del 'txnClock.' + clientId, (err, value) ->
             throw err if err
+        
         socket.on 'txn', (txn, clientStartId) ->
+          base = transaction.base txn
+          return if hasInvalidVer socket, base, clientStartId
           commit txn, (err, txn) ->
-            return socket.emit 'txnErr', err, transaction.id(txn) if err
-            nextTxnNum clientId, (num) ->
-              socket.emit 'txnOk', transaction.base(txn), transaction.id(txn), num
+            txnId = transaction.id txn
+            return socket.emit 'txnErr', err, txnId if err
+            # Prevent sending duplicate transactions by only sending new versions
+            if base > socket.__ver
+              socket.__ver = base
+              nextTxnNum clientId, (num) ->
+                socket.emit 'txnOk', base, txnId, num
+        
         socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
+          return if hasInvalidVer socket, ver, clientStartId
           # Reset the pending transaction number in the model
           redisClient.get 'txnClock.' + clientId, (err, value) ->
             throw err if err

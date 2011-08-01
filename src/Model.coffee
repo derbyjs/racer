@@ -8,7 +8,8 @@ merge = require('./utils').merge
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
-  self._initRefs self._adapter = new AdapterClass
+  self._adapter = adapter = new AdapterClass
+  self._initRefs adapter
 
   self._cache =
     invalidateSpecModelCache: ->
@@ -28,7 +29,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._txnQueue = txnQueue = []
   
   txnApplier = new TxnApplier
-    applyTxn: (txn) -> self._applyTxn txn
+    applyTxn: (txn) -> self._applyTxn txn if transaction.base(txn) > adapter.ver
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
