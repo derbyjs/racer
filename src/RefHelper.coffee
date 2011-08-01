@@ -118,7 +118,9 @@ RefHelper:: =
     for path, [ref, key] of refs
       # Check to see if the reference is still the same
       o = fastLookup path, obj
-      if o && o.$r == ref && o.$k == key
+      if o && o.$r == ref && `o.$k == key`
+        # test `o.$k == key` not via ===
+        # because key is converted to null when JSON.stringified before being sent here via socket.io
         callback path, ref, key
       else
         delete refs[path]
