@@ -182,10 +182,10 @@ Model:: =
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
       # Save a record of any references being set
-      refHelper.$indexRefs path, ref, value.$k, options if value && ref = value.$r
+      refHelper.$indexRefs path, ref, value.$k, ver, options if value && ref = value.$r
       out = @__set path, value, ver, options
       # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, options
+      refHelper.updateRefsForKey path, ver, options
       return out
 
     adapter.__del = adapter.del
@@ -194,6 +194,16 @@ Model:: =
       refHelper.cleanupPointersTo path, options
       return out
 
+#    ['remove', 'push'].forEach (method) ->
+#      adapter['__' + method] = adapter[method]
+#      adapter[method] = ->
+#        args = [].slice.call arguments, 0
+#        options = args[@['__' + method].length - 1] ||= {}
+#        out = @['__' + method] args...
+#        # Check to see if setting to a reference's key. If so, update references
+#        path = args[0]
+#        refHelper.updateRefsForKey path, options
+#        return out
     adapter.__remove = adapter.remove
     adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
       out = @__remove path, startIndex, howMany, ver, options

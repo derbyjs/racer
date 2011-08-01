@@ -51,7 +51,7 @@ RefHelper:: =
   # @param {String} key is a path that points to a pathB or array of paths
   #                 as another lookup chain on the dereferenced `ref`
   # @param {Object} options
-  $indexRefs: (path, ref, key, options) ->
+  $indexRefs: (path, ref, key, ver, options) ->
     adapter = @_adapter
     options2 = merge {dontFollowLastRef: true}, options
     oldRefObj = adapter._lookup(path, false, options2).obj
@@ -60,7 +60,7 @@ RefHelper:: =
       refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
       delete refEntries[path]
       unless anyKeys refEntries
-        adapter.del "$refs.#{ref}", null, options
+        adapter.del "$refs.#{ref}", ver, options
     removeOld$refs = ->
       if oldRefObj && oldRef = oldRefObj.$r
         oldKey = oldRefObj.$k
@@ -89,7 +89,7 @@ RefHelper:: =
         refs = adapter._lookup("$keys.#{oldKey}.$", false, options).obj
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", null, options unless anyKeys refs
+          adapter.del "$keys.#{oldKey}", ver, options unless anyKeys refs
       refsKey = ref
     removeOld$refs()
     update$refs refsKey
@@ -101,11 +101,11 @@ RefHelper:: =
   #                         *
   #                         |
   #                       Update <keyVal> = <lookup(key)>
-  updateRefsForKey: (path, options) ->
+  updateRefsForKey: (path, ver, options) ->
     self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
       @_eachValidRef refs, options.obj, (path, ref, key) ->
-        self.$indexRefs path, ref, key, options
+        self.$indexRefs path, ref, key, ver, options
 
   _fastLookup: (path, obj) ->
     for prop in path.split '.'
