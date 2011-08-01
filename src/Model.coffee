@@ -4,6 +4,7 @@ MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
 EventEmitter = require('events').EventEmitter
+merge = require('./utils').merge
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -176,16 +177,28 @@ Model:: =
     @_refHelper = refHelper = new RefHelper @
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
-    # Save a record of any references being set
+      # Save a record of any references being set
       refHelper.$indexRefs path, ref, value.$k, options if value && ref = value.$r
       out = @__set path, value, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, options
       return out
 
+    adapter.__del = adapter.del
+    adapter.del = (path, ver, options = {}) ->
+      out = @__del path, ver, options
+      refHelper.cleanupPointersTo path, options
+      return out
+
+    adapter.__remove = adapter.remove
+    adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
+      out = @__remove path, startIndex, howMany, ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, options
+      return out
+
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
-  
   
   ## Data accessor and mutator methods ##
   
@@ -241,8 +254,7 @@ Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
 
 ## Model events ##
 
-for name, fn of EventEmitter::
-  Model::[name] = fn
+merge Model::, EventEmitter::
 
 Model::_eventListener = (method, pattern, callback) ->
   # on(type, listener)

@@ -961,3 +961,45 @@ module.exports =
       { name: 'boo boo'}
       { name: 'banana' }
     ]
+
+  "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list": ->
+    model = new Model
+    model.set 'mine', model.ref 'todos', 'myTodoIds'
+    model.set 'todos',
+      1: { text: 'fight!' }
+      2: { text: 'round two' }
+      3: { text: 'finish him!' }
+    model.set 'myTodoIds', ['1', '3']
+    model.get('mine').should.eql [
+      { text: 'fight!' }
+      { text: 'finish him!' }
+    ]
+    model.get().should.protoEql
+      todos:
+        1: { text: 'fight!' }
+        2: { text: 'round two' }
+        3: { text: 'finish him!' }
+      mine: model.ref 'todos', 'myTodoIds'
+      myTodoIds: ['1', '3']
+      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds'] }
+      $refs:
+        todos:
+          1: { $: mine: ['todos', 'myTodoIds'] }
+          3: { $: mine: ['todos', 'myTodoIds'] }
+    model.del 'todos.3'
+    model.get('mine').should.eql [
+      { text: 'fight!' }
+    ]
+    model.get().should.protoEql
+      todos:
+        1: { text: 'fight!' }
+        2: { text: 'round two' }
+        # '3' removed
+      mine: model.ref 'todos', 'myTodoIds'
+      myTodoIds: ['1'] # '3' removed
+      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds'] }
+      $refs:
+        todos:
+          1: { $: mine: ['todos', 'myTodoIds'] }
+          # '3' removed
+    # TODO removal of the pending del transaction should also remove the other ref cleanup transactions it generates

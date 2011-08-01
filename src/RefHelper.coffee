@@ -59,7 +59,7 @@ RefHelper:: =
       delete refEntries[path]
       unless anyKeys refEntries
         adapter.del "$refs.#{ref}", null, options
-    update$refs = (refsKey) ->
+    removeOld$refs = ->
       if oldRefObj && oldRef = oldRefObj.$r
         oldKey = oldRefObj.$k
         oldKeyVal = adapter._lookup(oldKey, false, options).obj
@@ -70,6 +70,7 @@ RefHelper:: =
           removeFrom$refs oldRef, null
         else
           removeFrom$refs oldRef, oldKeyVal
+    update$refs = (refsKey) ->
       adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = [ref, key]
     if key
       adapter._lookup("$keys.#{key}.$", true, options).obj[path] = [ref, key]
@@ -78,6 +79,7 @@ RefHelper:: =
       return if keyVal is undefined
       if Array.isArray keyVal
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
+        removeOld$refs()
         return refsKeys.forEach update$refs
       refsKey = ref + '.' + keyVal
     else
@@ -87,6 +89,7 @@ RefHelper:: =
           delete refs[path]
           adapter.del "$keys.#{oldKey}", null, options unless anyKeys refs
       refsKey = ref
+    removeOld$refs()
     update$refs refsKey
 
   # If path is a reference's key ($k), then update all entries in the
@@ -154,14 +157,20 @@ RefHelper:: =
       emitPathEvent pointingPath
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
 
-  cleanupPointersTo: (path) ->
-
-  setupRefGC: ->
+  cleanupPointersTo: (path, options) ->
     adapter = @_adapter
-    adapter.__del = adapter.del
-    adapter.del = (path, ver, options) ->
-      adapter.__del path, ver, options
-      refHelper.cleanupPointersTo path
+    refs = adapter._lookup("$refs.#{path}.$", false, options).obj
+    return if refs is undefined
+    model = @_model
+    for pointingPath, [ref, key] of refs
+      keyVal = key && adapter._lookup(key, false, options).obj
+      if keyVal && Array.isArray keyVal
+        keyMem = path.substr(ref.length + 1, pointingPath.length)
+        # TODO Use model.remove here instead?
+        adapter.remove key, keyVal.indexOf(keyMem), 1, null, options
+#      else
+#        # TODO Use model.del here instead?
+#        adapter.del pointingPath, null, options
   
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue
