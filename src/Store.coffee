@@ -10,8 +10,12 @@ redisInfo = require './redisInfo'
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
+  # Client for data access and event publishing
   @_redisClient = redisClient = redis.createClient()
+  # Client for internal Rally event subscriptions
   @_subClient = subClient = redis.createClient()
+  # Client for event subscriptions of txns only
+  @_txnSubClient = txnSubClient = redis.createClient()
   
   ## Downstream Transactional Interface ##
 
@@ -19,7 +23,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # and punsubscribe cannot be used with any other commands.
   # Therefore, we can only pass the current `redisClient` as the
   # pubsub's @_publishClient.
-  @_pubSub = pubSub = new PubSub
+  @_pubSub = pubSub = new PubSub 'Redis',
+    pubClient: redisClient
+    subClient: txnSubClient
   @_localModels = localModels = {}
   pubSub.onMessage = (clientId, txn) ->
     # Don't send transactions back to the model that created them.

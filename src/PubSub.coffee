@@ -2,8 +2,8 @@ pathParser = require './pathParser.server'
 transaction = require './transaction.server'
 redis = require 'redis'
 
-PubSub = module.exports = (adapterName = 'Redis') ->
-  @_adapter = new PubSub._adapters[adapterName] this
+PubSub = module.exports = (adapterName = 'Redis', options) ->
+  @_adapter = new PubSub._adapters[adapterName] this, options
   return
 
 PubSub:: =
@@ -20,7 +20,7 @@ PubSub:: =
 
 
 PubSub._adapters = {}
-PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
+PubSub._adapters.Redis = RedisAdapter = (pubsub, options = {}) ->
   @pubsub = pubsub
 
   @_pathsBySubscriber = {}
@@ -29,8 +29,8 @@ PubSub._adapters.Redis = RedisAdapter = (pubsub) ->
   @_subscribersByPattern = {}
   @_regExpsBySubscriber = {}
 
-  @_publishClient = redis.createClient()
-  @_subscribeClient = redis.createClient()
+  @_publishClient = options.pubClient || redis.createClient()
+  @_subscribeClient = options.subClient || redis.createClient()
 
   @_subscribeClient.on 'subscribe', (path, count) =>
     if pubsub.debug

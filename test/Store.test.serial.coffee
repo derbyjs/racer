@@ -9,12 +9,9 @@ module.exports =
     store.flush done
   teardown: (done) ->
     store.flush ->
-      clearInterval store._pendingInterval
       store._redisClient.end()
       store._subClient.end()
-      {_subscribeClient, _publishClient} = store._pubSub._adapter
-      _subscribeClient.end()
-      _publishClient.end()
+      store._txnSubClient.end()
       done()
   
   'flush should delete everything in the adapter and redisClient': (done) ->
