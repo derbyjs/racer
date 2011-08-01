@@ -16,14 +16,14 @@ RefHelper:: =
   
   # If a key is present, merges
   #     TODO key is redundant here
-  #     { <path>: [<ref>, <key>] }
+  #     { <path>: [<ref>, <key>] } # TODO Add a special 'a' flag here to denote array ref?
   # into
   #     "$keys":
   #       "#{key}":
   #         $:
   #
   # and merges
-  #     { <path>: [<ref>, <key>] }
+  #     { <path>: [<ref>, <key>] } # TODO Add a special 'a' flag here to denote array ref?
   # into
   #     $refs:
   #       <ref>.<lookup(key)>: 
@@ -111,6 +111,8 @@ RefHelper:: =
     for prop in path.split '.'
       return unless obj = obj[prop]
     return obj
+
+  ## Iterators ##
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = @_fastLookup
     for path, [ref, key] of refs
