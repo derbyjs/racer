@@ -78,13 +78,13 @@ Model:: =
     
     socket.on 'txn', onTxn
     socket.on 'txnNum', @_onTxnNum
-    socket.on 'txnOk', (base, txnId, num) ->
+    socket.on 'txnOk', (txnId, base, num) ->
       if txn = txns[txnId]
         txn[0] = base
         onTxn txn, num
     socket.on 'txnErr', (err, txnId) ->
       txn = txns[txnId]
-      if txn && (callback = txn.callback) && err != 'duplicate'
+      if txn && (callback = txn.callback)
         args = transaction.args txn
         args.unshift err
         callback args...

@@ -37,11 +37,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     return model._onTxn txn if model = localModels[clientId]
     # Otherwise, send the transaction over Socket.io
     if socket = clientSockets[clientId]
-      nextTxnNum clientId, (num) ->
-        # Prevent sending duplicate transactions by only sending new versions
-        base = transaction.base txn
-        if base > socket.__ver
-          socket.__ver = base
+      # Prevent sending duplicate transactions by only sending new versions
+      base = transaction.base txn
+      if base > socket.__base
+        socket.__base = base
+        nextTxnNum clientId, (num) ->
           socket.emit 'txn', txn, num
   
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
@@ -83,45 +83,46 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
     socket.on 'sub', (clientId, paths, ver, clientStartId) ->
-      redisClient.get 'ver', (err, value) ->
-        throw err if err
-        return if hasInvalidVer socket, ver, clientStartId
-        
-        # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
-        #      to subscribers of the relevant namespace(s)
-        socket.on 'disconnect', ->
-          pubSub.unsubscribe clientId
-          delete clientSockets[clientId]
-          redisClient.del 'txnClock.' + clientId, (err, value) ->
-            throw err if err
-        
-        socket.on 'txn', (txn, clientStartId) ->
+      return if hasInvalidVer socket, ver, clientStartId
+      
+      # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
+      #      to subscribers of the relevant namespace(s)
+      socket.on 'disconnect', ->
+        pubSub.unsubscribe clientId
+        delete clientSockets[clientId]
+        redisClient.del 'txnClock.' + clientId, (err, value) ->
+          throw err if err
+      
+      socket.on 'txn', (txn, clientStartId) ->
+        base = transaction.base txn
+        return if hasInvalidVer socket, base, clientStartId
+        commit txn, (err, txn) ->
+          txnId = transaction.id txn
           base = transaction.base txn
-          return if hasInvalidVer socket, base, clientStartId
-          commit txn, (err, txn) ->
-            txnId = transaction.id txn
-            return socket.emit 'txnErr', err, txnId if err
-            # Prevent sending duplicate transactions by only sending new versions
-            if base > socket.__ver
-              socket.__ver = base
-              nextTxnNum clientId, (num) ->
-                socket.emit 'txnOk', base, txnId, num
-        
-        socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
-          return if hasInvalidVer socket, ver, clientStartId
-          # Reset the pending transaction number in the model
-          redisClient.get 'txnClock.' + clientId, (err, value) ->
-            throw err if err
-            socket.emit 'txnNum', value || 0
-            forTxnSince ver, clientId, (txn) ->
-              nextTxnNum clientId, (num) ->
-                socket.emit 'txn', txn, num
-        
-        # Set up subscriptions to the store for the model
-        clientSockets[clientId] = socket
-        pubSub.subscribe clientId, paths
-        # Return any transactions that the model may have missed
-        txnsSince ver + 1, clientStartId
+          # Return errors to client, with the exeption of duplicates, which
+          # may need to be sent to the model again
+          return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
+          nextTxnNum clientId, (num) ->
+            socket.emit 'txnOk', txnId, base, num
+      
+      socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
+        return if hasInvalidVer socket, ver, clientStartId
+        # Reset the pending transaction number in the model
+        redisClient.get 'txnClock.' + clientId, (err, value) ->
+          throw err if err
+          socket.emit 'txnNum', value || 0
+          forTxnSince ver, clientId, (txn) ->
+            nextTxnNum clientId, (num) ->
+              socket.__base = transaction.base txn
+              socket.emit 'txn', txn, num
+      
+      # This is used to prevent emitting duplicate transactions
+      socket.__base = 0
+      # Set up subscriptions to the store for the model
+      clientSockets[clientId] = socket
+      pubSub.subscribe clientId, paths
+      # Return any transactions that the model may have missed
+      txnsSince ver + 1, clientStartId
   
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
