@@ -1,201 +1,156 @@
 should = require 'should'
-finishAll = false
-
+redis = require 'redis'
 PubSub = require 'PubSub'
-pubsub = new PubSub
-#pubsub.debug = true
 
+pubClient = redis.createClient()
+subClient = null
+
+debug = false
+newPubSub = (onMessage) -> new PubSub {pubClient, subClient, onMessage, debug}
+
+finishAll = false
 module.exports =
   setup: (done) ->
-    pubsub._adapter.flush done
+    subClient = redis.createClient()
+    pubClient.flushdb done
   teardown: (done) ->
-    if finishAll
-      return pubsub._adapter.disconnect done
-    pubsub._adapter.flush done
+    subClient.end()
+    pubClient.flushdb ->
+      pubClient.end() if finishAll
+      done()
 
   'a published transaction to a plain path should only be received if subscribed to': (done) ->
-    pubsub.onMessage = (subscriberId, message) ->
+    pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
       done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel']
-    pubsub.publish publisher, 'channel', 'value'
+    pubSub.subscribe '1', ['channel'], ->
+      pubSub.publish 'channel', 'value'
   
   'a published transaction to a patterned `prefix.*` path should only be received if subscribed to': (done) ->
-    pubsub.onMessage = (subscriberId, message) ->
+    pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
       done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel.*']
-    pubsub.publish publisher, 'channel.1', 'value'
+    pubSub.subscribe '1', ['channel.*'], ->
+      pubSub.publish 'channel.1', 'value'
 
   'a published transaction to a patterned `prefix.*.suffix` path should only be received if subscribed to': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
-      counter++
+    expected = ['valueA1', 'valueA2']
+    pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
-      message.substr(0, message.length-1).should.equal 'valueA'
-      if message == 'valueA2'
-        counter.should.equal 2
-        done()
+      message.should.equal expected[counter++]
+      done() if counter == 2
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel.*.suffix']
-    pubsub.publish publisher, 'channel.1.suffix', 'valueA1'
-    pubsub.publish publisher, 'channel.1.nomatch', 'valueB'
-    pubsub.publish publisher, 'channel.1.suffix', 'valueA2'
+    pubSub.subscribe '1', ['channel.*.suffix'], ->
+      pubSub.publish 'channel.1.suffix', 'valueA1'
+      pubSub.publish 'channel.1.nomatch', 'valueB'
+      pubSub.publish 'channel.1.suffix', 'valueA2'
 
   'unsubscribing from a path means the subscriber should no longer receive the path messages': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
+    pubSub = newPubSub (subscriberId, message) ->
       counter++
-      subscriberId.should.equal '1'
       if message == 'last'
         counter.should.equal 3
         done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['a']
-    pubsub.subscribe subscriber, ['b']
-
-    setTimeout ->
-      pubsub.publish publisher, 'a', 'first'
-      pubsub.publish publisher, 'b', 'second'
-
+    pubSub.subscribe '1', ['a', 'b'], ->
+      pubSub.publish 'a', 'first'
+      pubSub.publish 'b', 'second'
       setTimeout ->
-        pubsub.unsubscribe subscriber, ['a']
-        setTimeout ->
-          pubsub.publish publisher, 'a', 'ignored'
-          pubsub.publish publisher, 'b', 'last'
-        , 200
-      , 200
-    , 200
+        pubSub.unsubscribe '1', ['a'], ->
+          pubSub.publish 'a', 'ignored'
+          pubSub.publish 'b', 'last'
+      , 100
 
   'unsubscribing from a path you are not subscribed to should be harmless': (done) ->
-    pubsub.unsubscribe 'subcriber', ['not-subscribed-to-this-channel']
+    pubSub = newPubSub()
+    pubSub.unsubscribe 'subcriber', ['not-subscribed-to-this-channel']
     done()
 
   'unsubscribing from a pattern means the subscriber should no longer receive the pattern messages': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
+    pubSub = newPubSub (subscriberId, message) ->
       counter++
-      subscriberId.should.equal '1'
       if message == 'last'
         counter.should.equal 3
         done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['a.*']
-    pubsub.subscribe subscriber, ['b.*']
-
-    setTimeout ->
-      pubsub.publish publisher, 'a.1', 'first'
-      pubsub.publish publisher, 'b.1', 'second'
-
+    pubSub.subscribe '1', ['a.*', 'b.*'], ->
+      pubSub.publish 'a.1', 'first'
+      pubSub.publish 'b.1', 'second'
       setTimeout ->
-        pubsub.unsubscribe subscriber, ['a.*']
-        setTimeout ->
-          pubsub.publish publisher, 'a.2', 'ignored'
-          pubsub.publish publisher, 'b.2', 'last'
-        , 200
-      , 200
-    , 200
+        pubSub.unsubscribe '1', ['a.*'], ->
+          pubSub.publish 'a.2', 'ignored'
+          pubSub.publish 'b.2', 'last'
+      , 100
 
   'subscribing > 1 time to the same path should still only result in the subscriber receiving the message once': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
-      subscriberId.should.equal '1'
+    pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
         counter.should.equal 2
         done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel']
-    pubsub.subscribe subscriber, ['channel']
-
-    pubsub.publish publisher, 'channel', 'first'
-    pubsub.publish publisher, 'channel', 'last'
+    pubSub.subscribe '1', ['channel'], ->
+      pubSub.subscribe '1', ['channel'], ->
+        pubSub.publish 'channel', 'first'
+        pubSub.publish 'channel', 'last'
 
   'subscribing > 1 time to the same pattern should still only result in the subscriber receiving the message once': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
-      subscriberId.should.equal '1'
+    pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
         counter.should.equal 2
         done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel.*']
-    pubsub.subscribe subscriber, ['channel.*']
+    pubSub.subscribe '1', ['channel.*'], ->
+      pubSub.subscribe '1', ['channel.*'], ->
+        pubSub.publish 'channel.1', 'first'
+        pubSub.publish 'channel.1', 'last'
 
-    pubsub.publish publisher, 'channel.1', 'first'
-    pubsub.publish publisher, 'channel.1', 'last'
-
-  'subscribing to a pattern, and then to a pattern-matching path, should still receive messages for the pattern and should only receive a given message for the path once': (done) ->
+  'overlapping patterns are expected to duplicate callbacks': (done) ->
     counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
-      subscriberId.should.equal '1'
+    pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'two'
-        counter.should.equal 2
+        counter.should.equal 3
         done()
 
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel.*']
-    pubsub.subscribe subscriber, ['channel.1']
-
-    pubsub.publish publisher, 'channel.1', 'one'
-    pubsub.publish publisher, 'channel.2', 'two'
-
-  'subscribing to a path, and then to a pattern that covers the path, should still receive messages for the path (once per given message) and should also start receiving messages for other paths covered by the pattern': (done) ->
-    counter = 0
-    pubsub.onMessage = (subscriberId, message) ->
-      subscriberId.should.equal '1'
-      counter++
-      if message == 'two'
-        counter.should.equal 2
-        done()
-
-    [subscriber, publisher] = ['1', '2']
-    pubsub.subscribe subscriber, ['channel.1']
-    pubsub.subscribe subscriber, ['channel.*']
-
-    setTimeout ->
-      pubsub.publish publisher, 'channel.1', 'one'
-      pubsub.publish publisher, 'channel.2', 'two'
-    , 200
+    pubSub.subscribe '1', ['channel.*'], ->
+      pubSub.subscribe '1', ['channel.1'], ->
+        pubSub.publish 'channel.1', 'one'
+        pubSub.publish 'channel.2', 'two'
 
   '2 subscribers to the same pattern should both receive messages': (done) ->
     counter = 2
-    subscribersWithReceipt = []
-    pubsub.onMessage = (subscriberId, message) ->
-      message.should.equal 'value'
-      subscribersWithReceipt.push subscriberId
-      if subscribersWithReceipt.length ==2
-        subscribersWithReceipt.should.contain subscriberOne
-        subscribersWithReceipt.should.contain subscriberTwo
-        done()
+    subscribersWithReceipt = {}
+    pubSub = newPubSub (subscriberId, message) ->
+      subscribersWithReceipt[subscriberId] = true
+      return if --counter
+      subscribersWithReceipt.should.eql '1': true, '2': true
+      done()
 
-    [subscriberOne, subscriberTwo, publisher] = ['1', '2', '3']
-    pubsub.subscribe subscriberOne, ['channel.*']
-    pubsub.subscribe subscriberTwo, ['channel.*']
-    pubsub.publish publisher, 'channel.1', 'value'
+    pubSub.subscribe '1', ['channel.*'], ->
+      pubSub.subscribe '2', ['channel.*'], ->
+        pubSub.publish 'channel.1', 'value'
 
   'subscribedToTxn should test if a client id is subscribed to a given transaction': ->
+    pubSub = newPubSub()
     subscriber = '100'
-    pubsub.subscribe subscriber, ['b.*']
-    txnOne = [0, '1.0', 'set', 'a.b.c', 1]
-    txnTwo = [0, '1.0', 'set', 'b.c', 1]
-    txnThree = [0, '1.0', 'set', 'b.c.d', 1]
-    pubsub.subscribedToTxn(subscriber, txnOne).should.be.false
-    pubsub.subscribedToTxn(subscriber, txnTwo).should.be.true
-    pubsub.subscribedToTxn(subscriber, txnThree).should.be.true
+    pubSub.subscribe subscriber, ['b.*'], ->
+      txnOne = [0, '1.0', 'set', 'a.b.c', 1]
+      txnTwo = [0, '1.0', 'set', 'b.c', 1]
+      txnThree = [0, '1.0', 'set', 'b.c.d', 1]
+      pubSub.subscribedToTxn(subscriber, txnOne).should.be.false
+      pubSub.subscribedToTxn(subscriber, txnTwo).should.be.true
+      pubSub.subscribedToTxn(subscriber, txnThree).should.be.true
 
   finishAll: (done) -> finishAll = true; done()
 

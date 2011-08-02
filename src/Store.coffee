@@ -4,7 +4,6 @@ Model = require './Model'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
-pathParser = require './pathParser.server'
 TxnApplier = require './TxnApplier'
 redisInfo = require './redisInfo'
 
@@ -23,26 +22,26 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # and punsubscribe cannot be used with any other commands.
   # Therefore, we can only pass the current `redisClient` as the
   # pubsub's @_publishClient.
-  @_pubSub = pubSub = new PubSub 'Redis',
+  @_localModels = localModels = {}
+  @_pubSub = pubSub = new PubSub
     pubClient: redisClient
     subClient: txnSubClient
-  @_localModels = localModels = {}
-  pubSub.onMessage = (clientId, txn) ->
-    # Don't send transactions back to the model that created them.
-    # On the server, the model directly handles the store._commit callback.
-    # Over Socket.io, a 'txnOk' message is sent below.
-    return if clientId == transaction.clientId txn
-    # For models only present on the server, process the transaction
-    # directly in the model
-    return model._onTxn txn if model = localModels[clientId]
-    # Otherwise, send the transaction over Socket.io
-    if socket = clientSockets[clientId]
-      # Prevent sending duplicate transactions by only sending new versions
-      base = transaction.base txn
-      if base > socket.__base
-        socket.__base = base
-        nextTxnNum clientId, (num) ->
-          socket.emit 'txn', txn, num
+    onMessage: (clientId, txn) ->
+      # Don't send transactions back to the model that created them.
+      # On the server, the model directly handles the store._commit callback.
+      # Over Socket.io, a 'txnOk' message is sent below.
+      return if clientId == transaction.clientId txn
+      # For models only present on the server, process the transaction
+      # directly in the model
+      return model._onTxn txn if model = localModels[clientId]
+      # Otherwise, send the transaction over Socket.io
+      if socket = clientSockets[clientId]
+        # Prevent sending duplicate transactions by only sending new versions
+        base = transaction.base txn
+        if base > socket.__base
+          socket.__base = base
+          nextTxnNum clientId, (num) ->
+            socket.emit 'txn', txn, num
   
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
@@ -248,7 +247,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       return if err
       # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
       # and TxnPubSub can subtract out the payload of path from txn, too.
-      pubSub.publish transaction.clientId(txn), transaction.path(txn), txn
+      pubSub.publish transaction.path(txn), txn
       txnApplier.add txn, ver
   
   ## Ensure Serialization of Transactions to the DB ##
