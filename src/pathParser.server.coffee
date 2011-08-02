@@ -1,5 +1,7 @@
 pathParser = require './pathParser'
 
+pathParser.patternAt = (path) -> path.search /[\*\(]/
+
 pathParser.isGlob = (path) -> ~path.indexOf('*')
 
 pathParser.glob = (pattern) ->

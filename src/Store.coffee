@@ -148,29 +148,34 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     clientId = model._clientId
     pubSub.subscribe clientId, paths
     
-    maxVer = 0
-    getting = paths.length
-    modelAdapter = model._adapter
-    for path in paths
-      # TODO: Select only the correct properties instead of everything under the path
-      path = path.replace /\.\*.*/, ''
+    applyStmTxns = ->
+      # Apply any transactions in the STM that have not yet been applied
+      # to the store
+      forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
+        method = transaction.method txn
+        args = transaction.args txn
+        args.push transaction.base txn
+        modelAdapter[method] args...
+      , done = ->
+        localModels[clientId] = model
+        callback null, model
+    
+    applyPath = (path) ->
       adapter.get path, (err, value, ver) ->
         return callback err if err
         maxVer = Math.max maxVer, ver
         modelAdapter.set path, value, ver
         return if --getting
         modelAdapter.ver = maxVer
-        
-        # Apply any transactions in the STM that have not yet been applied
-        # to the store
-        forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
-          method = transaction.method txn
-          args = transaction.args txn
-          args.push transaction.base txn
-          modelAdapter[method] args...
-        , done = ->
-          localModels[clientId] = model
-          callback null, model
+        applyStmTxns()
+    
+    maxVer = 0
+    getting = paths.length
+    modelAdapter = model._adapter
+    for path in paths
+      return applyPath path if ~(i = patternAt path)
+      root = path.substring 0, i
+      applyPath root
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
