@@ -158,11 +158,21 @@ RefHelper:: =
       self._eachValidRef refSet, _data, (pointingPath, ref, key, type) ->
         fn pointingPath, targetPathRemainder, ref, key, type
 
+  eachArrayRefKeyedBy: (path, fn) ->
+    return unless refs = @_model.get "$keys"
+    refSet = (path + '.$').split('.').reduce (refSet, prop) ->
+      refSet && refSet[prop]
+    , refs
+    return unless refSet
+    for path, [ref, key, type] of refSet
+      fn path, ref, key if type == 'array'
+
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
   notifyPointersTo: (targetPath, method, args, emitPathEvent, ignoreRoots = []) ->
     self = this
+    # Takes care of regular refs
     self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key, type) ->
       alreadySeen = ignoreRoots.some (root) ->
         # For avoiding infinite event emission
@@ -170,7 +180,14 @@ RefHelper:: =
       return if alreadySeen
       ignoreRoots.push ref
       pointingPath += '.' + targetPathRemainder if targetPathRemainder
-      emitPathEvent pointingPath
+      emitPathEvent pointingPath, args
+      self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
+
+    # Takes care of array refs
+    self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
+      # TODO Customize arg transformation depending on array mutator `method`
+      args = args.map (arg) -> { $r: ref, $k: arg }
+      emitPathEvent pointingPath, args
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
 
   cleanupPointersTo: (path, options) ->

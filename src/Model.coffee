@@ -127,7 +127,8 @@ Model:: =
     txn.callback = callback
     @_txnQueue.push id
     txn = @_refHelper.dereferenceTxn txn, @_specModel()
-    args[0] = path = txn[3]
+    args = transaction.args txn
+    path = args[0]
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
@@ -316,9 +317,9 @@ Model::_eventListener = (method, pattern, callback) ->
   re = pathParser.regExp pattern
   refHelper = @_refHelper
   return ([path, args...]) ->
-    emitPathEvent = (path) ->
+    emitPathEvent = (path, args) ->
       callback re.exec(path).slice(1).concat(args)... if re.test path
-    emitPathEvent path
+    emitPathEvent path, args
     # Emit events on any references that point to the path or any of its
     # ancestor paths
     refHelper.notifyPointersTo path, method, args, emitPathEvent

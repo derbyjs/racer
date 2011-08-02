@@ -1104,9 +1104,8 @@ module.exports =
     # TODO removal of the pending del transaction should also remove the other ref cleanup transactions it generates
 
   "pushing onto an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
-    console.log "!"
     model = new Model
-    model.set 'myTodos', model.ref('todos', 'myTodoIds')
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
     model.on 'push', 'myTodos', (ref) ->
@@ -1119,9 +1118,8 @@ module.exports =
   , 2
 
   'pushing onto an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
-    console.log "!!"
     model = new Model
-    model.set 'myTodos', model.ref('todos', 'myTodoIds')
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
     model.on 'push', 'myTodos', (ref) ->
