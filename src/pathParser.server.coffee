@@ -1,6 +1,13 @@
 pathParser = require './pathParser'
 
-pathParser.patternAt = (path) -> path.search /[\*\(]/
+pathParser.splitPattern = (path) ->
+  if ~(i = path.search /[\*\(]/)
+    root = path.substr 0, i - 1  # Subtract one to remove the trailing '.'
+    remainder = path.substr i
+  else
+    root = path
+    remainder = ''
+  [root, remainder]
 
 pathParser.isGlob = (path) -> ~path.indexOf('*')
 

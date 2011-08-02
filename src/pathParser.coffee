@@ -22,3 +22,8 @@ module.exports =
         # non-greedy matching otherwise
         if pattern.length - index is 2 then '(.+)' else '(.+?)'
     ) + '$'
+  
+  fastLookup: (path, obj) ->
+    for prop in path.split '.'
+      return unless obj = obj[prop]
+    return obj

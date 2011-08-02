@@ -5,6 +5,7 @@ Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
 TxnApplier = require './TxnApplier'
+pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
@@ -139,6 +140,29 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           txn = JSON.parse val
       done() if done
   
+  setValue = (modelAdapter, root, remainder, value, ver) ->
+    # Set only the specified property if there is no remainder
+    unless remainder
+      value =
+        if typeof value is 'object'
+          if Array.isArray value then [] else {}
+        else value
+      return modelAdapter.set root, value, ver
+    # If the remainder is a trailing **, set everything below the root
+    return modelAdapter.set root, value, ver if remainder == '**'
+    # If the remainder starts with *. or is *, set each property one level down
+    if remainder.charAt(0) == '*' && (c = remainder.charAt(1)) == '.' || c == ''
+      [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
+      for prop of value
+        nextRoot = if root then root + '.' + prop else prop
+        nextValue = value[prop]
+        if appendRoot
+          nextRoot += '.' + appendRoot
+          nextValue = pathParser.fastLookup appendRoot, nextValue
+        setValue modelAdapter, nextRoot, remainder, nextValue, ver
+    # TODO: Support ** not at the end of a path
+    # TODO: Support (a|b) syntax
+  
   populateModel = (model, paths, callback) ->
     # Store subscriptions in the model so that it can submit them to the
     # server when it connects
@@ -148,34 +172,28 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     clientId = model._clientId
     pubSub.subscribe clientId, paths
     
-    applyStmTxns = ->
-      # Apply any transactions in the STM that have not yet been applied
-      # to the store
-      forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
-        method = transaction.method txn
-        args = transaction.args txn
-        args.push transaction.base txn
-        modelAdapter[method] args...
-      , done = ->
-        localModels[clientId] = model
-        callback null, model
-    
-    applyPath = (path) ->
-      adapter.get path, (err, value, ver) ->
-        return callback err if err
-        maxVer = Math.max maxVer, ver
-        modelAdapter.set path, value, ver
-        return if --getting
-        modelAdapter.ver = maxVer
-        applyStmTxns()
-    
     maxVer = 0
     getting = paths.length
     modelAdapter = model._adapter
     for path in paths
-      return applyPath path if ~(i = patternAt path)
-      root = path.substring 0, i
-      applyPath root
+      [root, remainder] = pathParser.splitPattern path
+      adapter.get root, (err, value, ver) ->
+        return callback err if err
+        maxVer = Math.max maxVer, ver
+        setValue modelAdapter, root, remainder, value, ver
+        return if --getting
+        modelAdapter.ver = maxVer
+        
+        # Apply any transactions in the STM that have not yet been applied
+        # to the store
+        forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
+          method = transaction.method txn
+          args = transaction.args txn
+          args.push transaction.base txn
+          modelAdapter[method] args...
+        , done = ->
+          localModels[clientId] = model
+          callback null, model
   
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions

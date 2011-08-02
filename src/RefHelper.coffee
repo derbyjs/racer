@@ -1,4 +1,5 @@
 transaction = require './transaction'
+pathParser = require './pathParser'
 {merge, anyKeys} = require './utils'
 
 module.exports = RefHelper = (model) ->
@@ -117,14 +118,9 @@ RefHelper:: =
       @_eachValidRef refs, options.obj, (path, ref, key, type) ->
         self.$indexRefs path, ref, key, type, ver, options
 
-  _fastLookup: (path, obj) ->
-    for prop in path.split '.'
-      return unless obj = obj[prop]
-    return obj
-
   ## Iterators ##
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
-    fastLookup = @_fastLookup
+    fastLookup = pathParser.fastLookup
     for path, [ref, key, type] of refs
       # Check to see if the reference is still the same
       o = fastLookup path, obj
