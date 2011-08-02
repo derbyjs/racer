@@ -74,7 +74,7 @@ module.exports =
         done()
   
   'test that subscribe only copies the appropriate properties': (done) ->
-    count = 5
+    count = 6
     finish = -> done() unless --count
     store.set 'a', {b: 1, c: 2, d: [1, 2]}, null, ->
       store.set 'e', {c: 7}, null, ->
@@ -95,9 +95,9 @@ module.exports =
         store.subscribe 'a.**', (err, model) ->
           model.get().should.eql a: {b: 1, c: 2, d: [1, 2]}
           finish()
-        # store.subscribe 'a.*', (err, model) ->
-        #   model.get().should.eql a: {b: 1, c: 2, d: []}
-        #   finish()
+        store.subscribe 'a.*', (err, model) ->
+          model.get().should.eql a: {b: 1, c: 2, d: []}
+          finish()
         store.subscribe '*.c', (err, model) ->
           setTimeout ->
             model.get().should.eql a: {c: 2}, e: {c: 7}
