@@ -1086,3 +1086,31 @@ module.exports =
           1: { $: mine: ['todos', 'myTodoIds'] }
           # '3' removed
     # TODO removal of the pending del transaction should also remove the other ref cleanup transactions it generates
+
+  "pushing onto an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.ref('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'push', 'myTodos', (ref) ->
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'push', 'myTodoIds', (val) ->
+      val.should.equal '1'
+      done()
+    model.push 'myTodoIds', '1'
+  , 2
+
+  'pushing onto an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.ref('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'push', 'myTodos', (ref) ->
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'push', 'myTodoIds', (val) ->
+      val.should.equal '1'
+      done()
+    model.push 'myTodos', model.ref('todos', '1')
+  , 2
