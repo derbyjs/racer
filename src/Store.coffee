@@ -140,7 +140,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           txn = JSON.parse val
       done() if done
   
-  setValue = (modelAdapter, root, remainder, value, ver) ->
+  setModelValue = (modelAdapter, root, remainder, value, ver) ->
     # Set only the specified property if there is no remainder
     unless remainder
       value =
@@ -159,7 +159,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         if appendRoot
           nextRoot += '.' + appendRoot
           nextValue = pathParser.fastLookup appendRoot, nextValue
-        setValue modelAdapter, nextRoot, remainder, nextValue, ver
+        setModelValue modelAdapter, nextRoot, remainder, nextValue, ver
     # TODO: Support ** not at the end of a path
     # TODO: Support (a|b) syntax
   
@@ -180,7 +180,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       adapter.get root, (err, value, ver) ->
         return callback err if err
         maxVer = Math.max maxVer, ver
-        setValue modelAdapter, root, remainder, value, ver
+        setModelValue modelAdapter, root, remainder, value, ver
         return if --getting
         modelAdapter.ver = maxVer
         
