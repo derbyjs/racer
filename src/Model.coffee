@@ -183,7 +183,7 @@ Model:: =
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
       # Save a record of any references being set
-      refHelper.$indexRefs path, ref, value.$k, ver, options if value && ref = value.$r
+      refHelper.$indexRefs path, ref, value.$k, value.$t, ver, options if value && ref = value.$r
       out = @__set path, value, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
@@ -248,6 +248,7 @@ Model:: =
 
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
+  arrayRef: RefHelper::arrayRef
   
   ## Data accessor and mutator methods ##
   

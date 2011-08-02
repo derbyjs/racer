@@ -9,10 +9,11 @@ module.exports = RefHelper = (model) ->
 ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1
 
 RefHelper:: =
-  ref: (ref, key, arrOnly) ->
-    if arrOnly
-      return $r: ref, $k: key, $o: arrOnly
+  ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
+
+  arrayRef: (ref, key) ->
+    $r: ref, $k: key, $t: 'array'
   
   # If a key is present, merges
   #     TODO key is redundant here
@@ -51,7 +52,8 @@ RefHelper:: =
   # @param {String} key is a path that points to a pathB or array of paths
   #                 as another lookup chain on the dereferenced `ref`
   # @param {Object} options
-  $indexRefs: (path, ref, key, ver, options) ->
+  # TODO add type to invocations
+  $indexRefs: (path, ref, key, type, ver, options) ->
     adapter = @_adapter
     options2 = merge {dontFollowLastRef: true}, options
     oldRefObj = adapter._lookup(path, false, options2).obj
@@ -65,21 +67,29 @@ RefHelper:: =
       if oldRefObj && oldRef = oldRefObj.$r
         oldKey = oldRefObj.$k
         oldKeyVal = adapter._lookup(oldKey, false, options).obj
-        if Array.isArray oldKeyVal
+        if oldRefObj.$t == 'array'
           # If this key was used in an array ref: {$r: path, $k: [...]}
           oldKeyVal.forEach (oldKeyMem) ->
             removeFrom$refs oldRef, oldKeyMem
           removeFrom$refs oldRef
         else
           removeFrom$refs oldRef, oldKeyVal
+
     update$refs = (refsKey) ->
-      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = [ref, key]
+      entry = [ref, key]
+      entry.push type if type
+      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = entry
+
     if key
-      adapter._lookup("$keys.#{key}.$", true, options).obj[path] = [ref, key]
+      entry = [ref, key]
+      entry.push type if type
+      adapter._lookup("$keys.#{key}.$", true, options).obj[path] = entry
       keyVal = adapter._lookup(key, false, options).obj
       # keyVal is only valid if it can be a valid path segment
-      return if keyVal is undefined
-      if Array.isArray keyVal
+      return if type is undefined and keyVal is undefined
+      if type == 'array'
+        keyOptions = merge { array: true }, options
+        keyVal = adapter._lookup(key, true, keyOptions).obj
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         removeOld$refs()
         return refsKeys.forEach update$refs
@@ -104,8 +114,8 @@ RefHelper:: =
   updateRefsForKey: (path, ver, options) ->
     self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
-      @_eachValidRef refs, options.obj, (path, ref, key) ->
-        self.$indexRefs path, ref, key, ver, options
+      @_eachValidRef refs, options.obj, (path, ref, key, type) ->
+        self.$indexRefs path, ref, key, type, ver, options
 
   _fastLookup: (path, obj) ->
     for prop in path.split '.'
@@ -115,13 +125,13 @@ RefHelper:: =
   ## Iterators ##
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = @_fastLookup
-    for path, [ref, key] of refs
+    for path, [ref, key, type] of refs
       # Check to see if the reference is still the same
       o = fastLookup path, obj
       if o && o.$r == ref && `o.$k == key`
         # test `o.$k == key` not via ===
         # because key is converted to null when JSON.stringified before being sent here via socket.io
-        callback path, ref, key
+        callback path, ref, key, type
       else
         delete refs[path]
         # Lazy cleanup
@@ -145,15 +155,15 @@ RefHelper:: =
     _data = model.get()
     self._eachRefSetPointingTo targetPath, refs, (refSet, targetPathRemainder) ->
       # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-      self._eachValidRef refSet, _data, (pointingPath, ref, key) ->
-        fn pointingPath, targetPathRemainder, ref, key
+      self._eachValidRef refSet, _data, (pointingPath, ref, key, type) ->
+        fn pointingPath, targetPathRemainder, ref, key, type
 
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
   notifyPointersTo: (targetPath, method, args, emitPathEvent, ignoreRoots = []) ->
     self = this
-    self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key) ->
+    self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key, type) ->
       alreadySeen = ignoreRoots.some (root) ->
         # For avoiding infinite event emission
         root == pointingPath.substr(0, root.length)

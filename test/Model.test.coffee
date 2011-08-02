@@ -637,7 +637,6 @@ module.exports =
         3: { text: 'meet with obama', status: 'complete' }
       _mine: ['1', '3']
       mine: model.ref 'todos', '_mine'
-      mineTexts: model.ref 'todos', '_mine', 'text'
 
     # Test non-keyed array of references
     model.get('mine').should.eql [
@@ -650,9 +649,6 @@ module.exports =
 
     # Test access to a property below a single reference in the array
     model.get('mine.0.text').should.equal 'finish rally'
-
-    # Test scoped array of references
-    model.get('mineTexts').should.eql ['finish rally', 'meet with obama']
 
     # Test changing the key object reference with speculative set
     model.set '_mine', ['1', '2']
@@ -676,25 +672,26 @@ module.exports =
 
     # Setting a reference before a key should make a record of the key but
     # not the reference
-    model.set 'mine', model.ref('todos', '_mine')
+    model.set 'mine', model.arrayRef('todos', '_mine')
     model.get().should.protoEql
-      mine: model.ref('todos', '_mine')
-      $keys: { _mine: $: mine: ['todos', '_mine'] }
+      mine: model.arrayRef('todos', '_mine')
+      _mine: []
+      $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
 
     # Setting a key value should update the reference
     model.set '_mine', ['1', '3']
     model.get().should.protoEql
-      mine: model.ref 'todos', '_mine'
+      mine: model.arrayRef 'todos', '_mine'
       _mine: ['1', '3']
-      $keys: { _mine: $: mine: ['todos', '_mine'] }
+      $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
       $refs:
         todos:
-          1: { $: mine: ['todos', '_mine'] }
-          3: { $: mine: ['todos', '_mine'] }
+          1: { $: mine: ['todos', '_mine', 'array'] }
+          3: { $: mine: ['todos', '_mine', 'array'] }
   
   'setting a property on an array reference member should update the referenced member': ->
     model = new Model
-    model.set 'mine', model.ref('todos', '_mine')
+    model.set 'mine', model.arrayRef('todos', '_mine')
     model.set '_mine', ['1', '3']
     model.set 'todos',
         1: { text: 'costco run', status: 'complete' }
@@ -707,18 +704,18 @@ module.exports =
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
         3: { text: 'bounce', status: 'ongoing' }
-      mine: model.ref 'todos', '_mine'
+      mine: model.arrayRef 'todos', '_mine'
       _mine: ['1', '3']
-      $keys: { _mine: $: mine: ['todos', '_mine'] }
+      $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
       $refs:
         todos:
-          1: { $: mine: ['todos', '_mine'] }
-          3: { $: mine: ['todos', '_mine'] }
+          1: { $: mine: ['todos', '_mine', 'array'] }
+          3: { $: mine: ['todos', '_mine', 'array'] }
 
   '''setting on a path that is currently a ref should modify the ref,
   similar to setting an object reference in Javascript''': ->
     model = new Model
-    model.set 'mine', model.ref('todos', '_mine')
+    model.set 'mine', model.arrayRef('todos', '_mine')
     model.set '_mine', ['1', '3']
     model.set 'todos',
         1: { text: 'costco run', status: 'complete' }
@@ -726,7 +723,7 @@ module.exports =
         3: { text: 'bounce', status: 'ongoing' }
     model.set 'mine.0.text', 'trader joes run'
 
-    model.set 'mine', model.ref 'dogs', '_mine'
+    model.set 'mine', model.arrayRef 'dogs', '_mine'
     model.set 'dogs',
       1: { name: 'banana' }
       2: { name: 'squeak' }
@@ -740,13 +737,13 @@ module.exports =
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
         3: { text: 'bounce', status: 'ongoing' }
-      mine: model.ref 'dogs', '_mine'
+      mine: model.arrayRef 'dogs', '_mine'
       _mine: ['1', '3']
-      $keys: { _mine: $: mine: ['dogs', '_mine'] }
+      $keys: { _mine: $: mine: ['dogs', '_mine', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', '_mine'] }
-          3: { $: mine: ['dogs', '_mine'] }
+          1: { $: mine: ['dogs', '_mine', 'array'] }
+          3: { $: mine: ['dogs', '_mine', 'array'] }
     # ... and should result in a model that can dereference the
     # new references properly
     model.get('mine').should.eql [
@@ -756,7 +753,7 @@ module.exports =
 
   'pushing onto an array reference should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -764,21 +761,21 @@ module.exports =
       3: { name: 'pogo' }
 
     model.set 'dogs.4', name: 'boo boo'
-    model.push 'mine', model.ref('dogs', '4')
+    model.push 'mine', model.arrayRef('dogs', '4')
     model.get().should.protoEql
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
+      mine: model.arrayRef 'dogs', 'myDogIds'
+      myDogIds: ['1', '3', '4'] # new data '4'
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      mine: model.ref 'dogs', 'myDogIds'
-      myDogIds: ['1', '3', '4'] # new data '4'
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
-      $refs:
-        dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
-          4: { $: mine: ['dogs', 'myDogIds'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
     model.get('mine').should.eql [
@@ -787,9 +784,28 @@ module.exports =
       { name: 'boo boo'}
     ]
 
+  'pushing onto an empty array reference should instantiate and update the key array': ->
+    model = new Model
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
+    model.set 'dogs', 1: name: 'banana'
+
+    model.push 'mine', model.ref('dogs', '1')
+    model.get().should.protoEql
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
+      myDogIds: ['1'] # new array
+      mine: model.arrayRef 'dogs', 'myDogIds'
+      dogs:
+        1: { name: 'banana' } # new data
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [ name: 'banana' ]
+
   'popping an array reference should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '3', '4']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -804,13 +820,13 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1', '3'] # new data '4' popped()
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
@@ -821,7 +837,7 @@ module.exports =
 
   'unshifting an array reference should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -829,21 +845,21 @@ module.exports =
       3: { name: 'pogo' }
       4: { name: 'boo boo'}
 
-    model.unshift 'mine', model.ref 'dogs', '4'
+    model.unshift 'mine', model.arrayRef 'dogs', '4'
     model.get().should.protoEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['4', '1', '3'] # new data '4'
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
-          4: { $: mine: ['dogs', 'myDogIds'] } # new data
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
     model.get('mine').should.eql [
@@ -854,7 +870,7 @@ module.exports =
 
   'shifting an array reference should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['4', '1', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -869,13 +885,13 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1', '3'] # new data '4' shifted()
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
@@ -886,7 +902,7 @@ module.exports =
 
   'insertAfter for array references should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myTodoIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myTodoIds'
     model.set 'myTodoIds', ['1', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -894,21 +910,21 @@ module.exports =
       3: { name: 'pogo' }
       4: { name: 'boo boo'}
 
-    model.insertAfter 'mine', 0, model.ref 'dogs', '4'
+    model.insertAfter 'mine', 0, model.arrayRef 'dogs', '4'
     model.get().should.protoEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      mine: model.ref 'dogs', 'myTodoIds'
+      mine: model.arrayRef 'dogs', 'myTodoIds'
       myTodoIds: ['1', '4', '3'] # new data '4' inserted()
-      $keys: { myTodoIds: $: mine: ['dogs', 'myTodoIds'] }
+      $keys: { myTodoIds: $: mine: ['dogs', 'myTodoIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myTodoIds'] }
-          3: { $: mine: ['dogs', 'myTodoIds'] }
-          4: { $: mine: ['dogs', 'myTodoIds'] }
+          1: { $: mine: ['dogs', 'myTodoIds', 'array'] }
+          3: { $: mine: ['dogs', 'myTodoIds', 'array'] }
+          4: { $: mine: ['dogs', 'myTodoIds', 'array'] }
     # ... and should result in a model that can dereference the
     # new references properly
     model.get('mine').should.eql [
@@ -919,7 +935,7 @@ module.exports =
 
   'remove for array references should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '4', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -934,13 +950,13 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1', '3'] # '4' removed()
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
@@ -951,7 +967,7 @@ module.exports =
 
   'insertBefore for array references should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -966,14 +982,14 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1', '4', '3'] # new data '4' inserted()
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] }
-          3: { $: mine: ['dogs', 'myDogIds'] }
-          4: { $: mine: ['dogs', 'myDogIds'] } # new data
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
+          4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
     model.get('mine').should.eql [
@@ -984,7 +1000,7 @@ module.exports =
 
   'removing multiple items at once for array references should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1', '4', '3']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -999,12 +1015,12 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'}
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['3'] # '1' and '4' removed()
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          3: { $: mine: ['dogs', 'myDogIds'] }
+          3: { $: mine: ['dogs', 'myDogIds', 'array'] }
           # '1' removed
           # '4' removed
     # ... and should result in a model that can dereference the
@@ -1015,7 +1031,7 @@ module.exports =
 
   'splice for array references should update the key array': ->
     model = new Model
-    model.set 'mine', model.ref 'dogs', 'myDogIds'
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.set 'myDogIds', ['1']
     model.set 'dogs',
       1: { name: 'banana' }
@@ -1030,13 +1046,13 @@ module.exports =
         2: { name: 'squeak' }
         3: { name: 'pogo' }
         4: { name: 'boo boo'} # new data
-      mine: model.ref 'dogs', 'myDogIds'
+      mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['4', '1'] # new data '4', '1' spliced in; '3' spliced out
-      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds'] }
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       $refs:
         dogs:
-          1: { $: mine: ['dogs', 'myDogIds'] } # new data
-          4: { $: mine: ['dogs', 'myDogIds'] } # new data
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
+          4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
           # '3' removed
     # ... and should result in a model that can dereference the
     # new references properly
@@ -1047,7 +1063,7 @@ module.exports =
 
   "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list": ->
     model = new Model
-    model.set 'mine', model.ref 'todos', 'myTodoIds'
+    model.set 'mine', model.arrayRef 'todos', 'myTodoIds'
     model.set 'todos',
       1: { text: 'fight!' }
       2: { text: 'round two' }
@@ -1062,13 +1078,13 @@ module.exports =
         1: { text: 'fight!' }
         2: { text: 'round two' }
         3: { text: 'finish him!' }
-      mine: model.ref 'todos', 'myTodoIds'
+      mine: model.arrayRef 'todos', 'myTodoIds'
       myTodoIds: ['1', '3']
-      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds'] }
+      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds', 'array'] }
       $refs:
         todos:
-          1: { $: mine: ['todos', 'myTodoIds'] }
-          3: { $: mine: ['todos', 'myTodoIds'] }
+          1: { $: mine: ['todos', 'myTodoIds', 'array'] }
+          3: { $: mine: ['todos', 'myTodoIds', 'array'] }
     model.del 'todos.3'
     model.get('mine').should.eql [
       { text: 'fight!' }
@@ -1078,16 +1094,17 @@ module.exports =
         1: { text: 'fight!' }
         2: { text: 'round two' }
         # '3' removed
-      mine: model.ref 'todos', 'myTodoIds'
+      mine: model.arrayRef 'todos', 'myTodoIds'
       myTodoIds: ['1'] # '3' removed
-      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds'] }
+      $keys: { myTodoIds: $: mine: ['todos', 'myTodoIds', 'array'] }
       $refs:
         todos:
-          1: { $: mine: ['todos', 'myTodoIds'] }
+          1: { $: mine: ['todos', 'myTodoIds', 'array'] }
           # '3' removed
     # TODO removal of the pending del transaction should also remove the other ref cleanup transactions it generates
 
   "pushing onto an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    console.log "!"
     model = new Model
     model.set 'myTodos', model.ref('todos', 'myTodoIds')
     model.set 'todos',
@@ -1102,6 +1119,7 @@ module.exports =
   , 2
 
   'pushing onto an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    console.log "!!"
     model = new Model
     model.set 'myTodos', model.ref('todos', 'myTodoIds')
     model.set 'todos',
