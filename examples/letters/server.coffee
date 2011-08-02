@@ -26,7 +26,7 @@ app.get '/:room', (req, res) ->
   return res.redirect _room if _room != room
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe "rooms.#{room}.*", 'rooms.*.players', (err, model) ->
+  store.subscribe "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
     initModel model, room
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
