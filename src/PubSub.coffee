@@ -44,17 +44,13 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
       @__publish path, message
   
   _onMessage = (glob, path, message) ->
+    message = JSON.parse message
     if subscribers = subs[glob]
       for key, [subscriberId, re] of subscribers
         onMessage subscriberId, message if re.test path
   
-  subClient.on 'message', (path, message) ->
-    message = JSON.parse message
-    _onMessage path, path, message
-  
-  subClient.on 'pmessage', (pattern, channel, message) ->
-    message = JSON.parse message
-    _onMessage pattern, channel, message
+  subClient.on 'message', (path, message) -> _onMessage path, path, message
+  subClient.on 'pmessage', _onMessage
   
   # Redis doesn't support callbacks on subscribe or unsubscribe methods, so
   # we call the callback after subscribe/unsubscribe events are published on
