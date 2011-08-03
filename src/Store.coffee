@@ -8,6 +8,8 @@ TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
+RETRY_TIMEOUT = 10
+
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
   # Client for data access and event publishing
@@ -246,6 +248,45 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @del = (path, ver, callback) ->
     commit [ver, nextTxnId(), 'del', path], callback
   
+  StoreAtomic = (store, cb) ->
+    minVer = 0
+    count = 0
+    
+    @_reset = ->
+      minVer = 0
+      count = 0
+    
+    @get = (path, callback) ->
+      store.get path, (err, value, ver) ->
+        return cb err if err
+        minVer = if minVer then Math.min minVer, ver else ver
+        callback value if callback
+    
+    @set = (path, value, callback) ->
+      count++
+      store.set path, value, minVer, (err) ->
+        return cb err if err
+        callback value if callback
+        cb() unless --count
+    
+    @del = (path, callback) ->
+      count++
+      store.del path, minVer, (err) ->
+        return cb err if err
+        callback if callback
+        cb() unless --count
+    
+    return
+  
+  @retry = (fn, callback) ->
+    timeout = RETRY_TIMEOUT
+    atomic = new StoreAtomic @, (err) ->
+      return callback && callback() if `err == null`
+      timeout *= 2
+      atomic._reset()
+      setTimeout fn, timeout, atomic
+    fn atomic
+  
   nextClientId = (callback) ->
     redisClient.incr 'clientClock', (err, value) ->
       throw err if err
@@ -257,7 +298,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   txnCount = 0
   nextTxnId = -> clientId + '.' + txnCount++
   
+  
   ## Upstream Transaction Interface ##
+  
   stm = new Stm redisClient
   @_commit = commit = (txn, callback) ->
     ver = transaction.base txn
@@ -268,8 +311,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       txn[0] = ver
       callback err, txn if callback
       return if err
-      # TODO Wrap PubSub with TxnPubSub. Then, just pass around txn,
-      # and TxnPubSub can subtract out the payload of path from txn, too.
       pubSub.publish transaction.path(txn), txn
       txnApplier.add txn, ver
   

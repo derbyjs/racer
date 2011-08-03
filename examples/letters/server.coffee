@@ -69,10 +69,9 @@ initModel = (model, room) ->
 # Clear any existing data, then initialize
 store.flush (err) ->
   incr = (path, byNum) ->
-    store.get path, (err, val, ver) ->
-      val = if val > 0 then val else 0
-      store.set path, val + byNum, ver, (err) ->
-        setTimeout incr, 50, path, byNum if err is 'conflict'
+    store.retry (atomic) ->
+      atomic.get path, (val = 0) ->
+        atomic.set path, val + byNum
   
   rally.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->

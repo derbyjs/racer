@@ -102,7 +102,24 @@ module.exports =
           setTimeout ->
             model.get().should.eql a: {c: 2}, e: {c: 7}
             finish()
-          , 100
+          , 50
+  
+  'test store.retry': (done) ->
+    incr = (path, callback) ->
+      store.retry (atomic) ->
+        atomic.get path, (count = 0) ->
+          atomic.set path, ++count
+      , callback
+    i = 5
+    cbCount = 5
+    while i--
+      incr 'count', ->
+        unless --cbCount
+          setTimeout ->
+            store.get 'count', (err, value) ->
+              value.should.eql 5
+              done()
+          , 50
   
   # TODO tests:
   # 'should, upon socket.io disconnect, remove the socket from the sockets._byClientID index'

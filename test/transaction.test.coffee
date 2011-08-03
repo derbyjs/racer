@@ -53,7 +53,7 @@ module.exports =
     txn5 = [0, '0.1', 'set', 'count', 1]
     txn6 = [0, '0.1', 'set', 'name', 'drago']
     
-    txn2s = [0, '#0.0', 'set', 'count', 0]
+    txn2s = [0, '#0.0', 'set', 'count', 1]
     txn5s = [0, '#0.1', 'set', 'count', 1]
     
     txn7 = [0, '1.0', 'set', 'obj.nested', 0]
@@ -68,7 +68,6 @@ module.exports =
     transaction.conflict(txn2s, txn5s).should.eql 'conflict' # Same store, wrong order
     transaction.conflict(txn5s, txn2s).should.eql 'conflict' # Same store, correct order
     
-    transaction.conflict(txn1, txn5).should.be.false # Same method, path, and arguments
     transaction.conflict(txn1, txn6).should.be.false # Non-conflicting paths
     
     transaction.conflict(txn7, txn8).should.eql 'conflict' # Conflicting nested paths

@@ -23,15 +23,7 @@ transaction.conflict = (txnA, txnB) ->
   # Ignore transactions with the same ID as an already committed transaction
   return 'duplicate' if txnA[1] == txnB[1]
   
-  # There is no conflict if the new transaction has exactly the same method,
-  # path, and arguments as the committed transaction
-  lenA = txnA.length
-  i = 2
-  while i < lenA
-    return 'conflict' if txnA[i] != txnB[i]
-    i++
-  return 'conflict' if lenA != txnB.length
-  return false
+  return 'conflict'
 
 transaction.pathConflict = (pathA, pathB) ->
   # Paths conflict if either is a sub-path of the other

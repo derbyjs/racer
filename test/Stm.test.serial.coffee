@@ -173,33 +173,6 @@ module.exports =
       should.equal null, err
       done()
   
-  'different-client, same-path, simultaneous, identical transaction should succeed': (done) ->
-    txnOne = [0, '1.0', 'set', 'color', 'green']
-    txnTwo = [0, '2.0', 'set', 'color', 'green']
-    stm.commit txnOne, (err) ->
-      should.equal null, err
-    stm.commit txnTwo, (err) ->
-      should.equal null, err
-      done()
-  
-  'different-client, same-path, simultaneous, different method transaction should fail': (done) ->
-    txnOne = [0, '1.0', 'set', 'color', 'green']
-    txnTwo = [0, '2.0', 'del', 'color', 'green']
-    stm.commit txnOne, (err) ->
-      should.equal null, err
-    stm.commit txnTwo, (err) ->
-      err.should.eql 'conflict'
-      done()
-  
-  'different-client, same-path, simultaneous, different args length transaction should fail': (done) ->
-    txnOne = [0, '1.0', 'set', 'color', 'green']
-    txnTwo = [0, '2.0', 'set', 'color', 'green', 0]
-    stm.commit txnOne, (err) ->
-      should.equal null, err
-    stm.commit txnTwo, (err) ->
-      err.should.eql 'conflict'
-      done()
-  
   'same-client, same-path transaction should succeed in order': (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     txnTwo = [0, '1.1', 'set', 'color', 'red']
@@ -207,6 +180,15 @@ module.exports =
       should.equal null, err
     stm.commit txnTwo, (err) ->
       should.equal null, err
+      done()
+  
+  'same-client, same-path store transaction should fail in order': (done) ->
+    txnOne = [0, '#1.0', 'set', 'color', 'green']
+    txnTwo = [0, '#1.1', 'set', 'color', 'red']
+    stm.commit txnOne, (err) ->
+      should.equal null, err
+    stm.commit txnTwo, (err) ->
+      err.should.eql 'conflict'
       done()
   
   'same-client, same-path transaction should fail out of order': (done) ->
