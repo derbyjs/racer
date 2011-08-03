@@ -4,7 +4,7 @@
   "main": "./server.js",
   "dependencies": {
     "rally": "*",
-    "socket.io-client": ">=0.7"
+    "express": ">=2"
   },
   "private": true
 }
