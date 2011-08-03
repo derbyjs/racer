@@ -248,8 +248,5 @@ RefHelper:: =
     options = proto: true, obj: data, dontFollowLastRef: true
     refObj = @_adapter._lookup(path, false, options).obj
     return false if refObj is undefined
-    {$r, $k} = refObj
-    return false unless $r && $k # this is not a ref
-    keyObj = @_adapter._lookup($k, false, options).obj
-    return false unless Array.isArray keyObj
-    return { $r, $k }
+    {$r, $k, $t} = refObj
+    return if $t == 'array' then { $r, $k } else false
