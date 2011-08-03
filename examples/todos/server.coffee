@@ -5,11 +5,11 @@ fs = require 'fs'
 rally ioPort: 3001
 store = rally.store
 app = express.createServer(
-    express.favicon()
-  , express.bodyParser()
-  , express.cookieParser()
-  , express.session secret: 'shhhh_dont_tell'
-  , rally()
+  express.favicon(),
+  express.bodyParser(),
+  express.cookieParser(),
+  express.session secret: 'shhhh_dont_tell',
+  rally()
 )
 
 # rally.js returns a browserify bundle of the rally client side code and the
