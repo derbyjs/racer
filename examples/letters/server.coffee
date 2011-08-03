@@ -26,8 +26,10 @@ app.get '/:room', (req, res) ->
   return res.redirect _room if _room != room
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
-    initModel model, room
+  store.subscribe room: "rooms.#{room}", 'rooms.*.players', (err, model) ->
+    model.set '_roomName', room
+    console.log model._adapter._data
+    initRoom model
     # model.json waits for any pending model operations to complete and then
     # returns the data for initialization on the client
     model.json (json) ->
@@ -50,9 +52,7 @@ app.get '/:room', (req, res) ->
       <script>window.onload=function(){rally.init(#{json})}</script>
       """
 
-initModel = (model, room) ->
-  model.set '_roomName', room
-  model.set '_room', model.ref "rooms.#{room}"
+initRoom = (model) ->
   return if model.get '_room.letters'
   colors = ['red', 'yellow', 'blue', 'orange', 'green']
   letters = {}

@@ -165,23 +165,34 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         setModelValue modelAdapter, nextRoot, remainder, nextValue, ver
     # TODO: Support ** not at the end of a path
     # TODO: Support (a|b) syntax
-  
+
   populateModel = (model, paths, callback) ->
+    _paths = []
+    for path in paths
+      if typeof path is 'object'
+        for key, value of path
+          model.set '_' + key, model.ref value
+          _paths.push value + '.**'
+        continue
+      _paths.push path
+    
     # Store subscriptions in the model so that it can submit them to the
     # server when it connects
-    model._storeSubs = model._storeSubs.concat paths
+    model._storeSubs = model._storeSubs.concat _paths
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
     clientId = model._clientId
-    pubSub.subscribe clientId, paths
+    pubSub.subscribe clientId, _paths
     
     maxVer = 0
-    getting = paths.length
+    getting = _paths.length
     modelAdapter = model._adapter
-    for path in paths
+    for path in _paths
       [root, remainder] = pathParser.splitPattern path
       adapter.get root, (err, value, ver) ->
-        return callback err if err
+        if err
+          callback err if callback
+          return callback = null
         maxVer = Math.max maxVer, ver
         setModelValue modelAdapter, root, remainder, value, ver
         return if --getting
@@ -196,12 +207,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
           modelAdapter[method] args...
         , done = ->
           localModels[clientId] = model
-          callback null, model
-  
+          callback null, model if callback
+
   @subscribe = (model, paths..., callback) ->
     # TODO: Support path wildcards, references, and functions
     
-    if arguments.length == 1
+    if arguments.length is 1
       # If subscribe(callback)
       callback = model
     else

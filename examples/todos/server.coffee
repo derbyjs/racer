@@ -8,8 +8,7 @@ app = express.createServer(
   express.favicon(),
   express.bodyParser(),
   express.cookieParser(),
-  express.session secret: 'shhhh_dont_tell',
-  rally()
+  express.session secret: 'shhhh_dont_tell'
 )
 
 # rally.js returns a browserify bundle of the rally client side code and the
@@ -42,19 +41,12 @@ app.get '/:groupId', (req, res) ->
     model.json (json) ->
       res.send """
       <!DOCTYPE html>
-      <title>Todo List</title>
+      <title>Todo list</title>
       <style>#{style}</style>
-      <link href=http://fonts.googleapis.com/css?family=Anton&v1 rel=stylesheet>
       <div id=container>
         <h1>Todos</h1>
-        <form><input class="new-item" value="add a todo item" /></form>
-        <ul id="todos">
-          <li>
-            <input type="checkbox" />
-            <label>Some Existing Todo Item</label>
-            <a>delete</a>
-          </li>
-        </ul>
+        <form><input id=new-todo><input type=submit value=Add></form>
+        <ul id=todos></ul>
       </div>
       <script src=/script.js defer></script>
       <script>window.onload=function(){rally.init(#{json})}</script>

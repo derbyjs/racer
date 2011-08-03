@@ -2,8 +2,14 @@ rally = require 'rally'
 
 rally.onload = ->
   model = rally.model
-
   todoList = document.getElementById 'todos'
+
+  todoHtml = ({id, text, completed}) ->
+    class = 'completed' if completed
+    """<li id=#{id} class=#{class}><input type=checkbox id=#{id}-check>
+    <label for=#{id}-check>#{text}</label><button>Delete</button>"""
+
+  todoList.innerHtml = (todoHtml todo for todo in model.get '_todos').join ''
 
   addTodo = (index) ->
     nextId = model.get 'todos.nextId'
