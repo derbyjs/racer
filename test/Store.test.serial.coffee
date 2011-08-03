@@ -99,10 +99,8 @@ module.exports =
           model.get().should.eql a: {b: 1, c: 2, d: []}
           finish()
         store.subscribe '*.c', (err, model) ->
-          setTimeout ->
-            model.get().should.eql a: {c: 2}, e: {c: 7}
-            finish()
-          , 50
+          model.get().should.eql a: {c: 2}, e: {c: 7}
+          finish()
   
   'test store.retry': (done) ->
     incr = (path, callback) ->
