@@ -8,7 +8,8 @@ TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
-RETRY_TIMEOUT = 10
+MAX_RETRIES = 10
+RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
@@ -279,12 +280,14 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     return
   
   @retry = (fn, callback) ->
-    timeout = RETRY_TIMEOUT
+    retries = MAX_RETRIES
+    delay = RETRY_DELAY
     atomic = new StoreAtomic @, (err) ->
       return callback && callback() if `err == null`
-      timeout *= 2
+      return callback && callback 'maxRetries' unless retries--
       atomic._reset()
-      setTimeout fn, timeout, atomic
+      delay *= 2
+      setTimeout fn, delay, atomic
     fn atomic
   
   nextClientId = (callback) ->
