@@ -6,7 +6,7 @@ setStarts = (client, startsLength, ver, callback) ->
       throw err if err
       callback null if callback
 
-redisInfo = module.exports =
+module.exports =
 
   # This function should be called once when the Redis server restarts.
   # It is meant to be called by the process that starts the Redis server,

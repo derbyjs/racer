@@ -1,6 +1,7 @@
+redis = require 'redis'
 pathParser = require './pathParser.server'
 transaction = require './transaction.server'
-redis = require 'redis'
+{hasKeys} = require './util'
 
 PubSub = module.exports = (options = {}) ->
   adapterName = options.adapter || 'Redis'
@@ -113,7 +114,7 @@ RedisAdapter:: =
       glob = pathParser.glob path
       if globSubs = subs[glob]
         delete globSubs["#{subscriberId}$#{path}"]
-        toRemove.push glob if Object.keys(globSubs).length == 0
+        toRemove.push glob unless hasKeys globSubs
       ss = subscriberSubs[subscriberId]
       delete ss[path] if ss
     

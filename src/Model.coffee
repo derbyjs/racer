@@ -3,8 +3,8 @@ pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
-EventEmitter = require('events').EventEmitter
-merge = require('./utils').merge
+{EventEmitter} = require 'events'
+{merge} = require './util'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this

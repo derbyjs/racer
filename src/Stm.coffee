@@ -1,5 +1,4 @@
-transaction = require './transaction'
-require './transaction.server'
+transaction = require './transaction.server'
 
 MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure

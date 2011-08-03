@@ -1,6 +1,7 @@
 url = require 'url'
 mongo = require 'mongodb'
-EventEmitter = require('events').EventEmitter
+{EventEmitter} = require 'events'
+
 ObjectId = mongo.BSONPure.ObjectID
 ObjectId.toString = (oid) -> oid.toHexString()
 ObjectId.fromString = (str) -> @createFromHexString str
@@ -16,7 +17,7 @@ DISCONNECTING = 4
 #   host: 'localhost'
 #   port: 27017
 #   database: 'example'
-module.exports = MongoAdapter = (conf) ->
+MongoAdapter = module.exports = (conf) ->
   EventEmitter.call this
   @_ver = 0
 

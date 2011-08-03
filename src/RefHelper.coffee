@@ -1,6 +1,6 @@
 transaction = require './transaction'
 pathParser = require './pathParser'
-{merge, anyKeys} = require './utils'
+{merge, hasKeys} = require './util'
 
 module.exports = RefHelper = (model) ->
   @_model = model
@@ -62,7 +62,7 @@ RefHelper:: =
       ref += '.' + key if key
       refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
       delete refEntries[path]
-      unless anyKeys refEntries
+      unless hasKeys refEntries
         adapter.del "$refs.#{ref}", ver, options
     removeOld$refs = ->
       if oldRefObj && oldRef = oldRefObj.$r
@@ -100,7 +100,7 @@ RefHelper:: =
         refs = adapter._lookup("$keys.#{oldKey}.$", false, options).obj
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, options unless anyKeys refs
+          adapter.del "$keys.#{oldKey}", ver, options unless hasKeys refs
       refsKey = ref
     removeOld$refs()
     update$refs refsKey
