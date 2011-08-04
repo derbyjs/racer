@@ -484,6 +484,20 @@ module.exports =
       done()
     model.set 'w.x.y.z', 'green'
   , 2
+
+  'test client emits events on receipt of a transaction iff it did not create the transaction': wrapTest (done) ->
+    [sockets, model] = mockSocketModel('clientA')
+    eventCalled = false
+    model.on 'set', 'color', (val) ->
+      eventCalled = true
+    sockets.emit 'txn', [1, 'clientA.0', 'set', 'color', 'green'], 1
+    setTimeout ->
+      eventCalled.should.be.false
+      sockets._disconnect()
+      done()
+    , 200
+  , 1
+  
   
   'forcing a model method should create a transaction with a null version': ->
     model = new Model '0'
