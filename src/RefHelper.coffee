@@ -222,6 +222,7 @@ RefHelper:: =
       if { $r, $k } = @isArrayRef path, specModel[0]
         # TODO Instead of invalidating, roll back the spec model cache by 1 txn
         @_model._cache.invalidateSpecModelCache()
+        # TODO Add test to make sure that we assign the de-referenced $k to path
         txn[3] = path = $k
         oldPushArgs = transaction.args(txn).slice sliceFrom
         newPushArgs = oldPushArgs.map (refObjToAdd) ->
@@ -250,6 +251,7 @@ RefHelper:: =
     refObj = @_adapter._lookup(path, false, options).obj
     return false if refObj is undefined
     {$r, $k, $t} = refObj
+    $k = @dereferencedPath $k, data if $k
     return if $t == 'array' then { $r, $k } else false
   
   splitArrayArgs: (method, args) ->
@@ -263,3 +265,7 @@ RefHelper:: =
         return [args, []]
 
   isRefObj: (obj) -> '$r' of obj
+
+  dereferencedPath: (path, data) ->
+    meta = @_adapter._lookup path, false, proto: true, obj: data, returnMEta: true
+    return meta.path
