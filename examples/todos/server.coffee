@@ -25,19 +25,10 @@ userCount = 0
 app.get '/', (req, res) ->
   res.redirect '/rally'
 
-app.get '/:groupId', (req, res) ->
-  groupId = req.params.groupId
-  store.subscribe "groups.#{groupId}.*", (err, model) ->
-    if !model.get "groups.#{groupId}.*"
-      model.set "groups.#{groupId}", { id: groupId }
-      model.set "groups.#{groupId}.todos", model.ref('todos', "groups.#{groupId}.todoIds")
-
-    # user is a promise/future
-    unless userId = req.session.userId
-      model.set "users.#{userId = ++userCount}", { id: userId }
-      model.set "users.#{userId}.todos", model.ref('todos', "users.#{userId}.todoIds")
-      req.session.userId = userId
-    store.subscribe model, "users.#{userId}.*"
+app.get '/:group', (req, res) ->
+  group = req.params.group
+  store.subscribe group: "groups.#{group}", (err, model) ->
+    initGroup model
     model.json (json) ->
       res.send """
       <!DOCTYPE html>
@@ -45,12 +36,32 @@ app.get '/:groupId', (req, res) ->
       <style>#{style}</style>
       <div id=container>
         <h1>Todos</h1>
-        <form><input id=new-todo><input type=submit value=Add></form>
+        <form action=javascript:addTodo()>
+          <input id=new-todo> <input type=submit value=Add>
+        </form>
         <ul id=todos></ul>
       </div>
       <script src=/script.js defer></script>
       <script>window.onload=function(){rally.init(#{json})}</script>
       """
+
+initGroup = (model) ->
+  return if model.get '_group'  
+  model.set '_group.todos',
+    0: {id: 0, completed: false, text: 'Example todo'}
+    1: {id: 1, completed: false, text: 'Another example'}
+    2: {id: 2, completed: true, text: 'This one is done already'}
+  model.set '_group.todoIds', [2, 0, 1]
+  model.set '_group.nextId', 3
+  model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
+
+  # # user is a promise/future
+    # unless userId = req.session.userId
+    #   model.set "users.#{userId = ++userCount}", { id: userId }
+    #   model.set "users.#{userId}.todos", model.ref('todos', "users.#{userId}.todoIds")
+    #   req.session.userId = userId
+    # store.subscribe model, "users.#{userId}.*"
+
 # Clear any existing data, then initialize
 store.flush (err) ->
   throw err if err
