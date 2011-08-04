@@ -343,7 +343,7 @@ module.exports =
       sockets._disconnect()
       done()
     model.set 'color', 'green'
-  , 2
+  , 1
   
   'model events should be emitted on a reference': wrapTest (done) ->
     ver = 0
@@ -357,7 +357,7 @@ module.exports =
       done()
     model.set 'color', model.ref 'colors.green'
     model.set 'color.hex', '#0f0'
-  , 2
+  , 1
   
   'model events should be emitted on a reference to a reference': wrapTest (done) ->
     model = new Model

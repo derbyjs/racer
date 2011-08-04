@@ -145,19 +145,20 @@ Model:: =
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
-      return @_applyTxn txn
+      return @_applyTxn txn, true
     # Emit an event on creation of the transaction
     @emit method, txnArgs
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   
-  _applyTxn: (txn) ->
+  _applyTxn: (txn, forceEmit) ->
     method = transaction.method txn
     args = transaction.args txn
     args.push transaction.base txn
     @_adapter[method] args...
     @_removeTxn transaction.id txn
-    @emit method, args
+    if forceEmit || @_clientId != transaction.clientId txn
+      @emit method, args
     callback null, transaction.args(txn)... if callback = txn.callback
   
   # TODO Will re-calculation of speculative model every time result
