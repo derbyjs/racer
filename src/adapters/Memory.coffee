@@ -35,7 +35,7 @@ Memory:: =
   _push: MemorySync::push
   push: (path, values..., ver, callback) ->
     try
-      @_push arguments...
+      @_push path, values..., ver
     catch err
       return callback err
     callback null, values...
@@ -43,7 +43,7 @@ Memory:: =
   _pop: MemorySync::pop
   pop: (path, ver, callback) ->
     try
-      @_pop arguments...
+      @_pop path, ver
     catch err
       return callback err
     callback null
@@ -51,7 +51,7 @@ Memory:: =
   _insertAfter: MemorySync::insertAfter
   insertAfter: (path, afterIndex, value, ver, callback) ->
     try
-      @_insertAfter arguments...
+      @_insertAfter path, afterIndex, value, ver
     catch err
       return callback err
     callback null, afterIndex, value
@@ -59,7 +59,7 @@ Memory:: =
   _insertBefore: MemorySync::insertBefore
   insertAfter: (path, beforeIndex, value, ver, callback) ->
     try
-      @_insertBefore arguments...
+      @_insertBefore path, beforeIndex, value, ver
     catch err
       return callback err
     callback null, beforeIndex, value
@@ -67,7 +67,7 @@ Memory:: =
   _remove: MemorySync::remove
   remove: (path, startIndex, howMany, ver, callback) ->
     try
-      @_remove arguments...
+      @_remove path, startIndex, howMany, ver
     catch err
       return callback err
     callback null, startIndex, howMany
@@ -75,7 +75,7 @@ Memory:: =
   _splice: MemorySync::splice
   splice: (path, startIndex, removeCount, newMembers..., ver, callback) ->
     try
-      @_splice arguments...
+      @_splice path, startIndex, removeCount, newMembers...
     catch err
       return callback err
     callback null, startIndex, removeCount, newMembers...
