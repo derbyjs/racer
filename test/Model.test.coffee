@@ -1130,3 +1130,173 @@ module.exports =
       done()
     model.push 'myTodos', model.ref('todos', '1')
   , 2
+
+  "popping an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.set 'myTodoIds', ['1']
+    model.on 'pop', 'myTodos', ->
+      done()
+    model.on 'pop', 'myTodoIds', ->
+      done()
+    model.pop 'myTodoIds'
+  , 2
+
+  'popping an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.set 'myTodoIds', ['1']
+    model.on 'pop', 'myTodos', ->
+      done()
+    model.on 'pop', 'myTodoIds', ->
+      done()
+    model.pop 'myTodos'
+  , 2
+
+  "insertAfter on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'insertAfter', 'myTodos', (index, ref) ->
+      index.should.equal -1
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'insertAfter', 'myTodoIds', (index, val) ->
+      index.should.equal -1
+      val.should.equal '1'
+      done()
+    model.insertAfter 'myTodoIds', -1, '1'
+  , 2
+
+  'insertAfter on an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'insertAfter', 'myTodos', (index, ref) ->
+      index.should.equal -1
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'insertAfter', 'myTodoIds', (index, val) ->
+      index.should.equal -1
+      val.should.equal '1'
+      done()
+    model.insertAfter 'myTodos', -1, model.ref('todos', '1')
+  , 2
+
+  "insertBefore on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'insertBefore', 'myTodos', (index, ref) ->
+      index.should.equal 0
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'insertBefore', 'myTodoIds', (index, val) ->
+      index.should.equal 0
+      val.should.equal '1'
+      done()
+    model.insertBefore 'myTodoIds', 0, '1'
+  , 2
+
+  'insertBefore on an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+    model.on 'insertBefore', 'myTodos', (index, ref) ->
+      index.should.equal 0
+      ref.should.eql model.ref('todos', '1')
+      done()
+    model.on 'insertBefore', 'myTodoIds', (index, val) ->
+      index.should.equal 0
+      val.should.equal '1'
+      done()
+    model.insertBefore 'myTodos', 0, model.ref('todos', '1')
+  , 2
+
+  "remove on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+      2: { text: 'more' }
+      3: { text: 'blah' }
+    model.set 'myTodoIds', ['1', '2', '3']
+    model.on 'remove', 'myTodos', (index, removeCount) ->
+      index.should.equal 0
+      removeCount.should.equal 2
+      done()
+    model.on 'remove', 'myTodoIds', (index, removeCount) ->
+      index.should.equal 0
+      removeCount.should.equal 2
+      done()
+    model.remove 'myTodoIds', 0, 2
+  , 2
+
+  'remove on an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+      2: { text: 'more' }
+      3: { text: 'blah' }
+    model.set 'myTodoIds', ['1', '2', '3']
+    model.on 'remove', 'myTodos', (index, removeCount) ->
+      index.should.equal 0
+      removeCount.should.equal 2
+      done()
+    model.on 'remove', 'myTodoIds', (index, removeCount) ->
+      index.should.equal 0
+      removeCount.should.equal 2
+      done()
+    model.remove 'myTodos', 0, 2
+  , 2
+
+  "splice on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+      2: { text: 'more' }
+      3: { text: 'blah' }
+    model.set 'myTodoIds', ['1', '2']
+    model.on 'splice', 'myTodos', (index, removeCount, ref) ->
+      index.should.equal 0
+      removeCount.should.equal 1
+      ref.should.eql model.ref('todos', '3')
+      done()
+    model.on 'splice', 'myTodoIds', (index, removeCount, value) ->
+      index.should.equal 0
+      removeCount.should.equal 1
+      value.should.equal '3'
+      done()
+    model.splice 'myTodoIds', 0, 1, '3'
+  , 2
+
+  'splice on an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      1: { text: 'something' }
+      2: { text: 'more' }
+      3: { text: 'blah' }
+    model.set 'myTodoIds', ['1', '2']
+    model.on 'splice', 'myTodos', (index, removeCount, ref) ->
+      index.should.equal 0
+      removeCount.should.equal 1
+      ref.should.eql model.ref('todos', '3')
+      done()
+    model.on 'splice', 'myTodoIds', (index, removeCount, value) ->
+      index.should.equal 0
+      removeCount.should.equal 1
+      value.should.equal '3'
+      done()
+    model.splice 'myTodos', 0, 1, model.ref('todos', '3')
+  , 2

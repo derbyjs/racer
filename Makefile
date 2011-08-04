@@ -9,7 +9,6 @@ test-single:
 		--serial \
 		$(TESTFLAGS) \
 		--timeout 6000 \
-		test/adapters/MemorySync.test.coffee \
 		test/Model.test.coffee
 
 test-async-fast:
