@@ -15,7 +15,7 @@ rally.onload = ->
   
   updateTodos = ->
     todoList.innerHTML = (todoHtml todo for todo in model.get '_todos').join ''
-  model.on 'push', '_group.todos', updateTodos
+  model.on 'push', '_todos', updateTodos
   updateTodos()
   
   addTodo = ->
