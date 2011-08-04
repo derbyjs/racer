@@ -183,7 +183,6 @@ RefHelper:: =
     self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
       switch method
         when 'push'
-          # TODO Customize arg transformation depending on array mutator `method`
           args = args.map (arg) -> { $r: ref, $k: arg }
         when 'insertAfter', 'insertBefore'
           args = [args[0]].concat args.slice(1).map (arg) -> { $r: ref, $k: arg }
