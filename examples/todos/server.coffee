@@ -46,7 +46,7 @@ app.get '/:group', (req, res) ->
       """
 
 initGroup = (model) ->
-  return if model.get '_group'  
+  return if model.get '_group'
   model.set '_group.todos',
     0: {id: 0, completed: false, text: 'Example todo'}
     1: {id: 1, completed: false, text: 'Another example'}

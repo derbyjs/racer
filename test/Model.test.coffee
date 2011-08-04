@@ -803,6 +803,28 @@ module.exports =
     # new references properly
     model.get('mine').should.eql [ name: 'banana' ]
 
+  '''pushing an object  -- that is not a reference but that has an id attribute
+  -- onto a path pointing to an array ref should add the object to the array refs
+  $r namespace and push the id onto the $k path''': ->
+    model = new Model
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
+    model.push 'mine', id: 1, name: 'banana'
+
+    model.get().should.protoEql
+      $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
+      mine: model.arrayRef 'dogs', 'myDogIds'
+      myDogIds: ['1']
+      $refs:
+        dogs:
+          1: { $: mine: ['dogs', 'myDogIds', 'array'] }
+      dogs:
+        1: { id: 1, name: 'banana' }
+    # ... and should result in a model that can dereference the
+    # new references properly
+    model.get('mine').should.eql [
+      { id: 1, name: 'banana' }
+    ]
+
   'popping an array reference should update the key array': ->
     model = new Model
     model.set 'mine', model.arrayRef 'dogs', 'myDogIds'

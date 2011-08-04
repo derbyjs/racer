@@ -119,22 +119,40 @@ Model:: =
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   
-  _addTxn: (method, args..., callback) ->
+  _addTxn: (method, path, args..., callback) ->
+    refHelper = @_refHelper
+    model = @
+
     # Create a new transaction and add it to a local queue
     id = @_nextTxnId()
     ver = if @_force then null else @_adapter.ver
-    @_txns[id] = txn = [ver, id, method, args...]
+    @_txns[id] = txn = [ver, id, method, path, args...]
     txn.callback = callback
     @_txnQueue.push id
-    txn = @_refHelper.dereferenceTxn txn, @_specModel()
-    args = transaction.args txn
-    path = args[0]
+    specModel = @_specModel()
+    
+    if {$r, $k} = refHelper.isArrayRef path, specModel[0]
+      [firstArgs, members] = refHelper.splitArrayArgs method, args
+      members = members.map (member) ->
+        return member if refHelper.isRefObj member
+        model.set $r + '.' + member.id, member
+        # TODO The object must be set before being pushed as an array ref.
+        # Reflect this in the transaction queue. We can do this once
+        # we re-implement @_specModel() with lookahead txn application
+
+        return {$r, $k: member.id.toString()}
+      args = firstArgs.concat members
+      txn.splice 4, args.length, args...
+
+    txn = refHelper.dereferenceTxn txn, specModel
+    txnArgs = transaction.args txn
+    path = txnArgs[0]
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn
     # Emit an event on creation of the transaction
-    @emit method, args
+    @emit method, txnArgs
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   

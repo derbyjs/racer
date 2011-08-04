@@ -181,13 +181,9 @@ RefHelper:: =
 
     # Takes care of array refs
     self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
-      switch method
-        when 'push'
-          args = args.map (arg) -> { $r: ref, $k: arg }
-        when 'insertAfter', 'insertBefore'
-          args = [args[0]].concat args.slice(1).map (arg) -> { $r: ref, $k: arg }
-        when 'splice'
-          args = args[0..1].concat args.slice(2).map (arg) -> { $r: ref, $k: arg }
+      [firstArgs, arrayMemberArgs] = self.splitArrayArgs method, args
+      arrayMemberArgs = arrayMemberArgs.map (arg) -> { $r: ref, $k: arg } if arrayMemberArgs
+      args = firstArgs.concat arrayMemberArgs
       emitPathEvent pointingPath, args
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
 
@@ -255,3 +251,15 @@ RefHelper:: =
     return false if refObj is undefined
     {$r, $k, $t} = refObj
     return if $t == 'array' then { $r, $k } else false
+  
+  splitArrayArgs: (method, args) ->
+    switch method
+      when 'push' then return [[], args]
+      when 'insertAfter', 'insertBefore'
+        return [[args[0]], args.slice(1)]
+      when 'splice'
+        return [args[0..1], args.slice(2)]
+      else
+        return [args, []]
+
+  isRefObj: (obj) -> '$r' of obj
