@@ -123,28 +123,23 @@ Model:: =
     refHelper = @_refHelper
     model = @
 
-    # Create a new transaction and add it to a local queue
-    id = @_nextTxnId()
-    ver = if @_force then null else @_adapter.ver
-    @_txns[id] = txn = [ver, id, method, path, args...]
-    txn.callback = callback
-    @_txnQueue.push id
-    specModel = @_specModel()
-    
-    if {$r, $k} = refHelper.isArrayRef path, specModel[0]
+    if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
       [firstArgs, members] = refHelper.splitArrayArgs method, args
       members = members.map (member) ->
         return member if refHelper.isRefObj member
         model.set $r + '.' + member.id, member
-        # TODO The object must be set before being pushed as an array ref.
-        # Reflect this in the transaction queue. We can do this once
-        # we re-implement @_specModel() with lookahead txn application
-
         return {$r, $k: member.id.toString()}
       args = firstArgs.concat members
-      txn.splice 4, args.length, args...
+      
+    # Create a new transaction and add it to a local queue
+    ver = if @_force then null else @_adapter.ver
+    id = @_nextTxnId()
+    txn = [ver, id, method, path, args...]
+    @_txns[id] = txn
+    txn.callback = callback
+    @_txnQueue.push id
 
-    txn = refHelper.dereferenceTxn txn, specModel
+    txn = refHelper.dereferenceTxn txn, @_specModel()
     txnArgs = transaction.args txn
     path = txnArgs[0]
     # Apply a private transaction immediately and don't send it to the store

@@ -66,9 +66,9 @@ RefHelper:: =
         adapter.del "$refs.#{ref}", ver, options
     removeOld$refs = ->
       if oldRefObj && oldRef = oldRefObj.$r
-        oldKey = oldRefObj.$k
-        oldKeyVal = adapter._lookup(oldKey, false, options).obj
-        if oldRefObj.$t == 'array'
+        if oldKey = oldRefObj.$k
+          oldKeyVal = adapter._lookup(oldKey, false, options).obj
+        if oldKey && (oldRefObj.$t == 'array')
           # If this key was used in an array ref: {$r: path, $k: [...]}
           oldKeyVal.forEach (oldKeyMem) ->
             removeFrom$refs oldRef, oldKeyMem
@@ -232,14 +232,14 @@ RefHelper:: =
           return refObjToAdd.$k
         txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
       else
-        # Update the transaction's path with a dereferenced path.
-        txn[3] = path = specModel[1]
+        # Update the transaction's path with a dereferenced path if not undefined.
+        txn[3] = path if path = specModel[1]
       return txn
 
     # Update the transaction's path with a dereferenced path.
     # It works via _specModel, which automatically dereferences 
     # every transaction path including the just added path.
-    txn[3] = path = specModel[1]
+    txn[3] = path if path = specModel[1]
     return txn
 
   # isArrayRef

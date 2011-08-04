@@ -201,6 +201,17 @@ module.exports =
     
     # Make sure deleting something that doesn't exist isn't a problem
     model.del 'a.b.c'
+    model._txnQueue.map((id) ->
+      txn = model._txns[id]
+      delete txn.callback
+      txn
+    ).should.eql [
+        [0, '0.0', 'del', 'color']
+      , [0, '0.1', 'set', 'color', 'red']
+      , [0, '0.2', 'del', 'color']
+      , [0, '0.3', 'del', 'info.numbers']
+      , [0, '0.4', 'del', 'a.b.c']
+    ]
   
   'test getting model references': ->
     model = new Model
@@ -294,6 +305,7 @@ module.exports =
     model.get('green').should.eql {}
     
     model.del 'green'
+    should.equal undefined, model.get 'green'
     model.push 'color', 'item'
     model.get('green').should.eql ['item']
   
@@ -823,6 +835,22 @@ module.exports =
     # new references properly
     model.get('mine').should.eql [
       { id: 1, name: 'banana' }
+    ]
+
+  '''pushing an non-ref object onto a path pointing to an array ref
+  should place the transaction setting the new object before the
+  transaction pushing the ref of that object''': ->
+    model = new Model
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
+    model.push 'mine', id: 1, name: 'banana'
+    model._txnQueue.map((id) ->
+      txn = model._txns[id]
+      delete txn.callback
+      txn
+    ).should.eql [
+        [ 0, '.0', 'set', 'mine', { '$r': 'dogs', '$k': 'myDogIds', '$t': 'array' } ]
+      , [ 0, '.1', 'set', 'dogs.1', { id: 1, name: 'banana' } ]
+      , [ 0, '.2', 'push', 'myDogIds', '1'],
     ]
 
   'popping an array reference should update the key array': ->
