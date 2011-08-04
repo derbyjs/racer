@@ -1,21 +1,24 @@
 rally = require 'rally'
 addTodo = ->
+check = ->
 
 rally.onload = ->
   model = rally.model
   newTodo = document.getElementById 'new-todo'
   todoList = document.getElementById 'todos'
   
-  model.set '_todos', model.ref '_group.todoList'
+  model.set '_todoList', model.ref '_group.todoList'
   
   todoHtml = ({id, text, completed}) ->
-    liClass = 'completed' if completed
-    """<li id=#{id} class=#{liClass}><input type=checkbox id=#{id}-check>
-    <label for=#{id}-check>#{text}</label><button>Delete</button>"""
+    """<li id=#{id} class=#{'completed' if completed}>
+    <input type=checkbox id=#{id}-check #{'checked' if completed} onchange=check(this)>
+    <label for=#{id}-check>#{text}</label>
+    <button>Delete</button>"""
   
   updateTodos = ->
-    todoList.innerHTML = (todoHtml todo for todo in model.get '_todos').join ''
-  model.on 'push', '_todos', updateTodos
+    todoList.innerHTML = (todoHtml todo for todo in model.get '_todoList').join ''
+  model.on 'push', '_todoList', updateTodos
+  model.on 'set', '_todoList.**', updateTodos
   updateTodos()
   
   addTodo = ->
@@ -26,6 +29,10 @@ rally.onload = ->
       completed: false
       text: newTodo.value
     newTodo.value = ''
+  
+  check = (checkbox) ->
+    id = checkbox.parentNode.id
+    model.set "_group.todos.#{id}.completed", checkbox.checked
 
 if document.addEventListener
   addListener = (el, type, listener) ->
