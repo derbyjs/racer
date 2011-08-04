@@ -28,8 +28,12 @@ app.get '/', (req, res) ->
 app.get '/:group', (req, res) ->
   group = req.params.group
   store.subscribe group: "groups.#{group}", (err, model) ->
-    initGroup model
+    initGroup model, group
+    # refs must be explicitly declared per model; otherwise ref is not added
+    # to reference indices, $keys and $refs
+    model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
     model.json (json) ->
+      # TODO console.log store._adapter._data --- _group key should not be there
       res.send """
       <!DOCTYPE html>
       <title>Todo list</title>
@@ -45,15 +49,15 @@ app.get '/:group', (req, res) ->
       <script>window.onload=function(){rally.init(#{json})}</script>
       """
 
-initGroup = (model) ->
-  return if model.get '_group'
+initGroup = (model, group) ->
+  return if model.get "groups.#{group}"
   model.set '_group.todos',
     0: {id: 0, completed: false, text: 'Example todo'}
     1: {id: 1, completed: false, text: 'Another example'}
     2: {id: 2, completed: true, text: 'This one is done already'}
   model.set '_group.todoIds', [2, 0, 1]
   model.set '_group.nextId', 3
-  model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
+#  model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
 
   # # user is a promise/future
     # unless userId = req.session.userId

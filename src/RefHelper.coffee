@@ -181,6 +181,11 @@ RefHelper:: =
 
     # Takes care of array refs
     self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
+#      alreadySeen = ignoreRoots.some (root) ->
+#        # For avoiding infinite event emission
+#        root == pointingPath.substr(0, root.length)
+#      return if alreadySeen
+#      ignoreRoots.push ref
       [firstArgs, arrayMemberArgs] = self.splitArrayArgs method, args
       arrayMemberArgs = arrayMemberArgs.map (arg) -> { $r: ref, $k: arg } if arrayMemberArgs
       args = firstArgs.concat arrayMemberArgs
