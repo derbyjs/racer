@@ -38,9 +38,9 @@ app.get '/:group', (req, res) ->
       <!DOCTYPE html>
       <title>Todo list</title>
       <style>#{style}</style>
-      <div id=container>
-        <h1>Todos</h1>
-        <form action=javascript:addTodo()>
+      <div id=page>
+        <form id=head action=javascript:addTodo()>
+          <h1>Todos</h1>
           <input id=new-todo> <input type=submit value=Add>
         </form>
         <ul id=todos></ul>

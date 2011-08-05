@@ -10,8 +10,14 @@ rally.onload = ->
   model.set '_todoList', model.ref '_group.todoList'
   
   todoHtml = ({id, text, completed}) ->
-    """<li id=#{id} class=#{'completed' if completed}>
-    <input type=checkbox id=#{id}-check #{'checked' if completed} onchange=check(this)>
+    if completed
+      liClass = 'completed'
+      checked = 'checked'
+    else
+      liClass = ''
+      checked = ''
+    """<li id=#{id} class=#{liClass}>
+    <input type=checkbox id=#{id}-check #{checked} onchange=check(this)>
     <label for=#{id}-check>#{text}</label>
     <button>Delete</button>"""
   
