@@ -17,7 +17,7 @@ rally.onload = ->
       liClass = ''
       checked = ''
     """<li id=#{id} class=#{liClass}>
-    <input type=checkbox id=#{id}-check #{checked} onchange=check(this)>
+    <input type=checkbox id=#{id}-check #{checked} onchange=check(this)><label for=#{id}-check></label>
     <label for=#{id}-check>#{text}</label>
     <button>Delete</button>"""
   
