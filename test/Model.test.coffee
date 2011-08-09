@@ -1,3 +1,4 @@
+#require '../src/debug'
 Model = require 'Model'
 should = require 'should'
 util = require './util'
@@ -131,32 +132,43 @@ module.exports =
     model.get('color').should.eql 'red'
     
     model.set 'info.numbers', first: 2, second: 10
-    model.get().should.eql
+    model.get().should.specEql
       color: 'red'
       info:
         numbers:
+          # No `_proto: true` here because 'info.numbers' was set to an object
           first: 2
           second: 10
+    model._adapter._data.should.eql {}
     
     model.set 'info.numbers.third', 13
-    model.get().should.eql
+    model.get().should.specEql
       color: 'red'
       info:
         numbers:
           first: 2
           second: 10
           third: 13
-    
     model._adapter._data.should.eql {}
     
     model._removeTxn '0.1'
     model._removeTxn '0.2'
-    model.get().should.eql
+    model.get().should.specEql
       color: 'green'
       info:
+        _proto: true
         numbers:
+          _proto: true
           third: 13
-  
+    model._adapter._data.should.eql {}
+
+  "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
+    model = new Model '0'
+    model._adapter._data = obj: {}
+    model._adapter._data.should.eql obj: {}
+    model.set 'obj.a', 'b'
+    model._adapter._data.should.eql obj: {}
+
   'test speculative value of del': ->
     model = new Model '0'
     model._adapter._data =
@@ -167,14 +179,21 @@ module.exports =
           second: 10
   
     model.del 'color'
-    model.get().should.protoEql
+    model.get().should.specEql
+      info:
+        numbers:
+          first: 2
+          second: 10
+
+    model._adapter._data.should.eql
+      color: 'green'
       info:
         numbers:
           first: 2
           second: 10
     
     model.set 'color', 'red'
-    model.get().should.protoEql
+    model.get().should.specEql
       color: 'red'
       info:
         numbers:
@@ -182,14 +201,14 @@ module.exports =
           second: 10
     
     model.del 'color'
-    model.get().should.protoEql
+    model.get().should.specEql
       info:
         numbers:
           first: 2
           second: 10
     
     model.del 'info.numbers'
-    model.get().should.protoEql
+    model.get().should.specEql
       info: {}
     
     model._adapter._data.should.eql
@@ -212,7 +231,14 @@ module.exports =
       , [0, '0.3', 'del', 'info.numbers']
       , [0, '0.4', 'del', 'a.b.c']
     ]
-  
+
+  'test speculative push': ->
+    model = new Model '0'
+    
+    model.push 'colors', 'green'
+    model.get('colors').should.specEql ['green']
+    model._adapter._data.should.eql {}
+
   'test getting model references': ->
     model = new Model
     model._adapter._data =
@@ -225,7 +251,7 @@ module.exports =
       number: model.ref 'numbers', 'numKey'
     
     # Test non-keyed object reference
-    model.get('numbers').should.eql first: 2, second: 10
+    model.get('numbers').should.specEql first: 2, second: 10
     # Test property below object reference
     model.get('numbers.second').should.eql 10
     # Test keyed object reference
@@ -244,13 +270,13 @@ module.exports =
     # Setting a reference before a key should make a record of the key but
     # not the reference
     model.set 'color', model.ref 'colors', 'selected'
-    model.get().should.protoEql
+    model.get().should.specEql
       color: model.ref 'colors', 'selected'
       $keys: {selected: $: 'color': ['colors', 'selected'] }
     
     # Setting a key value should update the reference
     model.set 'selected', 'blue'
-    model.get().should.protoEql
+    model.get().should.specEql
       color: model.ref 'colors', 'selected'
       selected: 'blue'
       $keys: {selected: $: 'color': ['colors', 'selected'] }
@@ -258,7 +284,7 @@ module.exports =
     
     # Setting a property on a reference should update the referenced object
     model.set 'color.hex', '#0f0'
-    model.get().should.protoEql
+    model.get().should.specEql
       colors:
         blue:
           hex: '#0f0'
@@ -270,7 +296,7 @@ module.exports =
     # Setting on a path that is currently a reference should modify the
     # reference, similar to setting an object reference in Javascript
     model.set 'color', model.ref 'colors.blue'
-    model.get().should.protoEql
+    model.get().should.specEql
       colors:
         blue:
           hex: '#0f0'
@@ -281,7 +307,7 @@ module.exports =
 
     # Test setting on a non-keyed reference
     model.set 'color.compliment', 'yellow'
-    model.get().should.protoEql
+    model.get().should.specEql
       colors:
         blue:
           hex: '#0f0'
@@ -299,15 +325,15 @@ module.exports =
     should.equal undefined, model.get 'color.hex'
     
     model.set 'color.hex', '#0f0'
-    model.get('green').should.eql hex: '#0f0'
+    model.get('green').should.specEql hex: '#0f0'
     
     model.del 'color.hex'
-    model.get('green').should.eql {}
+    model.get('green').should.specEql {}
     
     model.del 'green'
     should.equal undefined, model.get 'green'
     model.push 'color', 'item'
-    model.get('green').should.eql ['item']
+    model.get('green').should.specEql ['item']
   
   'transactions should dereference paths': wrapTest (done) ->
     count = 0
@@ -554,7 +580,7 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'green'
     final = model.get 'colors'
-    final.should.eql ['green']
+    final.should.specEql ['green']
 
 #  'model push should return the length of the speculative array': ->
 #    model = new Model '0'
@@ -567,10 +593,10 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'green'
     interim = model.get 'colors'
-    interim.should.eql ['green']
+    interim.should.specEql ['green']
     model.pop 'colors'
     final = model.get 'colors'
-    final.should.eql []
+    final.should.specEql []
 
 #  'model pop should return the member it removed': ->
 #    model = new Model '0'
@@ -584,10 +610,10 @@ module.exports =
     should.equal undefined, init
     model.unshift 'colors', 'green'
     interim = model.get 'colors'
-    interim.should.eql ['green']
+    interim.should.specEql ['green']
     model.unshift 'colors', 'red', 'orange'
     final = model.get 'colors'
-    final.should.eql ['red', 'orange', 'green']
+    final.should.specEql ['red', 'orange', 'green']
 
   # TODO Test return value of unshift
 
@@ -597,10 +623,10 @@ module.exports =
     should.equal undefined, init
     model.unshift 'colors', 'green', 'blue'
     interim = model.get 'colors'
-    interim.should.eql ['green', 'blue']
+    interim.should.specEql ['green', 'blue']
     model.shift 'colors'
     final = model.get 'colors'
-    final.should.eql ['blue']
+    final.should.specEql ['blue']
 
   'model insertAfter should work on an array, with a valid index': ->
     model = new Model '0'
@@ -608,10 +634,10 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'green'
     interim = model.get 'colors'
-    interim.should.eql ['green']
+    interim.should.specEql ['green']
     model.insertAfter 'colors', 0, 'red'
     final = model.get 'colors'
-    final.should.eql ['green', 'red']
+    final.should.specEql ['green', 'red']
 
   # TODO Test return value of insertAfter
 
@@ -621,10 +647,10 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'green'
     interim = model.get 'colors'
-    interim.should.eql ['green']
+    interim.should.specEql ['green']
     model.insertBefore 'colors', 0, 'red'
     final = model.get 'colors'
-    final.should.eql ['red', 'green']
+    final.should.specEql ['red', 'green']
 
   # TODO Test return value of insertBefore
 
@@ -634,10 +660,10 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     interim = model.get 'colors'
-    interim.should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
     model.remove 'colors', 1, 4
     final = model.get 'colors'
-    final.should.eql ['red', 'violet']
+    final.should.specEql ['red', 'violet']
 
   # TODO Test return value of remove
 
@@ -647,10 +673,10 @@ module.exports =
     should.equal undefined, init
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     interim = model.get 'colors'
-    interim.should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
     model.splice 'colors', 1, 4, 'oak'
     final = model.get 'colors'
-    final.should.eql ['red', 'oak', 'violet']
+    final.should.specEql ['red', 'oak', 'violet']
 
   # TODO Test return value of splice
 
@@ -699,14 +725,14 @@ module.exports =
     # Setting a reference before a key should make a record of the key but
     # not the reference
     model.set 'mine', model.arrayRef('todos', '_mine')
-    model.get().should.protoEql
+    model.get().should.specEql
       mine: model.arrayRef('todos', '_mine')
       _mine: []
       $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
 
     # Setting a key value should update the reference
     model.set '_mine', ['1', '3']
-    model.get().should.protoEql
+    model.get().should.specEql
       mine: model.arrayRef 'todos', '_mine'
       _mine: ['1', '3']
       $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
@@ -725,7 +751,7 @@ module.exports =
         3: { text: 'bounce', status: 'ongoing' }
     model.set 'mine.0.text', 'trader joes run'
     model.get('todos.1.text').should.equal 'trader joes run'
-    model.get().should.protoEql
+    model.get().should.specEql
       todos:
         1: { text: 'trader joes run', status: 'complete' }
         2: { text: 'party hard', status: 'ongoing' }
@@ -754,7 +780,7 @@ module.exports =
       1: { name: 'banana' }
       2: { name: 'squeak' }
       3: { name: 'pogo' }
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -788,7 +814,7 @@ module.exports =
 
     model.set 'dogs.4', name: 'boo boo'
     model.push 'mine', model.arrayRef('dogs', '4')
-    model.get().should.protoEql
+    model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1', '3', '4'] # new data '4'
@@ -804,7 +830,7 @@ module.exports =
         4: { name: 'boo boo'} # new data
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'pogo' }
       { name: 'boo boo'}
@@ -816,7 +842,7 @@ module.exports =
     model.set 'dogs', 1: name: 'banana'
 
     model.push 'mine', model.ref('dogs', '1')
-    model.get().should.protoEql
+    model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       myDogIds: ['1'] # new array
       mine: model.arrayRef 'dogs', 'myDogIds'
@@ -827,7 +853,7 @@ module.exports =
           1: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [ name: 'banana' ]
+    model.get('mine').should.specEql [ name: 'banana' ]
 
   '''pushing an object  -- that is not a reference but that has an id attribute
   -- onto a path pointing to an array ref should add the object to the array refs
@@ -836,7 +862,7 @@ module.exports =
     model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.push 'mine', id: 1, name: 'banana'
 
-    model.get().should.protoEql
+    model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       mine: model.arrayRef 'dogs', 'myDogIds'
       myDogIds: ['1']
@@ -878,7 +904,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.pop 'mine'
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -894,7 +920,7 @@ module.exports =
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'pogo' }
     ]
@@ -910,7 +936,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.unshift 'mine', model.arrayRef 'dogs', '4'
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -926,7 +952,7 @@ module.exports =
           4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'boo boo'}
       { name: 'banana' }
       { name: 'pogo' }
@@ -943,7 +969,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.shift 'mine'
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -959,7 +985,7 @@ module.exports =
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'pogo' }
     ]
@@ -975,7 +1001,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.insertAfter 'mine', 0, model.arrayRef 'dogs', '4'
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -991,7 +1017,7 @@ module.exports =
           4: { $: mine: ['dogs', 'myTodoIds', 'array'] }
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'boo boo'}
       { name: 'pogo' }
@@ -1008,7 +1034,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.remove 'mine', 1
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -1024,7 +1050,7 @@ module.exports =
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'pogo' }
     ]
@@ -1040,7 +1066,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.insertBefore 'mine', 1, model.ref('dogs', '4')
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -1056,7 +1082,7 @@ module.exports =
           4: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'banana' }
       { name: 'boo boo'}
       { name: 'pogo' }
@@ -1073,7 +1099,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.remove 'mine', 0, 2
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -1089,7 +1115,7 @@ module.exports =
           # '4' removed
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'pogo' }
     ]
 
@@ -1104,7 +1130,7 @@ module.exports =
       4: { name: 'boo boo'}
 
     model.splice 'mine', 0, 1, model.ref('dogs', '4'), model.ref('dogs', '1')
-    model.get().should.protoEql
+    model.get().should.specEql
       dogs:
         1: { name: 'banana' }
         2: { name: 'squeak' }
@@ -1120,7 +1146,7 @@ module.exports =
           # '3' removed
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { name: 'boo boo'}
       { name: 'banana' }
     ]
@@ -1133,11 +1159,11 @@ module.exports =
       2: { text: 'round two' }
       3: { text: 'finish him!' }
     model.set 'myTodoIds', ['1', '3']
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { text: 'fight!' }
       { text: 'finish him!' }
     ]
-    model.get().should.protoEql
+    model.get().should.specEql
       todos:
         1: { text: 'fight!' }
         2: { text: 'round two' }
@@ -1150,10 +1176,10 @@ module.exports =
           1: { $: mine: ['todos', 'myTodoIds', 'array'] }
           3: { $: mine: ['todos', 'myTodoIds', 'array'] }
     model.del 'todos.3'
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { text: 'fight!' }
     ]
-    model.get().should.protoEql
+    model.get().should.specEql
       todos:
         1: { text: 'fight!' }
         2: { text: 'round two' }
@@ -1180,6 +1206,16 @@ module.exports =
       done()
     model.push 'myTodoIds', '1'
   , 2
+
+#  "pusing onto an array ref > once should result in the proper update to the array key": ->
+#    [sockets, model] = mockSocketModel('clientA')
+#    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+#    model.push 'myTodos', id: '1', text: 'one'
+#    model.push 'myTodos', id: '2', text: 'two'
+#    model.get('myTodoIds').should.eql ['1', '2']
+#    sockets.emit 'txn', [1, 'clientA.1', 'push', 'myTodoIds', '2'], 1
+#    model.get('myTodoIds').should.eql ['1', '2']
+#    sockets._disconnect()
 
   'pushing onto an array ref pointer should emit model events on the pointer and on its ref': wrapTest (done) ->
     model = new Model

@@ -3,6 +3,7 @@ pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
+specHelper = require './specHelper'
 {EventEmitter} = require 'events'
 {merge} = require './util'
 
@@ -177,7 +178,9 @@ Model:: =
     if len = @_txnQueue.length
       # Then generate a speculative model
       unless obj
-        obj = cache.obj = Object.create adapter.get()
+        # TODO Do not need Object.create here?
+        obj = cache.obj = specHelper.create adapter._data
+
       i = replayFrom
       while i < len
         # Apply each pending operation to the speculative model

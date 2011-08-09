@@ -1,3 +1,6 @@
+merge = require('../util').merge
+specHelper = require '../specHelper'
+
 Memory = module.exports = ->
   @_data = {}
   @ver = 0
@@ -8,9 +11,14 @@ Memory:: =
     if path then @_lookup(path, false, obj: obj).obj else obj
   
   set: (path, value, ver, options = {}) ->
+    if value?.$r
+      # If we are setting a reference, then copy the transaction
+      # , so we do not mutate the transaction stored in Model::_txns
+      refObjCopy = merge {}, value
+      value = refObjCopy
     @ver = ver
     out = @_lookup path, true, options
-    out.parent[out.prop] = value
+    out.obj = out.parent[out.prop] = value
     return if options.returnMeta then out else out.obj
   
   del: (path, ver, options = {}) ->
@@ -30,6 +38,7 @@ Memory:: =
               Object.create value
             else
               value
+        # TODO This line may be the culprit
         parent.__proto__ = curr
     delete parent[prop]
     return if options.returnMeta then out else obj
@@ -45,7 +54,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     # TODO Array of references handling
     ret = arr.push values...
     return if options.returnMeta then out else ret
@@ -55,7 +64,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.pop()
     return if options.returnMeta then out else ret
 
@@ -64,7 +73,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
     ret = arr.splice afterIndex+1, 0, value
     return if options.returnMeta then out else ret
@@ -74,7 +83,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
     ret = arr.splice beforeIndex, 0, value
     return if options.returnMeta then out else ret
@@ -83,7 +92,7 @@ Memory:: =
     @ver = ver
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     upperBound = if arr.length then arr.length - 1 else 0
     throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
     ret = arr.splice startIndex, howMany
@@ -101,7 +110,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.splice startIndex, removeCount, newMembers...
     return if options.returnMeta then out else ret
 
@@ -117,7 +126,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.unshift newMembers...
     return if options.returnMeta then out else ret
 
@@ -126,7 +135,7 @@ Memory:: =
     options.array = true
     out = @_lookup path, true, options
     arr = out.obj
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.shift()
     return if options.returnMeta then out else ret
   
@@ -139,13 +148,18 @@ Memory:: =
     path = ''
     i = 0
     len = props.length
+
+    # Base case len == 0
+    if proto && !next._proto
+      next = specHelper.create next
+
     while i < len
       parent = next
       prop = props[i++]
       
       # In speculative model operations, return a prototype referenced object
-      if proto && !Object::isPrototypeOf(parent)
-        parent = Object.create parent
+      if proto && !parent._proto
+        parent = specHelper.create parent
       
       # Traverse down the next segment in the path
       pathSegment = prop.dereffedProp || prop
@@ -155,7 +169,28 @@ Memory:: =
         # Return undefined if the object can't be found
         return {obj: next} unless addPath
         # If addPath is true, create empty parent objects implied by path
-        next = parent[prop] = if array && i == len then [] else {}
+        if array && i == len
+          if proto
+            next = specHelper.create []
+          else
+            next = []
+        else
+          if proto
+            next = specHelper.create {}
+          else
+            next = {}
+        parent[prop] = next
+      else if proto && typeof next == 'object' && !next._proto
+        if parent._proto && parent.hasOwnProperty prop
+          # In case we speculative set to an object before:
+          # e.g., model.set 'some.path', key: value
+          #   Here, 'some.path' would not have _proto,
+          #   but 'some' would have _proto
+          # This allows us to add _proto lazily
+          next._proto = true
+        else
+          next = specHelper.create next
+        parent[prop] = next
       
       # Store the absolute path traversed so far
       path = if path then path + '.' + pathSegment else pathSegment
@@ -164,19 +199,13 @@ Memory:: =
       if ref = next.$r
         if i == len && options.dontFollowLastRef
           return {path, parent, prop, obj: next}
-        if key = next.$k
+        unless key = next.$k
+          next = @_lookup(ref, addPath, options).obj
+        else
           keyVal = @_lookup(key, false, options).obj
-          if Array.isArray keyVal
-            only = next.$o
+          if specHelper.isArray(keyVal)
             next = keyVal.map (key) =>
-              mem = @_lookup(ref + '.' + key, false, options).obj
-              if Array.isArray only
-                scopedMem = {}
-                for k, v of mem
-                  scopedMem[k] = v if ~only.indexOf k
-                return scopedMem
-              return mem[only] if only
-              return mem
+              @_lookup(ref + '.' + key, false, options).obj
             # Map array index to key it should be in the dereferenced
             # object
             if props[i]
@@ -186,8 +215,6 @@ Memory:: =
           else
             ref = ref + '.' + @_lookup(key, false, options).obj
             next = @_lookup(ref, addPath, options).obj
-        else
-          next = @_lookup(ref, addPath, options).obj
         path = ref if i < len
         
         # Return undefined if the reference points to nothing and getting

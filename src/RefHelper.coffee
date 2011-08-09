@@ -1,5 +1,6 @@
 transaction = require './transaction'
 pathParser = require './pathParser'
+specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
 
 module.exports = RefHelper = (model) ->
@@ -62,7 +63,7 @@ RefHelper:: =
       ref += '.' + key if key
       refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
       delete refEntries[path]
-      unless hasKeys refEntries
+      unless hasKeys(refEntries, ignore: specHelper.reserved)
         adapter.del "$refs.#{ref}", ver, options
     removeOld$refs = ->
       if oldRefObj && oldRef = oldRefObj.$r
@@ -100,7 +101,7 @@ RefHelper:: =
         refs = adapter._lookup("$keys.#{oldKey}.$", false, options).obj
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, options unless hasKeys refs
+          adapter.del "$keys.#{oldKey}", ver, options unless hasKeys refs, ignore: specHelper.reserved
       refsKey = ref
     removeOld$refs()
     update$refs refsKey
@@ -122,6 +123,11 @@ RefHelper:: =
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
     fastLookup = pathParser.fastLookup
     for path, [ref, key, type] of refs
+
+      # Ignore the _proto key that we use to identify Object.created objs
+      # TODO Better encapsulate this
+      continue if path == '_proto'
+
       # Check to see if the reference is still the same
       o = fastLookup path, obj
       if o && o.$r == ref && `o.$k == key`
