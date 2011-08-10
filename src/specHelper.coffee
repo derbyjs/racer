@@ -13,3 +13,5 @@ module.exports =
     return y
 
   reserved: ['_proto', 'toString']
+
+  isSpeculative: (obj) -> '_proto' of obj

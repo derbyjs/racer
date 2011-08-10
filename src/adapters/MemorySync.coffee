@@ -138,10 +138,22 @@ Memory:: =
     throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.shift()
     return if options.returnMeta then out else ret
+
+#  _traverse: (accum, {path, obj, handleNotFound}) ->
+#    props = path.split '.'
+#    len = props.length
+#    i = 0
+#    next = obj
+#
+#    while i < len
+#      prop = props[i++]
+#      parent = next
+#      next = parent[prop]
+#      if next is undefined
+#        handleNotFound path, obj
   
   _lookup: (path, addPath, options) ->
-    proto = options.proto
-    array = options.array
+    {proto, array} = options
     next = options.obj || @_data
     props = path.split '.'
     
@@ -158,16 +170,20 @@ Memory:: =
       prop = props[i++]
       
       # In speculative model operations, return a prototype referenced object
-      if proto && !parent._proto
+      if proto && !specHelper.isSpeculative parent
         parent = specHelper.create parent
       
       # Traverse down the next segment in the path
       pathSegment = prop.dereffedProp || prop
       prop = if prop.arrIndex isnt undefined then prop.arrIndex else prop
+
       next = parent[prop]
       if next is undefined
-        # Return undefined if the object can't be found
-        return {obj: next} unless addPath
+        unless addPath
+          # Return undefined if the object can't be found
+          if options.denormalizePath
+            return {path: (if path then [path] else []).concat(props.slice(i-1)).join('.')}
+          return {obj: next}
         # If addPath is true, create empty parent objects implied by path
         if array && i == len
           if proto
@@ -217,7 +233,10 @@ Memory:: =
             next = @_lookup(ref, addPath, options).obj
         path = ref if i < len
         
-        # Return undefined if the reference points to nothing and getting
-        return {obj: next} if next is undefined && !addPath && i < len
+        if next is undefined && !addPath && i < len
+          if options.denormalizePath
+            return {path: (if path then [path] else []).concat(props.slice(i)).join('.')}
+          # Return undefined if the reference points to nothing and getting
+          return {obj: next}
     
     return {path, parent, prop, obj: next}

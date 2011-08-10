@@ -1,4 +1,4 @@
-#require '../src/debug'
+require('../src/debug')('notifyPointers')
 Model = require 'Model'
 should = require 'should'
 util = require './util'
@@ -740,6 +740,55 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
+
+  'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
+    model = new Model
+    model.set '_group', model.ref 'groups.rally'
+    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.get().should.specEql
+      _group: model.ref 'groups.rally'
+      groups:
+        rally:
+          todoIds: []
+          todoList: model.arrayRef('_group.todos', '_group.todoIds')
+      $keys:
+        _group:
+          todoIds:
+            $:
+              'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+      $refs:
+        groups:
+          rally:
+            $:
+              _group: ['groups.rally', undefined]
+  # TODO Add test that is an extension to above test, where we change what '_group' points to. In this case, the other
+  #      pointers that include it as a substring should be updated
+
+  'setting <arr-ref-pointer> = <ref-pointer>.<suffix>, when the array ref key already exists, should update the $refs index': ->
+    model = new Model
+    model.set '_group', model.ref 'groups.rally'
+    model.set '_group.todoIds', ['1']
+    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.get('$refs').should.specEql
+      groups:
+        rally:
+          $: _group: ['groups.rally', undefined]
+      _group:
+        todos:
+          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
+
+  'setting a key value for an <arr-ref-pointer> where <arr-ref-pointer> = <ref-pointer>.<suffix>, should update the $refs index': ->
+    model = new Model
+    model.set '_group', model.ref 'groups.rally'
+    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.set '_group.todoIds', ['1']
+    model.get('$refs').should.specEql
+      groups:
+        rally:
+          $: _group: ['groups.rally', undefined]
+      _group:
+        todos:
+          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
   
   'setting a property on an array reference member should update the referenced member': ->
     model = new Model
@@ -873,7 +922,7 @@ module.exports =
         1: { id: 1, name: 'banana' }
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.eql [
+    model.get('mine').should.specEql [
       { id: 1, name: 'banana' }
     ]
 
@@ -1192,6 +1241,20 @@ module.exports =
           1: { $: mine: ['todos', 'myTodoIds', 'array'] }
           # '3' removed
     # TODO removal of the pending del transaction should also remove the other ref cleanup transactions it generates
+
+  'setting on a property involving both a ref and an array ref key path should emit model events on to a path with the ref path and array ref path substituted in for the ref and key path respectively': wrapTest (done) ->
+    model = new Model
+    model.set '_group', model.ref 'groups.rally'
+    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.set '_group.todoIds', ['1']
+    model.set '_group.todos',
+      1: complete: false
+    # TODO Test for proper path passed to callback for `on 'set', '_group.todoList.**'`
+    model.on 'set', '_group.todoList.0.complete', (value) ->
+      value.should.be.true
+      done()
+    model.set 'groups.rally.todos.1.complete', true
+  , 1
 
   "pushing onto an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
     model = new Model

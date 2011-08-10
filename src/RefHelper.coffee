@@ -80,11 +80,15 @@ RefHelper:: =
     update$refs = (refsKey) ->
       entry = [ref, key]
       entry.push type if type
-      adapter._lookup("$refs.#{refsKey}.$", true, options).obj[path] = entry
+      # TODO DRY - Above 2 lines are duplicated below
+      out = adapter._lookup("$refs.#{refsKey}.$", true, options)
+      out.obj[path] = entry
 
     if key
       entry = [ref, key]
       entry.push type if type
+      # TODO _group.todoIds does not exist at this point, so dereferenced path resolves to undefined
+      path = @denormalizePath path, options.obj
       adapter._lookup("$keys.#{key}.$", true, options).obj[path] = entry
       keyVal = adapter._lookup(key, false, options).obj
       # keyVal is only valid if it can be a valid path segment
@@ -148,16 +152,19 @@ RefHelper:: =
     props = path.split '.'
     while prop = props[i++]
       return unless refPos = refPos[prop]
-      fn refSet, props.slice(i).join('.') if refSet = refPos.$
+      if refSet = refPos.$
+        fn refSet, props.slice(i).join('.'), prop
 
   eachValidRefPointingTo: (targetPath, fn) ->
     self = this
     model = @_model
     return unless refs = model.get '$refs'
     _data = model.get()
-    self._eachRefSetPointingTo targetPath, refs, (refSet, targetPathRemainder) ->
+    self._eachRefSetPointingTo targetPath, refs, (refSet, targetPathRemainder, possibleIndex) ->
       # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
       self._eachValidRef refSet, _data, (pointingPath, ref, key, type) ->
+        if type == 'array'
+          targetPathRemainder = possibleIndex + '.' + targetPathRemainder
         fn pointingPath, targetPathRemainder, ref, key, type
 
   eachArrayRefKeyedBy: (path, fn) ->
@@ -176,27 +183,42 @@ RefHelper:: =
     self = this
     # Takes care of regular refs
     self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key, type) ->
-      alreadySeen = ignoreRoots.some (root) ->
-        # For avoiding infinite event emission
-        root == pointingPath.substr(0, root.length)
-      return if alreadySeen
-      ignoreRoots.push ref
-      pointingPath += '.' + targetPathRemainder if targetPathRemainder
+      unless type == 'array'
+        return if self._alreadySeen pointingPath, ref, ignoreRoots
+        pointingPath += '.' + targetPathRemainder if targetPathRemainder
+      else if targetPathRemainder
+        toIndex = (key, id) ->
+          keyArr = self._adapter._lookup(key, false, array: true, proto: true, obj: self._model._specModel()[0]).obj
+          index = keyArr.indexOf id
+          if index == -1
+            # Handle numbers just in case
+            return keyArr.indexOf parseInt(id, 10)
+          return index
+        [id, rest...] = targetPathRemainder.split '.'
+        index = toIndex key, id
+        unless index == -1
+          pointingPath += '.' + index
+          pointingPath += '.' + rest.join('.') if rest.length
       emitPathEvent pointingPath, args
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
 
     # Takes care of array refs
     self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
-#      alreadySeen = ignoreRoots.some (root) ->
-#        # For avoiding infinite event emission
-#        root == pointingPath.substr(0, root.length)
-#      return if alreadySeen
-#      ignoreRoots.push ref
+      # return if self._alreadySeen pointingPath, ref, ignoreRoots
       [firstArgs, arrayMemberArgs] = self.splitArrayArgs method, args
       arrayMemberArgs = arrayMemberArgs.map (arg) -> { $r: ref, $k: arg } if arrayMemberArgs
       args = firstArgs.concat arrayMemberArgs
       emitPathEvent pointingPath, args
       self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
+
+  # For avoiding infinite event emission
+  _alreadySeen: (pointingPath, ref, ignoreRoots) ->
+    # TODO More proper way to detect cycles? Or is this sufficient?
+    alreadySeen = ignoreRoots.some (root) ->
+      root == pointingPath.substr(0, root.length)
+    return true if alreadySeen
+    ignoreRoots.push ref
+    return false
 
   cleanupPointersTo: (path, options) ->
     adapter = @_adapter
@@ -278,5 +300,9 @@ RefHelper:: =
   isRefObj: (obj) -> '$r' of obj
 
   dereferencedPath: (path, data) ->
-    meta = @_adapter._lookup path, false, proto: true, obj: data, returnMEta: true
+    meta = @_adapter._lookup path, false, proto: true, obj: data, returnMeta: true
     return meta.path
+
+  denormalizePath: (path, data) ->
+    out = @_adapter._lookup path, false, proto: true, obj: data, denormalizePath: true
+    out.path

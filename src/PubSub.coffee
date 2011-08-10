@@ -34,7 +34,6 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
     for event in ['subscribe', 'unsubscribe', 'psubscribe', 'punsubscribe']
       do (event) ->
         subClient.on event, (path, count) ->
-          console.log "#{event.toUpperCase()} #{path} COUNT = #{count}"
     subClient.on 'message', (channel, message) ->
       console.log "MESSAGE #{channel} #{message}"
     subClient.on 'pmessage', (pattern, channel, message) ->
