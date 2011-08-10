@@ -18,7 +18,17 @@ flatten = (a) ->
     obj[key] = flatten val
   return obj
 
-exports.protoInspect = protoInspect = (a) -> inspect flatten a
+exports.protoInspect = protoInspect = (a) -> inspect flatten(a), false, null
+
+removeReserved = (a) ->
+  if typeof a == 'object'
+    for key, val of a
+      unless -1 == specHelper.reserved.indexOf key
+        delete a[key]
+        continue
+      a[key] = removeReserved val
+  return a
+exports.specInspect = specInspect = (a) -> inspect removeReserved(flatten(a)), false, null
 
 protoSubset = (a, b, exception) ->
   for i of a
@@ -53,11 +63,11 @@ specEql = (a, b) ->
 should.Assertion::specEql = (val) ->
   @assert specEql(val, @obj),
     """expected \n
-    #{protoInspect @obj} \n
+    #{specInspect @obj} \n
     to speculatively equal \n
-    #{protoInspect val} \n""",
+    #{specInspect val} \n""",
     """expected \n
-    #{protoInspect @obj} \n
+    #{specInspect @obj} \n
     to not speculatively equal \n
-    #{protoInspect val} \n"""
+    #{specInspect val} \n"""
   return this
