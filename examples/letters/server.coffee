@@ -25,7 +25,7 @@ app.get '/:room?', (req, res) ->
   
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
-  store.subscribe room: "rooms.#{room}", 'rooms.*.players', (err, model) ->
+  store.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
     model.set '_roomName', room
     initRoom model
     # model.bundle waits for any pending model operations to complete and then

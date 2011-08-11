@@ -27,8 +27,8 @@ app.get '/', (req, res) ->
 
 app.get '/:group', (req, res) ->
   group = req.params.group
-  store.subscribe group: "groups.#{group}", (err, model) ->
-    initGroup model, group
+  store.subscribe _group: "groups.#{group}.**", (err, model) ->
+    initGroup model
     # refs must be explicitly declared per model; otherwise ref is not added
     # to reference indices, $keys and $refs
     model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
@@ -49,8 +49,8 @@ app.get '/:group', (req, res) ->
       <script>rally.init(#{bundle})</script>
       """
 
-initGroup = (model, group) ->
-  return if model.get "groups.#{group}"
+initGroup = (model) ->
+  return if model.get '_group'
   model.set '_group.todos',
     0: {id: 0, completed: false, text: 'Example todo'}
     1: {id: 1, completed: false, text: 'Another example'}

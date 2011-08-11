@@ -171,8 +171,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
     for path in paths
       if typeof path is 'object'
         for key, value of path
-          model.set '_' + key, model.ref value
-          _paths.push value + '.**'
+          root = pathParser.splitPattern(value)[0]
+          model.set key, model.ref root
+          _paths.push value
         continue
       _paths.push path
     
