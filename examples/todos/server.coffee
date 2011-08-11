@@ -2,14 +2,14 @@ rally = require 'rally'
 express = require 'express'
 fs = require 'fs'
 
-rally ioPort: 3001
-store = rally.store
 app = express.createServer(
   express.favicon(),
   express.bodyParser(),
   express.cookieParser(),
   express.session secret: 'shhhh_dont_tell'
 )
+store = rally.store
+rally listen: app
 
 # rally.js returns a browserify bundle of the rally client side code and the
 # socket.io client side code
