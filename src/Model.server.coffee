@@ -17,9 +17,9 @@ module.exports = (store, ioUri) ->
       return self._removeTxn transaction.id txn if err
       self._onTxn txn
 
-  Model::json = modelJson = (callback, self = this) ->
+  Model::bundle = bundle = (callback, self = this) ->
     # Wait for all pending transactions to complete before returning
-    return setTimeout modelJson, 10, callback, self if self._txnQueue.length
+    return setTimeout bundle, 10, callback, self if self._txnQueue.length
     
     # Unsubscribe the model from PubSub events. It will be resubscribed again
     # when the model connects over socket.io
@@ -36,3 +36,4 @@ module.exports = (store, ioUri) ->
       txnCount: self._txnCount
       txnNum: self._txnNum
       ioUri: ioUri
+

@@ -1,22 +1,36 @@
 require 'es5-shim'
-@model = model = new (require './Model')
+Model = require './Model'
 
-# Patch Socket.io-client to actually publish the close event
+# Patch Socket.io-client to publish the close event and disconnet immediately
 io.Socket::onClose = ->
   @open = false
   @publish 'close'
   @onDisconnect()
 
-@init = (options) ->
-  model._adapter._data = options.data
-  model._adapter.ver = options.base
-  model._clientId = options.clientId
-  model._storeSubs = options.storeSubs
-  model._startId = options.startId
-  model._txnCount = options.txnCount
-  model._onTxnNum options.txnNum
-  model._setSocket io.connect options.ioUri,
-    'reconnection delay': 50
-    'max reconnection attempts': 20
-  @onload() if @onload
-  return this
+
+isReady = false
+
+rally = module.exports =
+
+  model: model = new Model
+
+  init: (options) ->
+    model._adapter._data = options.data
+    model._adapter.ver = options.base
+    model._clientId = options.clientId
+    model._storeSubs = options.storeSubs
+    model._startId = options.startId
+    model._txnCount = options.txnCount
+    model._onTxnNum options.txnNum
+    model._setSocket io.connect options.ioUri,
+      'reconnection delay': 50
+      'max reconnection attempts': 20
+    isReady = true
+    rally.onready()
+    return rally
+  
+  onready: ->
+  ready: (onready) -> ->
+    return onready() if isReady
+    @onready = onready
+

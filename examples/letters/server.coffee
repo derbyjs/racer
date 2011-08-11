@@ -30,9 +30,9 @@ app.get '/:room', (req, res) ->
     model.set '_roomName', room
     console.log model._adapter._data
     initRoom model
-    # model.json waits for any pending model operations to complete and then
-    # returns the data for initialization on the client
-    model.json (json) ->
+    # model.bundle waits for any pending model operations to complete and then
+    # returns a script tag with the data for initialization on the client
+    model.bundle (bundle) ->
       res.send """
       <!DOCTYPE html>
       <title>Letters game</title>
@@ -48,8 +48,8 @@ app.get '/:room', (req, res) ->
           <div id=board></div>
         </div>
       </div>
-      <script src=/script.js defer></script>
-      <script>window.onload=function(){rally.init(#{json})}</script>
+      <script src=/script.js></script>
+      <script>rally.init(#{bundle})</script>
       """
 
 initRoom = (model) ->
