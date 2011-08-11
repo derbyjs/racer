@@ -32,7 +32,7 @@ app.get '/:group', (req, res) ->
     # refs must be explicitly declared per model; otherwise ref is not added
     # to reference indices, $keys and $refs
     model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
-    model.json (json) ->
+    model.bundle (bundle) ->
       # TODO console.log store._adapter._data --- _group key should not be there
       res.send """
       <!DOCTYPE html>
@@ -45,8 +45,8 @@ app.get '/:group', (req, res) ->
         </form>
         <ul id=todos></ul>
       </div>
-      <script src=/script.js defer></script>
-      <script>window.onload=function(){rally.init(#{json})}</script>
+      <script src=/script.js></script>
+      <script>rally.init(#{bundle})</script>
       """
 
 initGroup = (model, group) ->

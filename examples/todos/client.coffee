@@ -2,7 +2,7 @@ rally = require 'rally'
 addTodo = ->
 check = ->
 
-rally.onload = ->
+window.onload = rally.ready ->
   model = rally.model
   newTodo = document.getElementById 'new-todo'
   todoList = document.getElementById 'todos'
