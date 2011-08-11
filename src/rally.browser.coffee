@@ -32,5 +32,5 @@ rally = module.exports =
   onready: ->
   ready: (onready) -> ->
     return onready() if isReady
-    @onready = onready
+    rally.onready = onready
 
