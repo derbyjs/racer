@@ -260,6 +260,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @del = (path, ver, callback) ->
     commit [ver, nextTxnId(), 'del', path], callback
   
+  @incr = (path, byNum = 1) ->
+    @retry (atomic) ->
+      atomic.get path, (val) ->
+        atomic.set path, (val || 0) + byNum
+  
   StoreAtomic = (store, cb) ->
     minVer = 0
     count = 0

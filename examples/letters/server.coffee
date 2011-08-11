@@ -68,17 +68,12 @@ initRoom = (model) ->
 
 # Clear any existing data, then initialize
 store.flush (err) ->
-  incr = (path, byNum) ->
-    store.retry (atomic) ->
-      atomic.get path, (val = 0) ->
-        atomic.set path, val + byNum
-  
   rally.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->
       playersPath = "rooms.#{room}.players"
-      incr playersPath, 1
+      store.incr playersPath
       socket.on 'disconnect', ->
-        incr playersPath, -1
+        store.incr playersPath, -1
   app.listen 3000
   console.log "Go to http://localhost:3000/lobby"
   console.log "Go to http://localhost:3000/powder-room"
