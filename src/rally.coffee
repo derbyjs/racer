@@ -4,17 +4,21 @@ io = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 
-ioUri = ''
-sockets = null
 module.exports = rally = (options) ->
   # TODO: Provide full configuration for socket.io
   # TODO: Add configuration for Redis
 
   ## Setup socket.io ##
-  ioPort = options.ioPort || 80
-  ioUri = options.ioUri || ':' + ioPort
-  sockets = rally.sockets = options.ioSockets || io.listen(ioPort).sockets
-  store._setSockets sockets
+  listen = options.listen || 8080
+  ioUri = options.ioUri ||
+    if typeof listen is 'number' then ':' + ioPort else ''
+  if options.ioSockets
+    store._setSockets rally.sockets = options.ioSockets
+  else
+    io = io.listen(listen)
+    io.configure ->
+      io.set 'browser client', false
+    store._setSockets rally.sockets = io.sockets
   
   # Adds server functions to Model's prototype
   require('./Model.server')(store, ioUri)

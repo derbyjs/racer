@@ -2,10 +2,10 @@ rally = require 'rally'
 express = require 'express'
 fs = require 'fs'
 
-rally ioPort: 3001
+app = express.createServer(express.favicon())
 store = rally.store
-app = express.createServer()
-app.use express.favicon()
+# The listen option accepts either a port number or a node HTTP server
+rally listen: app
 
 # rally.js returns a browserify bundle of the rally client side code and the
 # socket.io client side code
@@ -16,19 +16,17 @@ style = fs.readFileSync 'style.css'
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
-app.get '/', (req, res) ->
-  res.redirect '/lobby'
-
-app.get '/:room', (req, res) ->
+app.get '/:room?', (req, res) ->
+  # Redirect users to URLs that only contain letters, numbers, and hyphens
   room = req.params.room
-  return res.redirect '/lobby' unless /^[-\w ]+$/.test room
+  return res.redirect '/lobby' unless room && /^[-\w ]+$/.test room
   _room = room.toLowerCase().replace /[_ ]/g, '-'
   return res.redirect _room if _room != room
+  
   # Subscribe optionally accepts a model as an argument. If no model is
   # specified, it will create a new model object
   store.subscribe room: "rooms.#{room}", 'rooms.*.players', (err, model) ->
     model.set '_roomName', room
-    console.log model._adapter._data
     initRoom model
     # model.bundle waits for any pending model operations to complete and then
     # returns a script tag with the data for initialization on the client
@@ -72,8 +70,7 @@ store.flush (err) ->
     socket.on 'join', (room) ->
       playersPath = "rooms.#{room}.players"
       store.incr playersPath
-      socket.on 'disconnect', ->
-        store.incr playersPath, -1
+      socket.on 'disconnect', -> store.incr playersPath, -1
   app.listen 3000
   console.log "Go to http://localhost:3000/lobby"
   console.log "Go to http://localhost:3000/powder-room"
