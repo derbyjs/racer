@@ -10,18 +10,23 @@ $ rally.ready ->
   
   model.set '_todoList', model.ref '_group.todoList'
   
-  todoHtml = ({id, text, completed}) ->
-    if completed
-      text = "<s>#{text}</s>"
-      checked = 'checked'
-    else
-      checked = ''
-    """<li id=#{id}>
-    <label><input type=checkbox #{checked} onchange=check(this)><i></i> #{text}</label>
-    <button class=delete>Delete</button>"""
-  
   updateTodos = ->
-    todoList.html (todoHtml todo for todo in model.get '_todoList').join ''
+    html = ''
+    for {id, text, completed} in model.get '_todoList'
+      if completed
+        wrap = 's'
+        checked = 'checked'
+      else
+        wrap = 'span'
+        checked = ''
+      html = html + """<li id=#{id}>
+      <span class=todo>
+        <label><input type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
+        <#{wrap} contenteditable=true>#{text}</#{wrap}>
+      </span>
+      <button class=delete>Delete</button>"""
+    todoList.html html
+  
   model.on 'push', '_todoList', updateTodos
   model.on 'set', '_todoList.**', updateTodos
   updateTodos()
@@ -35,7 +40,6 @@ $ rally.ready ->
       text: newTodo.val()
     newTodo.val ''
   
-  check = (checkbox) ->
-    id = checkbox.parentNode.parentNode.id
+  check = (checkbox, id) ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
 
