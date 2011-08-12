@@ -2,10 +2,11 @@ rally = require 'rally'
 addTodo = ->
 check = ->
 
-window.onload = rally.ready ->
+# Calling $() with a function is equivalent to $(document).ready() in jQuery
+$ rally.ready ->
   model = rally.model
-  newTodo = document.getElementById 'new-todo'
-  todoList = document.getElementById 'todos'
+  newTodo = $ '#new-todo'
+  todoList = $ '#todos'
   
   model.set '_todoList', model.ref '_group.todoList'
   
@@ -20,7 +21,7 @@ window.onload = rally.ready ->
     <button class=delete>Delete</button>"""
   
   updateTodos = ->
-    todoList.innerHTML = (todoHtml todo for todo in model.get '_todoList').join ''
+    todoList.html (todoHtml todo for todo in model.get '_todoList').join ''
   model.on 'push', '_todoList', updateTodos
   model.on 'set', '_todoList.**', updateTodos
   updateTodos()
@@ -31,17 +32,10 @@ window.onload = rally.ready ->
     model.push '_group.todoList',
       id: nextId
       completed: false
-      text: newTodo.value
-    newTodo.value = ''
+      text: newTodo.val()
+    newTodo.val ''
   
   check = (checkbox) ->
     id = checkbox.parentNode.parentNode.id
     model.set "_group.todos.#{id}.completed", checkbox.checked
 
-if document.addEventListener
-  addListener = (el, type, listener) ->
-    el.addEventListener type, listener, false
-else
-  addListener = (el, type, listener) ->
-    el.attachEvent 'on' + type, (e) ->
-      listener e || event
