@@ -11,15 +11,13 @@ window.onload = rally.ready ->
   
   todoHtml = ({id, text, completed}) ->
     if completed
-      liClass = 'completed'
+      text = "<s>#{text}</s>"
       checked = 'checked'
     else
-      liClass = ''
       checked = ''
-    """<li id=#{id} class=#{liClass}>
-    <input type=checkbox id=#{id}-check #{checked} onchange=check(this)><label for=#{id}-check></label>
-    <label for=#{id}-check>#{text}</label>
-    <button>Delete</button>"""
+    """<li id=#{id}>
+    <label><input type=checkbox #{checked} onchange=check(this)><i></i> #{text}</label>
+    <button class=delete>Delete</button>"""
   
   updateTodos = ->
     todoList.innerHTML = (todoHtml todo for todo in model.get '_todoList').join ''
@@ -37,7 +35,7 @@ window.onload = rally.ready ->
     newTodo.value = ''
   
   check = (checkbox) ->
-    id = checkbox.parentNode.id
+    id = checkbox.parentNode.parentNode.id
     model.set "_group.todos.#{id}.completed", checkbox.checked
 
 if document.addEventListener
