@@ -32,10 +32,8 @@ $ rally.ready ->
   updateTodos()
   
   addTodo = ->
-    nextId = model.get '_group.nextId'
-    model.set '_group.nextId', nextId + 1
     model.push '_group.todoList',
-      id: nextId
+      id: model.incr '_group.nextId'
       completed: false
       text: newTodo.val()
     newTodo.val ''
