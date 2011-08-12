@@ -34,7 +34,7 @@ $ rally.ready ->
     $("##{id}").toggleClass 'completed', value
     $("#check#{id}").prop 'checked', value
   
-  model.on 'del', '_group.todos.*', (id) ->
+  model.on 'remove', '_group.todoList', ({id}) ->
     $("##{id}").remove()
   
   model.on 'set', '_group.todos.*.text', (id, value) ->
@@ -53,7 +53,7 @@ $ rally.ready ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
   
   del = (id) ->
-    model.del "_group.todos.#{id}"
+    model.remove "_group.todoList", id: id
   
   # Watch for changes to the contenteditable fields
   lastHtml = ''

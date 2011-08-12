@@ -138,6 +138,12 @@ Model:: =
         model.set $r + '.' + member.id, member
         return {$r, $k: member.id.toString()}
       args = firstArgs.concat members
+
+    # Convert id args to index args if we happen to be
+    # using array ref mutator id api
+    unless -1 == ['remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
+      idAsIndex = refHelper._arrRefIndex args[1], path, @_specModel()[0]
+
       
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
@@ -154,8 +160,13 @@ Model:: =
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn, true
+
+    if idAsIndex isnt undefined
+      txn[4] = idAsIndex
+
     # Emit an event on creation of the transaction
     @emit method, txnArgs
+
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   
@@ -257,8 +268,8 @@ Model:: =
   insertBefore: (path, beforeIndex, value, callback) ->
     @_addTxn 'insertBefore', path, beforeIndex, value, callback
 
-  remove: (path, startIndex, howMany = 1, callback) ->
-    @_addTxn 'remove', path, startIndex, howMany, callback
+  remove: (path, start, howMany = 1, callback) ->
+    @_addTxn 'remove', path, start, howMany, callback
 
   splice: (path, startIndex, removeCount, newMembers..., callback) ->
     if 'function' != typeof callback && callback isnt undefined

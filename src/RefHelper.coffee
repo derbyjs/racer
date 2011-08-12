@@ -117,9 +117,11 @@ RefHelper:: =
       # id api
       startIndex = arr.length
       for mem, i in arr
-        return startIndex = i if mem.id == start.id
+        return startIndex = i if mem.id == start.id || mem.id == parseInt start.id, 10
 
-    return arr.indexOf start.id
+    startIndex = arr.indexOf start.id
+    return startIndex if startIndex != -1
+    return arr.indexOf parseInt(start.id, 10)
 
 
   ## Pointer Builders ##

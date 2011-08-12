@@ -13,6 +13,7 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
 Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @_adapter = adapter = new AdapterClass
+
   # Client for data access and event publishing
   @_redisClient = redisClient = redis.createClient()
   # Client for internal Rally event subscriptions
@@ -340,10 +341,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   txnApplier = new TxnApplier
     applyTxn: (txn, ver) ->
       args = transaction.args txn
+      method = transaction.method txn
       args.push ver, (err) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of commit when the adapter operation completes
         throw err if err
-      adapter[transaction.method txn] args...
+      adapter[method] args...
 
   return
