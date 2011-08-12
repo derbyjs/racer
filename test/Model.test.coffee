@@ -236,20 +236,24 @@ module.exports =
     model = new Model
     
     # Should be able to increment unset path
-    model.incr 'count'
+    val = model.incr 'count'
     model.get('count').should.eql 1
+    val.should.eql 1
     
     # Default increment should be 1
-    model.incr 'count'
+    val = model.incr 'count'
     model.get('count').should.eql 2
+    val.should.eql 2
     
     # Should be able to increment by another number
-    model.incr 'count', -2
+    val = model.incr 'count', -2
     model.get('count').should.eql 0
+    val.should.eql 0
     
     # Incrementing by zero should work
-    model.incr 'count', 0
+    val = model.incr 'count', 0
     model.get('count').should.eql 0
+    val.should.eql 0
 
   'test speculative push': ->
     model = new Model
