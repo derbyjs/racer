@@ -11,15 +11,17 @@ Memory:: =
     if path then @_lookup(path, false, obj: obj).obj else obj
   
   set: (path, value, ver, options = {}) ->
-    if value?.$r
+    if value && value.$r
       # If we are setting a reference, then copy the transaction
-      # , so we do not mutate the transaction stored in Model::_txns
+      # , so we do not mutate the transaction stored in Model::_txns.
+      # Mutation would otherwise occur via addition of _proto to value
+      # during speculative model creation.
       refObjCopy = merge {}, value
       value = refObjCopy
     @ver = ver
-    out = @_lookup path, true, options
-    out.obj = out.parent[out.prop] = value
-    return if options.returnMeta then out else out.obj
+    {parent, prop} = out = @_lookup path, true, options
+    obj = out.obj = parent[prop] = value
+    return if options.returnMeta then out else obj
   
   del: (path, ver, options = {}) ->
     @ver = ver
@@ -156,6 +158,7 @@ Memory:: =
   
   # TODO Re-write this because the ability to use it in so many ways is too error-prone
   #      Also, this is a ridiculously long function.
+  #      returnMeta option is really only used for path retrieval
   _lookup: (path, addPath, options) ->
     {proto, array} = options
     next = options.obj || @_data

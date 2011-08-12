@@ -60,8 +60,22 @@ RefHelper:: =
       return out
 
     adapter.__remove = adapter.remove
-    adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
+    adapter.remove = (path, start, howMany, ver, options = {}) ->
       options.obj ||= @_data
+      if 'number' == typeof start
+        # index api
+        startIndex = start
+      else
+        arr = @_lookup(path, true, options).obj
+        if refHelper.isArrayRef path, options.obj
+          # id api
+          startIndex = arr.length
+          for mem, i in arr
+            if mem.id == start.id
+              startIndex = i
+              break
+        else
+          startIndex = arr.indexOf start.id
       out = @__remove path, startIndex, howMany, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options

@@ -1526,3 +1526,17 @@ module.exports =
           todos:
             5:
               $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+
+
+  ## id api for array mutators ##
+
+  'remove an array ref member by id should remove the id from the array ref key array': ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      10: { id: '10', text: 'something' }
+      20: { id: '20', text: 'more' }
+      30: { id: '30', text: 'blah' }
+    model.set 'myTodoIds', ['10', '20']
+    model.remove 'myTodos', id: '20'
+    model.get('myTodoIds').should.specEql ['10']
