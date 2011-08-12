@@ -1540,7 +1540,7 @@ module.exports =
     model.remove 'myTodos', id: '20'
     model.get('myTodoIds').should.specEql ['10']
 
-  'insertAfter an array ref member by id should insert the id properly in the ref key array': ->
+  'insertAfter an array ref member by id should insert the member after the id in the ref key array': ->
     model = new Model
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
@@ -1552,7 +1552,7 @@ module.exports =
       text: 'blah'
     model.get('myTodoIds').should.specEql ['10', '30', '20']
 
-  'insertBefore an array ref member by id should insert the id properly in the ref key array': ->
+  'insertBefore an array ref member by id should insert the member before the id in the ref key array': ->
     model = new Model
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
@@ -1563,3 +1563,15 @@ module.exports =
       id: '30'
       text: 'blah'
     model.get('myTodoIds').should.specEql ['30', '10', '20']
+
+  'splice of an array ref member by id should do the splice relative to the index of the id in the ref key array': ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      10: { id: '10', text: 'something' }
+      20: { id: '20', text: 'more' }
+    model.set 'myTodoIds', ['10', '20']
+    model.splice 'myTodos', {id: '10'}, 1
+      id: '30'
+      text: 'blah'
+    model.get('myTodoIds').should.specEql ['30', '20']

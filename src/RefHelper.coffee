@@ -99,8 +99,9 @@ RefHelper:: =
 
     adapter.__splice = adapter.splice
     adapter.splice = ->
-      [path, startIndex, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
+      [path, start, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
       options.obj ||= @_data
+      startIndex = refHelper._arrRefIndex start, path, options.obj
       out = @__splice path, startIndex, removeCount, newMembers..., ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
