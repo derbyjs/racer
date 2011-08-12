@@ -43,6 +43,7 @@ app.get '/:group', (req, res) ->
       </form>
       <div id=content><ul id=todos></ul></div>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
+      <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js></script>
       <script src=/script.js></script>
       <script>rally.init(#{bundle})</script>
       """

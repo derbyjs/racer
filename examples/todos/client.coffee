@@ -18,6 +18,7 @@ $ rally.ready ->
       completed = ''
       checked = ''
     """<li id=#{id} class=#{completed}>
+    <div class=handle></div>
     <div class=cell><div class=todo>
       <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
       <div id=text#{id} data-id=#{id} contenteditable=true>#{text}</div>
@@ -55,6 +56,10 @@ $ rally.ready ->
   del = (id) ->
     model.remove "_group.todoList", id: id
   
+  todoList.sortable items: '.handle'
+  # $('[contenteditable]').draggable = false
+  # todoList.disableSelection()
+  
   # Watch for changes to the contenteditable fields
   lastHtml = ''
   checkChanged = (e) ->
@@ -69,12 +74,12 @@ $ rally.ready ->
   checkChangedDelayed = (e) ->
     setTimeout checkChanged, 10, e
   
+  # Shortcuts
+  # Bold: Ctrl/Cmd + B
+  # Italic: Ctrl/Cmd + I
+  # Clear formatting: Ctrl/Cmd + Space -or- Ctrl/Cmd + \
   checkShortcuts = (e) ->
     return unless e.metaKey || e.ctrlKey
-    # Shortcuts
-    # Bold: Ctrl/Cmd + B
-    # Italic: Ctrl/Cmd + I
-    # Clear formatting: Ctrl/Cmd + Space -or- Ctrl/Cmd + \
     code = e.which
     return unless command = `
       code === 66 ? 'bold' :

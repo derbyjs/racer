@@ -50,6 +50,12 @@ h1 {
 #todos > li {
   display: table-row;
 }
+.handle {
+  width: 12px;
+  height: 18px;
+  background: #ccc;
+  margin: 2px 4px 0 0;
+}
 .cell {
   display: table-cell;
   vertical-align: middle;
