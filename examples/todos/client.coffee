@@ -71,9 +71,16 @@ $ rally.ready ->
   
   checkShortcuts = (e) ->
     return unless e.metaKey || e.ctrlKey
+    # Shortcuts
+    # Bold: Ctrl/Cmd + B
+    # Italic: Ctrl/Cmd + I
+    # Clear formatting: Ctrl/Cmd + Space -or- Ctrl/Cmd + \
+    code = e.which
     return unless command = `
-      e.which === 66 ? 'bold' :
-      e.which === 73 ? 'italic' : null`
+      code === 66 ? 'bold' :
+      code === 73 ? 'italic' :
+      code === 32 ? 'removeFormat' :
+      code === 220 ? 'removeFormat' : null`
     document.execCommand command, false, null
     e.preventDefault() if e.preventDefault
     return false
