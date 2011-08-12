@@ -36,7 +36,7 @@ $ rally.ready ->
   model.on 'set', '_group.todos.*.text', (id, value) ->
     el = $ "#text#{id}"
     return if el.is ':focus'
-    el.text value
+    el.html value
   
   addTodo = ->
     model.push '_group.todoList',
@@ -55,7 +55,7 @@ $ rally.ready ->
       lastHtml = html
       target = e.target
       return unless target.contentEditable
-      text = target.textContent || target.innerText
+      text = target.innerHTML
       id = target.parentNode.parentNode.parentNode.id
       model.set "_group.todos.#{id}.text", text
   # Paste and dragover events are fired before the HTML is actually updated
