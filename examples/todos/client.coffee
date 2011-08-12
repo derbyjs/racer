@@ -1,6 +1,7 @@
 rally = require 'rally'
 addTodo = ->
 check = ->
+del = ->
 
 # Calling $() with a function is equivalent to $(document).ready() in jQuery
 $ rally.ready ->
@@ -19,9 +20,9 @@ $ rally.ready ->
     """<li id=#{id} class=#{completed}>
     <span class=cell><span class=todo>
       <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
-      <span id=text#{id} contenteditable=true>#{text}</span>
+      <span id=text#{id} data-id=#{id} contenteditable=true>#{text}</span>
     </span></span>
-    <span class=cell><button class=delete>Delete</button></span>"""
+    <span class=cell><button class=delete onclick=del(#{id})>Delete</button></span>"""
   
   # Render the initial list
   todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
@@ -32,6 +33,9 @@ $ rally.ready ->
   model.on 'set', '_group.todos.*.completed', (id, value) ->
     $("##{id}").toggleClass 'completed', value
     $("#check#{id}").prop 'checked', value
+  
+  model.on 'del', '_group.todos.*', (id) ->
+    $("##{id}").remove()
   
   model.on 'set', '_group.todos.*.text', (id, value) ->
     el = $ "#text#{id}"
@@ -48,6 +52,10 @@ $ rally.ready ->
   check = (checkbox, id) ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
   
+  del = (id) ->
+    model.del "_group.todos.#{id}"
+  
+  # Watch for changes to the contenteditable fields
   lastHtml = ''
   onkey = (e) ->
     html = content.html()
@@ -56,7 +64,7 @@ $ rally.ready ->
       target = e.target
       return unless target.contentEditable
       text = target.innerHTML
-      id = target.parentNode.parentNode.parentNode.id
+      id = target.getAttribute 'data-id'
       model.set "_group.todos.#{id}.text", text
   # Paste and dragover events are fired before the HTML is actually updated
   onkeyDelayed = (e) ->
