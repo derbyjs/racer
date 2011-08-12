@@ -2,18 +2,116 @@ transaction = require './transaction'
 pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
+argsNormalizer = require './argsNormalizer'
 
 module.exports = RefHelper = (model) ->
   @_model = model
   @_adapter = model._adapter
+
+  @_setup()
   return
 
 ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1
 
+# RefHelper contains code that manages an index of refs: the pointer path,
+# ref path, key path, and ref type. It uses this index to
+# 1. Manage ref dependencies on an adapter update
+# 2. Ultimately raise events at the model layer for refs related to a
+#    mutated path.
 RefHelper:: =
+
+  ## Taxonomy Methods ##
+
+  isPointer: (val) ->
+    return !! (val && val.$r)
+
+  isKeyPath: (path, obj) ->
+    throw new Error 'Missing obj' unless obj
+    found = @_adapter._lookup("$keys.#{path}.$", false, obj: obj).obj
+    return found isnt undefined
+
+  isPathPointedTo: (path, obj) ->
+    throw 'Missing obj' unless obj
+    found = @_adapter._lookup("$refs.#{path}.$", false, obj: obj).obj
+    return found isnt undefined
+
+  _setup: ->
+    refHelper = @
+    adapter = @_adapter
+
+    adapter.__set = adapter.set
+    adapter.set = (path, value, ver, options = {}) ->
+      # Save a record of any references being set
+      options.obj ||= @_data
+      if refHelper.isPointer value
+        refHelper.$indexRefs path, value.$r, value.$k, value.$t, ver, options
+      out = @__set path, value, ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      # TODO Move all instances of updateRefsForKey to an event listener?
+      refHelper.updateRefsForKey path, ver, options
+      return out
+
+    adapter.__del = adapter.del
+    adapter.del = (path, ver, options = {}) ->
+      options.obj ||= @_data
+      out = @__del path, ver, options
+      if refHelper.isPathPointedTo path, options.obj
+        refHelper.cleanupPointersTo path, options
+      return out
+
+    adapter.__remove = adapter.remove
+    adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
+      options.obj ||= @_data
+      out = @__remove path, startIndex, howMany, ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, ver, options
+      return out
+    
+    ['push', 'unshift'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = ->
+        [path, values, ver, options] = argsNormalizer.adapter[method](arguments)
+        options.obj ||= @_data
+        out = @['__' + method] path, values..., ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    ['pop', 'shift'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = (path, ver, options = {}) ->
+        options.obj ||= @_data
+        out = @['__' + method] path, ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    ['insertAfter', 'insertBefore'].forEach (method) ->
+      adapter['__' + method] = adapter[method]
+      adapter[method] = (path, index, value, ver, options = {}) ->
+        options.obj ||= @_data
+        out = @['__' + method] path, index, value, ver, options
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey path, ver, options
+        return out
+
+    adapter.__splice = adapter.splice
+    adapter.splice = ->
+      [path, startIndex, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
+      options.obj ||= @_data
+      out = @__splice path, startIndex, removeCount, newMembers..., ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, ver, options
+      return out
+
+
+  ## Pointer Builders ##
+
+  # Used via delegation from Model::ref
   ref: (ref, key) ->
     if key? then $r: ref, $k: key else $r: ref
 
+  # Used via delegation from Model::arrayRef
   arrayRef: (ref, key) ->
     $r: ref, $k: key, $t: 'array'
   
@@ -54,41 +152,18 @@ RefHelper:: =
   # @param {String} key is a path that points to a pathB or array of paths
   #                 as another lookup chain on the dereferenced `ref`
   # @param {Object} options
-  # TODO add type to invocations
   $indexRefs: (path, ref, key, type, ver, options) ->
     adapter = @_adapter
-    options2 = merge {dontFollowLastRef: true}, options
-    oldRefObj = adapter._lookup(path, false, options2).obj
-    removeFrom$refs = (ref, key) -> # for deleting old refs
-      ref += '.' + key if key
-      refEntries = adapter._lookup("$refs.#{ref}.$", true, options).obj
-      delete refEntries[path]
-      unless hasKeys(refEntries, ignore: specHelper.reserved)
-        adapter.del "$refs.#{ref}", ver, options
-    removeOld$refs = ->
-      if oldRefObj && oldRef = oldRefObj.$r
-        if oldKey = oldRefObj.$k
-          oldKeyVal = adapter._lookup(oldKey, false, options).obj
-        if oldKey && (oldRefObj.$t == 'array')
-          # If this key was used in an array ref: {$r: path, $k: [...]}
-          oldKeyVal.forEach (oldKeyMem) ->
-            removeFrom$refs oldRef, oldKeyMem
-          removeFrom$refs oldRef
-        else
-          removeFrom$refs oldRef, oldKeyVal
-
-    update$refs = (refsKey) ->
-      entry = [ref, key]
-      entry.push type if type
-      # TODO DRY - Above 2 lines are duplicated below
-      out = adapter._lookup("$refs.#{refsKey}.$", true, options)
-      out.obj[path] = entry
-
+    refHelper = @
+    oldRefOptions = merge {dontFollowLastRef: true}, options
+    oldRefObj = adapter._lookup(path, false, oldRefOptions).obj
     if key
       entry = [ref, key]
       entry.push type if type
-      # TODO _group.todoIds does not exist at this point, so dereferenced path resolves to undefined
-      path = @denormalizePath path, options.obj
+#      # We denormalize the path here. Why? e.g.,
+#      # If path = _group.todoIds, but lookup(path) does not exist at this point,
+#      # then the dereferenced path resolves to undefined, which is flawed.
+#      path = @denormalizePath path, options.obj
       adapter._lookup("$keys.#{key}.$", true, options).obj[path] = entry
       keyVal = adapter._lookup(key, false, options).obj
       # keyVal is only valid if it can be a valid path segment
@@ -97,8 +172,9 @@ RefHelper:: =
         keyOptions = merge { array: true }, options
         keyVal = adapter._lookup(key, true, keyOptions).obj
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
-        removeOld$refs()
-        return refsKeys.forEach update$refs
+        @_removeOld$refs oldRefObj, path, ver, options
+        return refsKeys.forEach (refsKey) ->
+          refHelper._update$refs refsKey, path, ref, key, type, options
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
@@ -107,8 +183,39 @@ RefHelper:: =
           delete refs[path]
           adapter.del "$keys.#{oldKey}", ver, options unless hasKeys refs, ignore: specHelper.reserved
       refsKey = ref
-    removeOld$refs()
-    update$refs refsKey
+    @_removeOld$refs oldRefObj, path, ver, options
+    @_update$refs refsKey, path, ref, key, type, options
+
+  # Private helper function for $indexRefs
+  _removeOld$refs: (oldRefObj, path, ver, options) ->
+    if oldRefObj && oldRef = oldRefObj.$r
+      if oldKey = oldRefObj.$k
+        oldKeyVal = @_adapter._lookup(oldKey, false, options).obj
+      if oldKey && (oldRefObj.$t == 'array')
+        # If this key was used in an array ref: {$r: path, $k: [...]}
+        refHelper = @
+        oldKeyVal.forEach (oldKeyMem) ->
+          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, options
+        @_removeFrom$refs oldRef, undefined, path, ver, options
+      else
+        @_removeFrom$refs oldRef, oldKeyVal, path, ver, options
+
+  # Private helper function for $indexRefs
+  _removeFrom$refs: (ref, key, path, ver, options) ->
+    ref += '.' + key if key
+    refEntries = @_adapter._lookup("$refs.#{ref}.$", false, options).obj
+    return unless refEntries
+    delete refEntries[path]
+    unless hasKeys(refEntries, ignore: specHelper.reserved)
+      @_adapter.del "$refs.#{ref}", ver, options
+    
+  # Private helper function for $indexRefs
+  _update$refs: (refsKey, path, ref, key, type, options) ->
+    entry = [ref, key]
+    entry.push type if type
+    # TODO DRY - Above 2 lines are duplicated below
+    out = @_adapter._lookup("$refs.#{refsKey}.$", true, options)
+    out.obj[path] = entry
 
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
@@ -118,10 +225,11 @@ RefHelper:: =
   #                         |
   #                       Update <keyVal> = <lookup(key)>
   updateRefsForKey: (path, ver, options) ->
-    self = this
     if refs = @_adapter._lookup("$keys.#{path}.$", false, options).obj
-      @_eachValidRef refs, options.obj, (path, ref, key, type) ->
-        self.$indexRefs path, ref, key, type, ver, options
+      @_eachValidRef refs, options.obj, (path, ref, key, type) =>
+        @$indexRefs path, ref, key, type, ver, options
+    @eachValidRefPointingTo path, options.obj, (pointingPath, targetPathRemainder, ref, key, type) =>
+      @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, options
 
   ## Iterators ##
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
@@ -155,20 +263,19 @@ RefHelper:: =
       if refSet = refPos.$
         fn refSet, props.slice(i).join('.'), prop
 
-  eachValidRefPointingTo: (targetPath, fn) ->
+  eachValidRefPointingTo: (targetPath, obj, fn) ->
     self = this
-    model = @_model
-    return unless refs = model.get '$refs'
-    _data = model.get()
+    adapter = self._adapter
+    return unless refs = adapter._lookup('$refs', false, obj: obj).obj
     self._eachRefSetPointingTo targetPath, refs, (refSet, targetPathRemainder, possibleIndex) ->
       # refSet has signature: { "#{pointingPath}$#{ref}": [pointingPath, ref], ... }
-      self._eachValidRef refSet, _data, (pointingPath, ref, key, type) ->
+      self._eachValidRef refSet, obj, (pointingPath, ref, key, type) ->
         if type == 'array'
           targetPathRemainder = possibleIndex + '.' + targetPathRemainder
         fn pointingPath, targetPathRemainder, ref, key, type
 
-  eachArrayRefKeyedBy: (path, fn) ->
-    return unless refs = @_model.get "$keys"
+  eachArrayRefKeyedBy: (path, obj, fn) ->
+    return unless refs = @_adapter._lookup("$keys", false, obj: obj).obj
     refSet = (path + '.$').split('.').reduce (refSet, prop) ->
       refSet && refSet[prop]
     , refs
@@ -179,37 +286,39 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (targetPath, method, args, emitPathEvent, ignoreRoots = []) ->
-    self = this
+  notifyPointersTo: (targetPath, obj, method, args, ignoreRoots = []) ->
     # Takes care of regular refs
-    self.eachValidRefPointingTo targetPath, (pointingPath, targetPathRemainder, ref, key, type) ->
+    @eachValidRefPointingTo targetPath, obj, (pointingPath, targetPathRemainder, ref, key, type) =>
       unless type == 'array'
-        return if self._alreadySeen pointingPath, ref, ignoreRoots
+        return if @_alreadySeen pointingPath, ref, ignoreRoots
         pointingPath += '.' + targetPathRemainder if targetPathRemainder
       else if targetPathRemainder
-        toIndex = (key, id) ->
-          keyArr = self._adapter._lookup(key, false, array: true, proto: true, obj: self._model._specModel()[0]).obj
-          index = keyArr.indexOf id
-          if index == -1
-            # Handle numbers just in case
-            return keyArr.indexOf parseInt(id, 10)
-          return index
+        # Take care of target paths which include an array ref pointer path
+        # as a substring of the target path.
         [id, rest...] = targetPathRemainder.split '.'
-        index = toIndex key, id
+        index = @_toIndex key, id, obj
         unless index == -1
           pointingPath += '.' + index
           pointingPath += '.' + rest.join('.') if rest.length
-      emitPathEvent pointingPath, args
-      self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
+      @_model.emit method, [pointingPath, args...]
 
     # Takes care of array refs
-    self.eachArrayRefKeyedBy targetPath, (pointingPath, ref, key) ->
-      # return if self._alreadySeen pointingPath, ref, ignoreRoots
-      [firstArgs, arrayMemberArgs] = self.splitArrayArgs method, args
-      arrayMemberArgs = arrayMemberArgs.map (arg) -> { $r: ref, $k: arg } if arrayMemberArgs
+    @eachArrayRefKeyedBy targetPath, obj, (pointingPath, ref, key) =>
+      # return if @_alreadySeen pointingPath, ref, ignoreRoots
+      [firstArgs, arrayMemberArgs] = @splitArrayArgs method, args
+      if arrayMemberArgs
+        arrayMemberArgs = arrayMemberArgs.map (arg) ->
+          { $r: ref, $k: arg }
       args = firstArgs.concat arrayMemberArgs
-      emitPathEvent pointingPath, args
-      self.notifyPointersTo pointingPath, method, args, emitPathEvent, ignoreRoots
+      @_model.emit method, [pointingPath, args...]
+
+  _toIndex: (arrayRefKey, id, obj) ->
+    keyArr = @_adapter._lookup(arrayRefKey, false, array: true, obj: obj).obj
+    index = keyArr.indexOf id
+    if index == -1
+      # Handle numbers just in case
+      return keyArr.indexOf parseInt(id, 10)
+    return index
 
   # For avoiding infinite event emission
   _alreadySeen: (pointingPath, ref, ignoreRoots) ->
@@ -280,7 +389,7 @@ RefHelper:: =
   # @param {String} path that we want to determine is a pointer or not
   # @param {Object} data is the speculative or true model data
   isArrayRef: (path, data) ->
-    options = proto: true, obj: data, dontFollowLastRef: true
+    options = obj: data, dontFollowLastRef: true
     refObj = @_adapter._lookup(path, false, options).obj
     return false if refObj is undefined
     {$r, $k, $t} = refObj
@@ -300,9 +409,9 @@ RefHelper:: =
   isRefObj: (obj) -> '$r' of obj
 
   dereferencedPath: (path, data) ->
-    meta = @_adapter._lookup path, false, proto: true, obj: data, returnMeta: true
+    meta = @_adapter._lookup path, false, obj: data, returnMeta: true
     return meta.path
 
   denormalizePath: (path, data) ->
-    out = @_adapter._lookup path, false, proto: true, obj: data, denormalizePath: true
+    out = @_adapter._lookup path, false, obj: data, denormalizePath: true
     out.path

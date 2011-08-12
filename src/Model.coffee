@@ -52,6 +52,13 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # The value of @_force is checked in the @_addTxn method. It can be used to
   # create a transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
+
+  refHelper = self._refHelper
+  ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice'].forEach (method) ->
+    self.on method, ([path, args...]) ->
+      # Emit events on any references that point to the path or any of its
+      # ancestor paths
+      refHelper.notifyPointersTo path, @get(), method, args
   
   return
 
@@ -198,71 +205,6 @@ Model:: =
 
   _initRefs: (adapter) ->
     @_refHelper = refHelper = new RefHelper @
-    adapter.__set = adapter.set
-    adapter.set = (path, value, ver, options = {}) ->
-      # Save a record of any references being set
-      refHelper.$indexRefs path, ref, value.$k, value.$t, ver, options if value && ref = value.$r
-      out = @__set path, value, ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
-
-    adapter.__del = adapter.del
-    adapter.del = (path, ver, options = {}) ->
-      out = @__del path, ver, options
-      refHelper.cleanupPointersTo path, options
-      return out
-
-    adapter.__remove = adapter.remove
-    adapter.remove = (path, startIndex, howMany, ver, options = {}) ->
-      out = @__remove path, startIndex, howMany, ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
-    
-    ['push', 'unshift'].forEach (method) ->
-      adapter['__' + method] = adapter[method]
-      adapter[method] = (path, values..., ver, options) ->
-        if options is undefined
-          options = {}
-        if options.constructor != Object
-          values.push ver
-          ver = options
-          options = {}
-        out = @['__' + method] path, values..., ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
-
-    ['pop', 'shift'].forEach (method) ->
-      adapter['__' + method] = adapter[method]
-      adapter[method] = (path, ver, options = {}) ->
-        out = @['__' + method] path, ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
-
-    ['insertAfter', 'insertBefore'].forEach (method) ->
-      adapter['__' + method] = adapter[method]
-      adapter[method] = (path, index, value, ver, options = {}) ->
-        out = @['__' + method] path, index, value, ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
-
-    adapter.__splice = adapter.splice
-    adapter.splice = (path, startIndex, removeCount, newMembers..., ver, options) ->
-      if options is undefined
-        options = {}
-      if options.constructor != Object
-        newMembers.push ver
-        ver = options
-        options = {}
-
-      out = @__splice path, startIndex, removeCount, newMembers..., ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
 
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
@@ -342,14 +284,10 @@ Model::_eventListener = (method, pattern, callback) ->
   
   # on(method, pattern, callback)
   re = pathParser.regExp pattern
-  refHelper = @_refHelper
   return ([path, args...]) ->
     emitPathEvent = (path, args) ->
       callback re.exec(path).slice(1).concat(args)... if re.test path
     emitPathEvent path, args
-    # Emit events on any references that point to the path or any of its
-    # ancestor paths
-    refHelper.notifyPointersTo path, method, args, emitPathEvent
 
 # EventEmitter::addListener and once return this. The Model equivalents return
 # the listener instead, since it is made internally for method subscriptions
