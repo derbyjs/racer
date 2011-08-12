@@ -2,7 +2,7 @@ transaction = require './transaction'
 pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
-argsNormalizer = require './argsNormalizer'
+#argsNormalizer = require './argsNormalizer'
 
 module.exports = RefHelper = (model) ->
   @_model = model

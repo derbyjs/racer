@@ -9,28 +9,34 @@ $ rally.ready ->
   todoList = $ '#todos'
   content = $ '#content'
   
-  model.set '_todoList', model.ref '_group.todoList'
+  todoHtml = ({id, text, completed}) ->
+    if completed
+      completed = 'completed'
+      checked = 'checked'
+    else
+      completed = ''
+      checked = ''
+    """<li id=#{id} class=#{completed}>
+    <span class=todo>
+      <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
+      <span id=text#{id} contenteditable=true>#{text}</span>
+    </span>
+    <button class=delete>Delete</button>"""
   
-  updateTodos = ->
-    html = ''
-    for {id, text, completed} in model.get '_todoList'
-      if completed
-        wrap = 's'
-        checked = 'checked'
-      else
-        wrap = 'span'
-        checked = ''
-      html = html + """<li id=#{id}>
-      <span class=todo>
-        <label><input type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
-        <#{wrap} contenteditable=true>#{text}</#{wrap}>
-      </span>
-      <button class=delete>Delete</button>"""
-    todoList.html html
+  # Render the initial list
+  todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
   
-  model.on 'push', '_todoList', updateTodos
-  model.on 'set', '_todoList.**', updateTodos
-  updateTodos()
+  model.on 'push', '_group.todoList', (value) ->
+    todoList.append todoHtml value
+  
+  model.on 'set', '_group.todos.*.completed', (id, value) ->
+    $("##{id}").toggleClass 'completed', value
+    $("#check#{id}").prop 'checked', value
+  
+  model.on 'set', '_group.todos.*.text', (id, value) ->
+    el = $ "#text#{id}"
+    return if el.is ':focus'
+    el.text value
   
   addTodo = ->
     model.push '_group.todoList',
@@ -42,16 +48,23 @@ $ rally.ready ->
   check = (checkbox, id) ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
   
-  lastHtml
-  onkeyevent = (e) ->
+  lastHtml = ''
+  onkey = (e) ->
     html = content.html()
     if html != lastHtml
       lastHtml = html
-      console.log e.target
+      target = e.target
+      return unless target.contentEditable
+      text = target.textContent || target.innerText
+      id = target.parentNode.parentNode.id
+      model.set "_group.todos.#{id}.text", text
+  # Paste and dragover events are fired before the HTML is actually updated
+  onkeyDelayed = (e) ->
+    setTimeout onkey, 10, e
   
   $(document)
-    .keydown(onkeyevent)
-    .keyup(onkeyevent)
-    .bind('paste', onkeyevent)
-    .bind('dragover', onkeyevent)
+    .keydown(onkey)
+    .keyup(onkey)
+    .bind('paste', onkeyDelayed)
+    .bind('dragover', onkeyDelayed)
 

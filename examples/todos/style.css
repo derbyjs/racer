@@ -32,22 +32,6 @@ h1 {
   padding: 12px;
 }
 
-[contenteditable]:focus {
-  outline: none;
-}
-[contenteditable]:hover:before,
-[contenteditable]:focus:before {
-  content: "";
-}
-[contenteditable]:before {
-  z-index: -1;
-  width: 100%;
-  height: 100%;
-  top: -3px;
-  left: -4px;
-  display: block;
-  position: absolute;
-}
 #new-todo {
   width: 218px;
   margin-right: 4px;
@@ -84,6 +68,26 @@ h1 {
   margin: 0 0 4px;
 }
 
+.completed [contenteditable] {
+  text-decoration: line-through;
+}
+[contenteditable]:focus {
+  outline: none;
+}
+[contenteditable]:hover:before,
+[contenteditable]:focus:before {
+  content: "";
+}
+[contenteditable]:before {
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  top: -3px;
+  left: -4px;
+  display: block;
+  position: absolute;
+}
+
 
 /* Form CSS from Impress: http://nateps.github.com/impress/ */
 
@@ -91,7 +95,6 @@ h1 {
   border: 0;
 }
 input,
-textarea,
 button,
 select {
   -webkit-appearance: none;
@@ -102,7 +105,6 @@ select {
   outline: 0;
 }
 input,
-textarea,
 button,
 [type="checkbox"]+i,
 [type="radio"]+i,
@@ -117,17 +119,9 @@ select+i,
   padding: 1px 4px 2px;
 }
 input,
-textarea,
 [contenteditable]:before {
   border: 1px solid;
   border-color: rgba(0,0,0,0.35) rgba(0,0,0,0.25) rgba(0,0,0,0.25);
-  -webkit-box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 200px 1px -100px #fff;
-  -moz-box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 200px 1px -100px #fff;
-  box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 200px 1px -100px #fff;
-}
-textarea {
-  padding-right: 2px;
-  overflow: auto;
   -webkit-box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 800px 1px -400px #fff;
   -moz-box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 800px 1px -400px #fff;
   box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 800px 1px -400px #fff;
@@ -161,7 +155,6 @@ select:active+i {
   box-shadow: inset 0 1px #d6d6d6, inset 0 -1px #f2f2f2, 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #e6e6e6, inset 0 200px 1px -100px #e0e0e0;
 }
 input:focus,
-textarea:focus,
 [contenteditable]:focus:before {
   border-color: #2976d7 #5492de #5492de;
 }
