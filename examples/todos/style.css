@@ -7,7 +7,7 @@ body {
   background: #f7f7f7;
 }
 body,h1 {
-  font: 13px/1.231 "Lucida Grande", Tahoma, sans-serif;
+  font: 13px/16px "Lucida Grande", Tahoma, sans-serif;
 }
 a {
   color: #01c;
@@ -28,8 +28,11 @@ h1 {
   background: -ms-linear-gradient(#e7e7e7, #d0d0d0);
   background: -o-linear-gradient(#e7e7e7, #d0d0d0);
   background: linear-gradient(#e7e7e7, #d0d0d0);
+  -webkit-box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
+  -moz-box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
   box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
   padding: 12px;
+  white-space: nowrap;
 }
 
 #new-todo {
@@ -47,25 +50,30 @@ h1 {
 #todos > li {
   display: table-row;
 }
-.todo, .delete {
+.cell {
   display: table-cell;
+  vertical-align: middle;
 }
 .todo {
-  min-width: 200px;
-  padding: 0 4px 6px 18px;
+  display: block;
+  width: 100%;
+  height: 100%;
   position: relative;
-  top: 1px;
+  min-width: 200px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 3px 4px 3px 18px;
 }
 .todo > label {
   position: absolute;
-  left: 0;
+  margin-left: -18px;
 }
 .delete {
-  display: table-cell;
   font-size: 11px;
-  padding: 1px 4px;
-  line-height: 14px;
-  margin: 0 0 4px;
+  padding: 0 4px;
+  position: relative;
+  height: 18px;
 }
 
 .completed [contenteditable] {
@@ -82,7 +90,7 @@ h1 {
   z-index: -1;
   width: 100%;
   height: 100%;
-  top: -3px;
+  top: 0;
   left: -4px;
   display: block;
   position: absolute;
@@ -96,6 +104,7 @@ h1 {
 }
 input,
 button,
+.button,
 select {
   -webkit-appearance: none;
   background: transparent;
@@ -106,6 +115,7 @@ select {
 }
 input,
 button,
+.button,
 [type="checkbox"]+i,
 [type="radio"]+i,
 select+i,
@@ -127,6 +137,7 @@ input,
   box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 800px 1px -400px #fff;
 }
 button,
+.button,
 [type="submit"],
 [type="checkbox"]+i,
 [type="radio"]+i,
@@ -145,6 +156,7 @@ select+i {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #e6e6e6, inset 0 200px 1px -100px #fff;
   padding: 1px 12px 2px;
 }
+.button:active,
 button:active,
 [type="submit"]:active,
 [type="checkbox"]:active+i,
@@ -158,6 +170,7 @@ input:focus,
 [contenteditable]:focus:before {
   border-color: #2976d7 #5492de #5492de;
 }
+.button:focus,
 button:focus,
 [type="submit"]:focus,
 [type="checkbox"]:focus+i,
@@ -168,6 +181,7 @@ select:focus+i {
   -moz-box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #b4d5fe, inset 0 200px 1px -100px #e5f4fb;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #b4d5fe, inset 0 200px 1px -100px #e5f4fb;
 }
+.button:focus:active,
 button:focus:active,
 [type="submit"]:focus:active,
 [type="checkbox"]:focus:active+i,

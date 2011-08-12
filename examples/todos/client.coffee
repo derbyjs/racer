@@ -17,11 +17,11 @@ $ rally.ready ->
       completed = ''
       checked = ''
     """<li id=#{id} class=#{completed}>
-    <span class=todo>
+    <span class=cell><span class=todo>
       <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
       <span id=text#{id} contenteditable=true>#{text}</span>
-    </span>
-    <button class=delete>Delete</button>"""
+    </span></span>
+    <span class=cell><button class=delete>Delete</button></span>"""
   
   # Render the initial list
   todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
@@ -56,7 +56,7 @@ $ rally.ready ->
       target = e.target
       return unless target.contentEditable
       text = target.textContent || target.innerText
-      id = target.parentNode.parentNode.id
+      id = target.parentNode.parentNode.parentNode.id
       model.set "_group.todos.#{id}.text", text
   # Paste and dragover events are fired before the HTML is actually updated
   onkeyDelayed = (e) ->
