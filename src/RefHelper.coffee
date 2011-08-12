@@ -308,8 +308,10 @@ RefHelper:: =
       # return if @_alreadySeen pointingPath, ref, ignoreRoots
       [firstArgs, arrayMemberArgs] = @splitArrayArgs method, args
       if arrayMemberArgs
+        ns = @_adapter._lookup(ref, false, obj: obj).obj
         arrayMemberArgs = arrayMemberArgs.map (arg) ->
-          { $r: ref, $k: arg }
+          ns[arg] || ns[parseInt arg, 10]
+          # { $r: ref, $k: arg }
       args = firstArgs.concat arrayMemberArgs
       @_model.emit method, [pointingPath, args...]
 

@@ -1285,8 +1285,9 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'push', 'myTodos', (ref) ->
-      ref.should.eql model.ref('todos', '1')
+    model.on 'push', 'myTodos', (dereffedVal) ->
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'push', 'myTodoIds', (val) ->
       val.should.equal '1'
@@ -1309,8 +1310,9 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'push', 'myTodos', (ref) ->
-      ref.should.eql model.ref('todos', '1')
+    model.on 'push', 'myTodos', (dereffedVal) ->
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'push', 'myTodoIds', (val) ->
       val.should.equal '1'
@@ -1349,9 +1351,10 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'insertAfter', 'myTodos', (index, ref) ->
+    model.on 'insertAfter', 'myTodos', (index, dereffedVal) ->
       index.should.equal -1
-      ref.should.eql model.ref('todos', '1')
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'insertAfter', 'myTodoIds', (index, val) ->
       index.should.equal -1
@@ -1365,9 +1368,10 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'insertAfter', 'myTodos', (index, ref) ->
+    model.on 'insertAfter', 'myTodos', (index, dereffedVal) ->
       index.should.equal -1
-      ref.should.eql model.ref('todos', '1')
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'insertAfter', 'myTodoIds', (index, val) ->
       index.should.equal -1
@@ -1381,9 +1385,10 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'insertBefore', 'myTodos', (index, ref) ->
+    model.on 'insertBefore', 'myTodos', (index, dereffedVal) ->
       index.should.equal 0
-      ref.should.eql model.ref('todos', '1')
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'insertBefore', 'myTodoIds', (index, val) ->
       index.should.equal 0
@@ -1397,9 +1402,10 @@ module.exports =
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
     model.set 'todos',
       1: { text: 'something' }
-    model.on 'insertBefore', 'myTodos', (index, ref) ->
+    model.on 'insertBefore', 'myTodos', (index, dereffedVal) ->
       index.should.equal 0
-      ref.should.eql model.ref('todos', '1')
+      # ref.should.eql model.ref('todos', '1')
+      dereffedVal.should.eql { text: 'something' }
       done()
     model.on 'insertBefore', 'myTodoIds', (index, val) ->
       index.should.equal 0
@@ -1454,10 +1460,11 @@ module.exports =
       2: { text: 'more' }
       3: { text: 'blah' }
     model.set 'myTodoIds', ['1', '2']
-    model.on 'splice', 'myTodos', (index, removeCount, ref) ->
+    model.on 'splice', 'myTodos', (index, removeCount, dereffedVal) ->
       index.should.equal 0
       removeCount.should.equal 1
-      ref.should.eql model.ref('todos', '3')
+      # ref.should.eql model.ref('todos', '3')
+      dereffedVal.should.eql { text: 'blah' }
       done()
     model.on 'splice', 'myTodoIds', (index, removeCount, value) ->
       index.should.equal 0
@@ -1475,10 +1482,11 @@ module.exports =
       2: { text: 'more' }
       3: { text: 'blah' }
     model.set 'myTodoIds', ['1', '2']
-    model.on 'splice', 'myTodos', (index, removeCount, ref) ->
+    model.on 'splice', 'myTodos', (index, removeCount, dereffedVal) ->
       index.should.equal 0
       removeCount.should.equal 1
-      ref.should.eql model.ref('todos', '3')
+      # ref.should.eql model.ref('todos', '3')
+      dereffedVal.should.eql { text: 'blah' }
       done()
     model.on 'splice', 'myTodoIds', (index, removeCount, value) ->
       index.should.equal 0
