@@ -7,6 +7,7 @@ $ rally.ready ->
   model = rally.model
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
+  content = $ '#content'
   
   model.set '_todoList', model.ref '_group.todoList'
   
@@ -40,4 +41,17 @@ $ rally.ready ->
   
   check = (checkbox, id) ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
+  
+  lastHtml
+  onkeyevent = (e) ->
+    html = content.html()
+    if html != lastHtml
+      lastHtml = html
+      console.log e.target
+  
+  $(document)
+    .keydown(onkeyevent)
+    .keyup(onkeyevent)
+    .bind('paste', onkeyevent)
+    .bind('dragover', onkeyevent)
 
