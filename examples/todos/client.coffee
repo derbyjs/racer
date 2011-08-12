@@ -57,7 +57,7 @@ $ rally.ready ->
   
   # Watch for changes to the contenteditable fields
   lastHtml = ''
-  onkey = (e) ->
+  checkChanged = (e) ->
     html = content.html()
     return if html == lastHtml
     lastHtml = html
@@ -66,12 +66,18 @@ $ rally.ready ->
     text = target.innerHTML
     model.set "_group.todos.#{id}.text", text
   # Paste and dragover events are fired before the HTML is actually updated
-  onkeyDelayed = (e) ->
-    setTimeout onkey, 10, e
+  checkChangedDelayed = (e) ->
+    setTimeout checkChanged, 10, e
   
-  $(document)
-    .keydown(onkey)
-    .keyup(onkey)
-    .bind('paste', onkeyDelayed)
-    .bind('dragover', onkeyDelayed)
+  checkShortcuts = (e) ->
+    return unless e.metaKey
+    return document.execCommand('bold') if e.which == 66
+    document.execCommand('italic') if e.which == 73
+  
+  content
+    .keydown(checkShortcuts)
+    .keydown(checkChanged)
+    .keyup(checkChanged)
+    .bind('paste', checkChangedDelayed)
+    .bind('dragover', checkChangedDelayed)
 
