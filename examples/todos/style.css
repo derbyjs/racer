@@ -68,9 +68,15 @@ h1 {
   position: absolute;
   margin-left: -18px;
 }
+#add,
+.delete {
+  padding-left: 0;
+  padding-right: 0;
+  width: 52px;
+}
 .delete {
   font-size: 11px;
-  padding: 0 4px;
+  padding: 0;
   position: relative;
   height: 18px;
 }

@@ -39,7 +39,7 @@ app.get '/:group', (req, res) ->
       <body>
       <form id=head action=javascript:addTodo()>
         <h1>Todos</h1>
-        <input id=new-todo><input type=submit value=Add>
+        <input id=new-todo><input id=add type=submit value=Add>
       </form>
       <div id=content><ul id=todos></ul></div>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
