@@ -38,13 +38,12 @@ app.get '/:group', (req, res) ->
       <!DOCTYPE html>
       <title>Todo list</title>
       <style>#{style}</style>
-      <div id=page>
-        <form id=head action=javascript:addTodo()>
-          <h1>Todos</h1>
-          <input id=new-todo> <input type=submit value=Add>
-        </form>
-        <ul id=todos></ul>
-      </div>
+      <body>
+      <form id=head action=javascript:addTodo()>
+        <h1>Todos</h1>
+        <input id=new-todo><input type=submit value=Add>
+      </form>
+      <div id=content><ul id=todos></ul></div>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
       <script src=/script.js></script>
       <script>rally.init(#{bundle})</script>
