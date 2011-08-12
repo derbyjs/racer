@@ -232,8 +232,27 @@ module.exports =
       , [0, '0.4', 'del', 'a.b.c']
     ]
 
+  'test speculative incr': ->
+    model = new Model
+    
+    # Should be able to increment unset path
+    model.incr 'count'
+    model.get('count').should.eql 1
+    
+    # Default increment should be 1
+    model.incr 'count'
+    model.get('count').should.eql 2
+    
+    # Should be able to increment by another number
+    model.incr 'count', -2
+    model.get('count').should.eql 0
+    
+    # Incrementing by zero should work
+    model.incr 'count', 0
+    model.get('count').should.eql 0
+
   'test speculative push': ->
-    model = new Model '0'
+    model = new Model
     
     model.push 'colors', 'green'
     model.get('colors').should.specEql ['green']

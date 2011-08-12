@@ -278,6 +278,16 @@ Model:: =
   
   del: (path, callback) ->
     @_addTxn 'del', path, callback
+  
+  incr: (path, byNum, callback) ->
+    # incr(path, callback)
+    if typeof byNum is 'function'
+      callback = byNum
+      byNum = 1
+    # incr(path)
+    else if typeof byNum isnt 'number'
+      byNum = 1
+    @set path, (@get(path) || 0) + byNum, callback
 
   ## Array methods ##
   
