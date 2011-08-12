@@ -30,15 +30,17 @@ Memory:: =
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
-      if prop of parent.__proto__
+      parentProto = Object.getPrototypeOf parent
+      if prop of parentProto
         curr = {}
-        for key, value of parent.__proto__
+        for key, value of parentProto
           unless key is prop
             curr[key] = if typeof value is 'object'
               Object.create value
             else
               value
         # TODO This line may be the culprit
+        # TODO Replace this with cross browser code
         parent.__proto__ = curr
     delete parent[prop]
     return if options.returnMeta then out else obj
@@ -162,7 +164,7 @@ Memory:: =
     len = props.length
 
     # Base case len == 0
-    if proto && !next._proto
+    if proto && !specHelper.isSpeculative next
       next = specHelper.create next
 
     while i < len
@@ -196,8 +198,9 @@ Memory:: =
           else
             next = {}
         parent[prop] = next
-      else if proto && typeof next == 'object' && !next._proto
-        if parent._proto && parent.hasOwnProperty prop
+      else if proto && typeof next == 'object' && !specHelper.isSpeculative(next)
+        # TODO Can we remove this if?
+        if specHelper.isSpeculative(parent) && parent.hasOwnProperty prop
           # In case we speculative set to an object before:
           # e.g., model.set 'some.path', key: value
           #   Here, 'some.path' would not have _proto,

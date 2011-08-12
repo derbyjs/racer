@@ -2,7 +2,7 @@ transaction = require './transaction'
 pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
-#argsNormalizer = require './argsNormalizer'
+argsNormalizer = require './argsNormalizer'
 
 module.exports = RefHelper = (model) ->
   @_model = model
@@ -242,6 +242,7 @@ RefHelper:: =
 
       # Check to see if the reference is still the same
       o = fastLookup path, obj
+      o = @_adapter._lookup(path, false, obj: obj, dontFollowLastRef: true).obj
       if o && o.$r == ref && `o.$k == key`
         # test `o.$k == key` not via ===
         # because key is converted to null when JSON.stringified before being sent here via socket.io
