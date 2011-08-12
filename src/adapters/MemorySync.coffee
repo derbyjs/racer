@@ -154,6 +154,8 @@ Memory:: =
 #      if next is undefined
 #        handleNotFound path, obj
   
+  # TODO Re-write this because the ability to use it in so many ways is too error-prone
+  #      Also, this is a ridiculously long function.
   _lookup: (path, addPath, options) ->
     {proto, array} = options
     next = options.obj || @_data
