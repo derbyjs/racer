@@ -18,11 +18,11 @@ $ rally.ready ->
       completed = ''
       checked = ''
     """<li id=#{id} class=#{completed}>
-    <span class=cell><span class=todo>
+    <div class=cell><div class=todo>
       <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
-      <span id=text#{id} data-id=#{id} contenteditable=true>#{text}</span>
-    </span></span>
-    <span class=cell><button class=delete onclick=del(#{id})>Delete</button></span>"""
+      <div id=text#{id} data-id=#{id} contenteditable=true>#{text}</div>
+    </div></div>
+    <div class=cell><button class=delete onclick=del(#{id})>Delete</button></div>"""
   
   # Render the initial list
   todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
@@ -70,9 +70,13 @@ $ rally.ready ->
     setTimeout checkChanged, 10, e
   
   checkShortcuts = (e) ->
-    return unless e.metaKey
-    return document.execCommand('bold') if e.which == 66
-    document.execCommand('italic') if e.which == 73
+    return unless e.metaKey || e.ctrlKey
+    return unless command = `
+      e.which === 66 ? 'bold' :
+      e.which === 73 ? 'italic' : null`
+    document.execCommand command, false, null
+    e.preventDefault() if e.preventDefault
+    return false
   
   content
     .keydown(checkShortcuts)
@@ -80,4 +84,9 @@ $ rally.ready ->
     .keyup(checkChanged)
     .bind('paste', checkChangedDelayed)
     .bind('dragover', checkChangedDelayed)
+
+  # Tell Firefox to use elements for styles instead of CSS
+  # See: https://developer.mozilla.org/en/Rich-Text_Editing_in_Mozilla
+  document.execCommand 'useCSS', false, true
+  document.execCommand 'styleWithCSS', false, false
 
