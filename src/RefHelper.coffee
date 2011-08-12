@@ -202,8 +202,8 @@ RefHelper:: =
 
   # Private helper function for $indexRefs
   _removeFrom$refs: (ref, key, path, ver, options) ->
-    ref += '.' + key if key
-    refEntries = @_adapter._lookup("$refs.#{ref}.$", false, options).obj
+    refWithKey = ref + '.' + key if key
+    refEntries = @_adapter._lookup("$refs.#{refWithKey}.$", false, options).obj
     return unless refEntries
     delete refEntries[path]
     unless hasKeys(refEntries, ignore: specHelper.reserved)
