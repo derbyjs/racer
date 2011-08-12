@@ -62,20 +62,7 @@ RefHelper:: =
     adapter.__remove = adapter.remove
     adapter.remove = (path, start, howMany, ver, options = {}) ->
       options.obj ||= @_data
-      if 'number' == typeof start
-        # index api
-        startIndex = start
-      else
-        arr = @_lookup(path, true, options).obj
-        if refHelper.isArrayRef path, options.obj
-          # id api
-          startIndex = arr.length
-          for mem, i in arr
-            if mem.id == start.id
-              startIndex = i
-              break
-        else
-          startIndex = arr.indexOf start.id
+      startIndex = refHelper._arrRefIndex start, path, options.obj
       out = @__remove path, startIndex, howMany, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
@@ -102,8 +89,9 @@ RefHelper:: =
 
     ['insertAfter', 'insertBefore'].forEach (method) ->
       adapter['__' + method] = adapter[method]
-      adapter[method] = (path, index, value, ver, options = {}) ->
+      adapter[method] = (path, pos, value, ver, options = {}) ->
         options.obj ||= @_data
+        index = refHelper._arrRefIndex pos, path, options.obj
         out = @['__' + method] path, index, value, ver, options
         # Check to see if setting to a reference's key. If so, update references
         refHelper.updateRefsForKey path, ver, options
@@ -117,6 +105,20 @@ RefHelper:: =
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
       return out
+
+  _arrRefIndex: (start, path, obj) ->
+    if 'number' == typeof start
+      # index api
+      return start
+
+    arr = @_adapter._lookup(path, true, obj: obj).obj
+    if @isArrayRef path, obj
+      # id api
+      startIndex = arr.length
+      for mem, i in arr
+        return startIndex = i if mem.id == start.id
+
+    return arr.indexOf start.id
 
 
   ## Pointer Builders ##

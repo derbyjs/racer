@@ -1536,7 +1536,30 @@ module.exports =
     model.set 'todos',
       10: { id: '10', text: 'something' }
       20: { id: '20', text: 'more' }
-      30: { id: '30', text: 'blah' }
     model.set 'myTodoIds', ['10', '20']
     model.remove 'myTodos', id: '20'
     model.get('myTodoIds').should.specEql ['10']
+
+  'insertAfter an array ref member by id should insert the id properly in the ref key array': ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      10: { id: '10', text: 'something' }
+      20: { id: '20', text: 'more' }
+    model.set 'myTodoIds', ['10', '20']
+    model.insertAfter 'myTodos', {id: '10'},
+      id: '30'
+      text: 'blah'
+    model.get('myTodoIds').should.specEql ['10', '30', '20']
+
+  'insertBefore an array ref member by id should insert the id properly in the ref key array': ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      10: { id: '10', text: 'something' }
+      20: { id: '20', text: 'more' }
+    model.set 'myTodoIds', ['10', '20']
+    model.insertBefore 'myTodos', {id: '10'},
+      id: '30'
+      text: 'blah'
+    model.get('myTodoIds').should.specEql ['30', '10', '20']
