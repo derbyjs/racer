@@ -20,8 +20,6 @@ style = fs.readFileSync 'style.css'
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
-userCount = 0
-
 app.get '/', (req, res) ->
   res.redirect '/rally'
 

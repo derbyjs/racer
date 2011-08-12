@@ -59,13 +59,12 @@ $ rally.ready ->
   lastHtml = ''
   onkey = (e) ->
     html = content.html()
-    if html != lastHtml
-      lastHtml = html
-      target = e.target
-      return unless target.contentEditable
-      text = target.innerHTML
-      id = target.getAttribute 'data-id'
-      model.set "_group.todos.#{id}.text", text
+    return if html == lastHtml
+    lastHtml = html
+    target = e.target
+    return unless id = target.getAttribute 'data-id'
+    text = target.innerHTML
+    model.set "_group.todos.#{id}.text", text
   # Paste and dragover events are fired before the HTML is actually updated
   onkeyDelayed = (e) ->
     setTimeout onkey, 10, e
