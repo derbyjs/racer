@@ -1,4 +1,4 @@
-require('../src/debug')('notifyPointers')
+require('../src/util/debug')('notifyPointers')
 Model = require 'Model'
 should = require 'should'
 util = require './util'
