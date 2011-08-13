@@ -37,6 +37,9 @@ $ rally.ready ->
   model.on 'remove', '_group.todoList', ({id}) ->
     $("##{id}").remove()
   
+  model.on 'move', '_group.todoList', ({id}, to) ->
+    console.log id, to
+  
   model.on 'set', '_group.todos.*.text', (id, value) ->
     el = $ "#text#{id}"
     return if el.is ':focus'

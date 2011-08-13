@@ -31,7 +31,6 @@ app.get '/:group', (req, res) ->
     # to reference indices, $keys and $refs
     model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
     model.bundle (bundle) ->
-      # TODO console.log store._adapter._data --- _group key should not be there
       res.send """
       <!DOCTYPE html>
       <title>Todo list</title>
@@ -52,19 +51,11 @@ app.get '/:group', (req, res) ->
 initGroup = (model) ->
   return if model.get '_group'
   model.set '_group.todos',
-    0: {id: 0, completed: false, text: 'Example todo'}
-    1: {id: 1, completed: false, text: 'Another example'}
-    2: {id: 2, completed: true, text: 'This one is done already'}
-  model.set '_group.todoIds', [2, 0, 1]
+    0: {id: 0, completed: true, text: 'This one is done already'}
+    1: {id: 1, completed: false, text: 'Example todo'}
+    2: {id: 2, completed: false, text: 'Another example'}
+  model.set '_group.todoIds', [1, 2, 0]
   model.set '_group.nextId', 3
-#  model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
-
-  # # user is a promise/future
-    # unless userId = req.session.userId
-    #   model.set "users.#{userId = ++userCount}", { id: userId }
-    #   model.set "users.#{userId}.todos", model.ref('todos', "users.#{userId}.todoIds")
-    #   req.session.userId = userId
-    # store.subscribe model, "users.#{userId}.*"
 
 # Clear any existing data, then initialize
 store.flush (err) ->

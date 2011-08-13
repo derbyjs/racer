@@ -57,7 +57,7 @@ Memory:: =
     callback null, afterIndex, value
 
   _insertBefore: MemorySync::insertBefore
-  insertAfter: (path, beforeIndex, value, ver, callback) ->
+  insertBefore: (path, beforeIndex, value, ver, callback) ->
     try
       @_insertBefore path, beforeIndex, value, ver
     catch err
@@ -79,5 +79,20 @@ Memory:: =
     catch err
       return callback err
     callback null, startIndex, removeCount, newMembers...
+  
+  _move: (path, from, to, ver, options = {}) ->
+    value = @_lookup("#{path}.#{from}", false, options).obj
+    if from > to
+      @_insertBefore path, to, value, ver, options
+      from++
+    else
+      @_insertAfter path, to, value, ver, options
+    @_remove path, from, 1, ver, options
+  move: (path, from, to, ver, callback) ->
+    try
+      @_move path, from, to, ver
+    catch err
+      return callback err
+    callback null, from, to
  
   _lookup: MemorySync::_lookup

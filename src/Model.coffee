@@ -141,10 +141,9 @@ Model:: =
 
     # Convert id args to index args if we happen to be
     # using array ref mutator id api
-    unless -1 == ['remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
+    if arrayMethod[method]
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
-      console.log idAsIndex
-      
+    
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()
@@ -275,6 +274,10 @@ Model:: =
     @_addTxn 'insertBefore', path, beforeIndex, value, callback
 
   remove: (path, start, howMany = 1, callback) ->
+    # remove(path, start, callback)
+    if typeof howMany is 'function'
+      callback = howMany
+      howMany = 1
     @_addTxn 'remove', path, start, howMany, callback
 
   splice: (path, startIndex, removeCount, newMembers..., callback) ->
@@ -282,13 +285,16 @@ Model:: =
       newMembers.push callback
       callback = null
     @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
-  
-  move: (path, from, to) ->
+
+  move: (path, from, to, callback) ->
+    @_addTxn 'move', path, from, to, callback 
 
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
 # Interval in milliseconds to check timeouts for queued transactions
 Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
+
+arrayMethod = remove: 1, insertAfter: 1, insertBefore: 1, splice: 1, move: 1
 
 
 ## Model events ##

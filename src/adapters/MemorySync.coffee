@@ -142,6 +142,15 @@ Memory:: =
     throw new Error 'Not an Array' unless specHelper.isArray arr
     ret = arr.shift()
     return if options.returnMeta then out else ret
+  
+  move: (path, from, to, ver, options = {}) ->
+    value = @_lookup("#{path}.#{from}", false, options).obj
+    if from > to
+      @insertBefore path, to, value, ver, options
+      from++
+    else
+      @insertAfter path, to, value, ver, options
+    @remove path, from, 1, ver, options
 
 #  _traverse: (accum, {path, obj, handleNotFound}) ->
 #    props = path.split '.'

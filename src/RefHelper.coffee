@@ -11,7 +11,7 @@ module.exports = RefHelper = (model) ->
   @_setup()
   return
 
-ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1
+ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1, move: 1
 
 # RefHelper contains code that manages an index of refs: the pointer path,
 # ref path, key path, and ref type. It uses this index to
@@ -64,6 +64,15 @@ RefHelper:: =
       options.obj ||= @_data
       startIndex = refHelper.arrRefIndex start, path, options.obj
       out = @__remove path, startIndex, howMany, ver, options
+      # Check to see if setting to a reference's key. If so, update references
+      refHelper.updateRefsForKey path, ver, options
+      return out
+    
+    adapter.__move = adapter.move
+    adapter.move = (path, from, to, ver, options = {}) ->
+      options.obj ||= @_data
+      startIndex = refHelper.arrRefIndex from, path, options.obj
+      out = @__move path, startIndex, to, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
       return out
@@ -377,16 +386,13 @@ RefHelper:: =
   dereferenceTxn: (txn, specModel) ->
     method = transaction.method txn
     args = transaction.args txn
+    console.log txn
     if ARRAY_OPS[method]
       sliceFrom = switch method
         when 'push', 'unshift' then 1
-        when 'pop', 'shift' then 2
-        when 'remove'
-          if args.length == 2 then 2 else 3
-        when 'insertAfter', 'insertBefore' then 2
-        when 'splice' then 3
-        else
-          throw new Error 'Unimplemented for method ' + method
+        when 'pop', 'shift', 'insertAfter', 'insertBefore' then 2
+        when 'remove', 'move', 'splice' then 3
+        else throw new Error 'Unimplemented for method ' + method
 
       path = transaction.path txn
       if { $r, $k } = @isArrayRef path, specModel[0]
