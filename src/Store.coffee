@@ -138,7 +138,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       for val, i in vals
         if i % 2
           continue unless pubSub.subscribedToTxn clientId, txn
-          txn[0] = +val
+          transaction.base txn, +val
           onTxn txn
         else
           txn = JSON.parse val
@@ -204,7 +204,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
         # to the store
         forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
           method = transaction.method txn
-          args = transaction.args txn
+          args = transaction.args(txn).slice 0
           args.push transaction.base txn
           modelAdapter[method] args...
         , done = ->
@@ -257,10 +257,10 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   @get = (path, callback) -> @_adapter.get path, callback
   
   @set = (path, value, ver, callback) ->
-    commit [ver, nextTxnId(), 'set', path, value], callback
+    commit transaction.create(base: ver, id: nextTxnId(), method: 'set', args: [path, value]), callback
 
   @del = (path, ver, callback) ->
-    commit [ver, nextTxnId(), 'del', path], callback
+    commit transaction.create(base: ver, id: nextTxnId(), method: 'del', args: [path]), callback
   
   @incr = (path, byNum = 1) ->
     @retry (atomic) ->
@@ -329,7 +329,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
       # In case of something like @set(path, value, callback)
       throw new Error 'Version must be null or a number'
     stm.commit txn, (err, ver) ->
-      txn[0] = ver
+      transaction.base txn, ver
       callback err, txn if callback
       return if err
       pubSub.publish transaction.path(txn), txn
@@ -340,7 +340,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
   # because we can't count on the version to increase sequentially
   txnApplier = new TxnApplier
     applyTxn: (txn, ver) ->
-      args = transaction.args txn
+      args = transaction.args(txn).slice 0
       method = transaction.method txn
       args.push ver, (err) ->
         # TODO: Better adapter error handling and potentially a second callback

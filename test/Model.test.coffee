@@ -14,16 +14,16 @@ module.exports =
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['0.0']
-    model._txns['0.0'].slice().should.eql [0, '0.0', 'set', 'color', 'green']
+    model._txns['0.0'].slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
     
     model.set 'count', 0
     model._txnQueue.should.eql ['0.0', '0.1']
-    model._txns['0.0'].slice().should.eql [0, '0.0', 'set', 'color', 'green']
-    model._txns['0.1'].slice().should.eql [0, '0.1', 'set', 'count', '0']
+    model._txns['0.0'].slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
+    model._txns['0.1'].slice().should.eql transaction.create base: 0, id: '0.1', method: 'set', args: ['count', '0']
   
   'test client performs set on receipt of message': ->
     [sockets, model] = mockSocketModel()
-    sockets.emit 'txn', [1, 'server0.0', 'set', 'color', 'green'], 1
+    sockets.emit 'txn', transaction.create(base: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
     model.get('color').should.eql 'green'
     model._adapter.ver.should.eql 1
     sockets._disconnect()
@@ -31,7 +31,7 @@ module.exports =
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql [0, '0.0', 'set', 'color', 'green']
+      txn.should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
       txn[0] = ++ver
       sockets.emit 'txn', txn, ver
       model.get('color').should.eql 'green'
@@ -46,7 +46,7 @@ module.exports =
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql [0, '0.0', 'del', 'color']
+      txn.should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
       txn[0] = ++ver
       sockets.emit 'txn', txn, ver
       model._adapter._data.should.eql {}
@@ -62,7 +62,7 @@ module.exports =
   'test client push roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql [0, '0.0', 'push', 'colors', 'red']
+      txn.should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
       txn[0] = ++ver
       sockets.emit 'txn', txn, ver
       model.get('colors').should.eql ['red']
@@ -95,21 +95,21 @@ module.exports =
   
   'transactions received out of order should be applied in order': ->
     [sockets, model] = mockSocketModel()
-    sockets.emit 'txn', [1, '_.0', 'set', 'color', 'green'], 1
+    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'set', args: ['color', 'green']), 1
     model.get('color').should.eql 'green'
     
-    sockets.emit 'txn', [3, '_.0', 'set', 'color', 'red'], 3
+    sockets.emit 'txn', transaction.create(base: 3, id: '_.0', method: 'set', args: ['color', 'red']), 3
     model.get('color').should.eql 'green'
     
-    sockets.emit 'txn', [2, '_.0', 'set', 'number', 7], 2
+    sockets.emit 'txn', transaction.create(base: 2, id: '_.0', method: 'set', args: ['number', 7]), 2
     model.get('color').should.eql 'red'
     model.get('number').should.eql 7
     sockets._disconnect()
   
   'duplicate transaction versions should not be applied': ->
     [sockets, model] = mockSocketModel()
-    sockets.emit 'txn', [1, '_.0', 'push', 'colors', 'green'], 1
-    sockets.emit 'txn', [1, '_.0', 'push', 'colors', 'green'], 2
+    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
+    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
     model.get('colors').should.eql ['green']
     sockets._disconnect()
   
@@ -224,11 +224,11 @@ module.exports =
       delete txn.callback
       txn
     ).should.eql [
-        [0, '0.0', 'del', 'color']
-      , [0, '0.1', 'set', 'color', 'red']
-      , [0, '0.2', 'del', 'color']
-      , [0, '0.3', 'del', 'info.numbers']
-      , [0, '0.4', 'del', 'a.b.c']
+        transaction.create(base: 0, id: '0.0', method: 'del', args: ['color'])
+      , transaction.create(base:0, id: '0.1', method: 'set', args: ['color', 'red'])
+      , transaction.create(base: 0, id: '0.2', method: 'del', args: ['color'])
+      , transaction.create(base: 0, id: '0.3', method: 'del', args: ['info.numbers'])
+      , transaction.create(base: 0, id: '0.4', method: 'del', args: ['a.b.c'])
     ]
 
   'test speculative incr': ->
@@ -288,7 +288,7 @@ module.exports =
     eventCalled = false
     model.on 'set', 'color', (val) ->
       eventCalled = true
-    sockets.emit 'txn', [1, 'clientA.0', 'set', 'color', 'green'], 1
+    sockets.emit 'txn', transaction.create(base: 1, id: 'clientA.0', method: 'set', args: ['color', 'green']), 1
     setTimeout ->
       eventCalled.should.be.false
       sockets._disconnect()
@@ -301,9 +301,9 @@ module.exports =
     model.set 'color', 'green'
     model.force.set 'color', 'red'
     model.force.del 'color'
-    model._txns['0.0'].slice().should.eql [0, '0.0', 'set', 'color', 'green']
-    model._txns['0.1'].slice().should.eql [null, '0.1', 'set', 'color', 'red']
-    model._txns['0.2'].slice().should.eql [null, '0.2', 'del', 'color']
+    model._txns['0.0'].slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
+    model._txns['0.1'].slice().should.eql transaction.create base: null, id: '0.1', method: 'set', args: ['color', 'red']
+    model._txns['0.2'].slice().should.eql transaction.create base: null, id: '0.2', method: 'del', args: ['color']
 
   'a forced model mutation should not result in an adapter ver of null or undefined': ->
     model = new Model '0'

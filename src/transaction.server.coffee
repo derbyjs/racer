@@ -5,23 +5,20 @@ transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
   
   # There is no conflict if the paths don't conflict
-  return false if !@pathConflict(txnA[3], txnB[3])
+  return false unless @pathConflict transaction.path(txnA), transaction.path(txnB)
   
   # There is no conflict if the transactions are from the same model client
   # and the new transaction was from a later client version.
   # However, this is not true for stores, whose IDs start with a '#'
-  if txnA[1].charAt(0) != '#'
-    idA = txnA[1].split '.'
-    idB = txnB[1].split '.'
-    clientIdA = idA[0]
-    clientIdB = idB[0]
+  txnAId = transaction.id txnA
+  if txnAId.charAt(0) != '#'
+    [clientIdA, clientVerA] = transaction.clientIdAndVer txnA
+    [clientIdB, clientVerB] = transaction.clientIdAndVer txnB
     if clientIdA == clientIdB
-      clientVerA = idA[1] - 0
-      clientVerB = idB[1] - 0
       return false if clientVerA > clientVerB
   
   # Ignore transactions with the same ID as an already committed transaction
-  return 'duplicate' if txnA[1] == txnB[1]
+  return 'duplicate' if txnAId == transaction.id txnB
   
   return 'conflict'
 

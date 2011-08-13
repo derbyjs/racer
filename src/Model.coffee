@@ -88,7 +88,7 @@ Model:: =
     socket.on 'txnNum', @_onTxnNum
     socket.on 'txnOk', (txnId, base, num) ->
       if txn = txns[txnId]
-        txn[0] = base
+        transaction.base txn, base
         onTxn txn, num
     socket.on 'txnErr', (err, txnId) ->
       txn = txns[txnId]
@@ -142,13 +142,12 @@ Model:: =
     # Convert id args to index args if we happen to be
     # using array ref mutator id api
     unless -1 == ['remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
-      idAsIndex = refHelper._arrRefIndex args[1], path, @_specModel()[0]
-
+      idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
       
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()
-    txn = [ver, id, method, path, args...]
+    txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
     @_txns[id] = txn
     txn.callback = callback
     @_txnQueue.push id
@@ -172,13 +171,14 @@ Model:: =
   
   _applyTxn: (txn, forceEmit) ->
     method = transaction.method txn
-    args = transaction.args txn
+    txnArgs = transaction.args txn
+    args = txnArgs.slice 0
     args.push transaction.base txn
     @_adapter[method] args...
     @_removeTxn transaction.id txn
     if forceEmit || @_clientId != transaction.clientId txn
       @emit method, args
-    callback null, transaction.args(txn)... if callback = txn.callback
+    callback null, txnArgs... if callback = txn.callback
   
   # TODO Will re-calculation of speculative model every time result
   #      in assignemnts to vars becoming stale?
@@ -203,7 +203,7 @@ Model:: =
       while i < len
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
-        args = transaction.args txn
+        args = transaction.args(txn).slice 0
         args.push adapter.ver, obj: obj, proto: true, returnMeta: true
         meta = adapter[transaction.method txn] args...
         path = meta.path

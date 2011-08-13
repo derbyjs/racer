@@ -5,7 +5,7 @@ pathParser = require 'pathParser.server'
 require 'transaction.server'
 
 # transaction object literal
-txn = [2, '4.0', 'set', 'count', 1]
+txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
 
 module.exports =
   # Properties
@@ -45,19 +45,19 @@ module.exports =
   # Transaction Conflict Detection
   
   'test conflict detection between transactions': ->
-    txn0 = [0, '1.0', 'set', 'count', 1]
-    txn1 = [0, '1.0', 'set', 'count', 1]
-    txn2 = [0, '0.0', 'set', 'count', 0]
-    txn3 = [0, '0.0', 'del', 'count', 1]
-    txn4 = [0, '0.0', 'set', 'count', 1, 0]
-    txn5 = [0, '0.1', 'set', 'count', 1]
-    txn6 = [0, '0.1', 'set', 'name', 'drago']
+    txn0 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
+    txn1 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
+    txn2 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 0]
+    txn3 = transaction.create base: 0, id: '0.0', method: 'del', args: ['count', 1]
+    txn4 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 1, 0]
+    txn5 = transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 1]
+    txn6 = transaction.create base: 0, id: '0.1', method: 'set', args: ['name', 'drago']
     
-    txn2s = [0, '#0.0', 'set', 'count', 1]
-    txn5s = [0, '#0.1', 'set', 'count', 1]
+    txn2s = transaction.create base: 0, id: '#0.0', method: 'set', args: ['count', 1]
+    txn5s = transaction.create base: 0, id: '#0.1', method: 'set', args: ['count', 1]
     
-    txn7 = [0, '1.0', 'set', 'obj.nested', 0]
-    txn8 = [0, '2.0', 'set', 'obj.nested.a', 0]
+    txn7 = transaction.create base: 0, id: '1.0', method: 'set', args: ['obj.nested', 0]
+    txn8 = transaction.create base: 0, id: '2.0', method: 'set', args: ['obj.nested.a', 0]
     
     transaction.conflict(txn1, txn2).should.eql 'conflict' # Different arguments
     transaction.conflict(txn1, txn3).should.eql 'conflict' # Different method

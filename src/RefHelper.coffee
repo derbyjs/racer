@@ -62,7 +62,7 @@ RefHelper:: =
     adapter.__remove = adapter.remove
     adapter.remove = (path, start, howMany, ver, options = {}) ->
       options.obj ||= @_data
-      startIndex = refHelper._arrRefIndex start, path, options.obj
+      startIndex = refHelper.arrRefIndex start, path, options.obj
       out = @__remove path, startIndex, howMany, ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
@@ -91,7 +91,7 @@ RefHelper:: =
       adapter['__' + method] = adapter[method]
       adapter[method] = (path, pos, value, ver, options = {}) ->
         options.obj ||= @_data
-        index = refHelper._arrRefIndex pos, path, options.obj
+        index = refHelper.arrRefIndex pos, path, options.obj
         out = @['__' + method] path, index, value, ver, options
         # Check to see if setting to a reference's key. If so, update references
         refHelper.updateRefsForKey path, ver, options
@@ -101,13 +101,16 @@ RefHelper:: =
     adapter.splice = ->
       [path, start, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
       options.obj ||= @_data
-      startIndex = refHelper._arrRefIndex start, path, options.obj
+      startIndex = refHelper.arrRefIndex start, path, options.obj
       out = @__splice path, startIndex, removeCount, newMembers..., ver, options
       # Check to see if setting to a reference's key. If so, update references
       refHelper.updateRefsForKey path, ver, options
       return out
 
-  _arrRefIndex: (start, path, obj) ->
+  # This function returns the index of an array ref member, given a member
+  # id or index (as start) of an array ref (represented by path) in the
+  # context of the object, obj.
+  arrRefIndex: (start, path, obj) ->
     if 'number' == typeof start
       # index api
       return start
@@ -370,8 +373,8 @@ RefHelper:: =
   # adding it to the model's txnQueue
   dereferenceTxn: (txn, specModel) ->
     method = transaction.method txn
+    args = transaction.args txn
     if ARRAY_OPS[method]
-      args = transaction.args txn
       sliceFrom = switch method
         when 'push', 'unshift' then 1
         when 'pop', 'shift' then 2
@@ -387,24 +390,25 @@ RefHelper:: =
         # TODO Instead of invalidating, roll back the spec model cache by 1 txn
         @_model._cache.invalidateSpecModelCache()
         # TODO Add test to make sure that we assign the de-referenced $k to path
-        txn[3] = path = $k
-        oldPushArgs = transaction.args(txn).slice sliceFrom
+        args[0] = path = $k
+        oldPushArgs = args.slice sliceFrom
         newPushArgs = oldPushArgs.map (refObjToAdd) ->
           if refObjToAdd.$r is undefined
             throw new Error 'Trying to push a non-ref onto an array ref'
           if $r != refObjToAdd.$r
             throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
           return refObjToAdd.$k
-        txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
+        args.splice sliceFrom, oldPushArgs.length, newPushArgs...
+        #txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
       else
         # Update the transaction's path with a dereferenced path if not undefined.
-        txn[3] = path if path = specModel[1]
+        args[0] = path if path = specModel[1]
       return txn
 
     # Update the transaction's path with a dereferenced path.
     # It works via _specModel, which automatically dereferences 
     # every transaction path including the just added path.
-    txn[3] = path if path = specModel[1]
+    args[0] = path if path = specModel[1]
     return txn
 
   # isArrayRef

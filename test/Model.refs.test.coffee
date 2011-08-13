@@ -110,8 +110,8 @@ module.exports =
       sockets._disconnect()
       done()
     expected = [
-      [0, '0.0', 'set', 'color', model.ref 'colors.green']
-      [0, '0.1', 'set', 'colors.green.hex', '#0f0']
+      transaction.create(base: 0, id: '0.0', method: 'set', args: ['color', model.ref 'colors.green'])
+      transaction.create(base: 0, id: '0.1', method: 'set', args: ['colors.green.hex', '#0f0'])
     ]
     model.set 'color', model.ref 'colors.green'
     model.set 'color.hex', '#0f0'
