@@ -143,6 +143,7 @@ Model:: =
     # using array ref mutator id api
     unless -1 == ['remove', 'insertAfter', 'insertBefore', 'splice'].indexOf method
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
+      console.log idAsIndex
       
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
@@ -160,11 +161,13 @@ Model:: =
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn, true
 
-    if idAsIndex isnt undefined
-      txn[4] = idAsIndex
-
     # Emit an event on creation of the transaction
     @emit method, txnArgs
+
+    if idAsIndex isnt undefined
+      if txnArgs[1] != idAsIndex
+        transaction.meta txn, txnArgs[1] # txnArgs[1] has form {id: id}
+        txnArgs[1] = idAsIndex
 
     # Send it over Socket.IO or to the store on the server
     @_commit txn
@@ -177,6 +180,9 @@ Model:: =
     @_adapter[method] args...
     @_removeTxn transaction.id txn
     if forceEmit || @_clientId != transaction.clientId txn
+      if meta = transaction.meta txn
+        # For converting array ref index api back to id api
+        args[1] = meta
       @emit method, args
     callback null, txnArgs... if callback = txn.callback
   

@@ -120,11 +120,14 @@ RefHelper:: =
       # id api
       startIndex = arr.length
       for mem, i in arr
-        return startIndex = i if mem.id == start.id || mem.id == parseInt start.id, 10
+        # TODO parseInt will cause bugs later on when we use string uuids for id
+        return startIndex = i if mem.id == start.id || parseInt(mem.id, 10) == parseInt(start.id, 10)
 
     startIndex = arr.indexOf start.id
     return startIndex if startIndex != -1
-    return arr.indexOf parseInt(start.id, 10)
+    startIndex = arr.indexOf parseInt(start.id, 10)
+    return startIndex if startIndex != -1
+    return arr.indexOf start.id.toString()
 
 
   ## Pointer Builders ##
