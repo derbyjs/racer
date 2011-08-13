@@ -144,7 +144,7 @@ Memory:: =
     return if options.returnMeta then out else ret
   
   move: (path, from, to, ver, options = {}) ->
-    value = @_lookup("#{path}.#{from}", false, options).obj
+    value = @lookup("#{path}.#{from}", false, options).obj
     if from > to
       @insertBefore path, to, value, ver, options
       from++

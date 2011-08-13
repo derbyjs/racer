@@ -81,7 +81,7 @@ Memory:: =
     callback null, startIndex, removeCount, newMembers...
   
   _move: (path, from, to, ver, options = {}) ->
-    value = @_lookup("#{path}.#{from}", false, options).obj
+    value = @lookup("#{path}.#{from}", false, options).obj
     if from > to
       @_insertBefore path, to, value, ver, options
       from++
