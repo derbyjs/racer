@@ -45,6 +45,7 @@ h1 {
 }
 #add {
   max-width: 480px;
+  position: relative;
 }
 #add-input {
   margin-right: 56px;
@@ -56,7 +57,9 @@ h1 {
   width: 52px;
 }
 #add-button {
-  float: right;
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 #new-todo {
   width: 100%;

@@ -39,7 +39,7 @@ app.get '/:group', (req, res) ->
       <body>
       <form id=head action=javascript:addTodo()>
         <h1>Todos</h1>
-        <div id=add><input id=add-button type=submit value=Add><div id=add-input><input id=new-todo></div></div>
+        <div id=add><div id=add-input><input id=new-todo></div><input id=add-button type=submit value=Add></div>
       </form>
       <div id=dragbox></div>
       <div id=content><ul id=todos></ul></div>
