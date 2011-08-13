@@ -386,7 +386,6 @@ RefHelper:: =
   dereferenceTxn: (txn, specModel) ->
     method = transaction.method txn
     args = transaction.args txn
-    console.log txn
     if ARRAY_OPS[method]
       sliceFrom = switch method
         when 'push', 'unshift' then 1
