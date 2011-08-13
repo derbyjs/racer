@@ -276,6 +276,8 @@ Model:: =
       newMembers.push callback
       callback = null
     @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
+  
+  move: (path, from, to) ->
 
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000

@@ -55,9 +55,13 @@ $ rally.ready ->
   del = (id) ->
     model.remove "_group.todoList", id: id
   
-  todoList.sortable handle: '.handle', axis: 'y', containment: '#dragbox'
-  # $('[contenteditable]').draggable = false
-  # todoList.disableSelection()
+  todoList.sortable
+    handle: '.handle'
+    axis: 'y'
+    containment: '#dragbox'
+    update: (e, ui) ->
+      item = ui.item[0]
+      model.move '_group.todoList', {id: item.id}, $('li').index(item)
   
   # Watch for changes to the contenteditable fields
   lastHtml = ''
