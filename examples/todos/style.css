@@ -1,6 +1,12 @@
-html,body,p,h1,ul,li,input,button {
+/* CSS Reset */
+
+html,body,p,h1,ul,li,table,tr,th,td {
   margin: 0;
   padding: 0;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
 }
 body {
   color: #000;
@@ -12,6 +18,9 @@ body,h1 {
 a {
   color: #01c;
 }
+
+
+/* Page styles */
 
 h1 {
   font: 26px/24px "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -31,34 +40,39 @@ h1 {
   -webkit-box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
   -moz-box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
   box-shadow: inset 0 1px #f7f7f7, 0 1px #888, 0 2px #e7e7e7;
-  padding: 12px;
+  padding: 12px 16px;
   white-space: nowrap;
 }
 
 #new-todo {
-  width: 246px;
+  width: 250px;
   margin-right: 4px;
 }
 #content {
   max-width: 500px;
 }
 #todos {
-  margin: 12px;
-  display: table;
+  padding: 13px 4px 12px 0;
   list-style: none;
 }
-#todos > li {
-  display: table-row;
+.handle:hover {
+  opacity: 1;
 }
 .handle {
-  width: 12px;
-  height: 18px;
-  background: #ccc;
-  margin: 2px 4px 0 0;
+  z-index: -2;
+  background: #ddd;
+  background: url(data:image/gif;base64,R0lGODdhAwADAPEAAN7e3oiIiP////f39yH/C1hNUCBEYXRhWE1QAT8ALAAAAAADAAMAQAIE1AYXVwA7);
+  opacity: .4;
+  background-clip: content-box;
+  background-origin: content-box;
+  vertical-align: top;
+  padding: 3px 5px 0 7px;
 }
-.cell {
-  display: table-cell;
-  vertical-align: middle;
+.handle:after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 15px;
 }
 .todo {
   width: 100%;
@@ -115,7 +129,6 @@ h1 {
 }
 input,
 button,
-.button,
 select {
   -webkit-appearance: none;
   background: transparent;
@@ -126,7 +139,6 @@ select {
 }
 input,
 button,
-.button,
 [type="checkbox"]+i,
 [type="radio"]+i,
 select+i,
@@ -148,7 +160,6 @@ input,
   box-shadow: inset 0 1px #f2f2f2, 0 1px rgba(255,255,255,0.3), inset 0 800px 1px -400px #fff;
 }
 button,
-.button,
 [type="submit"],
 [type="checkbox"]+i,
 [type="radio"]+i,
@@ -167,7 +178,6 @@ select+i {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #e6e6e6, inset 0 200px 1px -100px #fff;
   padding: 1px 12px 2px;
 }
-.button:active,
 button:active,
 [type="submit"]:active,
 [type="checkbox"]:active+i,
@@ -181,7 +191,6 @@ input:focus,
 [contenteditable]:focus:before {
   border-color: #2976d7 #5492de #5492de;
 }
-.button:focus,
 button:focus,
 [type="submit"]:focus,
 [type="checkbox"]:focus+i,
@@ -192,7 +201,6 @@ select:focus+i {
   -moz-box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #b4d5fe, inset 0 200px 1px -100px #e5f4fb;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px rgba(0,0,0,0.1), inset 0 -1.7em 1em -1em #b4d5fe, inset 0 200px 1px -100px #e5f4fb;
 }
-.button:focus:active,
 button:focus:active,
 [type="submit"]:focus:active,
 [type="checkbox"]:focus:active+i,
