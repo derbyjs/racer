@@ -54,7 +54,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.force = Object.create self, _force: value: true
 
   refHelper = self._refHelper
-  ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice'].forEach (method) ->
+  ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move'].forEach (method) ->
     self.on method, ([path, args...]) ->
       # Emit events on any references that point to the path or any of its
       # ancestor paths
@@ -143,6 +143,7 @@ Model:: =
     # using array ref mutator id api
     if arrayMethod[method]
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
+    
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()
@@ -159,13 +160,15 @@ Model:: =
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn, true
 
+    if idAsIndex isnt undefined
+      meta = txnArgs[1] # txnArgs[1] has form {id: id}
+      meta.index = idAsIndex
+      transaction.meta txn, meta
+
     # Emit an event on creation of the transaction
     @emit method, txnArgs
 
-    if idAsIndex isnt undefined
-      if txnArgs[1] != idAsIndex
-        transaction.meta txn, txnArgs[1] # txnArgs[1] has form {id: id}
-        txnArgs[1] = idAsIndex
+    txnArgs[1] = idAsIndex if idAsIndex isnt undefined
 
     # Send it over Socket.IO or to the store on the server
     @_commit txn
@@ -309,9 +312,7 @@ Model::_eventListener = (method, pattern, callback) ->
   # on(method, pattern, callback)
   re = pathParser.regExp pattern
   return ([path, args...]) ->
-    emitPathEvent = (path, args) ->
-      callback re.exec(path).slice(1).concat(args)... if re.test path
-    emitPathEvent path, args
+    callback re.exec(path).slice(1).concat(args)... if re.test path
 
 # EventEmitter::addListener and once return this. The Model equivalents return
 # the listener instead, since it is made internally for method subscriptions

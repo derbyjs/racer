@@ -27,6 +27,9 @@ $ rally.ready ->
   # Render the initial list
   todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
   
+  
+  ## Update the DOM when the model changes ##
+  
   model.on 'push', '_group.todoList', (value) ->
     todoList.append todoHtml value
   
@@ -37,13 +40,22 @@ $ rally.ready ->
   model.on 'remove', '_group.todoList', ({id}) ->
     $("##{id}").remove()
   
-  model.on 'move', '_group.todoList', ({id}, to) ->
-    console.log id, to
+  model.on 'move', '_group.todoList', ({id, index}, to) ->
+    target = todoList.children().get to
+    # Don't move if the item is already in the right position
+    return if id is target.id
+    if index > to
+      $("##{id}").insertBefore target
+    else
+      $("##{id}").insertAfter target
   
   model.on 'set', '_group.todos.*.text', (id, value) ->
     el = $ "#text#{id}"
     return if el.is ':focus'
     el.html value
+
+  
+  ## Update the model in response to DOM events ##
   
   addTodo = ->
     model.push '_group.todoList',
@@ -64,7 +76,8 @@ $ rally.ready ->
     containment: '#dragbox'
     update: (e, ui) ->
       item = ui.item[0]
-      model.move '_group.todoList', {id: item.id}, $('li').index(item)
+      to = todoList.children().index(item)
+      model.move '_group.todoList', {id: item.id}, to
   
   # Watch for changes to the contenteditable fields
   lastHtml = ''
