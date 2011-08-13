@@ -66,6 +66,8 @@ $ rally.ready ->
   
   check = (checkbox, id) ->
     model.set "_group.todos.#{id}.completed", checkbox.checked
+    # Move the item to the bottom if it was checked off
+    model.move '_group.todoList', {id}, -1 if checkbox.checked
   
   del = (id) ->
     model.remove "_group.todoList", id: id

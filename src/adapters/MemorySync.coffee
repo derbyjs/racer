@@ -145,6 +145,7 @@ Memory:: =
   
   move: (path, from, to, ver, options = {}) ->
     value = @lookup("#{path}.#{from}", false, options).obj
+    to += @lookup(path, false, options).obj.length if to < 0
     if from > to
       @insertBefore path, to, value, ver, options
       from++
