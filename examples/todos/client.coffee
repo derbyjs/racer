@@ -17,12 +17,12 @@ $ rally.ready ->
     else
       completed = ''
       checked = ''
-    """<li id=#{id} class=#{completed}><table><tr>
-    <td class=handle><td><div class=todo>
+    """<li id=#{id} class=#{completed}><table width=100%><tr>
+    <td class=handle width=0><td width=100%><div class=todo>
       <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
       <div id=text#{id} data-id=#{id} contenteditable=true>#{text}</div>
     </div>
-    <td><button class=delete onclick=del(#{id})>Delete</button></table>"""
+    <td width=0><button class=delete onclick=del(#{id})>Delete</button></table>"""
   
   # Render the initial list
   todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
@@ -55,7 +55,7 @@ $ rally.ready ->
   del = (id) ->
     model.remove "_group.todoList", id: id
   
-  todoList.sortable handle: '.handle', axis: 'y', containment: '#content'
+  todoList.sortable handle: '.handle', axis: 'y', containment: '#dragbox'
   # $('[contenteditable]').draggable = false
   # todoList.disableSelection()
   
