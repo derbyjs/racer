@@ -143,7 +143,6 @@ Model:: =
     # using array ref mutator id api
     if arrayMethod[method]
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
-    
     # Create a new transaction and add it to a local queue
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()

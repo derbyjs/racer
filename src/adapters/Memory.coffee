@@ -95,4 +95,4 @@ Memory:: =
       return callback err
     callback null, from, to
  
-  _lookup: MemorySync::_lookup
+  lookup: MemorySync::lookup
