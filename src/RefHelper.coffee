@@ -157,14 +157,14 @@ RefHelper:: =
   
   # If a key is present, merges
   #     TODO key is redundant here
-  #     { <path>: [<ref>, <key>] } # TODO Add a special 'a' flag here to denote array ref?
+  #     { <path>: [<ref>, <key>, <type>] }
   # into
   #     "$keys":
   #       "#{key}":
   #         $:
   #
   # and merges
-  #     { <path>: [<ref>, <key>] } # TODO Add a special 'a' flag here to denote array ref?
+  #     { <path>: [<ref>, <key>, <type>] }
   # into
   #     $refs:
   #       <ref>.<lookup(key)>: 
@@ -191,6 +191,8 @@ RefHelper:: =
   #                 It's what we are pointing to
   # @param {String} key is a path that points to a pathB or array of paths
   #                 as another lookup chain on the dereferenced `ref`
+  # @param {String} type can be undefined or 'array'
+  # @param {Number} ver
   # @param {Object} options
   $indexRefs: (path, ref, key, type, ver, options) ->
     adapter = @_adapter
