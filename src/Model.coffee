@@ -161,14 +161,14 @@ Model:: =
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn, !txn.emitted && true
 
-    # Emit an event on creation of the transaction
-    @emit method, txnArgs
-    txn.emitted = true
-
     if idAsIndex isnt undefined
       meta = txnArgs[1] # txnArgs[1] has form {id: id}
       meta.index = idAsIndex
       transaction.meta txn, meta
+
+    # Emit an event on creation of the transaction
+    @emit method, txnArgs
+    txn.emitted = true
 
     txnArgs[1] = idAsIndex if idAsIndex isnt undefined
 

@@ -43,7 +43,7 @@ $ rally.ready ->
   model.on 'move', '_group.todoList', ({id, index}, to) ->
     target = todoList.children().get to
     # Don't move if the item is already in the right position
-    return if id is target.id
+    return if id.toString() is target.id
     if index > to
       $("##{id}").insertBefore target
     else
