@@ -32,7 +32,7 @@ module.exports =
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-      txn[0] = ++ver
+      transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
@@ -47,7 +47,7 @@ module.exports =
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
-      txn[0] = ++ver
+      transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model._adapter._data.should.eql {}
       model._txnQueue.should.eql []
@@ -63,7 +63,7 @@ module.exports =
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
-      txn[0] = ++ver
+      transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model.get('colors').should.eql ['red']
       model._txnQueue.should.eql []
@@ -284,7 +284,7 @@ module.exports =
   'model events should get emitted properly': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn[0] = ++ver
+      transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
     count = 0
     model.on 'set', '*', (path, value) ->
@@ -339,7 +339,7 @@ module.exports =
   'model mutator methods should callback on completion': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn[0] = ++ver
+      transaction.base txn, ++ver
       sockets.emit 'txn', txn
       sockets._disconnect()
     model.set 'color', 'green', (err, path, value) ->
