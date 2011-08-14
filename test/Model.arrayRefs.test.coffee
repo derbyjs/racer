@@ -259,15 +259,17 @@ module.exports =
     model = new Model
     model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
     model.push 'mine', id: 1, name: 'banana'
-    model._txnQueue.map((id) ->
-      txn = model._txns[id]
-      delete txn.callback
-      txn
-    ).should.eql [
+    expected = [
         transaction.create(base: 0, id: '.0', method: 'set', args: ['mine', { '$r': 'dogs', '$k': 'myDogIds', '$t': 'array' } ])
       , transaction.create(base: 0, id: '.1', method: 'set', args: ['dogs.1', { id: 1, name: 'banana' } ])
       , transaction.create(base: 0, id: '.2', method: 'push', args: ['myDogIds', '1']),
     ]
+    expected.forEach (txn) -> txn.emitted = true
+    model._txnQueue.map((id) ->
+      txn = model._txns[id]
+      delete txn.callback
+      txn
+    ).should.eql expected
 
   'popping an array reference should update the key array': ->
     model = new Model
@@ -878,3 +880,19 @@ module.exports =
       id: '30'
       text: 'blah'
     model.get('myTodoIds').should.specEql ['30', '20']
+
+  'move of an array ref member by id should do the move relative to the index of the id in the ref key array': ->
+    model = new Model
+    model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
+    model.set 'todos',
+      10: { id: '10', text: 'something' }
+      20: { id: '20', text: 'more' }
+      30: { id: '30', text: 'doodle' }
+    model.set 'myTodoIds', ['10', '20', '30']
+    model.move 'myTodos', {id: '10'}, 2
+    model.get('myTodoIds').should.specEql ['20', '30', '10']
+    model.get('myTodos').should.specEql [
+        { id: '20', text: 'more' }
+      , { id: '30', text: 'doodle' }
+      , { id: '10', text: 'something' }
+    ]

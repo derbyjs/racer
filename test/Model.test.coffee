@@ -237,17 +237,19 @@ module.exports =
     
     # Make sure deleting something that doesn't exist isn't a problem
     model.del 'a.b.c'
-    model._txnQueue.map((id) ->
-      txn = model._txns[id]
-      delete txn.callback
-      txn
-    ).should.eql [
+    expected = [
         transaction.create(base: 0, id: '0.0', method: 'del', args: ['color'])
       , transaction.create(base:0, id: '0.1', method: 'set', args: ['color', 'red'])
       , transaction.create(base: 0, id: '0.2', method: 'del', args: ['color'])
       , transaction.create(base: 0, id: '0.3', method: 'del', args: ['info.numbers'])
       , transaction.create(base: 0, id: '0.4', method: 'del', args: ['a.b.c'])
     ]
+    expected.forEach (txn) -> txn.emitted = true
+    model._txnQueue.map((id) ->
+      txn = model._txns[id]
+      delete txn.callback
+      txn
+    ).should.eql expected
 
   'test speculative incr': ->
     model = new Model
