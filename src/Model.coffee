@@ -34,9 +34,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
-    # Copy the callback onto this transaction if it matches one in the queue
+    # Copy meta properties onto this transaction if it matches one in the queue
     if queuedTxn = txns[transaction.id txn]
       txn.callback = queuedTxn.callback
+      txn.emitted = queuedTxn.emitted
     txnApplier.add txn, num
   
   self._onTxnNum = (num) ->
@@ -167,23 +168,23 @@ Model:: =
 
     # Emit an event on creation of the transaction
     @emit method, txnArgs
+    txn.emitted = true
 
     txnArgs[1] = idAsIndex if idAsIndex isnt undefined
 
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   
-  _applyTxn: (txn, forceEmit) ->
+  _applyTxn: (txn) ->
     method = transaction.method txn
     txnArgs = transaction.args txn
     args = txnArgs.slice 0
     args.push transaction.base txn
     @_adapter[method] args...
     @_removeTxn transaction.id txn
-    if forceEmit || @_clientId != transaction.clientId txn
-      if meta = transaction.meta txn
-        # For converting array ref index api back to id api
-        args[1] = meta
+    unless txn.emitted
+      # For converting array ref index api back to id api
+      args[1] = meta if meta = transaction.meta txn
       @emit method, args
     callback null, txnArgs... if callback = txn.callback
   
