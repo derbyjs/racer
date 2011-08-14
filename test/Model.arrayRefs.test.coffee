@@ -102,7 +102,7 @@ module.exports =
           $: _group: ['groups.rally', undefined]
       _group:
         todos:
-          1: { $: '_group.todoList': ['_group.todos', '_group.todoIds', 'array'] }
+          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
 
   'setting a key value for an <arr-ref-pointer> where <arr-ref-pointer> = <ref-pointer>.<suffix>, should update the $refs index': ->
     model = new Model
@@ -115,7 +115,7 @@ module.exports =
           $: _group: ['groups.rally', undefined]
       _group:
         todos:
-          1: { $: '_group.todoList': ['_group.todos', '_group.todoIds', 'array'] }
+          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
   
   'setting a property on an array reference member should update the referenced member': ->
     model = new Model

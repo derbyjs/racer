@@ -149,11 +149,11 @@ Model:: =
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()
     txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
+    txn = refHelper.dereferenceTxn txn, @_specModel()[0]
     @_txns[id] = txn
     txn.callback = callback
     @_txnQueue.push id
 
-    txn = refHelper.dereferenceTxn txn, @_specModel()
     txnArgs = transaction.args txn
     path = txnArgs[0]
     # Apply a private transaction immediately and don't send it to the store
@@ -161,14 +161,14 @@ Model:: =
       @_cache.invalidateSpecModelCache()
       return @_applyTxn txn, true
 
+    # Emit an event on creation of the transaction
+    @emit method, txnArgs
+    txn.emitted = true
+
     if idAsIndex isnt undefined
       meta = txnArgs[1] # txnArgs[1] has form {id: id}
       meta.index = idAsIndex
       transaction.meta txn, meta
-
-    # Emit an event on creation of the transaction
-    @emit method, txnArgs
-    txn.emitted = true
 
     txnArgs[1] = idAsIndex if idAsIndex isnt undefined
 

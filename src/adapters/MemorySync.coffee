@@ -153,22 +153,10 @@ Memory:: =
       @insertAfter path, to, value, ver, options
     @remove path, from, 1, ver, options
 
-#  _traverse: (accum, {path, obj, handleNotFound}) ->
-#    props = path.split '.'
-#    len = props.length
-#    i = 0
-#    next = obj
-#
-#    while i < len
-#      prop = props[i++]
-#      parent = next
-#      next = parent[prop]
-#      if next is undefined
-#        handleNotFound path, obj
-  
   # TODO Re-write this because the ability to use it in so many ways is too error-prone
   #      Also, this is a ridiculously long function.
   #      returnMeta option is really only used for path retrieval
+  # TODO Replace with signature lookup(path, addPath, obj, options)
   lookup: (path, addPath, options) ->
     {proto, array} = options
     next = options.obj || @_data
@@ -178,10 +166,6 @@ Memory:: =
     i = 0
     len = props.length
 
-    # Base case len == 0
-    if proto && !specHelper.isSpeculative next
-      next = specHelper.create next
-
     while i < len
       parent = next
       prop = props[i++]
@@ -190,28 +174,23 @@ Memory:: =
       if proto && !specHelper.isSpeculative parent
         parent = specHelper.create parent
       
-      # Traverse down the next segment in the path
       pathSegment = prop.dereffedProp || prop
       prop = if prop.arrIndex isnt undefined then prop.arrIndex else prop
 
+      # Store the absolute path we are about to traverse
+      path = if path then path + '.' + pathSegment else pathSegment
+
+      # Traverse down the next segment in the path
       next = parent[prop]
       if next is undefined
         unless addPath
           # Return undefined if the object can't be found
-          if options.denormalizePath
-            return {path: (if path then [path] else []).concat(props.slice(i-1)).join('.')}
-          return {obj: next}
+          return {obj: next, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
         if array && i == len
-          if proto
-            next = specHelper.create []
-          else
-            next = []
+          next = if proto then specHelper.create [] else []
         else
-          if proto
-            next = specHelper.create {}
-          else
-            next = {}
+          next = if proto then specHelper.create {} else {}
         parent[prop] = next
       else if proto && typeof next == 'object' && !specHelper.isSpeculative(next)
         # TODO Can we remove this if?
@@ -225,9 +204,6 @@ Memory:: =
         else
           next = specHelper.create next
         parent[prop] = next
-      
-      # Store the absolute path traversed so far
-      path = if path then path + '.' + pathSegment else pathSegment
       
       # Check for model references
       if ref = next.$r
@@ -252,9 +228,7 @@ Memory:: =
         path = ref if i < len
         
         if next is undefined && !addPath && i < len
-          if options.denormalizePath
-            return {path: (if path then [path] else []).concat(props.slice(i)).join('.')}
           # Return undefined if the reference points to nothing and getting
-          return {obj: next}
+          return {obj: next, path, remainingProps: props.slice i}
     
     return {path, parent, prop, obj: next}

@@ -62,6 +62,7 @@ RefHelper:: =
     adapter.__remove = adapter.remove
     adapter.remove = (path, start, howMany, ver, options = {}) ->
       options.obj ||= @_data
+      #unless refHelper.isArrayRef path, options.obj
       startIndex = refHelper.arrRefIndex start, path, options.obj
       out = @__remove path, startIndex, howMany, ver, options
       # Check to see if setting to a reference's key. If so, update references
@@ -71,6 +72,7 @@ RefHelper:: =
     adapter.__move = adapter.move
     adapter.move = (path, from, to, ver, options = {}) ->
       options.obj ||= @_data
+      #unless refHelper.isArrayRef path, options.obj
       startIndex = refHelper.arrRefIndex from, path, options.obj
       out = @__move path, startIndex, to, ver, options
       # Check to see if setting to a reference's key. If so, update references
@@ -82,6 +84,7 @@ RefHelper:: =
       adapter[method] = ->
         [path, values, ver, options] = argsNormalizer.adapter[method](arguments)
         options.obj ||= @_data
+        #unless refHelper.isArrayRef path, options.obj
         out = @['__' + method] path, values..., ver, options
         # Check to see if setting to a reference's key. If so, update references
         refHelper.updateRefsForKey path, ver, options
@@ -91,6 +94,7 @@ RefHelper:: =
       adapter['__' + method] = adapter[method]
       adapter[method] = (path, ver, options = {}) ->
         options.obj ||= @_data
+        #unless refHelper.isArrayRef path, options.obj
         out = @['__' + method] path, ver, options
         # Check to see if setting to a reference's key. If so, update references
         refHelper.updateRefsForKey path, ver, options
@@ -100,6 +104,7 @@ RefHelper:: =
       adapter['__' + method] = adapter[method]
       adapter[method] = (path, pos, value, ver, options = {}) ->
         options.obj ||= @_data
+        #unless refHelper.isArrayRef path, options.obj
         index = refHelper.arrRefIndex pos, path, options.obj
         out = @['__' + method] path, index, value, ver, options
         # Check to see if setting to a reference's key. If so, update references
@@ -110,6 +115,7 @@ RefHelper:: =
     adapter.splice = ->
       [path, start, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
       options.obj ||= @_data
+      #unless refHelper.isArrayRef path, options.obj
       startIndex = refHelper.arrRefIndex start, path, options.obj
       out = @__splice path, startIndex, removeCount, newMembers..., ver, options
       # Check to see if setting to a reference's key. If so, update references
@@ -383,9 +389,10 @@ RefHelper:: =
   
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue
-  dereferenceTxn: (txn, specModel) ->
+  dereferenceTxn: (txn, obj) ->
     method = transaction.method txn
     args = transaction.args txn
+    path = transaction.path txn
     if ARRAY_OPS[method]
       sliceFrom = switch method
         when 'push', 'unshift' then 1
@@ -393,8 +400,7 @@ RefHelper:: =
         when 'remove', 'move', 'splice' then 3
         else throw new Error 'Unimplemented for method ' + method
 
-      path = transaction.path txn
-      if { $r, $k } = @isArrayRef path, specModel[0]
+      if { $r, $k } = @isArrayRef path, obj
         # TODO Instead of invalidating, roll back the spec model cache by 1 txn
         @_model._cache.invalidateSpecModelCache()
         # TODO Add test to make sure that we assign the de-referenced $k to path
@@ -407,16 +413,21 @@ RefHelper:: =
             throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
           return refObjToAdd.$k
         args.splice sliceFrom, oldPushArgs.length, newPushArgs...
-        #txn.splice 3 + sliceFrom, oldPushArgs.length, newPushArgs...
       else
         # Update the transaction's path with a dereferenced path if not undefined.
-        args[0] = path if path = specModel[1]
+        {obj, path, remainingProps} = @_adapter.lookup path, false, obj: obj
+        if obj is undefined && remainingProps?.length
+          args[0] = [path].concat(remainingProps).join('.')
+        else
+          args[0] = path
       return txn
 
     # Update the transaction's path with a dereferenced path.
-    # It works via _specModel, which automatically dereferences 
-    # every transaction path including the just added path.
-    args[0] = path if path = specModel[1]
+    {obj, path, remainingProps} = @_adapter.lookup path, false, obj: obj
+    if obj is undefined && remainingProps?.length
+      args[0] = [path].concat(remainingProps).join('.')
+    else
+      args[0] = path
     return txn
 
   # isArrayRef
@@ -447,5 +458,6 @@ RefHelper:: =
     return meta.path
 
   denormalizePath: (path, data) ->
-    out = @_adapter.lookup path, false, obj: data, denormalizePath: true
-    out.path
+    {path, obj, remainingProps} = @_adapter.lookup path, false, obj: data
+    return path if obj || ! (remainingProps?.length)
+    return [path].concat(remainingProps).join('.')
