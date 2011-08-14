@@ -113,6 +113,24 @@ module.exports =
     model.get('colors').should.eql ['green']
     sockets._disconnect()
   
+  'transactions should be requested if pending longer than timeout': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '0', 'txnsSince', (txnsSince) ->
+      txnsSince.should.eql 3
+      sockets._disconnect()
+      done()
+    sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
+    sockets.emit 'txn', transaction.create(base: 4, id: '1.4', method: 'set', args: ['color', 'green']), 4
+    sockets.emit 'txn', transaction.create(base: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
+
+  'transactions should not be requested if pending less than timeout': wrapTest (done) ->
+    [sockets, model] = mockSocketModel '0', 'txnsSince', done
+    sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(base: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3
+    sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
+    setTimeout sockets._disconnect, 100
+  , 0
+  
   'sub event should be sent on socket.io connect': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
       clientId.should.eql '0'
