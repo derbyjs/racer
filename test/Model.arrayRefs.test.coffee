@@ -68,28 +68,28 @@ module.exports =
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
 
-#  'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
-#    model = new Model
-#    model.set '_group', model.ref 'groups.rally'
-#    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
-#    model.get().should.specEql
-#      _group: model.ref 'groups.rally'
-#      groups:
-#        rally:
-#          todoIds: []
-#          todoList: model.arrayRef('_group.todos', '_group.todoIds')
-#      $keys:
-#        _group:
-#          todoIds:
-#            $:
-#              'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
-#      $refs:
-#        groups:
-#          rally:
-#            $:
-#              _group: ['groups.rally', undefined]
-#  # TODO Add test that is an extension to above test, where we change what '_group' points to. In this case, the other
-#  #      pointers that include it as a substring should be updated
+  'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
+    model = new Model
+    model.set '_group', model.ref 'groups.rally'
+    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.get().should.specEql
+      _group: model.ref 'groups.rally'
+      groups:
+        rally:
+          todoIds: []
+          todoList: model.arrayRef('_group.todos', '_group.todoIds')
+      $keys:
+        _group:
+          todoIds:
+            $:
+              'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+      $refs:
+        groups:
+          rally:
+            $:
+              _group: ['groups.rally', undefined]
+  # TODO Add test that is an extension to above test, where we change what '_group' points to. In this case, the other
+  #      pointers that include it as a substring should be updated
 
   'setting <arr-ref-pointer> = <ref-pointer>.<suffix>, when the array ref key already exists, should update the $refs index': ->
     model = new Model
