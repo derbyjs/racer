@@ -1,4 +1,4 @@
-EventEmitter = require('events').EventEmitter
+{EventEmitter} = require 'events'
 
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
@@ -13,10 +13,13 @@ ServerSocketsMock = exports.ServerSocketsMock = ->
     browserSocket = socket._browserSocket
     @_sockets.push browserSocket
     EventEmitter::emit.call browserSocket, 'connect'
-    @_disconnect = -> EventEmitter::emit.call browserSocket, 'disconnect'
+  @_disconnect = =>
+    for browserSocket in @_sockets
+      EventEmitter::emit.call browserSocket, 'disconnect'
   return
 ServerSocketsMock:: =
-  emit: (name, args...) -> callEmit socket, name, args for socket in @_sockets
+  emit: (name, args...) ->
+    callEmit socket, name, args for socket in @_sockets
   __proto__: EventEmitter::
 
 ServerSocketMock = (@_serverSockets, @_browserSocket) ->

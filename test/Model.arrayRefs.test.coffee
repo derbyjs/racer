@@ -4,7 +4,7 @@ util = require './util'
 transaction = require 'transaction'
 wrapTest = util.wrapTest
 
-mockSocketModel = require('./util/model').mockSocketModel
+{mockSocketModel, mockSocketModels} = require './util/model'
 
 module.exports =
   'test getting array of references': ->
@@ -844,6 +844,37 @@ module.exports =
     model.set 'myTodoIds', ['10', '20']
     model.remove 'myTodos', id: '20'
     model.get('myTodoIds').should.specEql ['10']
+
+  'removing on an array ref by index api in one browser should pass index semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+      3: { id: 3, text: 'third', complete: false }
+    modelA.set 'todoIds', [3,1,2]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'remove', 'todoList', (startIndex, howMany) ->
+      startIndex.should.equal 1
+      sockets._disconnect()
+      done()
+    modelA.remove 'todoList', 1
+  , 1
+
+  'removing on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+      3: { id: 3, text: 'third', complete: false }
+    modelA.set 'todoIds', [3,1,2]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'remove', 'todoList', ({id, index}, howMany) ->
+      id.should.equal 3
+      index.should.equal 0
+      sockets._disconnect()
+      done()
+    modelA.remove 'todoList', {id: 3}
+  , 1
 
   'insertAfter an array ref member by id should insert the member after the id in the ref key array': ->
     model = new Model
