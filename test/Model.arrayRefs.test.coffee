@@ -888,6 +888,37 @@ module.exports =
       text: 'blah'
     model.get('myTodoIds').should.specEql ['10', '30', '20']
 
+  'insertAfter on an array ref by index api in one browser should pass index semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'insertAfter', 'todoList', (afterIndex, todo) ->
+      afterIndex.should.equal 1
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.insertAfter 'todoList', 1, id: 3, text: 'third', complete: false
+  , 1
+
+  'insertAfter on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'insertAfter', 'todoList', ({id, index}, todo) ->
+      id.should.equal 2
+      index.should.equal 0
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.insertAfter 'todoList', {id: 2}, id: 3, text: 'third', complete: false
+  , 1
+
   'insertBefore an array ref member by id should insert the member before the id in the ref key array': ->
     model = new Model
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
@@ -900,6 +931,37 @@ module.exports =
       text: 'blah'
     model.get('myTodoIds').should.specEql ['30', '10', '20']
 
+  'insertBefore on an array ref by index api in one browser should pass index semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'insertBefore', 'todoList', (beforeIndex, todo) ->
+      beforeIndex.should.equal 1
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.insertBefore 'todoList', 1, id: 3, text: 'third', complete: false
+  , 1
+
+  'insertBefore on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'insertBefore', 'todoList', ({id, index}, todo) ->
+      id.should.equal 2
+      index.should.equal 0
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.insertBefore 'todoList', {id: 2}, id: 3, text: 'third', complete: false
+  , 1
+
   'splice of an array ref member by id should do the splice relative to the index of the id in the ref key array': ->
     model = new Model
     model.set 'myTodos', model.arrayRef('todos', 'myTodoIds')
@@ -911,6 +973,39 @@ module.exports =
       id: '30'
       text: 'blah'
     model.get('myTodoIds').should.specEql ['30', '20']
+
+  'splice on an array ref by index api in one browser should pass index semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'splice', 'todoList', (index, howMany, todo) ->
+      index.should.equal 0
+      howMany.should.equal 1
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.splice 'todoList', 0, 1, id: 3, text: 'third', complete: false
+  , 1
+
+  'splice on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'splice', 'todoList', ({id, index}, howMany, todo) ->
+      id.should.equal 2
+      index.should.equal 0
+      howMany.should.equal 1
+      todo.should.specEql id: 3, text: 'third', complete: false
+      sockets._disconnect()
+      done()
+    modelA.splice 'todoList', {id: 2}, 1, id: 3, text: 'third', complete: false
+  , 1
 
   'move of an array ref member by id should do the move relative to the index of the id in the ref key array': ->
     model = new Model
@@ -927,3 +1022,34 @@ module.exports =
       , { id: '30', text: 'doodle' }
       , { id: '10', text: 'something' }
     ]
+
+  'move on an array ref by index api in one browser should pass index semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'move', 'todoList', (from, to) ->
+      from.should.equal 0
+      to.should.equal 1
+      sockets._disconnect()
+      done()
+    modelA.move 'todoList', 0, 1
+  , 1
+
+  'move on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'todos',
+      1: { id: 1, text: 'first', complete: false }
+      2: { id: 2, text: 'second', complete: false }
+    modelA.set 'todoIds', [2,1]
+    modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelB.on 'move', 'todoList', ({id, index}, to) ->
+      id.should.equal 2
+      index.should.equal 0
+      to.should.equal 1
+      sockets._disconnect()
+      done()
+    modelA.move 'todoList', {id: 2}, 1
+  , 1
