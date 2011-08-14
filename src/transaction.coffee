@@ -1,4 +1,3 @@
-# TODO Add set version of methods
 module.exports =
   create: (obj) ->
     txn = [obj.base, obj.id, obj.method, obj.args]
@@ -25,15 +24,13 @@ module.exports =
   args: (txn, vals) ->
     if vals isnt undefined
       txn[3] = vals
-#      txn.splice 3, txn.length-3, vals...
-#      return vals
-#    return txn.slice 3
     return txn[3]
 
   path: (txn, val) ->
-    @args(txn)[0]
-#    txn[3] = path if val isnt undefined
-#    return txn[3]
+    args = @args txn
+    if val isnt undefined
+      args[0] = val
+    return args[0]
 
   clientId: (txn, newClientId) ->
     [clientId, num] = @id(txn).split '.'
