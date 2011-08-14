@@ -30,7 +30,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._txnQueue = txnQueue = []
   
   txnApplier = new TxnApplier
-    applyTxn: (txn) -> self._applyTxn txn if transaction.base(txn) > adapter.ver
+    applyTxn: (txn) -> self._applyTxn(txn, !txn.emitted && @_clientId != transaction.clientId(txn)) if transaction.base(txn) > adapter.ver
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
@@ -159,7 +159,7 @@ Model:: =
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
-      return @_applyTxn txn, true
+      return @_applyTxn txn, !txn.emitted && true
 
     # Emit an event on creation of the transaction
     @emit method, txnArgs
@@ -175,14 +175,15 @@ Model:: =
     # Send it over Socket.IO or to the store on the server
     @_commit txn
   
-  _applyTxn: (txn) ->
+  _applyTxn: (txn, forceEmit) ->
     method = transaction.method txn
     txnArgs = transaction.args txn
     args = txnArgs.slice 0
     args.push transaction.base txn
     @_adapter[method] args...
     @_removeTxn transaction.id txn
-    unless txn.emitted
+    if forceEmit
+    # unless txn.emitted
       # For converting array ref index api back to id api
       args[1] = meta if meta = transaction.meta txn
       @emit method, args

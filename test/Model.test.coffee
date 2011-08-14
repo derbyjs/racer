@@ -308,7 +308,11 @@ module.exports =
     eventCalled = false
     model.on 'set', 'color', (val) ->
       eventCalled = true
-    sockets.emit 'txn', transaction.create(base: 1, id: 'clientA.0', method: 'set', args: ['color', 'green']), 1
+    txn = transaction.create(base: 1, id: 'clientA.0', method: 'set', args: ['color', 'green'])
+    model._txns['clientA.0'] = txn
+    model._txnQueue = ['clientA.0']
+    txn.emitted = true
+    sockets.emit 'txn', txn, 1
     setTimeout ->
       eventCalled.should.be.false
       sockets._disconnect()
