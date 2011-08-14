@@ -8,7 +8,7 @@ require 'transaction.server'
 txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
 
 module.exports =
-  # Properties
+  # Property getters
 
   'test transaction.base': ->
     transaction.base(txn).should.eql 2
@@ -24,6 +24,38 @@ module.exports =
 
   'test transaction.path': ->
     transaction.path(txn).should.eql 'count'
+
+  # Property setters
+
+  'test transaction.base setter': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.base(txn).should.equal 2
+    transaction.base txn, 3
+    transaction.base(txn).should.equal 3
+
+  'test transaction.id setter': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.id(txn).should.equal '4.0'
+    transaction.id txn, '4.1'
+    transaction.id(txn).should.equal '4.1'
+
+  'test transaction.method setter': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.method(txn).should.equal 'set'
+    transaction.method txn, 'del'
+    transaction.method(txn).should.equal 'del'
+
+  'test transaction.args setter': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.args(txn).should.eql ['count', 1]
+    transaction.args txn, ['count', 9]
+    transaction.args(txn).should.eql ['count', 9]
+
+  'test transaction.path setter': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.path(txn).should.equal 'count'
+    transaction.path txn, 'age'
+    transaction.path(txn).should.equal 'age'
 
   # Evaluating (but not applying) transactions
 
