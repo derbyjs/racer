@@ -10,8 +10,8 @@ racer listen: app
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code as well as any additional browserify options
-racer.js entry: 'client.js', (js) ->
-  fs.writeFileSync 'script.js', js
+racer.js entry: __dirname + '/client.js', (js) ->
+  fs.writeFileSync __dirname + '/script.js', js
 
 app.get '/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens

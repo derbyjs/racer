@@ -1,6 +1,6 @@
 Model = require './Model'
 Store = require './Store'
-io = require 'socket.io'
+socketio = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 uglify = require 'uglify-js'
@@ -16,7 +16,7 @@ module.exports = racer = (options) ->
   if options.ioSockets
     store._setSockets racer.sockets = options.ioSockets
   else
-    io = io.listen(listen)
+    io = socketio.listen(listen)
     io.configure ->
       io.set 'browser client', false
     store._setSockets racer.sockets = io.sockets
