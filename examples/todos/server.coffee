@@ -55,5 +55,5 @@ initGroup = (model) ->
 # Clear any existing data, then initialize
 store.flush (err) ->
   throw err if err
-  app.listen 3000
-  console.log "Go to http://localhost:3000/racer"
+  app.listen 3001
+  console.log "Go to http://localhost:3001/racer"
