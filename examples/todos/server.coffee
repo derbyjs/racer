@@ -4,7 +4,9 @@ fs = require 'fs'
 client = require './client'
 
 app = express.createServer express.favicon(), express.static(__dirname)
+# The listen option accepts either a port number or a node HTTP server
 racer listen: app
+store = racer.store
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code
@@ -15,11 +17,13 @@ app.get '/', (req, res) ->
 
 app.get '/:group', (req, res) ->
   group = req.params.group
-  racer.store.subscribe _group: "groups.#{group}.**", (err, model) ->
+  store.subscribe _group: "groups.#{group}.**", (err, model) ->
     initGroup model
     # Currently, refs must be explicitly declared per model; otherwise the ref
     # is not added the model's internal reference indices
     model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
+    # model.bundle waits for any pending model operations to complete and then
+    # returns the JSON data for initialization on the client
     model.bundle (bundle) ->
       listHtml = (client.todoHtml todo for todo in model.get '_group.todoList').join('')
       res.send """
@@ -49,7 +53,7 @@ initGroup = (model) ->
   model.set '_group.nextId', 3
 
 # Clear any existing data, then initialize
-racer.store.flush (err) ->
+store.flush (err) ->
   throw err if err
   app.listen 3000
   console.log "Go to http://localhost:3000/racer"

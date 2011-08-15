@@ -28,14 +28,19 @@ window.onload = racer.ready ->
       <a href=# onclick=resolve()>Accept</a>&nbsp;
       <a href=# onclick=resolve(true)>Override</a>'''
     info.innerHTML = html
-  model.on 'set', '_room.players', updateInfo
+  
   model.socket.on 'disconnect', -> setTimeout updateInfo, 200
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
   connect = ->
     reconnect = document.getElementById 'reconnect'
     reconnect.style.display = 'none'
-    setTimeout (-> reconnect.style.display = ''), 1000
+    setTimeout (-> reconnect.style.display = 'inline'), 1000
     model.socket.socket.connect()
+  
+  
+  ## Update the DOM when the model changes ##
+  
+  model.on 'set', '_room.players', updateInfo
   
   model.on 'fatal_error', ->
     info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
@@ -55,18 +60,15 @@ window.onload = racer.ready ->
         """<li><a href="/#{name}">#{text}</a>"""
     roomlist.innerHTML = html
   
-  html = ''
-  if `/*@cc_on!@*/0`
-    # If IE, use a link element, since only images and links can be dragged
-    open = '<a href=# onclick="return false"'
-    close = '</a>'
-  else
-    open = '<span'
-    close = '</span>'
-  for id, letter of model.get "_room.letters"
-    html += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
-    style=left:#{letter.position.left}px;top:#{letter.position.top}px>#{letter.value}#{close}"""
-  board.innerHTML = html
+  # Path wildcards are passed to the handler function as arguments in order.
+  # The function arguments are: (wildcards..., value)
+  model.on 'set', '_room.letters.*.position', (id, position) ->
+    el = document.getElementById id
+    el.style.left = position.left + 'px'
+    el.style.top = position.top + 'px'
+  
+  
+  ## Make letters draggable using HTML5 drag drop ##
   
   # Disable selection in IE
   addListener board, 'selectstart', -> false
@@ -128,14 +130,7 @@ window.onload = racer.ready ->
       conflicts ||= {}
       conflicts[cloneId] = {clone, id, left, top}
       updateInfo()
-  
-  # Update the letter's position when the model changes
-  # Path wildcards are passed to the handler function as arguments in order.
-  # The function arguments are: (wildcards..., value)
-  model.on 'set', '_room.letters.*.position', (id, position) ->
-    el = document.getElementById id
-    el.style.left = position.left + 'px'
-    el.style.top = position.top + 'px'
+
 
 if document.addEventListener
   addListener = (el, type, listener) ->

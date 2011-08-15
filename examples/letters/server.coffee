@@ -2,19 +2,14 @@ racer = require 'racer'
 express = require 'express'
 fs = require 'fs'
 
-app = express.createServer(express.favicon())
-store = racer.store
+app = express.createServer express.favicon(), express.static(__dirname)
 # The listen option accepts either a port number or a node HTTP server
 racer listen: app
+store = racer.store
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code
-script = ''
-racer.js (js) -> script = js + fs.readFileSync 'client.js'
-style = fs.readFileSync 'style.css'
-
-app.get '/script.js', (req, res) ->
-  res.send script, 'Content-Type': 'application/javascript'
+racer.js (js) -> fs.writeFileSync 'script.js', js + fs.readFileSync('client.js')
 
 app.get '/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
@@ -23,19 +18,28 @@ app.get '/:room?', (req, res) ->
   _room = room.toLowerCase().replace /[_ ]/g, '-'
   return res.redirect _room if _room != room
   
-  # Subscribe optionally accepts a model as an argument. If no model is
-  # specified, it will create a new model object
   store.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
     model.set '_roomName', room
     initRoom model
     # model.bundle waits for any pending model operations to complete and then
-    # returns a script tag with the data for initialization on the client
+    # returns the JSON data for initialization on the client
     model.bundle (bundle) ->
+      boardHtml = ''
+      if ~ req.headers['user-agent'].indexOf 'MSIE'
+        # If IE, use a link element, since only images and links can be dragged
+        open = '<a href=# onclick="return false"'
+        close = '</a>'
+      else
+        open = '<span'
+        close = '</span>'
+      for id, letter of model.get "_room.letters"
+        boardHtml += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
+        style=left:#{letter.position.left}px;top:#{letter.position.top}px>#{letter.value}#{close}"""
       res.send """
       <!DOCTYPE html>
       <title>Letters game</title>
-      <style>#{style}</style>
-      <link href=http://fonts.googleapis.com/css?family=Anton rel=stylesheet>
+      <link rel=stylesheet href=style.css>
+      <link rel=stylesheet href=http://fonts.googleapis.com/css?family=Anton>
       <div id=back>
         <div id=page>
           <p id=info>
@@ -43,7 +47,7 @@ app.get '/:room?', (req, res) ->
             <p>Rooms:
             <ul id=roomlist></ul>
           </div>
-          <div id=board></div>
+          <div id=board>#{boardHtml}</div>
         </div>
       </div>
       <script src=/script.js></script>
