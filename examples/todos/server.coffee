@@ -31,7 +31,8 @@ app.get '/:group', (req, res) ->
       <title>Todo list</title>
       <link rel=stylesheet href=style.css>
       <body>
-      <form id=head onsubmit="addTodo();return false">
+      <!-- calling via timeout keeps the page from redirecting if an error is thrown -->
+      <form id=head onsubmit="setTimeout(addTodo, 0);return false">
         <h1>Todos</h1>
         <div id=add><div id=add-input><input id=new-todo></div><input id=add-button type=submit value=Add></div>
       </form>

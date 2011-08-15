@@ -34,7 +34,10 @@ if typeof window isnt 'undefined'
     ## Update the DOM when the model changes ##
   
     model.on 'push', '_group.todoList', (value) ->
-      todoList.append @todoHtml value
+      todoList.append @todoHtml(value)
+    
+    model.on 'insertBefore', '_group.todoList', (index, value) ->
+      todoList.children().eq(index).before @todoHtml(value)
   
     model.on 'set', '_group.todos.*.completed', (id, value) ->
       $("##{id}").toggleClass 'completed', value
@@ -61,12 +64,21 @@ if typeof window isnt 'undefined'
     ## Update the model in response to DOM events ##
   
     addTodo = ->
+      # Don't add a blank todo
       return unless text = newTodo.val()
-      model.push '_group.todoList',
+      newTodo.val ''
+      # Insert the new todo before the first completed item in the list
+      for todo, i in list = model.get '_group.todoList'
+        break if todo.completed
+      todo = 
         id: model.incr '_group.nextId'
         completed: false
         text: text
-      newTodo.val ''
+      if i == list.length
+        # Append to the end if there are no completed items
+        model.push '_group.todoList', todo
+      else
+        model.insertBefore '_group.todoList', i, todo
   
     check = (checkbox, id) ->
       model.set "_group.todos.#{id}.completed", checkbox.checked
