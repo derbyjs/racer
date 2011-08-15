@@ -5,7 +5,7 @@
   "dependencies": {
     "racer": "0.0.1",
     "express": ">=2",
-    "gzip-connect": ">=0.1"
+    "connect-gzip": ">=0.1"
   },
   "private": true
 }

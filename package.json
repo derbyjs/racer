@@ -10,7 +10,8 @@
     "socket.io": ">=0.7",
     "socket.io-client": ">=0.7",
     "es5-shim": ">=1.2.3",
-    "browserify": ">=1.4.2"
+    "browserify": ">=1.4.2",
+    "uglify-js": ">=1.0.6"
   },
   "devDependencies": {
     "expresso": ">=0.7.9",
