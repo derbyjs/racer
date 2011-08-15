@@ -11,10 +11,13 @@ a {
   color: #01c;
 }
 #back {
-  border-top: 1px solid #eee;
+  background: -webkit-gradient(linear,0 0,0 100%,from(#ddd),to(#ccc)) repeat-x;
   background: -moz-linear-gradient(#ddd, #ccc) repeat-x;
-  background: -webkit-linear-gradient(#ddd, #ccc) repeat-x;
+  background: -ms-linear-gradient(#ddd, #ccc) repeat-x;
+  background: -o-linear-gradient(#ddd, #ccc) repeat-x;
   background: linear-gradient(#ddd, #ccc) repeat-x;
+  -moz-box-shadow: inset 0 1px #eee;
+  box-shadow: inset 0 1px #eee;
 }
 #page {
   width: 912px;

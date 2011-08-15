@@ -21,31 +21,15 @@ window.onload = racer.ready ->
       html = players + ' Player' + if players > 1 then 's' else ''
       roomsDiv.style.visibility = 'visible'
     else
-      html = 'Offline<span id=reconnect> &ndash; <a href=# onclick=connect()>Reconnect</a></span>'
+      html = 'Offline<span id=reconnect> &ndash; <a href=# onclick="return connect()">Reconnect</a></span>'
       roomsDiv.style.visibility = 'hidden'
     if conflicts
       html += ''' &ndash; Another player made conflicting moves:&nbsp;
-      <a href=# onclick=resolve()>Accept</a>&nbsp;
-      <a href=# onclick=resolve(true)>Override</a>'''
+      <a href=# onclick="return resolve()">Accept</a>&nbsp;
+      <a href=# onclick="return resolve(true)">Override</a>'''
     info.innerHTML = html
   
-  model.socket.on 'disconnect', -> setTimeout updateInfo, 200
-  model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  connect = ->
-    reconnect = document.getElementById 'reconnect'
-    reconnect.style.display = 'none'
-    setTimeout (-> reconnect.style.display = 'inline'), 1000
-    model.socket.socket.connect()
-  
-  
-  ## Update the DOM when the model changes ##
-  
-  model.on 'set', '_room.players', updateInfo
-  
-  model.on 'fatal_error', ->
-    info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
-  
-  model.on 'set', 'rooms.*.players', ->
+  updateRooms = ->
     rooms = []
     for name, room of model.get 'rooms'
       rooms.push {name, players} if players = room.players
@@ -60,6 +44,25 @@ window.onload = racer.ready ->
         """<li><a href="/#{name}">#{text}</a>"""
     roomlist.innerHTML = html
   
+  
+  ## Update the DOM when the model changes ##
+  
+  model.socket.on 'disconnect', -> setTimeout updateInfo, 200
+  model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
+  connect = ->
+    reconnect = document.getElementById 'reconnect'
+    reconnect.style.display = 'none'
+    setTimeout (-> reconnect.style.display = 'inline'), 1000
+    model.socket.socket.connect()
+    return false
+  
+  model.on 'fatal_error', ->
+    info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
+  
+  model.on 'set', '_room.players', updateInfo
+    
+  model.on 'set', 'rooms.*.players', updateRooms
+      
   # Path wildcards are passed to the handler function as arguments in order.
   # The function arguments are: (wildcards..., value)
   model.on 'set', '_room.letters.*.position', (id, position) ->
@@ -111,6 +114,7 @@ window.onload = racer.ready ->
       moveLetter conflict.id, conflict.left, conflict.top if override
     conflicts = null
     updateInfo()
+    return false
   
   moveLetter = (id, left, top) ->
     model.set "_room.letters.#{id}.position", {left, top}, (err) ->
