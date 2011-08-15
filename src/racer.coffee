@@ -47,7 +47,7 @@ racer.use = -> throw 'Unimplemented'
 
 racer.js = (options, callback) ->
   [callback, options] = [options, {}] if typeof options is 'function'
-  require = ['racer', 'es5-shim']
+  require = ['racer']
   options.require = if options.require
       require.concat options.require
     else require
