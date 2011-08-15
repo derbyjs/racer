@@ -1,4 +1,5 @@
 *.swp
+*.gz
 node_modules/
 lib/
 examples/*/*.js

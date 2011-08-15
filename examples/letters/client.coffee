@@ -1,6 +1,5 @@
 racer = require 'racer'
-resolve = ->
-connect = ->
+
 
 # racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
@@ -14,6 +13,7 @@ window.onload = racer.ready ->
   roomsDiv = document.getElementById 'rooms'
   roomlist = document.getElementById 'roomlist'
   dragData = null
+  letters = window.letters = {}
   
   updateInfo = ->
     players = model.get '_room.players'
@@ -21,12 +21,12 @@ window.onload = racer.ready ->
       html = players + ' Player' + if players > 1 then 's' else ''
       roomsDiv.style.visibility = 'visible'
     else
-      html = 'Offline<span id=reconnect> &ndash; <a href=# onclick="return connect()">Reconnect</a></span>'
+      html = 'Offline<span id=reconnect> &ndash; <a href=# onclick="return letters.connect()">Reconnect</a></span>'
       roomsDiv.style.visibility = 'hidden'
     if conflicts
       html += ''' &ndash; Another player made conflicting moves:&nbsp;
-      <a href=# onclick="return resolve()">Accept</a>&nbsp;
-      <a href=# onclick="return resolve(true)">Override</a>'''
+      <a href=# onclick="return letters.resolve()">Accept</a>&nbsp;
+      <a href=# onclick="return letters.resolve(true)">Override</a>'''
     info.innerHTML = html
   
   updateRooms = ->
@@ -49,7 +49,7 @@ window.onload = racer.ready ->
   
   model.socket.on 'disconnect', -> setTimeout updateInfo, 200
   model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-  connect = ->
+  letters.connect = ->
     reconnect = document.getElementById 'reconnect'
     reconnect.style.display = 'none'
     setTimeout (-> reconnect.style.display = 'inline'), 1000
@@ -108,7 +108,7 @@ window.onload = racer.ready ->
       e.clientY - dragData.startTop
   
   conflicts = null
-  resolve = (override) ->
+  letters.resolve = (override) ->
     for i, conflict of conflicts
       board.removeChild conflict.clone
       moveLetter conflict.id, conflict.left, conflict.top if override
@@ -136,10 +136,13 @@ window.onload = racer.ready ->
       updateInfo()
 
 
-if document.addEventListener
-  addListener = (el, type, listener) ->
-    el.addEventListener type, listener, false
-else
-  addListener = (el, type, listener) ->
-    el.attachEvent 'on' + type, (e) ->
-      listener e || event
+addListener = if document.addEventListener
+    (el, type, listener) ->
+      el.addEventListener type, listener, false
+  else
+    (el, type, listener) ->
+      el.attachEvent 'on' + type, (e) ->
+        listener e || event
+
+racer.init @init
+delete @init

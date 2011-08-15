@@ -1,15 +1,17 @@
 racer = require 'racer'
 express = require 'express'
+gzip = require 'connect-gzip'
 fs = require 'fs'
 
-app = express.createServer express.favicon(), express.static(__dirname)
+app = express.createServer express.favicon(), gzip.staticGzip(__dirname)
 # The listen option accepts either a port number or a node HTTP server
 racer listen: app
 store = racer.store
 
 # racer.js returns a browserify bundle of the racer client side code and the
-# socket.io client side code
-racer.js (js) -> fs.writeFileSync 'script.js', js + fs.readFileSync('client.js')
+# socket.io client side code as well as any additional browserify options
+racer.js entry: 'client.js', (js) ->
+  fs.writeFileSync 'script.js', js
 
 app.get '/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
@@ -50,8 +52,8 @@ app.get '/:room?', (req, res) ->
           <div id=board>#{boardHtml}</div>
         </div>
       </div>
+      <script>init=#{bundle}</script>
       <script src=/script.js></script>
-      <script>racer.init(#{bundle})</script>
       """
 
 initRoom = (model) ->

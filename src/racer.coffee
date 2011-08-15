@@ -3,6 +3,7 @@ Store = require './Store'
 io = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
+uglify = require 'uglify-js'
 
 module.exports = racer = (options) ->
   # TODO: Provide full configuration for socket.io
@@ -44,9 +45,17 @@ module.exports = racer = (options) ->
 
 racer.use = -> throw 'Unimplemented'
 
-racer.js = (callback) ->
-  ioClient.builder ['websocket', 'xhr-polling'], minify: false, (err, value) ->
+racer.js = (options, callback) ->
+  [callback, options] = [options, {}] if typeof options is 'function'
+  require = ['racer', 'es5-shim']
+  options.require = if options.require
+      require.concat options.require
+    else require
+  if (minify = options.minify) is undefined then minify = true
+  options.filter = uglify if minify
+  
+  ioClient.builder ['websocket', 'xhr-polling'], {minify}, (err, value) ->
     throw err if err
-    callback value + browserify.bundle(require: ['racer', 'es5-shim'])
+    callback value + ';' + browserify.bundle options
 
 racer.store = store = new Store
