@@ -1,6 +1,6 @@
 # Racer
 
-Racer is an **experimental** library for Node.js that provides realtime synchronization of an appliation model.
+Racer is an **experimental** library for Node.js that provides realtime synchronization of an application model.
 
 ## Disclaimer
 
