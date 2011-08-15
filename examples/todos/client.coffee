@@ -1,11 +1,11 @@
-rally = require 'rally'
+racer = require 'racer'
 addTodo = ->
 check = ->
 del = ->
 
 # Calling $() with a function is equivalent to $(document).ready() in jQuery
-$ rally.ready ->
-  model = rally.model
+$ racer.ready ->
+  model = racer.model
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'

@@ -27,8 +27,8 @@ module.exports =
       throw err if err
       if starts.length is 0
         console.error 'WARNING: Redis server does not have any record of ' +
-          'being started by the Rally Redis loader.'
-        # If Redis has no record of being started by the Rally loader, assign
+          'being started by the Racer Redis loader.'
+        # If Redis has no record of being started by the Racer loader, assign
         # a start value with a version of 0. Note that multiple Store instances
         # may all try to do this at once, so this code uses a watch / multi
         # block to make sure only one client does this.

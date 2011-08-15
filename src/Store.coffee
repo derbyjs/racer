@@ -16,7 +16,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter) ->
 
   # Client for data access and event publishing
   @_redisClient = redisClient = redis.createClient()
-  # Client for internal Rally event subscriptions
+  # Client for internal Racer event subscriptions
   @_subClient = subClient = redis.createClient()
   # Client for event subscriptions of txns only
   @_txnSubClient = txnSubClient = redis.createClient()

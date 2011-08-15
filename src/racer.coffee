@@ -4,7 +4,7 @@ io = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 
-module.exports = rally = (options) ->
+module.exports = racer = (options) ->
   # TODO: Provide full configuration for socket.io
   # TODO: Add configuration for Redis
 
@@ -13,18 +13,18 @@ module.exports = rally = (options) ->
   ioUri = options.ioUri ||
     if typeof listen is 'number' then ':' + ioPort else ''
   if options.ioSockets
-    store._setSockets rally.sockets = options.ioSockets
+    store._setSockets racer.sockets = options.ioSockets
   else
     io = io.listen(listen)
     io.configure ->
       io.set 'browser client', false
-    store._setSockets rally.sockets = io.sockets
+    store._setSockets racer.sockets = io.sockets
   
   # Adds server functions to Model's prototype
   require('./Model.server')(store, ioUri)
   
   ## Connect Middleware ##
-  # The rally module returns connect middleware for
+  # The racer module returns connect middleware for
   # easy integration into connect/express
   # 1. Assigns clientId's if not yet assigned
   # 2. Instantiates a new Model and attaches it to the incoming request,
@@ -42,11 +42,11 @@ module.exports = rally = (options) ->
     else
       store._nextClientId finish
 
-rally.use = -> throw 'Unimplemented'
+racer.use = -> throw 'Unimplemented'
 
-rally.js = (callback) ->
+racer.js = (callback) ->
   ioClient.builder ['websocket', 'xhr-polling'], minify: false, (err, value) ->
     throw err if err
-    callback value + browserify.bundle(require: ['rally', 'es5-shim'])
+    callback value + browserify.bundle(require: ['racer', 'es5-shim'])
 
-rally.store = store = new Store
+racer.store = store = new Store

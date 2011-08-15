@@ -1,4 +1,4 @@
-rally = require 'rally'
+racer = require 'racer'
 express = require 'express'
 fs = require 'fs'
 
@@ -8,20 +8,20 @@ app = express.createServer(
   express.cookieParser(),
   express.session secret: 'shhhh_dont_tell'
 )
-store = rally.store
-rally listen: app
+store = racer.store
+racer listen: app
 
-# rally.js returns a browserify bundle of the rally client side code and the
+# racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code
 script = ''
-rally.js (js) -> script = js + fs.readFileSync 'client.js'
+racer.js (js) -> script = js + fs.readFileSync 'client.js'
 style = fs.readFileSync 'style.css'
 
 app.get '/script.js', (req, res) ->
   res.send script, 'Content-Type': 'application/javascript'
 
 app.get '/', (req, res) ->
-  res.redirect '/rally'
+  res.redirect '/racer'
 
 app.get '/:group', (req, res) ->
   group = req.params.group
@@ -45,7 +45,7 @@ app.get '/:group', (req, res) ->
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
       <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js></script>
       <script src=/script.js></script>
-      <script>rally.init(#{bundle})</script>
+      <script>racer.init(#{bundle})</script>
       """
 
 initGroup = (model) ->
@@ -61,4 +61,4 @@ initGroup = (model) ->
 store.flush (err) ->
   throw err if err
   app.listen 3000
-  console.log "Go to http://localhost:3000/rally"
+  console.log "Go to http://localhost:3000/racer"

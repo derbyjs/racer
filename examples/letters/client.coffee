@@ -1,14 +1,14 @@
-rally = require 'rally'
+racer = require 'racer'
 resolve = ->
 connect = ->
 
-# rally.ready returns a callback function for a DOM ready event. Its callback
+# racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
 # it is passed to occurs.
-# Alternatively, rally.onload can be set to a function that only waits for
+# Alternatively, racer.onload can be set to a function that only waits for
 # the model data to be loaded.
-window.onload = rally.ready ->
-  model = rally.model
+window.onload = racer.ready ->
+  model = racer.model
   info = document.getElementById 'info'
   board = document.getElementById 'board'
   roomsDiv = document.getElementById 'rooms'

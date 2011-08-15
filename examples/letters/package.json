@@ -1,9 +1,9 @@
-{ "name": "rally-letters-example",
+{ "name": "racer-letters-example",
   "description": "Pants optional.",
   "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "rally": "*",
+    "racer": "*",
     "socket.io-client": ">=0.7"
   },
   "private": true

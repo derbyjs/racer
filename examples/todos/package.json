@@ -1,9 +1,9 @@
-{ "name": "rally-todos-example",
+{ "name": "racer-todos-example",
   "description": "Get your todos on.",
   "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "rally": "*",
+    "racer": "*",
     "express": ">=2"
   },
   "private": true

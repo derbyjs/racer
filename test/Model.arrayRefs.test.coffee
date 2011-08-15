@@ -11,7 +11,7 @@ module.exports =
     model = new Model
     model._adapter._data =
       todos:
-        1: { text: 'finish rally', status: 'ongoing' }
+        1: { text: 'finish racer', status: 'ongoing' }
         2: { text: 'run several miles', status: 'complete' }
         3: { text: 'meet with obama', status: 'complete' }
       _mine: ['1', '3']
@@ -19,20 +19,20 @@ module.exports =
 
     # Test non-keyed array of references
     model.get('mine').should.eql [
-        { text: 'finish rally', status: 'ongoing' }
+        { text: 'finish racer', status: 'ongoing' }
       , { text: 'meet with obama', status: 'complete' }
     ]
 
     # Test access to single reference in the array
-    model.get('mine.0').should.eql { text: 'finish rally', status: 'ongoing' }
+    model.get('mine.0').should.eql { text: 'finish racer', status: 'ongoing' }
 
     # Test access to a property below a single reference in the array
-    model.get('mine.0.text').should.equal 'finish rally'
+    model.get('mine.0.text').should.equal 'finish racer'
 
     # Test changing the key object reference with speculative set
     model.set '_mine', ['1', '2']
     model.get('mine').should.eql [
-        { text: 'finish rally', status: 'ongoing' }
+        { text: 'finish racer', status: 'ongoing' }
       , { text: 'run several miles', status: 'complete' }
     ]
 
@@ -70,52 +70,52 @@ module.exports =
 
   'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
     model = new Model
-    model.set '_group', model.ref 'groups.rally'
+    model.set '_group', model.ref 'groups.racer'
     model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
     model.get().should.specEql
-      _group: model.ref 'groups.rally'
+      _group: model.ref 'groups.racer'
       groups:
-        rally:
+        racer:
           todoIds: []
           todoList: model.arrayRef('_group.todos', '_group.todoIds')
       $keys:
         _group:
           todoIds:
             $:
-              'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+              'groups.racer.todoList': ['_group.todos', '_group.todoIds', 'array']
       $refs:
         groups:
-          rally:
+          racer:
             $:
-              _group: ['groups.rally', undefined]
+              _group: ['groups.racer', undefined]
   # TODO Add test that is an extension to above test, where we change what '_group' points to. In this case, the other
   #      pointers that include it as a substring should be updated
 
   'setting <arr-ref-pointer> = <ref-pointer>.<suffix>, when the array ref key already exists, should update the $refs index': ->
     model = new Model
-    model.set '_group', model.ref 'groups.rally'
+    model.set '_group', model.ref 'groups.racer'
     model.set '_group.todoIds', ['1']
     model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
     model.get('$refs').should.specEql
       groups:
-        rally:
-          $: _group: ['groups.rally', undefined]
+        racer:
+          $: _group: ['groups.racer', undefined]
       _group:
         todos:
-          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
+          1: { $: 'groups.racer.todoList': ['_group.todos', '_group.todoIds', 'array'] }
 
   'setting a key value for an <arr-ref-pointer> where <arr-ref-pointer> = <ref-pointer>.<suffix>, should update the $refs index': ->
     model = new Model
-    model.set '_group', model.ref 'groups.rally'
+    model.set '_group', model.ref 'groups.racer'
     model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
     model.set '_group.todoIds', ['1']
     model.get('$refs').should.specEql
       groups:
-        rally:
-          $: _group: ['groups.rally', undefined]
+        racer:
+          $: _group: ['groups.racer', undefined]
       _group:
         todos:
-          1: { $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array'] }
+          1: { $: 'groups.racer.todoList': ['_group.todos', '_group.todoIds', 'array'] }
   
   'setting a property on an array reference member should update the referenced member': ->
     model = new Model
@@ -573,7 +573,7 @@ module.exports =
 
   'setting on a property involving both a ref and an array ref key path should emit model events on to a path with the ref path and array ref path substituted in for the ref and key path respectively': wrapTest (done) ->
     model = new Model
-    model.set '_group', model.ref 'groups.rally'
+    model.set '_group', model.ref 'groups.racer'
     model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
     model.set '_group.todoIds', ['1']
     model.set '_group.todos',
@@ -582,7 +582,7 @@ module.exports =
     model.on 'set', '_group.todoList.0.complete', (value) ->
       value.should.be.true
       done()
-    model.set 'groups.rally.todos.1.complete', true
+    model.set 'groups.racer.todos.1.complete', true
   , 1
 
   "pushing onto an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
@@ -803,7 +803,7 @@ module.exports =
 
   'pushing onto an array ref that involves a regular pointer as part of its path, should update the $refs index with the newest array member': ->
     model = new Model
-    model.set '_group', model.ref 'groups.rally'
+    model.set '_group', model.ref 'groups.racer'
     model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
     model.push '_group.todoList',
       id: 5
@@ -811,9 +811,9 @@ module.exports =
       completed: false
 
     model.get().should.specEql
-      _group: model.ref 'groups.rally'
+      _group: model.ref 'groups.racer'
       groups:
-        rally:
+        racer:
           todos:
             5: { id: 5, text: 'fix this', completed: false }
           todoIds: ['5']
@@ -821,16 +821,16 @@ module.exports =
       $keys:
         _group:
           todoIds:
-            $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+            $: 'groups.racer.todoList': ['_group.todos', '_group.todoIds', 'array']
       $refs:
         groups:
-          rally:
-            $: _group: ['groups.rally', undefined]
+          racer:
+            $: _group: ['groups.racer', undefined]
         # The following should be present
         _group:
           todos:
             5:
-              $: 'groups.rally.todoList': ['_group.todos', '_group.todoIds', 'array']
+              $: 'groups.racer.todoList': ['_group.todos', '_group.todoIds', 'array']
 
 
   ## id api for array mutators ##

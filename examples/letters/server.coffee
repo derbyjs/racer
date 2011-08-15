@@ -1,16 +1,16 @@
-rally = require 'rally'
+racer = require 'racer'
 express = require 'express'
 fs = require 'fs'
 
 app = express.createServer(express.favicon())
-store = rally.store
+store = racer.store
 # The listen option accepts either a port number or a node HTTP server
-rally listen: app
+racer listen: app
 
-# rally.js returns a browserify bundle of the rally client side code and the
+# racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code
 script = ''
-rally.js (js) -> script = js + fs.readFileSync 'client.js'
+racer.js (js) -> script = js + fs.readFileSync 'client.js'
 style = fs.readFileSync 'style.css'
 
 app.get '/script.js', (req, res) ->
@@ -47,7 +47,7 @@ app.get '/:room?', (req, res) ->
         </div>
       </div>
       <script src=/script.js></script>
-      <script>rally.init(#{bundle})</script>
+      <script>racer.init(#{bundle})</script>
       """
 
 initRoom = (model) ->
@@ -66,7 +66,7 @@ initRoom = (model) ->
 
 # Clear any existing data, then initialize
 store.flush (err) ->
-  rally.sockets.on 'connection', (socket) ->
+  racer.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->
       playersPath = "rooms.#{room}.players"
       store.incr playersPath

@@ -10,7 +10,7 @@ io.Socket::onClose = ->
 
 isReady = false
 
-rally = module.exports =
+racer = module.exports =
 
   model: model = new Model
 
@@ -26,11 +26,11 @@ rally = module.exports =
       'reconnection delay': 50
       'max reconnection attempts': 20
     isReady = true
-    rally.onready()
-    return rally
+    racer.onready()
+    return racer
   
   onready: ->
   ready: (onready) -> ->
     return onready() if isReady
-    rally.onready = onready
+    racer.onready = onready
 

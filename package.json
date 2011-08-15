@@ -1,9 +1,9 @@
-{ "name": "rally",
+{ "name": "racer",
   "description": "Pants optional.",
   "version": "0.0.0",
-  "main": "./lib/rally.js",
+  "main": "./lib/racer.js",
   "browserify": {
-    "main": "./lib/rally.browser.js"
+    "main": "./lib/racer.browser.js"
   },
   "dependencies": {
     "redis": ">=0.5.11",

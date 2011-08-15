@@ -2,7 +2,7 @@ should = require 'should'
 Store = require 'Store'
 MongoAdapter = require 'adapters/Mongo'
 adapter = new MongoAdapter
-adapter.connect('mongodb://localhost/rally_test')
+adapter.connect('mongodb://localhost/racer_test')
 
 finishAll = false
 module.exports =
