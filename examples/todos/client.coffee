@@ -1,3 +1,23 @@
+# This function is declared on this so that it can be seen on the server
+# when this file is used as a CommonJS module
+@todoHtml = ({id, text, completed}) ->
+  if completed
+    completed = 'completed'
+    checked = 'checked'
+  else
+    completed = ''
+    checked = ''
+  """<li id=#{id} class=#{completed}><table width=100%><tr>
+  <td class=handle width=0><td width=100%><div class=todo>
+    <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
+    <div id=text#{id} data-id=#{id} contenteditable=true>#{text}</div>
+  </div>
+  <td width=0><button class=delete onclick=del(#{id})>Delete</button></table>"""
+
+
+# Only run the remaining code in browsers
+return if typeof window is 'undefined'
+
 racer = require 'racer'
 addTodo = ->
 check = ->
@@ -9,29 +29,12 @@ $ racer.ready ->
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'
-  
-  todoHtml = ({id, text, completed}) ->
-    if completed
-      completed = 'completed'
-      checked = 'checked'
-    else
-      completed = ''
-      checked = ''
-    """<li id=#{id} class=#{completed}><table width=100%><tr>
-    <td class=handle width=0><td width=100%><div class=todo>
-      <label><input id=check#{id} type=checkbox #{checked} onchange=check(this,#{id})><i></i></label>
-      <div id=text#{id} data-id=#{id} contenteditable=true>#{text}</div>
-    </div>
-    <td width=0><button class=delete onclick=del(#{id})>Delete</button></table>"""
-  
-  # Render the initial list
-  todoList.html (todoHtml todo for todo in model.get '_group.todoList').join('')
-  
-  
+
+
   ## Update the DOM when the model changes ##
   
   model.on 'push', '_group.todoList', (value) ->
-    todoList.append todoHtml value
+    todoList.append @todoHtml value
   
   model.on 'set', '_group.todos.*.completed', (id, value) ->
     $("##{id}").toggleClass 'completed', value
@@ -44,7 +47,7 @@ $ racer.ready ->
     target = todoList.children().get to
     # Don't move if the item is already in the right position
     return if id.toString() is target.id
-    if index > to && to != -1
+    if index > to > 0
       $("##{id}").insertBefore target
     else
       $("##{id}").insertAfter target
@@ -54,7 +57,7 @@ $ racer.ready ->
     return if el.is ':focus'
     el.html value
 
-  
+
   ## Update the model in response to DOM events ##
   
   addTodo = ->
