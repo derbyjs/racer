@@ -1,18 +1,18 @@
 racer = require 'racer'
 express = require 'express'
+gzip = require 'connect-gzip'
 fs = require 'fs'
-client = require './client'
+shared = require './shared'
 
-exports.app = app = express.createServer express.favicon(), express.static(__dirname)
-
+exports.app = app = express.createServer express.favicon(), gzip.staticGzip(__dirname)
+exports.store = store = racer.store
 # The listen option accepts either a port number or a node HTTP server
 racer listen: app
 
-exports.store = store = racer.store
-
 # racer.js returns a browserify bundle of the racer client side code and the
-# socket.io client side code
-racer.js (js) -> fs.writeFileSync 'script.js', js + fs.readFileSync('client.js')
+# socket.io client side code as well as any additional browserify options
+racer.js require: './shared', entry: 'client.js', (js) ->
+  fs.writeFileSync 'script.js', js
 
 app.get '/', (req, res) ->
   res.redirect '/racer'
@@ -27,23 +27,23 @@ app.get '/:group', (req, res) ->
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
     model.bundle (bundle) ->
-      listHtml = (client.todoHtml todo for todo in model.get '_group.todoList').join('')
+      listHtml = (shared.todoHtml todo for todo in model.get '_group.todoList').join('')
       res.send """
       <!DOCTYPE html>
       <title>Todos</title>
       <link rel=stylesheet href=style.css>
       <body>
       <!-- calling via timeout keeps the page from redirecting if an error is thrown -->
-      <form id=head onsubmit="setTimeout(addTodo, 0);return false">
+      <form id=head onsubmit="setTimeout(todos.addTodo, 0);return false">
         <h1>Todos</h1>
         <div id=add><div id=add-input><input id=new-todo></div><input id=add-button type=submit value=Add></div>
       </form>
       <div id=dragbox></div>
       <div id=content><ul id=todos>#{listHtml}</ul></div>
+      <script>init=#{bundle}</script>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
       <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js></script>
       <script src=/script.js></script>
-      <script>racer.init(#{bundle})</script>
       """
 
 initGroup = (model) ->
@@ -54,3 +54,4 @@ initGroup = (model) ->
     2: {id: 2, completed: false, text: 'Another example'}
   model.set '_group.todoIds', [1, 2, 0]
   model.set '_group.nextId', 3
+
