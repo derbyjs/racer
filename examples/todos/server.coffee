@@ -28,7 +28,7 @@ app.get '/:group', (req, res) ->
       listHtml = (client.todoHtml todo for todo in model.get '_group.todoList').join('')
       res.send """
       <!DOCTYPE html>
-      <title>Todo list</title>
+      <title>Todos</title>
       <link rel=stylesheet href=style.css>
       <body>
       <!-- calling via timeout keeps the page from redirecting if an error is thrown -->

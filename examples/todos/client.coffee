@@ -29,24 +29,25 @@ if typeof window isnt 'undefined'
     newTodo = $ '#new-todo'
     todoList = $ '#todos'
     content = $ '#content'
+    listPath = '_group.todoList'
 
 
     ## Update the DOM when the model changes ##
-  
-    model.on 'push', '_group.todoList', (value) ->
+
+    model.on 'push', listPath, (value) ->
       todoList.append @todoHtml(value)
-    
-    model.on 'insertBefore', '_group.todoList', (index, value) ->
+
+    model.on 'insertBefore', listPath, (index, value) ->
       todoList.children().eq(index).before @todoHtml(value)
-  
+
     model.on 'set', '_group.todos.*.completed', (id, value) ->
       $("##{id}").toggleClass 'completed', value
       $("#check#{id}").prop 'checked', value
-  
-    model.on 'remove', '_group.todoList', ({id}) ->
+
+    model.on 'remove', listPath, ({id}) ->
       $("##{id}").remove()
-  
-    model.on 'move', '_group.todoList', ({id, index}, to) ->
+
+    model.on 'move', listPath, ({id, index}, to) ->
       target = todoList.children().get to
       # Don't move if the item is already in the right position
       return if id.toString() is target.id
@@ -54,7 +55,7 @@ if typeof window isnt 'undefined'
         $("##{id}").insertBefore target
       else
         $("##{id}").insertAfter target
-  
+
     model.on 'set', '_group.todos.*.text', (id, value) ->
       el = $ "#text#{id}"
       return if el.is ':focus'
@@ -62,13 +63,13 @@ if typeof window isnt 'undefined'
 
 
     ## Update the model in response to DOM events ##
-  
+
     addTodo = ->
       # Don't add a blank todo
       return unless text = newTodo.val()
       newTodo.val ''
       # Insert the new todo before the first completed item in the list
-      for todo, i in list = model.get '_group.todoList'
+      for todo, i in list = model.get listPath
         break if todo.completed
       todo = 
         id: model.incr '_group.nextId'
@@ -76,18 +77,18 @@ if typeof window isnt 'undefined'
         text: text
       if i == list.length
         # Append to the end if there are no completed items
-        model.push '_group.todoList', todo
+        model.push listPath, todo
       else
-        model.insertBefore '_group.todoList', i, todo
-  
+        model.insertBefore listPath, i, todo
+
     check = (checkbox, id) ->
       model.set "_group.todos.#{id}.completed", checkbox.checked
       # Move the item to the bottom if it was checked off
-      model.move '_group.todoList', {id}, -1 if checkbox.checked
-  
+      model.move listPath, {id}, -1 if checkbox.checked
+
     del = (id) ->
-      model.remove "_group.todoList", id: id
-  
+      model.remove listPath, id: id
+
     todoList.sortable
       handle: '.handle'
       axis: 'y'
@@ -95,8 +96,8 @@ if typeof window isnt 'undefined'
       update: (e, ui) ->
         item = ui.item[0]
         to = todoList.children().index(item)
-        model.move '_group.todoList', {id: item.id}, to
-  
+        model.move listPath, {id: item.id}, to
+
     # Watch for changes to the contenteditable fields
     lastHtml = ''
     checkChanged = (e) ->
@@ -110,7 +111,7 @@ if typeof window isnt 'undefined'
     # Paste and dragover events are fired before the HTML is actually updated
     checkChangedDelayed = (e) ->
       setTimeout checkChanged, 10, e
-  
+
     # Shortcuts
     # Bold: Ctrl/Cmd + B
     # Italic: Ctrl/Cmd + I
@@ -126,7 +127,7 @@ if typeof window isnt 'undefined'
       document.execCommand command, false, null
       e.preventDefault() if e.preventDefault
       return false
-  
+
     content
       .keydown(checkShortcuts)
       .keydown(checkChanged)
@@ -138,4 +139,3 @@ if typeof window isnt 'undefined'
     # See: https://developer.mozilla.org/en/Rich-Text_Editing_in_Mozilla
     document.execCommand 'useCSS', false, true
     document.execCommand 'styleWithCSS', false, false
-
