@@ -31,7 +31,7 @@ app.get '/:group', (req, res) ->
       <title>Todo list</title>
       <link rel=stylesheet href=style.css>
       <body>
-      <form id=head action=javascript:addTodo()>
+      <form id=head onsubmit="addTodo();return false">
         <h1>Todos</h1>
         <div id=add><div id=add-input><input id=new-todo></div><input id=add-button type=submit value=Add></div>
       </form>

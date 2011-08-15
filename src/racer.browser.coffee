@@ -31,11 +31,12 @@ racer = module.exports =
   
   onready: ->
   ready: (onready) -> ->
-    return if isReady
+    if isReady
       connected = model.socket.socket.connected
       onready()
       # Republish the Socket.IO connect event after the onready callback
       # executes in case any client code wants to use it
       model.socket.socket.publish 'connect' if connected
+      return
     racer.onready = onready
 
