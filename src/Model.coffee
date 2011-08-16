@@ -80,6 +80,7 @@ Model:: =
     removeTxn = @_removeTxn
     
     @_commit = commit = (txn) ->
+      return unless socket.socket.connected
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn, self._startId
     

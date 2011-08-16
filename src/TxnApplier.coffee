@@ -5,7 +5,7 @@ transaction = require './transaction'
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
 
-DEFAULT_TIMEOUT = 500
+DEFAULT_TIMEOUT = 1000
 
 module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
   self = this
