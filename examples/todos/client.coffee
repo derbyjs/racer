@@ -13,6 +13,13 @@ $ racer.ready ->
 
   ## Update the DOM when the model changes ##
 
+  model.socket.on 'disconnect', ->
+    setTimeout ->
+      overlay.html '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>'
+    , 200
+  model.socket.on 'connect', ->
+    overlay.html ''
+
   model.on 'fatalError', ->
     overlay.html '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
 
@@ -48,6 +55,13 @@ $ racer.ready ->
 
   window.todos =
   
+    connect: ->
+      reconnect = document.getElementById 'reconnect'
+      reconnect.style.display = 'none'
+      setTimeout (-> reconnect.style.display = 'inline'), 1000
+      model.socket.socket.connect()
+      return false
+
     addTodo: ->
       # Don't add a blank todo
       return unless text = newTodo.val()
