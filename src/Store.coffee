@@ -14,7 +14,7 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   @_adapter = adapter = new AdapterClass
 
-  ropts = {port, host, db} = options.redis
+  ropts = {port, host, db} = options.redis || {}
   # Client for data access and event publishing
   @_redisClient = redisClient = redis.createClient(port, host, ropts)
   redisClient.select db if db

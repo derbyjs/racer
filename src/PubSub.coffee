@@ -26,11 +26,11 @@ PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
 
   unless @_publishClient = options.pubClient
-    ropts = {port, host, db} = options.redis
+    ropts = {port, host, db} = options.redis || {}
     @_publishClient = redis.createClient(port, host, ropts)
     @_publishClient.select db if db
   unless @_subscribeClient = subClient = options.subClient
-    ropts = {port, host, db} = options.redis
+    ropts = {port, host, db} = options.redis || {}
     @_subscribeClient = redis.createClient port, host, ropts
     @_subscribeClient.select db if db
 
