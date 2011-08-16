@@ -1,12 +1,15 @@
-racer = require 'racer'
 express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
 
 exports.app = app = express.createServer express.favicon(), gzip.staticGzip(__dirname)
+Racer = require('racer').Racer
+exports.racer = racer = new Racer
+  redis:
+    db: 1
+  # The listen option accepts either a port number or a node HTTP server
+  listen: app
 exports.store = store = racer.store
-# The listen option accepts either a port number or a node HTTP server
-racer listen: app
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code as well as any additional browserify options

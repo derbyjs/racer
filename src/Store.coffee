@@ -11,15 +11,19 @@ redisInfo = require './redisInfo'
 MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
-Store = module.exports = (AdapterClass = MemoryAdapter) ->
+Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   @_adapter = adapter = new AdapterClass
 
+  ropts = {port, host, db} = options.redis
   # Client for data access and event publishing
-  @_redisClient = redisClient = redis.createClient()
+  @_redisClient = redisClient = redis.createClient(port, host, ropts)
+  redisClient.select db if db
   # Client for internal Racer event subscriptions
-  @_subClient = subClient = redis.createClient()
+  @_subClient = subClient = redis.createClient(port, host, ropts)
+  subClient.select db if db
   # Client for event subscriptions of txns only
-  @_txnSubClient = txnSubClient = redis.createClient()
+  @_txnSubClient = txnSubClient = redis.createClient(port, host, ropts)
+  txnSubClient.select db if db
   
   ## Downstream Transactional Interface ##
 
