@@ -28,35 +28,38 @@ Todos is a classic todo list demo that demonstrates the use of Racer's array met
 
 ## Features
 
-  * **Realtime updates** -- Model methods automatically propagate changes among browser clients and Node servers in realtime. Clients may subscribe to a limited set of information relevant to the current session.
+  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. Clients may subscribe to a limited set of information relevant to the current session.
 
-  * **Immediate interaction** -- Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
+  * **Immediate interaction** &ndash; Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
 
-  * **Conflict resolution** -- When multiple clients attempt to change data in an inconsistent manner, Racer updates the models and notifies clients of conflicts. Model methods have callbacks that allow for application specific behavior.
+  * **Conflict resolution** &ndash; When multiple clients attempt to change data in an inconsistent manner, Racer updates the models and notifies clients of conflicts. Model methods have callbacks that allow for application specific behavior.
 
-  * **Offline** -- Since model methods are applied immediately, clients continue to work offline. Any changes to the local client or the global state automatically sync upon reconnecting.
+  * **Offline** &ndash; Since model methods are applied immediately, clients continue to work offline. Any changes to the local client or the global state automatically sync upon reconnecting.
 
-  * **Unified server and client interface** -- The same model interface can be used on the server for initial page rendering and on the client for synchronization and user interaction.
+  * **Unified server and client interface** &ndash; The same model interface can be used on the server for initial page rendering and on the client for synchronization and user interaction.
 
 ## Future features
 
-  * **Persistent storage** -- Racer will optionally provide automatic storage of data in popular NoSQL document stores and MySQL. Racer will also support extension to support other persistent storage solutions.
+  * **Persistent storage** &ndash; Racer will optionally provide automatic storage of data in popular NoSQL document stores and MySQL. Racer will also support extension to support other persistent storage solutions.
 
-  * **Browser local storage** -- Browser models will also sync to HTML5 localStorage for persistent offline usage.
+  * **Browser local storage** &ndash; Browser models will also sync to HTML5 localStorage for persistent offline usage.
 
-  * **Connect middleware** -- Connect middleware will provide support for easy integration with Express and Connect sessions.
+  * **Connect middleware** &ndash; Connect middleware will provide support for easy integration with Express and Connect sessions.
 
-  * **Validation and access control** -- An implementation of schema-based validation and authorization is planned.
+  * **Validation and access control** &ndash; An implementation of schema-based validation and authorization is planned.
 
 ## Installation
 
 The heart of Racer's conflict detection is a Software Transactional Memory (STM) built on top of Redis. It uses Redis Lua scripting, which is not part of the current stable Redis release, but [should be added](http://antirez.com/post/everything-about-redis-24) in the fall with Redis 2.6. For now, you can install the [Redis 2.2-scripting branch](https://github.com/antirez/redis/tree/2.2-scripting).
 
 After Redis with scripting support is installed, simply add racer to your package.json dependencies and run
+
 ```
 $ npm install
 ```
+
 or install Racer for use in multiple node projects with
+
 ```
 $ npm install racer -g
 ```
@@ -64,6 +67,7 @@ $ npm install racer -g
 ## Tests
 
 The tests will flush Redis and MongoDB databases available via the default configurations, so don't run them in a production environment. The full suite currently requires a running Redis and MongoDB server to complete. Run the tests with
+
 ```
 $ make test
 ```
