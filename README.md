@@ -14,7 +14,7 @@ There are currently two demos, which are included under the examples directory.
 
 ### Letters
 
-[[http://letters.racerjs.com/lobby]]
+http://letters.racerjs.com/lobby
 
 The letters game allows for multiple players to drag around refrigerator magnet style letters in realtime. It supports multiple rooms, where the room name is the URL path.
 
@@ -22,23 +22,30 @@ Letters demonstrates how applications can use Racer to provide application speci
 
 ### Todos
 
-[[http://todos.racerjs.com/racer]]
+http://todos.racerjs.com/racer
 
 Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application. The application code does not handle conflicts, so conflicting changes simply fail to be applied.
 
 ## Features
 
   * **Realtime updates** -- Model methods automatically propagate changes among browser clients and Node servers in realtime. Clients may subscribe to a limited set of information relevant to the current session.
+
   * **Immediate interaction** -- Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
+
   * **Conflict resolution** -- When multiple clients attempt to change data in an inconsistent manner, Racer updates the models and notifies clients of conflicts. Model methods have callbacks that allow for application specific behavior.
+
   * **Offline** -- Since model methods are applied immediately, clients continue to work offline. Any changes to the local client or the global state automatically sync upon reconnecting.
+
   * **Unified server and client interface** -- The same model interface can be used on the server for initial page rendering and on the client for synchronization and user interaction.
 
 ## Future features
 
-  * **Persistent storage** -- Racer will optionally provide automatic storage of data in popular NoSQL document stores and MySQL. Racer will also suppport extension to support other persistent storage solutions.
+  * **Persistent storage** -- Racer will optionally provide automatic storage of data in popular NoSQL document stores and MySQL. Racer will also support extension to support other persistent storage solutions.
+
   * **Browser local storage** -- Browser models will also sync to HTML5 localStorage for persistent offline usage.
+
   * **Connect middleware** -- Connect middleware will provide support for easy integration with Express and Connect sessions.
+
   * **Validation and access control** -- An implementation of schema-based validation and authorization is planned.
 
 ## Installation
