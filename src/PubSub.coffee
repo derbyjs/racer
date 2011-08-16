@@ -110,8 +110,7 @@ RedisAdapter:: =
 
     # For signature: unsubscribe(subscriberId[, callback])
     subscriberSubs = @_subscriberSubs
-    unless paths
-      return @unsubscribe subscriberId, subscriberSubs[subscriberId], callback
+    paths ||= subscriberSubs[subscriberId] || []
 
     # For signature: unsubscribe(subscriberId, paths[, callback])
     subs = @_subs
