@@ -2,6 +2,12 @@
 
 Racer is an **experimental** library for Node.js that provides realtime synchronization of an application model.
 
+On the server, Racer exposes `racer.store`, which manages data updates. The store interacts with a Software Transactional Memory (STM) that prevents conflicting changes from being accepted. The store has accessor and mutator methods, which create transactions that get submitted to the STM. These methods are asynchronous, and using them is similar to getting or setting data from a database.
+
+The store also creates models via `store.subscribe`. Models maintain their own copy of a subset of the global state. These models perform operations independently from the store and each other, and they automatically synchronize their state with the store.
+
+Models provide a synchronous interface, so using them is more like interacting with regular objects. After a value is set on a model, the model will immediately reflect the new value, even though the operation is still being sent to the server in the background. This optimistic approach provides immediate interaction for the user and allows Racer to work offline. Operations may ultimately fail if they conflict with other changes. Therefore, model methods have callbacks for handling errors. Models also emit events when their contents are updated, which developers can use to update the application view in realtime.
+
 ## Disclaimer
 
 Racer is not ready for use, so **please do not report bugs or contribute pull requests yet**. Lots of the code is being actively rewritten, and the API is likely to change substantially.
@@ -30,9 +36,9 @@ Todos is a classic todo list demo that demonstrates the use of Racer's array met
 
   * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. Clients may subscribe to a limited set of information relevant to the current session.
 
-  * **Immediate interaction** &ndash; Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
-
   * **Conflict resolution** &ndash; When multiple clients attempt to change data in an inconsistent manner, Racer updates the models and notifies clients of conflicts. Model methods have callbacks that allow for application specific behavior.
+
+  * **Immediate interaction** &ndash; Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
 
   * **Offline** &ndash; Since model methods are applied immediately, clients continue to work offline. Any changes to the local client or the global state automatically sync upon reconnecting.
 
@@ -48,13 +54,13 @@ Todos is a classic todo list demo that demonstrates the use of Racer's array met
 
   * **Validation and access control** &ndash; An implementation of schema-based validation and authorization is planned.
 
-  * **Alternative Realtime Strategies** &ndash; In addition to STM, Racer may provide Operational Transformation (OT) and Diff-Match-Patch algorithms to mix and match, depending on the realtime characteristics of the target app.
+  * **Alternative realtime strategies** &ndash; In addition to STM, Racer may provide Operational Transformation (OT) and Diff-Match-Patch algorithms. Developers would be able to mix and match strategies as appropriate for their object models.
 
 ## Installation
 
-The heart of Racer's conflict detection is a Software Transactional Memory (STM) built on top of Redis. It uses Redis Lua scripting, which is not part of the current stable Redis release, but [should be added](http://antirez.com/post/everything-about-redis-24) in the fall with Redis 2.6. For now, you can install the [Redis 2.2-scripting branch](https://github.com/antirez/redis/tree/2.2-scripting).
+The heart of Racer's conflict detection is an STM built on top of Redis. It uses Redis Lua scripting, which is not part of the current stable Redis release, but [should be added](http://antirez.com/post/everything-about-redis-24) in the fall with Redis 2.6. For now, you can install the [Redis 2.2-scripting branch](https://github.com/antirez/redis/tree/2.2-scripting).
 
-After Redis with scripting support is installed, simply add racer to your package.json dependencies and run
+After Redis with scripting support is installed, simply add "racer" to your package.json dependencies and run
 
 ```
 $ npm install
