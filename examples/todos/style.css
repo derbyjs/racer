@@ -29,7 +29,8 @@ a {
 }
 #info {
   display: inline-block;
-  padding: 2px 12px 3px;
+  padding: 0 12px;
+  line-height: 21px;
   border: 1px solid #a69c6d;
   border-top: 0;
   border-bottom-color: #8c845c;
