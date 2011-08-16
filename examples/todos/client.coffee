@@ -23,6 +23,7 @@ $ racer.ready ->
       '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>')
   model.socket.on 'disconnect', -> setTimeout updateOverlay, 200
   model.socket.on 'connect', updateOverlay
+  setTimeout updateOverlay, 400
 
   model.on 'fatalError', ->
     overlay.html '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'

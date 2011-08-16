@@ -42,6 +42,7 @@ updateRooms = ->
   
 model.socket.on 'disconnect', -> setTimeout updateInfo, 200
 model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
+setTimeout updateInfo, 400
 letters.connect = ->
   reconnect = document.getElementById 'reconnect'
   reconnect.style.display = 'none'
