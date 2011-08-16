@@ -48,4 +48,6 @@ test-cov:
 	@TESTFLAGS=--cov $(MAKE) test
 
 compile:
-	./node_modules/coffee-script/bin/coffee -b -w -o ./lib -c ./src
+	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src
+compile-examples:
+	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
