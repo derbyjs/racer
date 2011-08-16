@@ -1,5 +1,8 @@
 racer = require 'racer'
 
+racer.init @init
+delete @init
+
 model = racer.model
 info = document.getElementById 'info'
 board = document.getElementById 'board'
@@ -137,5 +140,3 @@ moveLetter = (id, left, top) ->
     conflicts[cloneId] = {clone, id, left, top}
     updateInfo()
 
-racer.init @init
-delete @init
