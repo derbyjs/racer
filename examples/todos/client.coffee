@@ -44,7 +44,7 @@ $ racer.ready ->
     target = todoList.children().get to
     # Don't move if the item is already in the right position
     return if id.toString() is target.id
-    if index > to > 0
+    if index > to && to != -1
       $("##{id}").insertBefore target
     else
       $("##{id}").insertAfter target
