@@ -99,7 +99,7 @@ Model:: =
         args.unshift err
         callback args...
       removeTxn txnId
-    socket.on 'fatalErr', -> self.emit 'fatal_error'
+    socket.on 'fatalErr', -> self.emit 'fatalError'
     
     clientId = @_clientId
     storeSubs = @_storeSubs

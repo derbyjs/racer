@@ -36,6 +36,7 @@ app.get '/:group', (req, res) ->
       <title>Todos</title>
       <link rel=stylesheet href=style.css>
       <body>
+      <div id=overlay></div>
       <!-- calling via timeout keeps the page from redirecting if an error is thrown -->
       <form id=head onsubmit="setTimeout(todos.addTodo, 0);return false">
         <h1>Todos</h1>

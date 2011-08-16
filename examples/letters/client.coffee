@@ -1,6 +1,5 @@
 racer = require 'racer'
 
-
 # racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
 # it is passed to occurs.
@@ -56,7 +55,7 @@ window.onload = racer.ready ->
     model.socket.socket.connect()
     return false
   
-  model.on 'fatal_error', ->
+  model.on 'fatalError', ->
     info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
   
   model.on 'set', '_room.players', updateInfo

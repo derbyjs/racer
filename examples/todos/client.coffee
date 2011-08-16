@@ -7,10 +7,14 @@ $ racer.ready ->
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'
+  overlay = $ '#overlay'
   listPath = '_group.todoList'
 
 
   ## Update the DOM when the model changes ##
+
+  model.on 'fatalError', ->
+    overlay.html '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
 
   model.on 'push', listPath, (value) ->
     todoList.append todoHtml(value)
