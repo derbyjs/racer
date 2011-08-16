@@ -19,10 +19,8 @@ $ racer.ready ->
   ## Update the DOM when the model changes ##
 
   updateOverlay = ->
-    overlay.html if model.socket.socket.connected
-      ''
-    else
-      '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>'
+    overlay.html(if model.socket.socket.connected then '' else
+      '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>')
   model.socket.on 'disconnect', -> setTimeout updateOverlay, 200
   model.socket.on 'connect', updateOverlay
 
