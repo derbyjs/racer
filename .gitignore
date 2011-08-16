@@ -1,5 +1,6 @@
 *.swp
 *.gz
+*.rdb
 node_modules/
 lib/
 examples/*/*.js
