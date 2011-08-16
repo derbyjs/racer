@@ -48,6 +48,8 @@ Todos is a classic todo list demo that demonstrates the use of Racer's array met
 
   * **Validation and access control** &ndash; An implementation of schema-based validation and authorization is planned.
 
+  * **Alternative Realtime Strategies** &ndash; In addition to STM, Racer may provide Operational Transformation (OT) and Diff-Match-Patch algorithms to mix and match, depending on the realtime characteristics of the target app.
+
 ## Installation
 
 The heart of Racer's conflict detection is a Software Transactional Memory (STM) built on top of Redis. It uses Redis Lua scripting, which is not part of the current stable Redis release, but [should be added](http://antirez.com/post/everything-about-redis-24) in the fall with Redis 2.6. For now, you can install the [Redis 2.2-scripting branch](https://github.com/antirez/redis/tree/2.2-scripting).
