@@ -12,6 +12,7 @@ MAX_RETRIES = 10
 RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 
 Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
+  self = this
   @_adapter = adapter = new AdapterClass
 
   ropts = {port, host, db} = options.redis || {}
@@ -229,6 +230,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     
     nextClientId (clientId) ->
       model = new Model(clientId)
+      model.setStore self
+      model.setIoUri self.ioUri
       model._startId = startId
       populateModel model, paths, callback
   

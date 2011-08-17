@@ -1,4 +1,4 @@
-Model = require './Model'
+Model = require './Model.server'
 Store = require './Store'
 socketio = require 'socket.io'
 ioClient = require 'socket.io-client'
@@ -26,10 +26,10 @@ Racer = (options) ->
 Racer:: =
   use: -> throw 'Unimplemented'
 
-  setSockets: (@sockets, socketUri) ->
+  setSockets: (@sockets, ioUri) ->
     @store._setSockets @sockets
     # Adds server functions to Model's prototype
-    require('./Model.server')(@store, socketUri)
+    @store.ioUri = ioUri
 
   listen: (to) ->
     io = socketio.listen to
