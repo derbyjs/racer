@@ -19,24 +19,28 @@ Racer = (options) ->
   if options.ioSockets
     store._setSockets @sockets = options.ioSockets
   else if listen = options.listen
-    @listen listen, options.ioUri
+    @listen listen, options.ioUri, options.ioPort
   
   return
 
 Racer:: =
   use: -> throw 'Unimplemented'
 
-  listen: (to, ioUri) ->
+  ioSockets: (ioSockets, ioUri, ioPort) ->
+    @sockets = ioSockets
+    @store._setSockets ioSockets
+    @onIoSockets() if @onIoSockets
+    ioUri ||= if typeof to is 'number' then ':' + ioPort else ''
+    # Adds server functions to Model's prototype
+    require('./Model.server')(@store, ioUri)
+
+  listen: (to, ioUri, ioPort) ->
     to ||= 8080
     io = socketio.listen to
     io.configure ->
       io.set 'browser client', false
       io.set 'transports', DEFAULT_TRANSPORTS
-    @store._setSockets @sockets = io.sockets
-    ioUri ||= if typeof to is 'number' then ':' + options.ioPort else ''
-    # Adds server functions to Model's prototype
-    require('./Model.server')(@store, ioUri)
-    @onListen() if @onListen
+    @ioSockets(io.sockets, ioUri, ioPort)
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'

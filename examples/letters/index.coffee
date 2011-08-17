@@ -76,7 +76,7 @@ initRoom = (model) ->
           top: row * 32 + 8
   model.set '_room.letters', letters
 
-racer.onListen = ->
+racer.onIoSockets = ->
   racer.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->
       playersPath = "rooms.#{room}.players"
