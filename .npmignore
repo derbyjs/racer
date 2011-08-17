@@ -1,0 +1,4 @@
+*.swp
+*.gz
+*.rdb
+node_modules/
