@@ -40,7 +40,7 @@ Racer:: =
     io.configure ->
       io.set 'browser client', false
       io.set 'transports', DEFAULT_TRANSPORTS
-    @ioSockets(io.sockets, ioUri, ioPort)
+    @ioSockets io.sockets, ioUri, ioPort
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'

@@ -1,5 +1,3 @@
-{app, racer} = require('./index')
-app.listen 3000
-racer.listen app
-console.log 'Go to http://localhost:3000/letters/lobby'
-console.log 'Go to http://localhost:3000/letters/powder-room'
+require('./index')().app.listen 3001
+console.log 'Go to http://localhost:3001/letters/lobby'
+console.log 'Go to http://localhost:3001/letters/powder-room'
