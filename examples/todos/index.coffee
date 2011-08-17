@@ -11,8 +11,6 @@ exports.app = app = express.createServer()
 racer = new Racer
   redis:
     db: 2
-  # The listen option accepts either a port number or a node HTTP server
-  listen: app
 store = racer.store
 # Clear all existing data on restart
 store.flush()
@@ -63,4 +61,3 @@ initGroup = (model) ->
     2: {id: 2, completed: false, text: 'Another example'}
   model.set '_group.todoIds', [1, 2, 0]
   model.set '_group.nextId', 3
-

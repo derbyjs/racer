@@ -10,8 +10,6 @@ exports.app = app = express.createServer()
 racer = new Racer
   redis:
     db: 1
-  # The listen option accepts either a port number or a node HTTP server
-  listen: app
 store = racer.store
 # Clear all existing data on restart
 store.flush()
@@ -78,9 +76,10 @@ initRoom = (model) ->
           top: row * 32 + 8
   model.set '_room.letters', letters
 
-racer.sockets.on 'connection', (socket) ->
-  socket.on 'join', (room) ->
-    playersPath = "rooms.#{room}.players"
-    store.incr playersPath
-    socket.on 'disconnect', -> store.incr playersPath, -1
+racer.onListen = ->
+  racer.sockets.on 'connection', (socket) ->
+    socket.on 'join', (room) ->
+      playersPath = "rooms.#{room}.players"
+      store.incr playersPath
+      socket.on 'disconnect', -> store.incr playersPath, -1
 
