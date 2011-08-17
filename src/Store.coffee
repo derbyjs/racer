@@ -230,8 +230,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     
     nextClientId (clientId) ->
       model = new Model(clientId)
-      model.setStore self
-      model.setIoUri self.ioUri
+      model.store = self
+      model._ioUri = self._ioUri
       model._startId = startId
       populateModel model, paths, callback
   

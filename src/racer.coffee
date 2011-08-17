@@ -28,8 +28,7 @@ Racer:: =
 
   setSockets: (@sockets, ioUri) ->
     @store._setSockets @sockets
-    # Adds server functions to Model's prototype
-    @store.ioUri = ioUri
+    @store._ioUri = ioUri
 
   listen: (to) ->
     io = socketio.listen to

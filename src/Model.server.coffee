@@ -2,9 +2,6 @@ transaction = require './transaction'
 module.exports = Model = require './Model'
 
 # Update Model's prototype to provide server-side functionality
-Model::setStore = (@store) ->
-
-Model::setIoUri = (@ioUri) ->
 
 Model::_browserOnTxn = Model::_onTxn
 Model::_onTxn = (txn) ->
@@ -39,4 +36,4 @@ Model::bundle = bundle = (callback, self = this) ->
     startId: self._startId
     txnCount: self._txnCount
     txnNum: self._txnNum
-    ioUri: @ioUri
+    ioUri: @_ioUri
