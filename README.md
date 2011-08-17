@@ -79,3 +79,8 @@ The tests will flush Redis and MongoDB databases available via the default confi
 ```
 $ make test
 ```
+
+## Usage
+
+Honestly, it is not recommended that you use Racer just yet. If you are super excited to play around with it, check out the source code in the examples directory. The API will be documented here once the project becomes more stable.
+
