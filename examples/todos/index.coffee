@@ -3,7 +3,9 @@ gzip = require 'connect-gzip'
 fs = require 'fs'
 shared = require './shared'
 
-exports.app = app = express.createServer express.favicon(), gzip.staticGzip(__dirname)
+exports.app = app = express.createServer()
+  .use(express.favicon())
+  .use('/todos', gzip.staticGzip(__dirname))
 Racer = require('racer').Racer
 exports.racer = racer = new Racer
   redis:
@@ -18,7 +20,7 @@ racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) -
   fs.writeFileSync __dirname + '/script.js', js
 
 app.get '/todos', (req, res) ->
-  res.redirect '/racer'
+  res.redirect 'racer'
 
 app.get '/todos/:group', (req, res) ->
   group = req.params.group
@@ -47,7 +49,7 @@ app.get '/todos/:group', (req, res) ->
       <script>init=#{bundle}</script>
       <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
       <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js></script>
-      <script src=/script.js></script>
+      <script src=script.js></script>
       """
 
 initGroup = (model) ->

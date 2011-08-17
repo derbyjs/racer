@@ -2,7 +2,9 @@ express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
 
-exports.app = app = express.createServer express.favicon(), gzip.staticGzip(__dirname)
+exports.app = app = express.createServer()
+  .use(express.favicon())
+  .use('/letters', gzip.staticGzip(__dirname))
 Racer = require('racer').Racer
 exports.racer = racer = new Racer
   redis:
@@ -19,7 +21,7 @@ racer.js entry: __dirname + '/client.js', (js) ->
 app.get '/letters/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
   room = req.params.room
-  return res.redirect '/lobby' unless room && /^[-\w ]+$/.test room
+  return res.redirect 'lobby' unless room && /^[-\w ]+$/.test room
   _room = room.toLowerCase().replace /[_ ]/g, '-'
   return res.redirect _room if _room != room
   
@@ -56,7 +58,7 @@ app.get '/letters/:room?', (req, res) ->
         </div>
       </div>
       <script>init=#{bundle}</script>
-      <script src=/script.js></script>
+      <script src=script.js></script>
       """
 
 initRoom = (model) ->

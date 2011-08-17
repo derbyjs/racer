@@ -4,5 +4,5 @@
 store.flush (err) ->
   throw err if err
   app.listen 3001
-  console.log 'Go to http://localhost:3001/racer'
+  console.log 'Go to http://localhost:3001/todos/racer'
 
