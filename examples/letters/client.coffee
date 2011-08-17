@@ -37,7 +37,7 @@ updateRooms = ->
     display = (name.charAt(0).toUpperCase() + name.substr(1)).replace /-/g, ' '
     text = "#{display} (#{room.players})"
     html += if name == currentName then """<li><b>#{text}</b>""" else
-      """<li><a href="/#{name}">#{text}</a>"""
+      """<li><a href="/letters/#{name}">#{text}</a>"""
   roomlist.innerHTML = html
   
   
