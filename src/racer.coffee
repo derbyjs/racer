@@ -16,31 +16,28 @@ Racer = (options) ->
   @store = store = new Store options.storeAdapter, storeOptions
 
   ## Setup socket.io ##
-  if options.ioSockets
-    store._setSockets @sockets = options.ioSockets
-  else if listen = options.listen
-    @listen listen, options.ioUri, options.ioPort
+  if options.sockets
+    @setSockets options.sockets, options.socketUri
+  else if options.listen
+    @listen options.listen
   
   return
 
 Racer:: =
   use: -> throw 'Unimplemented'
 
-  ioSockets: (ioSockets, ioUri, ioPort) ->
-    @sockets = ioSockets
-    @store._setSockets ioSockets
-    @onIoSockets() if @onIoSockets
-    ioUri ||= if typeof to is 'number' then ':' + ioPort else ''
+  setSockets: (@sockets, socketUri) ->
+    @store._setSockets @sockets
     # Adds server functions to Model's prototype
-    require('./Model.server')(@store, ioUri)
+    require('./Model.server')(@store, socketUri)
 
-  listen: (to, ioUri, ioPort) ->
-    to ||= 8080
+  listen: (to) ->
     io = socketio.listen to
     io.configure ->
       io.set 'browser client', false
       io.set 'transports', DEFAULT_TRANSPORTS
-    @ioSockets io.sockets, ioUri, ioPort
+    socketUri = if typeof to is 'number' then ':' + to else ''
+    @setSockets io.sockets, socketUri
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'
