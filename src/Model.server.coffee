@@ -21,7 +21,6 @@ Model::_commit = (txn) ->
 
 Model::bundle = bundle = (callback, self = this) ->
   # Wait for all pending transactions to complete before returning
-  console.log self
   return setTimeout ->
     self.bundle(callback, self)
   , 10 if self._txnQueue.length
