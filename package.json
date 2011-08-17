@@ -1,6 +1,7 @@
-{ "name": "racer",
+{
+  "name": "racer",
   "description": "Experimental realtime model synchronization",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "./lib/racer.js",
   "browserify": {
     "main": "./lib/racer.browser.js"
@@ -19,5 +20,8 @@
     "coffee-script": ">=1.1.1",
     "express": ">=2.4.2",
     "mongodb": "0.9.6-7"
+  },
+  "engines": {
+    "node": "*"
   }
 }
