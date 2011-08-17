@@ -20,7 +20,7 @@ racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) -
   fs.writeFileSync __dirname + '/script.js', js
 
 app.get '/todos', (req, res) ->
-  res.redirect 'racer'
+  res.redirect '/todos/racer'
 
 app.get '/todos/:group', (req, res) ->
   group = req.params.group

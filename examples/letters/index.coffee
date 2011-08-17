@@ -21,9 +21,9 @@ racer.js entry: __dirname + '/client.js', (js) ->
 app.get '/letters/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
   room = req.params.room
-  return res.redirect 'lobby' unless room && /^[-\w ]+$/.test room
+  return res.redirect '/letters/lobby' unless room && /^[-\w ]+$/.test room
   _room = room.toLowerCase().replace /[_ ]/g, '-'
-  return res.redirect _room if _room != room
+  return res.redirect "/letters/#{_room}" if _room != room
   
   store.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
     model.set '_roomName', room
