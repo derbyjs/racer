@@ -9,12 +9,7 @@ module.exports = (racer) ->
     .use(express.favicon())
     .use('/letters', gzip.staticGzip(__dirname))
 
-  unless racer
-    racer = new Racer
-      redis:
-        db: 1
-      listen: app
-
+  racer = new Racer(redis: {db: 1}, listen: app) unless racer
   store = racer.store
   # Clear all existing data on restart
   store.flush()
