@@ -5,6 +5,8 @@ ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 uglify = require 'uglify-js'
 
+DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
+
 Racer = (options) ->
   # TODO: Provide full configuration for socket.io
   # TODO: Add configuration for Redis
@@ -23,6 +25,7 @@ Racer = (options) ->
     io = socketio.listen(listen)
     io.configure ->
       io.set 'browser client', false
+      io.set 'transports', DEFAULT_TRANSPORTS
     store._setSockets @sockets = io.sockets
   
   # Adds server functions to Model's prototype
@@ -41,7 +44,7 @@ Racer:: =
     if (minify = options.minify) is undefined then minify = true
     options.filter = uglify if minify
     
-    ioClient.builder ['websocket', 'xhr-polling'], {minify}, (err, value) ->
+    ioClient.builder DEFAULT_TRANSPORTS, {minify}, (err, value) ->
       throw err if err
       callback value + ';' + browserify.bundle options
 
