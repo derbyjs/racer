@@ -29,7 +29,6 @@ Racer:: =
   listen: (to, ioUri) ->
     to ||= 8080
     io = socketio.listen to
-    console.log io
     io.configure ->
       io.set 'browser client', false
       io.set 'transports', DEFAULT_TRANSPORTS

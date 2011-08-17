@@ -8,7 +8,7 @@ exports.app = app = express.createServer()
   .use(express.favicon())
   .use('/todos', gzip.staticGzip(__dirname))
 
-racer = new Racer
+exports.racer = racer = new Racer
   redis:
     db: 2
 store = racer.store
