@@ -17,10 +17,10 @@ exports.store = store = racer.store
 racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) ->
   fs.writeFileSync __dirname + '/script.js', js
 
-app.get '/', (req, res) ->
+app.get '/todos', (req, res) ->
   res.redirect '/racer'
 
-app.get '/:group', (req, res) ->
+app.get '/todos/:group', (req, res) ->
   group = req.params.group
   store.subscribe _group: "groups.#{group}.**", (err, model) ->
     initGroup model

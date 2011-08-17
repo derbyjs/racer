@@ -16,7 +16,7 @@ exports.store = store = racer.store
 racer.js entry: __dirname + '/client.js', (js) ->
   fs.writeFileSync __dirname + '/script.js', js
 
-app.get '/:room?', (req, res) ->
+app.get '/letters/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
   room = req.params.room
   return res.redirect '/lobby' unless room && /^[-\w ]+$/.test room
