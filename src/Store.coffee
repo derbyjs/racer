@@ -8,24 +8,55 @@ TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
-MAX_RETRIES = 10
-RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
+MAX_RETRIES = 100
+MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
 
 Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   self = this
   @_adapter = adapter = new AdapterClass
 
-  ropts = {port, host, db} = options.redis || {}
+  {port, host, db} = redisOptions = options.redis || {}
   # Client for data access and event publishing
-  @_redisClient = redisClient = redis.createClient(port, host, ropts)
-  redisClient.select db if db
+  @_redisClient = redisClient = redis.createClient(port, host, redisOptions)
   # Client for internal Racer event subscriptions
-  @_subClient = subClient = redis.createClient(port, host, ropts)
-  subClient.select db if db
+  @_subClient = subClient = redis.createClient(port, host, redisOptions)
   # Client for event subscriptions of txns only
-  @_txnSubClient = txnSubClient = redis.createClient(port, host, ropts)
-  txnSubClient.select db if db
-  
+  @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+
+  # TODO: Make sure there are no weird race conditions here, since we are
+  # caching the value of starts and it could potentially be stale when a
+  # transaction is received
+  # TODO: Make sure this works when redis crashes and is restarted
+  redisStarts = null
+  startId = null
+  subscribeToStarts = ->
+    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
+      redisStarts = starts
+      startId = starts[0][0]
+  redisClient.on 'end', ->
+    redisStarts = null
+    startId = null
+
+  # Calling right away queues the select db command before any commands that
+  # a client might add before connect happens. If select is not queued first,
+  # the subsequent commands could happen on the wrong db
+  ignoreConnect = false
+  do onRedisConnect = ->
+    return ignoreConnect = false if ignoreConnect
+    if db is undefined
+      subscribeToStarts()
+    else
+      selectDbCount = 2
+      selectDbCallback = (err) ->
+        throw err if err
+        subscribeToStarts() unless --selectDbCount
+      redisClient.select db, selectDbCallback
+      subClient.select db, selectDbCallback
+  # Ignore the first connection, since the function is executed immediately
+  ignoreConnect = true
+  redisClient.on 'connect', onRedisConnect
+
+
   ## Downstream Transactional Interface ##
 
   # Redis clients used for subscribe, psubscribe, unsubscribe,
@@ -52,25 +83,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
           socket.__base = base
           nextTxnNum clientId, (num) ->
             socket.emit 'txn', txn, num
-  
+
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
       throw err if err
       callback value
-  
-  # TODO: Make sure there are no weird race conditions here, since we are
-  # caching the value of starts and it could potentially be stale when a
-  # transaction is received
-  redisStarts = null
-  startId = null
-  redisClient.on 'connect', ->
-    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
-      redisStarts = starts
-      startId = starts[0][0]
-  redisClient.on 'end', ->
-    redisStarts = null
-    startId = null
-  
+
   hasInvalidVer = (socket, ver, clientStartId) ->
     # Don't allow a client to connect unless there is a valid startId to
     # compare the model's against
@@ -80,7 +98,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     # TODO: Map the client's version number to the Stm's and update the client
     # with the new startId unless the client's version includes versions that
     # can't be mapped
-    if clientStartId != startId
+    unless clientStartId && clientStartId == startId
       socket.emit 'fatalErr'
       return true
     return false
@@ -228,7 +246,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
       # If subscribe(paths..., callback)
       paths.unshift model
     
-    nextClientId (clientId) ->
+    nextClientId waitForStartId = (clientId) ->
+      return setTimeout waitForStartId, 10, clientId unless startId
       model = new Model(clientId)
       model.store = self
       model._ioUri = self._ioUri
@@ -306,12 +325,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   
   @retry = (fn, callback) ->
     retries = MAX_RETRIES
-    delay = RETRY_DELAY
     atomic = new StoreAtomic @, (err) ->
-      return callback && callback() if `err == null`
+      return callback && callback() unless err
       return callback && callback 'maxRetries' unless retries--
       atomic._reset()
-      delay *= 2
+      delay = Math.random() * MAX_RETRY_DELAY
       setTimeout fn, delay, atomic
     fn atomic
   

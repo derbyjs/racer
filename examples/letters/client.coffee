@@ -10,21 +10,37 @@ roomsDiv = document.getElementById 'rooms'
 roomlist = document.getElementById 'roomlist'
 dragData = null
 letters = window.letters = {}
-  
+
 updateInfo = ->
-  players = model.get '_room.players'
-  if model.socket.socket.connected
+  # model.connection returns:
+  # true for connected
+  # false for disconnected
+  # null for permanently can't connect
+  if connection = model.connection()
+    players = model.get '_room.players'
     html = players + ' Player' + if players > 1 then 's' else ''
-    roomsDiv.style.visibility = 'visible'
-  else
+    roomsVisibility = 'visible'
+  else if connection == false
     html = 'Offline<span id=reconnect> &ndash; <a href=# onclick="return letters.connect()">Reconnect</a></span>'
-    roomsDiv.style.visibility = 'hidden'
+    roomsVisibility = 'hidden'
+  else
+    html = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
+    roomsVisibility = 'hidden'
   if conflicts
     html += ''' &ndash; Another player made conflicting moves:&nbsp;
     <a href=# onclick="return letters.resolve()">Accept</a>&nbsp;
     <a href=# onclick="return letters.resolve(true)">Override</a>'''
   info.innerHTML = html
-  
+  roomsDiv.style.visibility = roomsVisibility
+
+letters.connect = ->
+  reconnect = document.getElementById 'reconnect'
+  reconnect.style.display = 'none'
+  # Hide the reconnect link for a second so it looks like something is going on
+  setTimeout (-> reconnect.style.display = 'inline'), 1000
+  model.socket.socket.connect()
+  return false
+
 updateRooms = ->
   rooms = []
   for name, room of model.get 'rooms'
@@ -37,37 +53,28 @@ updateRooms = ->
     display = (name.charAt(0).toUpperCase() + name.substr(1)).replace /-/g, ' '
     text = "#{display} (#{room.players})"
     html += if name == currentName then """<li><b>#{text}</b>""" else
-      """<li><a href="/letters/#{name}">#{text}</a>"""
+      """<li><a href="#{name}">#{text}</a>"""
   roomlist.innerHTML = html
-  
-  
+
+
 ## Update the DOM when the model changes ##
-  
-model.socket.on 'disconnect', -> setTimeout updateInfo, 200
+
 model.socket.on 'connect', -> model.socket.emit 'join', model.get '_roomName'
-setTimeout updateInfo, 400
-letters.connect = ->
-  reconnect = document.getElementById 'reconnect'
-  reconnect.style.display = 'none'
-  setTimeout (-> reconnect.style.display = 'inline'), 1000
-  model.socket.socket.connect()
-  return false
-  
-model.on 'fatalError', ->
-  info.innerHTML = 'Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
-  
+
+model.on 'connectionStatus', updateInfo
+
 model.on 'set', '_room.players', updateInfo
-    
+
 model.on 'set', 'rooms.*.players', updateRooms
-      
+
 # Path wildcards are passed to the handler function as arguments in order.
 # The function arguments are: (wildcards..., value)
 model.on 'set', '_room.letters.*.position', (id, position) ->
   el = document.getElementById id
   el.style.left = position.left + 'px'
   el.style.top = position.top + 'px'
-  
-  
+
+
 ## Make letters draggable using HTML5 drag drop ##
 
 addListener = if document.addEventListener
@@ -85,14 +92,14 @@ addListener board, 'dragstart', (e) ->
   e.dataTransfer.effectAllowed = 'move'
   # At least one data item must be set to enable dragging
   e.dataTransfer.setData 'Text', 'x'
-
+  
   # Store the dragged letter and the offset of the click position
   target = e.target || e.srcElement
   dragData =
     target: target
     startLeft: e.clientX - target.offsetLeft
     startTop: e.clientY - target.offsetTop
-
+  
   target.style.opacity = 0.5
 
 addListener board, 'dragover', (e) ->
@@ -103,7 +110,7 @@ addListener board, 'dragover', (e) ->
 
 addListener board, 'dragend', (e) ->
   dragData.target.style.opacity = 1
-  
+
 addListener board, 'drop', (e) ->
   # Prevent Firefox from redirecting
   e.preventDefault() if e.preventDefault
@@ -111,7 +118,7 @@ addListener board, 'drop', (e) ->
   moveLetter dragData.target.id,
     e.clientX - dragData.startLeft,
     e.clientY - dragData.startTop
-  
+
 conflicts = null
 letters.resolve = (override) ->
   for i, conflict of conflicts
@@ -120,7 +127,7 @@ letters.resolve = (override) ->
   conflicts = null
   updateInfo()
   return false
-  
+
 moveLetter = (id, left, top) ->
   model.set "_room.letters.#{id}.position", {left, top}, (err) ->
     return unless err is 'conflict'

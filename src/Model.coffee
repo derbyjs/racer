@@ -100,7 +100,22 @@ Model:: =
         args.unshift err
         callback args...
       removeTxn txnId
-    socket.on 'fatalErr', -> self.emit 'fatalError'
+    
+    fatalErr = false
+    socket.on 'fatalErr', ->
+      fatalErr = true
+      socket.disconnect()
+    
+    # model.connection returns:
+    # true for connected
+    # false for disconnected
+    # null for permanently can't connect
+    @connection = connection = ->
+      return null if fatalErr
+      socket.socket.connected
+    onConnectionStatus = ->
+      self.emit 'connectionStatus', connection()
+    
     
     clientId = @_clientId
     storeSubs = @_storeSubs
@@ -112,6 +127,7 @@ Model:: =
         return if txn.timeout > now
         commit txn
     socket.on 'connect', ->
+      onConnectionStatus()
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
       socket.emit 'sub', clientId, storeSubs, adapter.ver, self._startId
@@ -124,6 +140,10 @@ Model:: =
       # Stop resending transactions while disconnected
       clearInterval resendInterval if resendInterval
       resendInterval = null
+      # Slight delay after disconnect so that offline doesn't flash on reload
+      setTimeout onConnectionStatus, 200
+    # Needed in case page is loaded from cache while offline
+    socket.on 'connect_failed', onConnectionStatus
   
   
   ## Transaction handling ##
