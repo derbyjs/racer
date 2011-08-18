@@ -1,9 +1,9 @@
 { "name": "racer-todos-example",
   "description": "Todo list demo for Racer",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "./server.js",
   "dependencies": {
-    "racer": "0.0.3",
+    "racer": "0.0.4",
     "express": ">=2",
     "connect-gzip": ">=0.1"
   },
