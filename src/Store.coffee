@@ -15,17 +15,37 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   self = this
   @_adapter = adapter = new AdapterClass
 
-  ropts = {port, host, db} = options.redis || {}
+  {port, host, db} = redisOptions = options.redis || {}
   # Client for data access and event publishing
-  @_redisClient = redisClient = redis.createClient(port, host, ropts)
-  redisClient.select db if db
+  @_redisClient = redisClient = redis.createClient(port, host, redisOptions)
   # Client for internal Racer event subscriptions
-  @_subClient = subClient = redis.createClient(port, host, ropts)
-  subClient.select db if db
+  @_subClient = subClient = redis.createClient(port, host, redisOptions)
   # Client for event subscriptions of txns only
-  @_txnSubClient = txnSubClient = redis.createClient(port, host, ropts)
-  txnSubClient.select db if db
-  
+  @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+
+  subscribeToStarts() if db is undefined
+  selectDbCount = 2
+  selectDbCallback = (err) ->
+    throw err if err
+    subscribeToStarts() unless --selectDbCount
+  redisClient.select db, selectDbCallback
+  subClient.select db, selectDbCallback
+
+  # TODO: Make sure there are no weird race conditions here, since we are
+  # caching the value of starts and it could potentially be stale when a
+  # transaction is received
+  # TODO: Make sure this works when redis crashes and is restarted
+  redisStarts = null
+  startId = null
+  subscribeToStarts = ->
+    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
+      redisStarts = starts
+      startId = starts[0][0]
+  redisClient.on 'end', ->
+    redisStarts = null
+    startId = null
+
+
   ## Downstream Transactional Interface ##
 
   # Redis clients used for subscribe, psubscribe, unsubscribe,
@@ -52,25 +72,12 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
           socket.__base = base
           nextTxnNum clientId, (num) ->
             socket.emit 'txn', txn, num
-  
+
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
       throw err if err
       callback value
-  
-  # TODO: Make sure there are no weird race conditions here, since we are
-  # caching the value of starts and it could potentially be stale when a
-  # transaction is received
-  redisStarts = null
-  startId = null
-  redisClient.on 'connect', ->
-    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
-      redisStarts = starts
-      startId = starts[0][0]
-  redisClient.on 'end', ->
-    redisStarts = null
-    startId = null
-  
+
   hasInvalidVer = (socket, ver, clientStartId) ->
     # Don't allow a client to connect unless there is a valid startId to
     # compare the model's against
