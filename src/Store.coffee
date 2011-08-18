@@ -37,15 +37,24 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     redisStarts = null
     startId = null
 
-  if db is undefined
-    subscribeToStarts() 
-  else
-    selectDbCount = 2
-    selectDbCallback = (err) ->
-      throw err if err
-      subscribeToStarts() unless --selectDbCount
-    redisClient.select db, selectDbCallback
-    subClient.select db, selectDbCallback
+  # Calling right away queues the select db command before any commands that
+  # a client might add before connect happens. If select is not queued first,
+  # the subsequent commands could happen on the wrong db
+  ignoreConnect = false
+  do onRedisConnect = ->
+    return ignoreConnect = false if ignoreConnect
+    if db is undefined
+      subscribeToStarts()
+    else
+      selectDbCount = 2
+      selectDbCallback = (err) ->
+        throw err if err
+        subscribeToStarts() unless --selectDbCount
+      redisClient.select db, selectDbCallback
+      subClient.select db, selectDbCallback
+  # Ignore the first connection, since the function is executed immediately
+  ignoreConnect = true
+  redisClient.on 'connect', onRedisConnect
 
 
   ## Downstream Transactional Interface ##
@@ -237,7 +246,8 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
       # If subscribe(paths..., callback)
       paths.unshift model
     
-    nextClientId (clientId) ->
+    nextClientId waitForStartId = (clientId) ->
+      return setTimeout waitForStartId, 10, clientId unless startId
       model = new Model(clientId)
       model.store = self
       model._ioUri = self._ioUri
