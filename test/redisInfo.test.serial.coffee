@@ -39,11 +39,20 @@ module.exports =
       done()
     redisInfo._getStarts client, ->
   
-  'getStarts should work after calling onStart': (done) ->
+  'calling getStarts multiple times should work after calling onStart': (done) ->
     redisInfo.onStart client, ->
-      redisInfo._getStarts client, (starts) ->
-        checkFirstStart starts
-        done()
+      client.lrange 'starts', 0, -1, (err, starts) ->
+        starts1 = (start.split ',' for start in starts)
+        # Delay to make sure start timestamp is different if it gets reset
+        setTimeout ->
+          redisInfo._getStarts client, (starts2) ->
+            starts1.should.eql starts2
+            setTimeout ->
+              redisInfo._getStarts client, (starts3) ->
+                starts1.should.eql starts3
+                done()
+            , 10
+        , 10
   
   'onStart should capture the current version when it is called': (done) ->
     client.set 'ver', 7, ->
