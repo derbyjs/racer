@@ -82,7 +82,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     # can't be mapped
     if clientStartId != startId
       socket.emit 'fatalErr'
-      socket.disconnect()
       return true
     return false
   
