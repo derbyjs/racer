@@ -1,7 +1,7 @@
 transaction = require './transaction.server'
 
 MAX_RETRIES = 10
-RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
+MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
 
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
@@ -12,15 +12,15 @@ RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
 Stm = module.exports = (redisClient) ->
   
   # Callback has signature: fn(err, lockVal, txns)
-  lock = (len, locks, txnsSince, retries, delay, callback) ->
+  lock = (len, locks, txnsSince, retries, callback) ->
     redisClient.eval LOCK, len, locks..., txnsSince, (err, values) ->
       return callback err if err
       if values[0]
         return callback null, values[0], values[1]
       if retries
         return setTimeout ->
-          lock len, locks, txnsSince, retries - 1, delay * 2, callback
-        , delay
+          lock len, locks, txnsSince, retries - 1, callback
+        , Math.random() * MAX_RETRY_DELAY
       return callback 'lockMaxRetries'
   
   # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
@@ -36,7 +36,7 @@ Stm = module.exports = (redisClient) ->
     txnsSince = if `base == null` then '' else base + 1
     locks = getLocks transaction.path txn
     locksLen = locks.length
-    lock locksLen, locks, txnsSince, MAX_RETRIES, RETRY_DELAY, (err, lockVal, txns) ->
+    lock locksLen, locks, txnsSince, MAX_RETRIES, (err, lockVal, txns) ->
       return callback err if err
       
       # Check the new transaction against all transactions in the journal
