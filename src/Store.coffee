@@ -23,14 +23,6 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   # Client for event subscriptions of txns only
   @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
 
-  subscribeToStarts() if db is undefined
-  selectDbCount = 2
-  selectDbCallback = (err) ->
-    throw err if err
-    subscribeToStarts() unless --selectDbCount
-  redisClient.select db, selectDbCallback
-  subClient.select db, selectDbCallback
-
   # TODO: Make sure there are no weird race conditions here, since we are
   # caching the value of starts and it could potentially be stale when a
   # transaction is received
@@ -44,6 +36,16 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   redisClient.on 'end', ->
     redisStarts = null
     startId = null
+
+  if db is undefined
+    subscribeToStarts() 
+  else
+    selectDbCount = 2
+    selectDbCallback = (err) ->
+      throw err if err
+      subscribeToStarts() unless --selectDbCount
+    redisClient.select db, selectDbCallback
+    subClient.select db, selectDbCallback
 
 
   ## Downstream Transactional Interface ##
