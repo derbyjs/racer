@@ -29,32 +29,22 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   # TODO: Make sure this works when redis crashes and is restarted
   redisStarts = null
   startId = null
-  subscribeToStarts = ->
+  # Calling select right away queues the command before any commands that
+  # a client might add before connect happens. If select is not queued first,
+  # the subsequent commands could happen on the wrong db
+  do subscribeToStarts = (selected) ->
+    if db isnt undefined && !selected
+      return redisClient.select db, (err) ->
+        throw err if err
+        subscribeToStarts true
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
       startId = starts[0][0]
+
+  redisClient.on 'connect', subscribeToStarts
   redisClient.on 'end', ->
     redisStarts = null
     startId = null
-
-  # Calling right away queues the select db command before any commands that
-  # a client might add before connect happens. If select is not queued first,
-  # the subsequent commands could happen on the wrong db
-  ignoreConnect = false
-  do onRedisConnect = ->
-    return ignoreConnect = false if ignoreConnect
-    if db is undefined
-      subscribeToStarts()
-    else
-      selectDbCount = 2
-      selectDbCallback = (err) ->
-        throw err if err
-        subscribeToStarts() unless --selectDbCount
-      redisClient.select db, selectDbCallback
-      subClient.select db, selectDbCallback
-  # Ignore the first connection, since the function is executed immediately
-  ignoreConnect = true
-  redisClient.on 'connect', onRedisConnect
 
 
   ## Downstream Transactional Interface ##
