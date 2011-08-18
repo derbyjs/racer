@@ -89,7 +89,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     # TODO: Map the client's version number to the Stm's and update the client
     # with the new startId unless the client's version includes versions that
     # can't be mapped
-    if clientStartId != startId
+    unless clientStartId && clientStartId == startId
       socket.emit 'fatalErr'
       return true
     return false
