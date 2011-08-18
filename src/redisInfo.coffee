@@ -26,8 +26,6 @@ module.exports =
     client.lrange 'starts', 0, -1, (err, starts) ->
       throw err if err
       if starts.length is 0
-        console.error 'WARNING: Redis server does not have any record of ' +
-          'being started by the Racer Redis loader.'
         # If Redis has no record of being started by the Racer loader, assign
         # a start value with a version of 0. Note that multiple Store instances
         # may all try to do this at once, so this code uses a watch / multi
@@ -42,6 +40,10 @@ module.exports =
               # on starts was applied, return before doing anything
               return client.unwatch 'starts', ->
                 getStarts client, callback
+            
+            console.error 'WARNING: Redis server does not have any record of ' +
+              'being started by the Racer Redis loader.'
+            
             # Initialize the value for starts if it is empty
             setStarts client, 0, 0, ->
               getStarts client, callback

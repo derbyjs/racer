@@ -32,7 +32,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   # Calling select right away queues the command before any commands that
   # a client might add before connect happens. If select is not queued first,
   # the subsequent commands could happen on the wrong db
+  ignoreSubscribe = false
   do subscribeToStarts = (selected) ->
+    return ignoreSubscribe = false if ignoreSubscribe
     if db isnt undefined && !selected
       return redisClient.select db, (err) ->
         throw err if err
@@ -40,7 +42,9 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
       startId = starts[0][0]
-
+  
+  # Ignore the first connect event
+  ignoreSubscribe = true
   redisClient.on 'connect', subscribeToStarts
   redisClient.on 'end', ->
     redisStarts = null
