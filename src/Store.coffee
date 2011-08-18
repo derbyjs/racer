@@ -8,8 +8,8 @@ TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
-MAX_RETRIES = 10
-RETRY_DELAY = 10  # Delay in milliseconds. Exponentially increases on failure
+MAX_RETRIES = 100
+MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
 
 Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   self = this
@@ -82,6 +82,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
     # can't be mapped
     if clientStartId != startId
       socket.emit 'fatalErr'
+      socket.disconnect()
       return true
     return false
   
@@ -306,12 +307,11 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   
   @retry = (fn, callback) ->
     retries = MAX_RETRIES
-    delay = RETRY_DELAY
     atomic = new StoreAtomic @, (err) ->
-      return callback && callback() if `err == null`
+      return callback && callback() unless err
       return callback && callback 'maxRetries' unless retries--
       atomic._reset()
-      delay *= 2
+      delay = Math.random() * MAX_RETRY_DELAY
       setTimeout fn, delay, atomic
     fn atomic
   
