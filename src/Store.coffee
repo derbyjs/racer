@@ -59,6 +59,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   # pubsub's @_publishClient.
   @_localModels = localModels = {}
   @_pubSub = pubSub = new PubSub
+    redis: redisOptions
     pubClient: redisClient
     subClient: txnSubClient
     onMessage: (clientId, txn) ->

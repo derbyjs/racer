@@ -24,15 +24,16 @@ PubSub:: =
 
 PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
-
+  
+  redisOptions = {port, host, db} = options.redis || {}
+  namespace = (db || 0) + '.'
+  @_namespace = (path) -> namespace + path
+  
   unless @_publishClient = options.pubClient
-    ropts = {port, host, db} = options.redis || {}
-    @_publishClient = redis.createClient(port, host, ropts)
+    @_publishClient = redis.createClient port, host, redisOptions
     @_publishClient.select db if db
   unless @_subscribeClient = subClient = options.subClient
-    ropts = {port, host, db} = options.redis || {}
-    @_subscribeClient = redis.createClient port, host, ropts
-    @_subscribeClient.select db if db
+    @_subscribeClient = redis.createClient port, host, redisOptions
 
   @_subs = subs = {}
   @_subscriberSubs = {}
@@ -47,7 +48,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
       console.log "PMESSAGE #{pattern} #{channel} #{message}"
     @__publish = RedisAdapter::publish
     @publish = (path, message) ->
-      console.log "PUBLISH #{path} #{JSON.stringify message}"
+      console.log "PUBLISH #{@_namespace path} #{JSON.stringify message}"
       @__publish path, message
   
   _onMessage = (glob, path, message) ->
@@ -61,7 +62,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
   
   # Redis doesn't support callbacks on subscribe or unsubscribe methods, so
   # we call the callback after subscribe/unsubscribe events are published on
-  # each of the paths for a given call of subscribe/unsubscribe
+  # each of the paths for a given call of subscribe/unsubscribe.
   makeCallback = (queue, events) ->
     fn = (path) ->
       if pending = queue[path]
@@ -83,6 +84,7 @@ RedisAdapter:: =
     subscriberSubs = @_subscriberSubs
     toAdd = []
     for path in paths
+      path = @_namespace path
       glob = pathParser.glob path
       unless globSubs = subs[glob]
         subs[glob] = globSubs = {}
@@ -98,6 +100,7 @@ RedisAdapter:: =
       'subscribe', 'psubscribe', callback
 
   publish: (path, message) ->
+    path = @_namespace path
     @_publishClient.publish path, JSON.stringify message
 
   unsubscribe: (subscriberId, paths, callback) ->
@@ -116,6 +119,7 @@ RedisAdapter:: =
     subs = @_subs
     toRemove = []
     for path in paths
+      path = @_namespace path
       glob = pathParser.glob path
       if globSubs = subs[glob]
         delete globSubs["#{subscriberId}$#{path}"]
@@ -129,7 +133,7 @@ RedisAdapter:: =
   hasSubscriptions: (subscriberId) -> subscriberId of @_subscriberSubs
 
   subscribedToTxn: (subscriberId, txn) ->
-    path = transaction.path txn
+    path = @_namespace transaction.path txn
     for p, re of @_subscriberSubs[subscriberId]
       return true if p == path || re.test path
     return false
