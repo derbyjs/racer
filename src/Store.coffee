@@ -8,8 +8,8 @@ TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
 
-MAX_RETRIES = 100
-MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
+MAX_RETRIES = 20
+RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
 
 Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
   self = this
@@ -323,7 +323,7 @@ Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
       return callback && callback() unless err
       return callback && callback 'maxRetries' unless retries--
       atomic._reset()
-      delay = Math.random() * MAX_RETRY_DELAY
+      delay = (MAX_RETRIES - retries) * RETRY_DELAY
       setTimeout fn, delay, atomic
     fn atomic
   

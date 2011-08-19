@@ -1,7 +1,7 @@
 transaction = require './transaction.server'
 
 MAX_RETRIES = 10
-MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
+RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
 
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
@@ -10,17 +10,25 @@ MAX_RETRY_DELAY = 10  # Retries are randomly delayed between 0ms and this value
 # current approach
 
 Stm = module.exports = (redisClient) ->
+
+  lockQueue = {}
   
   # Callback has signature: fn(err, lockVal, txns)
-  lock = (len, locks, txnsSince, retries, callback) ->
+  lock = (len, locks, txnsSince, path, retries, delay, callback) ->
     redisClient.eval LOCK, len, locks..., txnsSince, (err, values) ->
       return callback err if err
       if values[0]
         return callback null, values[0], values[1]
       if retries
+        lockQueue[path] = queue = lockQueue[path] || []
+        # Maintain a queue so that if this lock conflicts with another operation
+        # on the same server and the same path, the lock can be retried immediately
+        queue.push [len, locks, txnsSince, path, retries - 1, delay * 2, callback]
+        # Use an exponential timeout in case the conflict is because of a lock
+        # on a child path or is coming from a different server
         return setTimeout ->
-          lock len, locks, txnsSince, retries - 1, callback
-        , Math.random() * MAX_RETRY_DELAY
+          lock args... if args = lockQueue[path].shift()
+        , delay
       return callback 'lockMaxRetries'
   
   # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
@@ -34,9 +42,10 @@ Stm = module.exports = (redisClient) ->
     # will be found
     base = transaction.base txn
     txnsSince = if `base == null` then '' else base + 1
-    locks = getLocks transaction.path txn
+    path = transaction.path txn
+    locks = getLocks path
     locksLen = locks.length
-    lock locksLen, locks, txnsSince, MAX_RETRIES, (err, lockVal, txns) ->
+    lock locksLen, locks, txnsSince, path, MAX_RETRIES, RETRY_DELAY, (err, lockVal, txns) ->
       return callback err if err
       
       # Check the new transaction against all transactions in the journal
@@ -51,6 +60,10 @@ Stm = module.exports = (redisClient) ->
         return callback err if err
         return callback 'lockReleased' if ver is 0
         callback null, ver
+        
+        # If another transaction failed to lock because of this transaction,
+        # shift it from the queue
+        lock args... if (queue = lockQueue[path]) && args = queue.shift()
   
   return
 

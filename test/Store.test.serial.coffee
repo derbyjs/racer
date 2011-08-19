@@ -1,6 +1,7 @@
 should = require 'should'
 Store = require 'Store'
 redis = require 'redis'
+transaction = require 'transaction'
 
 store = null
 module.exports =
@@ -118,6 +119,19 @@ module.exports =
               value.should.eql 5
               done()
           , 50
+
+  'store._commit should apply transactions in order': (done) ->
+    idIn = []
+    idOut = []
+    for i in [0..9]
+      idIn.push id = "1.#{i}"
+      txn = transaction.create(base: 0, id: id, method: 'set', args: ['stuff', 0])
+      store._commit txn, (err, txn) ->
+        idOut.push transaction.id txn
+        finish() if idOut.length is 10
+    finish = ->
+      idIn.should.eql idOut
+      done()
   
   # TODO tests:
   # 'should, upon socket.io disconnect, remove the socket from the sockets._byClientID index'
