@@ -121,9 +121,9 @@ addListener board, 'drop', (e) ->
 
 conflicts = null
 letters.resolve = (override) ->
-  for i, conflict of conflicts
-    board.removeChild conflict.clone
-    moveLetter conflict.id, conflict.left, conflict.top if override
+  for i, {clone, id, left, top} of conflicts
+    board.removeChild clone
+    moveLetter id, left, top if override
   conflicts = null
   updateInfo()
   return false

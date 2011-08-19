@@ -96,7 +96,7 @@ Model:: =
     socket.on 'txnErr', (err, txnId) ->
       txn = txns[txnId]
       if txn && (callback = txn.callback)
-        args = transaction.args txn
+        args = transaction.args(txn).slice 0
         args.unshift err
         callback args...
       removeTxn txnId
