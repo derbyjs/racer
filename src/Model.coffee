@@ -10,7 +10,6 @@ specHelper = require './specHelper'
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._adapter = adapter = new AdapterClass
-  self._initRefs adapter
 
   self._cache =
     invalidateSpecModelCache: ->
@@ -56,7 +55,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # create a transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
 
-  refHelper = self._refHelper
+  @_refHelper = refHelper = new RefHelper @
   for method in ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
     do (method) ->
       self.on method, ([path, args...]) ->
@@ -244,10 +243,7 @@ Model:: =
       cache.lastReplayedTxnId = transaction.id txn
     return [obj, path]
   
-  ## Model references handling ##
-
-  _initRefs: (adapter) ->
-    @_refHelper = refHelper = new RefHelper @
+  ## Model reference functions ##
 
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
@@ -260,6 +256,11 @@ Model:: =
   set: (path, value, callback) ->
     @_addTxn 'set', path, value, callback
     return value
+  
+  setNull: (path, value, callback) ->
+    obj = @get path
+    return obj  if `obj != null`
+    @set path, value, callback
   
   del: (path, callback) ->
     @_addTxn 'del', path, callback

@@ -19,13 +19,21 @@ module.exports = (store) ->
   racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) ->
     fs.writeFileSync __dirname + '/script.js', js
 
+  defaultGroup =
+    todos:
+      0: {id: 0, completed: true, text: 'This one is done already'}
+      1: {id: 1, completed: false, text: 'Example todo'}
+      2: {id: 2, completed: false, text: 'Another example'}
+    todoIds: [1, 2, 0]
+    nextId: 3
+    
   app.get '/todos', (req, res) ->
     res.redirect '/todos/racer'
 
   app.get '/todos/:group', (req, res) ->
     group = req.params.group
     store.subscribe _group: "groups.#{group}.**", (err, model) ->
-      initGroup model
+      model.setNull "groups.#{group}", defaultGroup
       # Currently, refs must be explicitly declared per model; otherwise the ref
       # is not added the model's internal reference indices
       model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
@@ -52,13 +60,4 @@ module.exports = (store) ->
         <script src=script.js></script>
         """
 
-  initGroup = (model) ->
-    return if model.get '_group'
-    model.set '_group.todos',
-      0: {id: 0, completed: true, text: 'This one is done already'}
-      1: {id: 1, completed: false, text: 'Example todo'}
-      2: {id: 2, completed: false, text: 'Another example'}
-    model.set '_group.todoIds', [1, 2, 0]
-    model.set '_group.nextId', 3
-  
   return exports

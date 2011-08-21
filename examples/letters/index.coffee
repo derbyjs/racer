@@ -17,6 +17,17 @@ module.exports = (store) ->
   # socket.io client side code as well as any additional browserify options
   racer.js entry: __dirname + '/client.js', (js) ->
     fs.writeFileSync __dirname + '/script.js', js
+  
+  colors = ['red', 'yellow', 'blue', 'orange', 'green']
+  defaultLetters = {}
+  for row in [0..4]
+    for col in [0..25]
+      defaultLetters[row * 26 + col] =
+        color: colors[row]
+        value: String.fromCharCode(65 + col)
+        position:
+          left: col * 24 + 72
+          top: row * 32 + 8
 
   app.get '/letters/:room?', (req, res) ->
     # Redirect users to URLs that only contain letters, numbers, and hyphens
@@ -26,8 +37,8 @@ module.exports = (store) ->
     return res.redirect "/letters/#{_room}" if _room != room
   
     store.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
+      model.setNull '_room.letters', defaultLetters
       model.set '_roomName', room
-      initRoom model
       # model.bundle waits for any pending model operations to complete and then
       # returns the JSON data for initialization on the client
       model.bundle (bundle) ->
@@ -60,20 +71,6 @@ module.exports = (store) ->
         <script>init=#{bundle}</script>
         <script src=script.js></script>
         """
-
-  initRoom = (model) ->
-    return if model.get '_room.letters'
-    colors = ['red', 'yellow', 'blue', 'orange', 'green']
-    letters = {}
-    for row in [0..4]
-      for col in [0..25]
-        letters[row * 26 + col] =
-          color: colors[row]
-          value: String.fromCharCode(65 + col)
-          position:
-            left: col * 24 + 72
-            top: row * 32 + 8
-    model.set '_room.letters', letters
 
   store.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->
