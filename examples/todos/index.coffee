@@ -1,17 +1,16 @@
 express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
-Racer = require('racer').Racer
+racer = require 'racer'
 shared = require './shared'
 
-module.exports = (racer) ->
+module.exports = (store) ->
 
   exports.app = app = express.createServer()
     .use(express.favicon())
     .use('/todos', gzip.staticGzip(__dirname))
 
-  racer = new Racer(redis: {db: 2}, listen: app) unless racer
-  store = racer.store
+  store = racer.createStore(redis: {db: 2}, listen: app) unless store
   # Clear all existing data on restart
   store.flush()
 

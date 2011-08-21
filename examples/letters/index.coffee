@@ -1,16 +1,15 @@
 express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
-Racer = require('racer').Racer
+racer = require 'racer'
 
-module.exports = (racer) ->
+module.exports = (store) ->
 
   exports.app = app = express.createServer()
     .use(express.favicon())
     .use('/letters', gzip.staticGzip(__dirname))
 
-  racer = new Racer(redis: {db: 1}, listen: app) unless racer
-  store = racer.store
+  store = racer.createStore(redis: {db: 1}, listen: app) unless store
   # Clear all existing data on restart
   store.flush()
 
@@ -76,7 +75,7 @@ module.exports = (racer) ->
             top: row * 32 + 8
     model.set '_room.letters', letters
 
-  racer.sockets.on 'connection', (socket) ->
+  store.sockets.on 'connection', (socket) ->
     socket.on 'join', (room) ->
       playersPath = "rooms.#{room}.players"
       store.incr playersPath

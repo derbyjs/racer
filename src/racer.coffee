@@ -4,39 +4,33 @@ socketio = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 uglify = require 'uglify-js'
+util = require './util'
 
 DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
 
-Racer = (options) ->
-  # TODO: Provide full configuration for socket.io
-  # TODO: Add configuration for Redis
+Store::setSockets = (@sockets, ioUri = '') ->
+  @_setSockets @sockets
+  @_ioUri = ioUri
 
-  storeOptions = {}
-  storeOptions = redis: options.redis if options.redis
-  @store = store = new Store options.storeAdapter, storeOptions
+Store::listen = (to) ->
+  io = socketio.listen to
+  io.configure ->
+    io.set 'browser client', false
+    io.set 'transports', DEFAULT_TRANSPORTS
+  socketUri = if typeof to is 'number' then ':' + to else ''
+  @setSockets io.sockets, socketUri
 
-  ## Setup socket.io ##
-  if options.sockets
-    @setSockets options.sockets, options.socketUri
-  else if options.listen
-    @listen options.listen
-  
-  return
 
-Racer:: =
-  use: -> throw 'Unimplemented'
+module.exports =
 
-  setSockets: (@sockets, ioUri) ->
-    @store._setSockets @sockets
-    @store._ioUri = ioUri
-
-  listen: (to) ->
-    io = socketio.listen to
-    io.configure ->
-      io.set 'browser client', false
-      io.set 'transports', DEFAULT_TRANSPORTS
-    socketUri = if typeof to is 'number' then ':' + to else ''
-    @setSockets io.sockets, socketUri
+  createStore: (options) ->
+    # TODO: Provide full configuration for socket.io
+    store = new Store options
+    if options.sockets
+      store.setSockets options.sockets, options.socketUri
+    else if options.listen
+      store.listen options.listen
+    return store
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'
@@ -57,8 +51,7 @@ Racer:: =
   # 1. Assigns clientId's if not yet assigned
   # 2. Instantiates a new Model and attaches it to the incoming request,
   #    for access from route handlers later
-  middleware: ->
-    store = @store
+  middleware: (store) ->
     return (req, res, next) ->
       if !req.session
         # TODO Do this check only the first time the middleware is invoked
@@ -72,4 +65,5 @@ Racer:: =
       else
         store._nextClientId finish
 
-exports.Racer = Racer
+  util: util
+

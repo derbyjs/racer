@@ -11,9 +11,10 @@ redisInfo = require './redisInfo'
 MAX_RETRIES = 20
 RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
 
-Store = module.exports = (AdapterClass = MemoryAdapter, options = {}) ->
+Store = module.exports = (options = {}) ->
   self = this
-  @_adapter = adapter = new AdapterClass
+  Adapter = options.Adapter || MemoryAdapter
+  @_adapter = adapter = new Adapter
 
   {port, host, db} = redisOptions = options.redis || {}
   # Client for data access and event publishing

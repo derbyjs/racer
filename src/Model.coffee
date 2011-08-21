@@ -24,14 +24,15 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # each versioned message from the Model so that the Store can map the model's
   # version number to the version number of the Stm in case of a Redis failure
   self._startId = ''
-  
+
   self._txnCount = 0
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
-  
+
   txnApplier = new TxnApplier
     applyTxn: (txn) ->
-      self._applyTxn(txn, !txn.emitted && @_clientId != transaction.clientId(txn)) if transaction.base(txn) > adapter.ver
+      if transaction.base(txn) > adapter.ver
+        self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId(txn) 
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
@@ -40,12 +41,12 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
       txn.callback = queuedTxn.callback
       txn.emitted = queuedTxn.emitted
     txnApplier.add txn, num
-  
+
   self._onTxnNum = (num) ->
     # Reset the number used to keep track of pending transactions
     txnApplier.setIndex (+num || 0) + 1
     txnApplier.clearPending()
-  
+
   self._removeTxn = (txnId) ->
     delete txns[txnId]
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
@@ -56,12 +57,13 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.force = Object.create self, _force: value: true
 
   refHelper = self._refHelper
-  ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move'].forEach (method) ->
-    self.on method, ([path, args...]) ->
-      # Emit events on any references that point to the path or any of its
-      # ancestor paths
-      refHelper.notifyPointersTo path, @get(), method, args
-  
+  for method in ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
+    do (method) ->
+      self.on method, ([path, args...]) ->
+        # Emit events on any references that point to the path or any of its
+        # ancestor paths
+        refHelper.notifyPointersTo path, @get(), method, args
+
   return
 
 Model:: =
