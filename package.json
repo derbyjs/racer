@@ -1,7 +1,7 @@
 {
   "name": "racer",
   "description": "Experimental realtime model synchronization",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "./lib/racer.js",
   "browserify": {
     "main": "./lib/racer.browser.js"
