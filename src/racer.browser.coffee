@@ -1,4 +1,5 @@
 require 'es5-shim'
+util = require './util'
 Model = require './Model'
 
 # Patch Socket.io-client to publish the close event and disconnet immediately
@@ -38,4 +39,6 @@ racer = module.exports =
       # Republish the Socket.IO connect event after the onready callback
       # executes in case any client code wants to use it
       model.socket.socket.publish 'connect' if connected
+
+  util: util
 

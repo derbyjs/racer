@@ -24,16 +24,16 @@ Model::bundle = bundle = (callback, self = this) ->
   
   # Unsubscribe the model from PubSub events. It will be resubscribed again
   # when the model connects over socket.io
-  clientId = self._clientId
+  clientId = @_clientId
   @store._pubSub.unsubscribe clientId
   delete @store._localModels[clientId]
   
   callback JSON.stringify
-    data: self.get()
-    base: self._adapter.ver
+    data: @get()
+    base: @_adapter.ver
     clientId: clientId
-    storeSubs: self._storeSubs
-    startId: self._startId
-    txnCount: self._txnCount
-    txnNum: self._txnNum
+    storeSubs: @_storeSubs
+    startId: @_startId
+    txnCount: @_txnCount
+    txnNum: @_txnNum
     ioUri: @_ioUri
