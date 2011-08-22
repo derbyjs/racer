@@ -145,6 +145,20 @@ module.exports =
     model.set 'bestColor.hex', '#0f0'
   , 2
 
+  'model events should be emitted on a reference to a reference (private version)': wrapTest (done) ->
+    model = new Model
+    model.set 'color', model.ref '_colors.green'
+    model.set 'colors.green', model.ref '_bestColor'
+    model.on 'set', 'color.hex', (value) ->
+      value.should.eql '#0f0'
+      done()
+    model.on 'set', '_colors.**', (path, value) ->
+      path.should.eql 'green.hex'
+      value.should.eql '#0f0'
+      done()
+    model.set '_bestColor.hex', '#0f0'
+  , 2
+
   'model events should be emitted on a private path reference (client-side)': wrapTest (done) ->
     serverModel = new Model
     serverModel.set '_room', serverModel.ref 'rooms.lobby'
