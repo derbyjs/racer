@@ -31,7 +31,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   txnApplier = new TxnApplier
     applyTxn: (txn) ->
       if transaction.base(txn) > adapter.ver
-        self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId(txn) 
+        self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId(txn)
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
@@ -315,7 +315,7 @@ Model:: =
     @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
 
   move: (path, from, to, callback) ->
-    @_addTxn 'move', path, from, to, callback 
+    @_addTxn 'move', path, from, to, callback
 
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000

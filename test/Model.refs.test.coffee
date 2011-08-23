@@ -131,7 +131,7 @@ module.exports =
     model.set 'color.hex', '#0f0'
   , 1
   
-  'model events should be emitted on a reference to a reference': wrapTest (done) ->
+  'model events should be emitted upstream on a reference to a reference': wrapTest (done) ->
     model = new Model
     model.set 'color', model.ref 'colors.green'
     model.set 'colors.green', model.ref 'bestColor'
@@ -145,10 +145,10 @@ module.exports =
     model.set 'bestColor.hex', '#0f0'
   , 2
 
-  'model events should be emitted on a reference to a reference (private version)': wrapTest (done) ->
+  'model events should be emitted upstream on a reference to a reference (private version)': wrapTest (done) ->
     model = new Model
     model.set 'color', model.ref '_colors.green'
-    model.set 'colors.green', model.ref '_bestColor'
+    model.set '_colors.green', model.ref '_bestColor'
     model.on 'set', 'color.hex', (value) ->
       value.should.eql '#0f0'
       done()
@@ -158,6 +158,22 @@ module.exports =
       done()
     model.set '_bestColor.hex', '#0f0'
   , 2
+
+  'tmp': wrapTest (done) ->
+    model = new Model
+    model.set '_room', model.ref 'rooms.lobby'
+    model.set '_user', model.ref '_room.users.0'
+    model.on 'set', '_room.users.0.name', (value) ->
+      value.should.eql '#0f0'
+      done()
+    model.on 'set', '_user.name', (value) ->
+      value.should.eql '#0f0'
+      done()
+    model.on 'set', 'rooms.lobby.users.0.name', (value) ->
+      value.should.eql '#0f0'
+      done()
+    model.set '_user.name', '#0f0'
+  , 3
 
   'model events should be emitted on a private path reference (client-side)': wrapTest (done) ->
     serverModel = new Model

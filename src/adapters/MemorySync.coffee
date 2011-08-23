@@ -158,6 +158,7 @@ Memory:: =
   #      returnMeta option is really only used for path retrieval
   # TODO Replace with signature lookup(path, addPath, obj, options)
   lookup: (path, addPath, options) ->
+    origPath = path
     {proto, array} = options
     next = options.obj || @_data
     props = path.split '.'
@@ -209,13 +210,16 @@ Memory:: =
       if ref = next.$r
         if i == len && options.dontFollowLastRef
           return {path, parent, prop, obj: next}
+        {obj: rObj, path: rPath, remainingProps: rRemainingProps} =
+          @lookup(ref, addPath, options)
+        dereffedPath = rPath + if rRemainingProps?.length then '.' + rRemainingProps.join '.' else ''
         unless key = next.$k
-          next = @lookup(ref, addPath, options).obj
+          next = rObj
         else
           keyVal = @lookup(key, false, options).obj
           if specHelper.isArray(keyVal)
             next = keyVal.map (key) =>
-              @lookup(ref + '.' + key, false, options).obj
+              @lookup(dereffedPath + '.' + key, false, options).obj
             # Map array index to key it should be in the dereferenced
             # object
             if props[i]
@@ -223,9 +227,10 @@ Memory:: =
                 arrIndex: arrIndex = parseInt props[i], 10
                 dereffedProp: keyVal[arrIndex]
           else
-            ref = ref + '.' + @lookup(key, false, options).obj
-            next = @lookup(ref, addPath, options).obj
-        path = ref if i < len
+            dereffedPath = dereffedPath + '.' + @lookup(key, false, options).obj
+            # TODO deref the 2nd lookup term above
+            next = @lookup(dereffedPath, addPath, options).obj
+        path = dereffedPath if i < len
         
         if next is undefined && !addPath && i < len
           # Return undefined if the reference points to nothing and getting
