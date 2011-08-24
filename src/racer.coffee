@@ -12,13 +12,16 @@ Store::setSockets = (@sockets, ioUri = '') ->
   @_setSockets @sockets
   @_ioUri = ioUri
 
-Store::listen = (to) ->
+Store::listen = (to, namespace) ->
   io = socketio.listen to
   io.configure ->
     io.set 'browser client', false
     io.set 'transports', DEFAULT_TRANSPORTS
   socketUri = if typeof to is 'number' then ':' + to else ''
-  @setSockets io.sockets, socketUri
+  if namespace
+    @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
+  else
+    @setSockets io.sockets, socketUri
 
 
 module.exports =
@@ -29,7 +32,7 @@ module.exports =
     if options.sockets
       store.setSockets options.sockets, options.socketUri
     else if options.listen
-      store.listen options.listen
+      store.listen options.listen, options.namespace
     return store
 
   js: (options, callback) ->
