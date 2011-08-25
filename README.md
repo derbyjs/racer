@@ -12,7 +12,7 @@ Models provide a synchronous interface, so using them is more like interacting w
 
 Racer is not ready for use, so **please do not report bugs or contribute pull requests yet**. Lots of the code is being actively rewritten, and the API is likely to change substantially.
 
-If you have feedback, ideas, or suggestions, feel free to leave them on the [wiki](https://github.com/codeparty/racer/wiki). However, your suggestions and issues are unlikely to be addressed until after the initially planned work is completed. If you are interested in contributing, please reach out to [Brian](https://github.com/bnoguchi) and [Nate](https://github.com/nateps) first.
+If you have feedback, ideas, or suggestions, feel free to leave them on the [wiki](https://github.com/codeparty/racer/wiki). If you are interested in contributing, please reach out to [Brian](https://github.com/bnoguchi) and [Nate](https://github.com/nateps) first.
 
 ## Demos
 
