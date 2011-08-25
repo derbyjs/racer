@@ -20,7 +20,7 @@ There are currently two demos, which are included under the examples directory.
 
 ### Letters
 
-http://racerjs.com/letters/lobby
+http://letters.racerjs.com/lobby
 
 The letters game allows for multiple players to drag around refrigerator magnet style letters in realtime. It supports multiple rooms, where the room name is the URL path.
 
@@ -28,7 +28,7 @@ Letters demonstrates how applications can use Racer to provide application speci
 
 ### Todos
 
-http://racerjs.com/todos/racer
+http://todos.racerjs.com/racer
 
 Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application. The application code does not handle conflicts, so conflicting changes simply fail to be applied.
 
