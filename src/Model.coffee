@@ -51,9 +51,15 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
     self._cache.invalidateSpecModelCache()
   
-  # The value of @_force is checked in the @_addTxn method. It can be used to
-  # create a transaction without conflict detection, such as model.force.set
+  # The value of @_force is checked in @_addTxn. It can be used to create a
+  # transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
+
+  # The value of @_silent is checked in @_addTxn. It can be used to perform an
+  # operation without triggering an event locally, such as model.silent.set
+  # It only silences the first local event, so events on public paths that
+  # get synced to the server are still emitted
+  self.silent = Object.create self, _silent: value: true
 
   @_refHelper = refHelper = new RefHelper @
   for method in ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
@@ -182,7 +188,7 @@ Model:: =
     # Apply a private transaction immediately and don't send it to the store
     if pathParser.isPrivate path
       @_cache.invalidateSpecModelCache()
-      return @_applyTxn txn, !txn.emitted && true
+      return @_applyTxn txn, !txn.emitted && !@_silent
 
     if idAsIndex isnt undefined
       meta = txnArgs[1] # txnArgs[1] has form {id: id}
@@ -190,8 +196,9 @@ Model:: =
       transaction.meta txn, meta
 
     # Emit an event on creation of the transaction
-    @emit method, txnArgs
-    txn.emitted = true
+    unless @_silent
+      @emit method, txnArgs
+      txn.emitted = true
 
     txnArgs[1] = idAsIndex if idAsIndex isnt undefined
 
