@@ -1,10 +1,10 @@
 {
   "name": "racer-letters-example",
   "description": "Letters refrigerator magnet game demo for Racer",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "main": "./server.js",
   "dependencies": {
-    "racer": "0.0.9",
+    "racer": "0.0.10",
     "express": ">=2.4",
     "connect-gzip": ">=0.1"
   },
