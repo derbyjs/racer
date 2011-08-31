@@ -175,6 +175,23 @@ module.exports =
     model.set '_user.name', '#0f0'
   , 3
 
+  'derby chat test': wrapTest (done) ->
+    model = new Model
+    model.set '_room', model.ref 'rooms.1'
+    model.set '_session',
+      userId: 0
+      user: model.ref '_room.users', '_session.userId'
+    addListener = (path) ->
+      model.on 'set', path, (value) ->
+        console.log path
+        value.should.eql 'Bob'
+        done()
+    addListener 'rooms.1.users.0.name'
+    addListener '_room.users.0.name'
+    addListener '_session.user.name'
+    model.set '_session.user.name', 'Bob'
+  , 3
+
   'model events should be emitted on a private path reference (client-side)': wrapTest (done) ->
     serverModel = new Model
     serverModel.set '_room', serverModel.ref 'rooms.lobby'
