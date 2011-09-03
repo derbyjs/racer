@@ -32,7 +32,7 @@ module.exports =
     model.set 'info', numbers: {first: 3, second: 7}
     model.get('number').should.eql 7
   
-  'test setting to model references @single': ->
+  'test setting to model references': ->
     model = new Model
     
     # Setting a reference before a key should make a record of the key but
