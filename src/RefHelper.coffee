@@ -41,14 +41,34 @@ RefHelper:: =
 
     adapter.__set = adapter.set
     adapter.set = (path, value, ver, options = {}) ->
+      out = null
       # Save a record of any references being set
       options.obj ||= @_data
-      if refHelper.isPointer value
-        refHelper.$indexRefs path, value.$r, value.$k, value.$t, ver, options
-      out = @__set path, value, ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      # TODO Move all instances of updateRefsForKey to an event listener?
-      refHelper.updateRefsForKey path, ver, options
+
+      maybeIndexRefs = (_path, _value) =>
+        if refHelper.isPointer _value
+          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, options
+        if _path == path
+          out = @__set path, value, ver, options
+
+        # TODO Move all instances of updateRefsForKey to an event listener?
+        # Check to see if setting to a reference's key. If so, update references
+        refHelper.updateRefsForKey _path, ver, options
+
+      unless Object == value?.constructor
+        maybeIndexRefs path, value
+      else
+        # TODO Need to traverse an object value, too, for del
+        eachNode = (path, value, callback) ->
+          callback path, value
+          for prop, val of value
+            nodePath = "#{path}.#{prop}"
+            if Object == val?.constructor
+              eachNode nodePath, val, callback
+            else
+              callback nodePath, val
+        eachNode path, value, (nodePath, nodeValue) ->
+          maybeIndexRefs nodePath, nodeValue
       return out
 
     adapter.__del = adapter.del

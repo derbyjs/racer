@@ -32,7 +32,7 @@ module.exports =
     model.set 'info', numbers: {first: 3, second: 7}
     model.get('number').should.eql 7
   
-  'test setting to model references': ->
+  'test setting to model references @single': ->
     model = new Model
     
     # Setting a reference before a key should make a record of the key but
@@ -84,7 +84,30 @@ module.exports =
       selected: 'blue'
       $keys: {}
       $refs: {colors: blue: $: color: ['colors.blue'] }
-  
+
+  'test setting to model references in a nested way': ->
+    model = new Model
+    model.set 'users.1', 'brian'
+    model.set 'session',
+      user: model.ref 'users.1'
+    model.get('session.user').should.equal 'brian'
+
+  'test setting to model references with a key in a nested way': ->
+    model = new Model
+    model.set 'users.1', 'brian'
+    model.set 'userId', '1'
+    model.set 'session',
+      user: model.ref 'users', 'userId'
+    model.get('session.user').should.equal 'brian'
+
+  'test setting to model references with a key in a self-referencing way': ->
+    model = new Model
+    model.set 'users.1', 'brian'
+    model.set 'session',
+      userId: 1
+      user: model.ref 'users', 'session.userId'
+    model.get('session.user').should.equal 'brian'
+
   'test getting and setting on a reference pointing to an undefined location': ->
     model = new Model
     
@@ -173,23 +196,6 @@ module.exports =
       value.should.eql '#0f0'
       done()
     model.set '_user.name', '#0f0'
-  , 3
-
-  'derby chat test': wrapTest (done) ->
-    model = new Model
-    model.set '_room', model.ref 'rooms.1'
-    model.set '_session',
-      userId: 0
-      user: model.ref '_room.users', '_session.userId'
-    addListener = (path) ->
-      model.on 'set', path, (value) ->
-        console.log path
-        value.should.eql 'Bob'
-        done()
-    addListener 'rooms.1.users.0.name'
-    addListener '_room.users.0.name'
-    addListener '_session.user.name'
-    model.set '_session.user.name', 'Bob'
   , 3
 
   'model events should be emitted on a private path reference (client-side)': wrapTest (done) ->
@@ -304,3 +310,40 @@ module.exports =
       done()
     model.set 'w.x.y.z', 'green'
   , 2
+
+  'references set in a nested way should emit events': wrapTest (done) ->
+    model = new Model
+    model.set 'users.1', name: 'brian'
+    model.set 'session',
+      user: model.ref 'users.1'
+    model.on 'set', 'session.user.name', done
+    model.on 'set', 'users.1.name', done
+    model.set 'session.user.name', 'nate'
+  , 2
+
+  'references with a key set in a nested way should emit events': wrapTest (done) ->
+    model = new Model
+    model.set 'users.1', name: 'brian'
+    model.set 'userId', '1'
+    model.set 'session',
+      user: model.ref 'users', 'userId'
+    model.on 'set', 'session.user.name', done
+    model.on 'set', 'users.1.name', done
+    model.set 'session.user.name', 'nate'
+  , 2
+
+  'references with a key set in a self-referencing way should emit events': wrapTest (done) ->
+    model = new Model
+    model.set '_room', model.ref 'rooms.1'
+    model.set '_session',
+      userId: 0
+      user: model.ref '_room.users', '_session.userId'
+    addListener = (path) ->
+      model.on 'set', path, (value) ->
+        value.should.eql 'Bob'
+        done()
+    addListener 'rooms.1.users.0.name'
+    addListener '_room.users.0.name'
+    addListener '_session.user.name'
+    model.set '_session.user.name', 'Bob'
+  , 3

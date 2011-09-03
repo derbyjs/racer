@@ -8,7 +8,8 @@ test-single:
 		-I src \
 		$(TESTFLAGS) \
 		--timeout 6000 \
-		test/Model.refs.test.coffee
+		--tags single \
+		$(ASYNC_TESTS_FAST)
 
 test-async-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
