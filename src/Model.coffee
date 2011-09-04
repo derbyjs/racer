@@ -108,21 +108,14 @@ Model:: =
         callback args...
       removeTxn txnId
     
-    fatalErr = false
+    @canConnect = true
     socket.on 'fatalErr', ->
-      fatalErr = true
+      self.canConnect = false
       socket.disconnect()
     
-    # model.connection returns:
-    # true for connected
-    # false for disconnected
-    # null for permanently can't connect
-    @connection = connection = ->
-      return null if fatalErr
-      socket.socket.connected
+    @connected = false
     onConnectionStatus = ->
-      self.emit 'connectionStatus', connection()
-    
+      self.emit 'connectionStatus', self.connected, self.canConnect
     
     clientId = @_clientId
     storeSubs = @_storeSubs
@@ -134,6 +127,7 @@ Model:: =
         return if txn.timeout > now
         commit txn
     socket.on 'connect', ->
+      self.connected = true
       onConnectionStatus()
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
@@ -144,6 +138,7 @@ Model:: =
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
     socket.on 'disconnect', ->
+      self.connected = false
       # Stop resending transactions while disconnected
       clearInterval resendInterval if resendInterval
       resendInterval = null

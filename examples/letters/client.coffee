@@ -12,15 +12,11 @@ dragData = null
 letters = window.letters = {}
 
 updateInfo = ->
-  # model.connection returns:
-  # true for connected
-  # false for disconnected
-  # null for permanently can't connect
-  if connection = model.connection()
+  if model.connected
     players = model.get '_room.players'
     html = players + ' Player' + if players > 1 then 's' else ''
     roomsVisibility = 'visible'
-  else if connection == false
+  else if model.canConnect
     html = 'Offline<span id=reconnect> &ndash; <a href=# onclick="return letters.connect()">Reconnect</a></span>'
     roomsVisibility = 'hidden'
   else

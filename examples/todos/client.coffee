@@ -18,10 +18,10 @@ $ racer.ready ->
 
   ## Update the DOM when the model changes ##
 
-  model.on 'connectionStatus', (connection) ->
-    overlay.html(if connection
+  model.on 'connectionStatus', (connected, canConnect) ->
+    overlay.html(if connected
       ''
-    else if connection == false
+    else if canConnect
       '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>'
     else
       '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
