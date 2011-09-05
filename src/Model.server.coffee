@@ -37,3 +37,7 @@ Model::bundle = bundle = (callback, self = this) ->
     txnCount: @_txnCount
     txnNum: @_txnNum
     ioUri: @_ioUri
+
+Model::connected = true
+Model::canConnect = true
+
