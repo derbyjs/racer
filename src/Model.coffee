@@ -111,10 +111,12 @@ Model:: =
     @canConnect = true
     socket.on 'fatalErr', ->
       self.canConnect = false
+      self.emit 'canConnect', false
       socket.disconnect()
     
     @connected = false
-    onConnectionStatus = ->
+    onConnected = ->
+      self.emit 'connected', self.connected
       self.emit 'connectionStatus', self.connected, self.canConnect
     
     clientId = @_clientId
@@ -128,7 +130,7 @@ Model:: =
         commit txn
     socket.on 'connect', ->
       self.connected = true
-      onConnectionStatus()
+      onConnected()
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
       socket.emit 'sub', clientId, storeSubs, adapter.ver, self._startId
@@ -143,9 +145,9 @@ Model:: =
       clearInterval resendInterval if resendInterval
       resendInterval = null
       # Slight delay after disconnect so that offline doesn't flash on reload
-      setTimeout onConnectionStatus, 200
+      setTimeout onConnected, 200
     # Needed in case page is loaded from cache while offline
-    socket.on 'connect_failed', onConnectionStatus
+    socket.on 'connect_failed', onConnected
   
   
   ## Transaction handling ##
