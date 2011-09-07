@@ -16,8 +16,10 @@ exports.mockSocketModels = (clientIds...) ->
   serverSockets.on 'connection', (socket) ->
     socket.num = 1
     ver = 0
+    txnNum = 1
     socket.on 'txn', (txn) ->
       transaction.base txn, ++ver
+      socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum
       serverSockets.emit 'txn', txn, socket.num++
 
   models = clientIds.map (clientId) ->
