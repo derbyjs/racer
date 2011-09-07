@@ -2,23 +2,23 @@ should = require 'should'
 Stm = require 'Stm'
 transaction = require 'transaction'
 redis = require 'redis'
-client = redis.createClient()
-stm = new Stm client
+client = null
+stm = null
 mockSocketModel = require('./util/model').mockSocketModel
-stmUtil = require('./util/Stm')(stm, client)
-luaLock = stmUtil.luaLock
-luaUnlock = stmUtil.luaUnlock
-luaCommit = stmUtil.luaCommit
+luaLock = null
+luaUnlock = null
+luaCommit = null
 
-finishAll = false
 module.exports =
   setup: (done) ->
+    client = redis.createClient()
+    stm = new Stm client
+    {luaLock, luaUnlock, luaCommit} = require('./util/Stm')(stm, client)
     client.flushdb done
   teardown: (done) ->
-    if finishAll
+    client.flushdb ->
       client.end()
-      return done()
-    client.flushdb done
+      done()
   
   # Redis Lua script tests:
   
@@ -251,7 +251,3 @@ module.exports =
         sockets._disconnect()
         done()
     model.set 'color', 'green'
-  
-  finishAll: (done) -> finishAll = true; done()
-
-  ## !! PLACE ALL TESTS BEFORE finishAll !! ##

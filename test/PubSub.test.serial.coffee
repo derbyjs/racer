@@ -2,7 +2,7 @@ should = require 'should'
 redis = require 'redis'
 PubSub = require 'PubSub'
 
-pubClient = redis.createClient()
+pubClient = null
 subClient = null
 
 debug = false
@@ -11,12 +11,13 @@ newPubSub = (onMessage) -> new PubSub {pubClient, subClient, onMessage, debug}
 finishAll = false
 module.exports =
   setup: (done) ->
+    pubClient = redis.createClient()
     subClient = redis.createClient()
     pubClient.flushdb done
   teardown: (done) ->
     subClient.end()
     pubClient.flushdb ->
-      pubClient.end() if finishAll
+      pubClient.end()
       done()
 
   'a published transaction to a plain path should only be received if subscribed to': (done) ->
@@ -151,7 +152,3 @@ module.exports =
       pubSub.subscribedToTxn(subscriber, txnOne).should.be.false
       pubSub.subscribedToTxn(subscriber, txnTwo).should.be.true
       pubSub.subscribedToTxn(subscriber, txnThree).should.be.true
-
-  finishAll: (done) -> finishAll = true; done()
-
-  ## !! PLACE ALL TESTS BEFORE finishAll !! ##
