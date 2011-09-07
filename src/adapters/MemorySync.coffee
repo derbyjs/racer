@@ -38,7 +38,7 @@ Memory:: =
         for key, value of parentProto
           unless key is prop
             curr[key] = if typeof value is 'object'
-              Object.create value
+              specHelper.create value
             else
               value
         # TODO This line may be the culprit
