@@ -3,6 +3,7 @@ pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
 argsNormalizer = require './argsNormalizer'
+arrayMutators = require './mutators/array'
 
 module.exports = RefHelper = (model) ->
   @_model = model
@@ -79,68 +80,23 @@ RefHelper:: =
         refHelper.cleanupPointersTo path, options
       return out
 
-    adapter.__remove = adapter.remove
-    adapter.remove = (path, start, howMany, ver, options = {}) ->
-      options.obj ||= @_data
-      #unless refHelper.isArrayRef path, options.obj
-      startIndex = refHelper.arrRefIndex start, path, options.obj
-      out = @__remove path, startIndex, howMany, ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
-    
-    adapter.__move = adapter.move
-    adapter.move = (path, from, to, ver, options = {}) ->
-      options.obj ||= @_data
-      #unless refHelper.isArrayRef path, options.obj
-      startIndex = refHelper.arrRefIndex from, path, options.obj
-      out = @__move path, startIndex, to, ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
-    
-    ['push', 'unshift'].forEach (method) ->
+    for method, {normalizeArgs, indexesInArgs} of arrayMutators
       adapter['__' + method] = adapter[method]
-      adapter[method] = ->
-        [path, values, ver, options] = argsNormalizer.adapter[method](arguments)
-        options.obj ||= @_data
-        #unless refHelper.isArrayRef path, options.obj
-        out = @['__' + method] path, values..., ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
+      adapter[method] = do (method, normalizeArgs, indexesInArgs) ->
+        return ->
+          {path, methodArgs, ver, options} = normalizeArgs arguments...
+          options.obj ||= @_data
+          #if refHelper.isArrayRef path, options.obj
+          if indexesInArgs
+            newIndexes = indexesInArgs(methodArgs).map (index) ->
+              return refHelper.arrRefIndex index, path, options.obj
+            indexesInArgs methodArgs, newIndexes
 
-    ['pop', 'shift'].forEach (method) ->
-      adapter['__' + method] = adapter[method]
-      adapter[method] = (path, ver, options = {}) ->
-        options.obj ||= @_data
-        #unless refHelper.isArrayRef path, options.obj
-        out = @['__' + method] path, ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
-
-    ['insertAfter', 'insertBefore'].forEach (method) ->
-      adapter['__' + method] = adapter[method]
-      adapter[method] = (path, pos, value, ver, options = {}) ->
-        options.obj ||= @_data
-        #unless refHelper.isArrayRef path, options.obj
-        index = refHelper.arrRefIndex pos, path, options.obj
-        out = @['__' + method] path, index, value, ver, options
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey path, ver, options
-        return out
-
-    adapter.__splice = adapter.splice
-    adapter.splice = ->
-      [path, start, removeCount, newMembers, ver, options] = argsNormalizer.adapter.splice(arguments)
-      options.obj ||= @_data
-      #unless refHelper.isArrayRef path, options.obj
-      startIndex = refHelper.arrRefIndex start, path, options.obj
-      out = @__splice path, startIndex, removeCount, newMembers..., ver, options
-      # Check to see if setting to a reference's key. If so, update references
-      refHelper.updateRefsForKey path, ver, options
-      return out
+            # remove, move, insertAfter, insertBefore, splice
+          out = @['__' + method] path, methodArgs..., ver, options
+          # Check to see if mutating a reference's key. If so, update references
+          refHelper.updateRefsForKey path, ver, options
+          return out
 
   # This function returns the index of an array ref member, given a member
   # id or index (as start) of an array ref (represented by path) in the
@@ -163,7 +119,6 @@ RefHelper:: =
     startIndex = arr.indexOf parseInt(start.id, 10)
     return startIndex if startIndex != -1
     return arr.indexOf start.id.toString()
-
 
   ## Pointer Builders ##
 
@@ -460,8 +415,9 @@ RefHelper:: =
     refObj = @_adapter.lookup(path, false, options).obj
     return false if refObj is undefined
     {$r, $k, $t} = refObj
-    $k = @dereferencedPath $k, data if $k
-    return if $t == 'array' then { $r, $k } else false
+    return false if $t != 'array'
+    $k && $k = @dereferencedPath $k, data
+    return {$r, $k}
   
   splitArrayArgs: (method, args) ->
     switch method

@@ -19,13 +19,21 @@ module.exports =
   insertAfter:
     normalizeArgs: normArgsInsert = (path, pivotIndex, value, ver, options = {}) ->
       return {path, methodArgs: [pivotIndex, value], ver, options}
+    # Extracts or sets the arguments in args that represent indexes
+    indexesInArgs: indexInArgs = indexesInArgsForInsert = (args, newVals) ->
+      if newVals
+        args[0] = newVals[0]
+        return args
+      return [args[0]]
 
   insertBefore:
     normalizeArgs: normArgsInsert
+    indexesInArgs: indexInArgs
 
   remove:
     normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
       return {path, methodArgs: [startIndex, howMany], ver, options}
+    indexesInArgs: indexInArgs
 
   splice:
     normalizeArgs: (path, startIndex, removeCount, newMembers..., ver, options) ->
@@ -36,6 +44,7 @@ module.exports =
         ver = options
         options = {}
       return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
+    indexesInArgs: indexInArgs
 
   unshift:
     normalizeArgs: normArgsPush
@@ -46,3 +55,10 @@ module.exports =
 
   move:
     compound: true
+    normalizeArgs: (path, from, to, ver, options = {}) ->
+      return {path, methodArgs: [from, to], ver, options}
+    indexesInArgs: (args, newVals) ->
+      if newVals
+        args[0..1] = newVals[0..1]
+        return args
+      return args[0..1]

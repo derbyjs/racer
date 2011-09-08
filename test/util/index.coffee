@@ -37,7 +37,7 @@ exports.specInspect = specInspect = (a) -> inspect removeReserved(flatten(a)), f
 protoSubset = (a, b, exception) ->
   checkProp = (i) ->
     if typeof a[i] is 'object'
-      retufn false unless typeof b[i] is 'object'
+      return false unless typeof b[i] is 'object'
       return false unless protoSubset a[i], b[i], exception
     else
       return false unless exception && exception(a, b, i) || a[i] == b[i]
