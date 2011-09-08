@@ -139,23 +139,23 @@ arrMutators =
   insertAfter:
     normalizeArgs: (path, afterIndex, value, ver, options = {}) ->
       return {path, methodArgs: [afterIndex, value], ver, options}
-    throwIf: (arr, [afterIndex, _]) ->
-      throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
+    outOfBounds: (arr, [afterIndex, _]) ->
+      return ! (-1 <= afterIndex <= arr.length-1)
     fn: (arr, [afterIndex, value]) ->
       return arr.splice afterIndex+1, 0, value
   insertBefore:
     normalizeArgs: (path, beforeIndex, value, ver, options = {}) ->
       return {path, methodArgs: [beforeIndex, value], ver, options}
-    throwIf: (arr, [beforeIndex,_]) ->
-      throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
+    outOfBounds: (arr, [beforeIndex,_]) ->
+      return ! (0 <= beforeIndex <= arr.length)
     fn: (arr, [beforeIndex, value]) ->
       return arr.splice beforeIndex, 0, value
   remove:
     normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
       return {path, methodArgs: [startIndex, howMany], ver, options}
-    throwIf: (arr, [startIndex, _]) ->
+    outOfBounds: (arr, [startIndex, _]) ->
       upperBound = if arr.length then arr.length-1 else 0
-      throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
+      return ! (0 <= startIndex <= upperBound)
     fn: (arr, [startIndex, howMany]) ->
       return arr.splice startIndex, howMany
   splice:
@@ -189,7 +189,7 @@ for method, config of arrMutators
       out = @lookup path, true, options
       arr = out.obj
       throw new Error 'Not an Array' unless specHelper.isArray arr
-      throwIf arr, methodArgs if throwIf = config.throwIf
+      throw new Error 'Out of Bounds' if config.outOfBounds? arr, methodArgs
       # TODO Array of references handling
       ret = if config.fn then config.fn arr, methodArgs else arr[method] methodArgs...
       return if options.returnMeta then out else ret
