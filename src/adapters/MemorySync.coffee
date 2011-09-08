@@ -194,16 +194,7 @@ Memory:: =
           next = if proto then specHelper.create {} else {}
         parent[prop] = next
       else if proto && typeof next == 'object' && !specHelper.isSpeculative(next)
-        # TODO Can we remove this if?
-        if specHelper.isSpeculative(parent) && parent.hasOwnProperty prop
-          # In case we speculative set to an object before:
-          # e.g., model.set 'some.path', key: value
-          #   Here, 'some.path' would not have _proto,
-          #   but 'some' would have _proto
-          # This allows us to add _proto lazily
-          next._proto = true
-        else
-          next = specHelper.create next
+        next = specHelper.create next
         parent[prop] = next
       
       # Check for model references
