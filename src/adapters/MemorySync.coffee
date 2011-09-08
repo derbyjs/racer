@@ -1,5 +1,6 @@
 merge = require('../util').merge
 specHelper = require '../specHelper'
+arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
   @_data = {}
@@ -123,75 +124,40 @@ Memory:: =
     
     return {path, parent, prop, obj: next}
 
-arrMutators =
-  push:
-    normalizeArgs: (path, values..., ver, options) ->
-      if options is undefined
-        options = {}
-      if options.constructor != Object
-        values.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: values, ver, options}
-  pop:
-    normalizeArgs: (path, ver, options = {}) ->
-      return {path, methodArgs: [], ver, options}
+xtraArrMutConf =
   insertAfter:
-    normalizeArgs: (path, afterIndex, value, ver, options = {}) ->
-      return {path, methodArgs: [afterIndex, value], ver, options}
     outOfBounds: (arr, [afterIndex, _]) ->
       return ! (-1 <= afterIndex <= arr.length-1)
     fn: (arr, [afterIndex, value]) ->
       return arr.splice afterIndex+1, 0, value
   insertBefore:
-    normalizeArgs: (path, beforeIndex, value, ver, options = {}) ->
-      return {path, methodArgs: [beforeIndex, value], ver, options}
     outOfBounds: (arr, [beforeIndex,_]) ->
       return ! (0 <= beforeIndex <= arr.length)
     fn: (arr, [beforeIndex, value]) ->
       return arr.splice beforeIndex, 0, value
   remove:
-    normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
-      return {path, methodArgs: [startIndex, howMany], ver, options}
     outOfBounds: (arr, [startIndex, _]) ->
       upperBound = if arr.length then arr.length-1 else 0
       return ! (0 <= startIndex <= upperBound)
     fn: (arr, [startIndex, howMany]) ->
       return arr.splice startIndex, howMany
-  splice:
-    normalizeArgs: (path, startIndex, removeCount, newMembers..., ver, options) ->
-      if options is undefined
-        options = {}
-      if options.constructor != Object
-        newMembers.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
-  unshift:
-    normalizeArgs: (path, newMembers..., ver, options) ->
-      if options is undefined
-        options = {}
-      if options.constructor != Object
-        newMembers.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: newMembers, ver, options}
-  shift:
-    normalizeArgs: (path, ver, options = {}) ->
-      return {path, methodArgs: [], ver, options}
 
-for method, config of arrMutators
-  Memory::[method] = do (method, config) ->
+for method, {compound, normalizeArgs} of arrMutators
+  continue if compound
+  Memory::[method] = do (method, normalizeArgs) ->
+    if xtraConf = xtraArrMutConf[method]
+      outOfBounds = xtraConf.outOfBounds
+      fn = xtraConf.fn
     return ->
-      {path, methodArgs, ver, options} = config.normalizeArgs arguments...
+      {path, methodArgs, ver, options} = normalizeArgs arguments...
       @ver = ver
       options.array = true
       out = @lookup path, true, options
       arr = out.obj
       throw new Error 'Not an Array' unless specHelper.isArray arr
-      throw new Error 'Out of Bounds' if config.outOfBounds? arr, methodArgs
+      throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
-      ret = if config.fn then config.fn arr, methodArgs else arr[method] methodArgs...
+      ret = if fn then fn arr, methodArgs else arr[method] methodArgs...
       return if options.returnMeta then out else ret
 
 Memory::move = (path, from, to, ver, options = {}) ->
