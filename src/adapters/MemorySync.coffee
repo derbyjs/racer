@@ -47,112 +47,6 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  push: (path, values..., ver, options) ->
-    if options is undefined
-      options = {}
-    if options.constructor != Object
-      values.push ver
-      ver = options
-      options = {}
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    # TODO Array of references handling
-    ret = arr.push values...
-    return if options.returnMeta then out else ret
-
-  pop: (path, ver, options = {}) ->
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    ret = arr.pop()
-    return if options.returnMeta then out else ret
-
-  insertAfter: (path, afterIndex, value, ver, options = {}) ->
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
-    ret = arr.splice afterIndex+1, 0, value
-    return if options.returnMeta then out else ret
-
-  insertBefore: (path, beforeIndex, value, ver, options = {}) ->
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
-    ret = arr.splice beforeIndex, 0, value
-    return if options.returnMeta then out else ret
-
-  remove: (path, startIndex, howMany, ver, options = {}) ->
-    @ver = ver
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    upperBound = if arr.length then arr.length - 1 else 0
-    throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
-    ret = arr.splice startIndex, howMany
-    return if options.returnMeta then out else ret
-
-  splice: (path, startIndex, removeCount, newMembers..., ver, options) ->
-    if options is undefined
-      options = {}
-    if options.constructor != Object
-      newMembers.push ver
-      ver = options
-      options = {}
-
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    ret = arr.splice startIndex, removeCount, newMembers...
-    return if options.returnMeta then out else ret
-
-  unshift: (path, newMembers..., ver, options = {}) ->
-    if options is undefined
-      options = {}
-    if options.constructor != Object
-      newMembers.push ver
-      ver = options
-      options = {}
-
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    ret = arr.unshift newMembers...
-    return if options.returnMeta then out else ret
-
-  shift: (path, ver, options = {}) ->
-    @ver = ver
-    options.array = true
-    out = @lookup path, true, options
-    arr = out.obj
-    throw new Error 'Not an Array' unless specHelper.isArray arr
-    ret = arr.shift()
-    return if options.returnMeta then out else ret
-  
-  move: (path, from, to, ver, options = {}) ->
-    value = @lookup("#{path}.#{from}", false, options).obj
-    to += @lookup(path, false, options).obj.length if to < 0
-    if from > to
-      @insertBefore path, to, value, ver, options
-      from++
-    else
-      @insertAfter path, to, value, ver, options
-    @remove path, from, 1, ver, options
-
   # TODO Re-write this because the ability to use it in so many ways is too error-prone
   #      Also, this is a ridiculously long function.
   #      returnMeta option is really only used for path retrieval
@@ -228,3 +122,84 @@ Memory:: =
           return {obj: next, path, remainingProps: props.slice i}
     
     return {path, parent, prop, obj: next}
+
+arrMutators =
+  push:
+    normalizeArgs: (path, values..., ver, options) ->
+      if options is undefined
+        options = {}
+      if options.constructor != Object
+        values.push ver
+        ver = options
+        options = {}
+      return {path, methodArgs: values, ver, options}
+  pop:
+    normalizeArgs: (path, ver, options = {}) ->
+      return {path, methodArgs: [], ver, options}
+  insertAfter:
+    normalizeArgs: (path, afterIndex, value, ver, options = {}) ->
+      return {path, methodArgs: [afterIndex, value], ver, options}
+    throwIf: (arr, [afterIndex, _]) ->
+      throw new Error 'Out of Bounds' unless -1 <= afterIndex <= arr.length-1
+    fn: (arr, [afterIndex, value]) ->
+      return arr.splice afterIndex+1, 0, value
+  insertBefore:
+    normalizeArgs: (path, beforeIndex, value, ver, options = {}) ->
+      return {path, methodArgs: [beforeIndex, value], ver, options}
+    throwIf: (arr, [beforeIndex,_]) ->
+      throw new Error 'Out of Bounds' unless 0 <= beforeIndex <= arr.length
+    fn: (arr, [beforeIndex, value]) ->
+      return arr.splice beforeIndex, 0, value
+  remove:
+    normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
+      return {path, methodArgs: [startIndex, howMany], ver, options}
+    throwIf: (arr, [startIndex, _]) ->
+      upperBound = if arr.length then arr.length-1 else 0
+      throw new Error 'Out of Bounds' unless 0 <= startIndex <= upperBound
+    fn: (arr, [startIndex, howMany]) ->
+      return arr.splice startIndex, howMany
+  splice:
+    normalizeArgs: (path, startIndex, removeCount, newMembers..., ver, options) ->
+      if options is undefined
+        options = {}
+      if options.constructor != Object
+        newMembers.push ver
+        ver = options
+        options = {}
+      return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
+  unshift:
+    normalizeArgs: (path, newMembers..., ver, options) ->
+      if options is undefined
+        options = {}
+      if options.constructor != Object
+        newMembers.push ver
+        ver = options
+        options = {}
+      return {path, methodArgs: newMembers, ver, options}
+  shift:
+    normalizeArgs: (path, ver, options = {}) ->
+      return {path, methodArgs: [], ver, options}
+
+for method, config of arrMutators
+  Memory::[method] = do (method, config) ->
+    return ->
+      {path, methodArgs, ver, options} = config.normalizeArgs arguments...
+      @ver = ver
+      options.array = true
+      out = @lookup path, true, options
+      arr = out.obj
+      throw new Error 'Not an Array' unless specHelper.isArray arr
+      throwIf arr, methodArgs if throwIf = config.throwIf
+      # TODO Array of references handling
+      ret = if config.fn then config.fn arr, methodArgs else arr[method] methodArgs...
+      return if options.returnMeta then out else ret
+
+Memory::move = (path, from, to, ver, options = {}) ->
+  value = @lookup("#{path}.#{from}", false, options).obj
+  to += @lookup(path, false, options).obj.length if to < 0
+  if from > to
+    @insertBefore path, to, value, ver, options
+    from++
+  else
+    @insertAfter path, to, value, ver, options
+  @remove path, from, 1, ver, options

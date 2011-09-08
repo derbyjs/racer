@@ -209,14 +209,14 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.get().should.eql {}
 
-    # on undefined
-    didThrowNotAnArray = false
-    try
-      adapterSync.remove 'undefined', 0, 3, ++ver
-    catch e
-      e.message.should.equal 'Not an Array'
-      didThrowNotAnArray = true
-    didThrowNotAnArray.should.be.true
+#    # on undefined
+#    didThrowNotAnArray = false
+#    try
+#      adapterSync.remove 'undefined', 0, 3, ++ver
+#    catch e
+#      e.message.should.equal 'Not an Array'
+#      didThrowNotAnArray = true
+#    didThrowNotAnArray.should.be.true
 
     # on a defined non-array
     didThrowNotAnArray = false
