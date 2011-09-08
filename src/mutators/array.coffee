@@ -2,7 +2,7 @@
 # - 
 module.exports =
   push:
-    normalizeArgs: (path, values..., ver, options) ->
+    normalizeArgs: normArgsPush = (path, values..., ver, options) ->
       if options is undefined
         options = {}
       if options.constructor != Object
@@ -13,16 +13,15 @@ module.exports =
     sliceFrom: 1
 
   pop:
-    normalizeArgs: (path, ver, options = {}) ->
+    normalizeArgs: normArgsPop = (path, ver, options = {}) ->
       return {path, methodArgs: [], ver, options}
 
   insertAfter:
-    normalizeArgs: (path, afterIndex, value, ver, options = {}) ->
-      return {path, methodArgs: [afterIndex, value], ver, options}
+    normalizeArgs: normArgsInsert = (path, pivotIndex, value, ver, options = {}) ->
+      return {path, methodArgs: [pivotIndex, value], ver, options}
 
   insertBefore:
-    normalizeArgs: (path, beforeIndex, value, ver, options = {}) ->
-      return {path, methodArgs: [beforeIndex, value], ver, options}
+    normalizeArgs: normArgsInsert
 
   remove:
     normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
@@ -39,18 +38,10 @@ module.exports =
       return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
 
   unshift:
-    normalizeArgs: (path, newMembers..., ver, options) ->
-      if options is undefined
-        options = {}
-      if options.constructor != Object
-        newMembers.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: newMembers, ver, options}
+    normalizeArgs: normArgsPush
 
   shift:
-    normalizeArgs: (path, ver, options = {}) ->
-      return {path, methodArgs: [], ver, options}
+    normalizeArgs: normArgsPop
     sliceFrom: 1
 
   move:
