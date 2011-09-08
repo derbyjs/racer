@@ -194,7 +194,7 @@ Model:: =
 
     # Emit an event on creation of the transaction
     unless @_silent
-      @emit method, txnArgs
+      @emit method, txnArgs, true
       txn.emitted = true
 
     txnArgs[1] = idAsIndex if idAsIndex isnt undefined
@@ -212,7 +212,8 @@ Model:: =
     if forceEmit
       # For converting array ref index api back to id api
       args[1] = meta if meta = transaction.meta txn
-      @emit method, args
+      # Third argument is true for locally created transactions
+      @emit method, args, 'callback' of txn
     callback null, txnArgs... if callback = txn.callback
   
   # TODO Will re-calculation of speculative model every time result
