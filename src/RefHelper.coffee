@@ -401,7 +401,7 @@ RefHelper:: =
     model = @_model
     for pointingPath, [ref, key] of refs
       keyVal = key && adapter.lookup(key, false, options).obj
-      if keyVal && Array.isArray keyVal
+      if keyVal && specHelper.isArray keyVal
         keyMem = path.substr(ref.length + 1, pointingPath.length)
         # TODO Use model.remove here instead?
         adapter.remove key, keyVal.indexOf(keyMem), 1, null, options

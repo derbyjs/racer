@@ -1,12 +1,13 @@
 redis = require 'redis'
 MemoryAdapter = require './adapters/Memory'
-Model = require './Model'
+Model = require './Model.server'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
 TxnApplier = require './TxnApplier'
 pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
+specHelper = require './specHelper'
 
 MAX_RETRIES = 20
 RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
@@ -168,7 +169,7 @@ Store = module.exports = (options = {}) ->
     unless remainder
       value =
         if typeof value is 'object'
-          if Array.isArray value then [] else {}
+          if specHelper.isArray value then [] else {}
         else value
       return modelAdapter.set root, value, ver
     # If the remainder is a trailing **, set everything below the root
@@ -368,5 +369,8 @@ Store = module.exports = (options = {}) ->
         # to the caller of commit when the adapter operation completes
         throw err if err
       adapter[method] args...
+
+  @disconnect = ->
+    [redisClient, subClient, txnSubClient].forEach (client) -> client.quit()
 
   return
