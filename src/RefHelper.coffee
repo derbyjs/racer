@@ -12,8 +12,6 @@ module.exports = RefHelper = (model) ->
   @_setup()
   return
 
-ARRAY_OPS = push: 1, unshift: 1, pop: 1, shift: 1, remove: 1, insertAfter: 1, insertBefore: 1, splice: 1, move: 1
-
 # RefHelper contains code that manages an index of refs: the pointer path,
 # ref path, key path, and ref type. It uses this index to
 # 1. Manage ref dependencies on an adapter update
@@ -370,7 +368,7 @@ RefHelper:: =
     method = transaction.method txn
     args = transaction.args txn
     path = transaction.path txn
-    if ARRAY_OPS[method]
+    if method of arrayMutators
       sliceFrom = switch method
         when 'push', 'unshift' then 1
         when 'pop', 'shift', 'insertAfter', 'insertBefore' then 2
