@@ -3,7 +3,8 @@ pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
 argsNormalizer = require './argsNormalizer'
-arrayMutators = require './mutators/array'
+mutators = require './mutators'
+arrayMutators = mutators.array
 
 module.exports = RefHelper = (model) ->
   @_model = model
@@ -78,6 +79,7 @@ RefHelper:: =
         refHelper.cleanupPointersTo path, options
       return out
 
+    # Wrap all array mutators at adapter layer to add ref logic
     for method, {normalizeArgs, indexesInArgs} of arrayMutators
       adapter['__' + method] = adapter[method]
       adapter[method] = do (method, normalizeArgs, indexesInArgs) ->
@@ -90,7 +92,6 @@ RefHelper:: =
               return refHelper.arrRefIndex index, path, options.obj
             indexesInArgs methodArgs, newIndexes
 
-            # remove, move, insertAfter, insertBefore, splice
           out = @['__' + method] path, methodArgs..., ver, options
           # Check to see if mutating a reference's key. If so, update references
           refHelper.updateRefsForKey path, ver, options
@@ -321,7 +322,7 @@ RefHelper:: =
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, obj, (pointingPath, ref, key) =>
       # return if @_alreadySeen pointingPath, ref, ignoreRoots
-      [firstArgs, arrayMemberArgs] = @splitArrayArgs method, args
+      [firstArgs, arrayMemberArgs] = (mutators.basic[method] || mutators.array[method]).splitArgs args
       if arrayMemberArgs
         ns = @_adapter.lookup(ref, false, obj: obj).obj
         arrayMemberArgs = arrayMemberArgs.map (arg) ->
@@ -417,16 +418,6 @@ RefHelper:: =
     $k && $k = @dereferencedPath $k, data
     return {$r, $k}
   
-  splitArrayArgs: (method, args) ->
-    switch method
-      when 'push' then return [[], args]
-      when 'insertAfter', 'insertBefore'
-        return [[args[0]], args.slice(1)]
-      when 'splice'
-        return [args[0..1], args.slice(2)]
-      else
-        return [args, []]
-
   isRefObj: (obj) -> '$r' of obj
 
   dereferencedPath: (path, data) ->

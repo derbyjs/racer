@@ -6,6 +6,8 @@ RefHelper = require './RefHelper'
 specHelper = require './specHelper'
 {EventEmitter} = require 'events'
 {merge} = require './util'
+mutators = require './mutators'
+arrayMutators = mutators.array
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -159,7 +161,7 @@ Model:: =
     model = @
 
     if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
-      [firstArgs, members] = refHelper.splitArrayArgs method, args
+      [firstArgs, members] = (mutators.basic[method] || mutators.array[method]).splitArgs args
       members = members.map (member) ->
         return member if refHelper.isRefObj member
         model.set $r + '.' + member.id, member
