@@ -64,7 +64,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.silent = Object.create self, _silent: value: true
 
   @_refHelper = refHelper = new RefHelper @
-  for method in ['set', 'del', 'push', 'pop', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
+  for method of arrayMutators
     do (method) ->
       self.on method, ([path, args...]) ->
         # Emit events on any references that point to the path or any of its
@@ -172,7 +172,7 @@ Model:: =
 
     # Convert id args to index args if we happen to be
     # using array ref mutator id api
-    if arrayMethod[method]
+    if arrayMutators[method]
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
     
     # Create a new transaction and add it to a local queue
@@ -331,9 +331,6 @@ Model:: =
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
 # Interval in milliseconds to check timeouts for queued transactions
 Model._RESEND_INTERVAL = RESEND_INTERVAL = 2000
-
-arrayMethod = remove: 1, insertAfter: 1, insertBefore: 1, splice: 1, move: 1
-
 
 ## Model events ##
 
