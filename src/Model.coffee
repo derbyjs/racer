@@ -8,6 +8,7 @@ specHelper = require './specHelper'
 {merge} = require './util'
 mutators = require './mutators'
 arrayMutators = mutators.array
+mutatorNames = Object.keys(mutators.basic).concat Object.keys(mutators.array)
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -64,7 +65,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.silent = Object.create self, _silent: value: true
 
   @_refHelper = refHelper = new RefHelper @
-  for method of arrayMutators
+  for method in mutatorNames
     do (method) ->
       self.on method, ([path, args...]) ->
         # Emit events on any references that point to the path or any of its
