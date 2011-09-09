@@ -271,6 +271,18 @@ module.exports =
       txn
     ).should.eql expected
 
+  '''pushing an non-ref object onto a path pointing to an
+     *empty* array ref should not fail @single''': ->
+    model = new Model
+    model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
+    model.set 'myDogIds', []
+    err = null
+    try
+      model.push 'mine', id: 1, name: 'banana'
+    catch e
+      err = e
+    should.equal err, null
+
   'popping an array reference should update the key array': ->
     model = new Model
     model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
