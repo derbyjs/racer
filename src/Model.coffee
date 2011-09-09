@@ -172,7 +172,7 @@ Model:: =
 
     # Convert id args to index args if we happen to be
     # using array ref mutator id api
-    if arrayMutators[method]
+    if mutators.array[method]?.indexesInArgs
       idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
     
     # Create a new transaction and add it to a local queue
