@@ -370,25 +370,14 @@ RefHelper:: =
     args = transaction.args txn
     path = transaction.path txn
     if method of arrayMutators
-      sliceFrom = switch method
-        when 'push', 'unshift' then 1
-        when 'pop', 'shift', 'insertAfter', 'insertBefore' then 2
-        when 'remove', 'move', 'splice' then 3
-        else throw new Error 'Unimplemented for method ' + method
-
       if { $r, $k } = @isArrayRef path, obj
         # TODO Instead of invalidating, roll back the spec model cache by 1 txn
         @_model._cache.invalidateSpecModelCache()
         # TODO Add test to make sure that we assign the de-referenced $k to path
         args[0] = path = $k
-        oldPushArgs = args.slice sliceFrom
-        newPushArgs = oldPushArgs.map (refObjToAdd) ->
-          if refObjToAdd.$r is undefined
-            throw new Error 'Trying to push a non-ref onto an array ref'
-          if $r != refObjToAdd.$r
-            throw new Error "Trying to push elements of type #{refObjToAdd.$r} onto path #{path} that is an array ref of type #{$r}"
-          return refObjToAdd.$k
-        args.splice sliceFrom, oldPushArgs.length, newPushArgs...
+
+        if arrayMutators[method].argsToForeignKeys
+          args = arrayMutators[method].argsToForeignKeys args, path, $r
       else
         # Update the transaction's path with a dereferenced path if not undefined.
         {obj, path, remainingProps} = @_adapter.lookup path, false, obj: obj

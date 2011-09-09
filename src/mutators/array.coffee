@@ -12,6 +12,16 @@ module.exports =
       return {path, methodArgs: values, ver, options}
     splitArgs: (args) -> [[], args]
     sliceFrom: 1
+    argsToForeignKeys: argsToFKeys = (args, path, $r) ->
+      oldArgs = args.slice @sliceFrom
+      newArgs = oldArgs.map (refObjToAdd) ->
+        if refObjToAdd.$r is undefined
+          throw new Error 'Trying to push a non-ref onto an array ref'
+        if $r != refObjToAdd.$r
+          throw new Error "Trying to use elements of type #{refToObj.$r} with path #{path} that is an array ref of type #{$r}"
+        return refObjToAdd.$k
+      args.splice @sliceFrom, oldArgs.length, newArgs...
+      return args
 
   pop:
     normalizeArgs: normArgsPop = (path, ver, options = {}) ->
@@ -28,11 +38,15 @@ module.exports =
         return args
       return [args[0]]
     splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
+    sliceFrom: 2
+    argsToForeignKeys: argsToFKeys
 
   insertBefore:
     normalizeArgs: normArgsInsert
     indexesInArgs: indexInArgs
     splitArgs: splitArgsForInsert
+    sliceFrom: 2
+    argsToForeignKeys: argsToFKeys
 
   remove:
     normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
@@ -51,15 +65,18 @@ module.exports =
       return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
     indexesInArgs: indexInArgs
     splitArgs: (args) -> [args[0..1], args.slice 2]
+    sliceFrom: 3
+    argsToForeignKeys: argsToFKeys
 
   unshift:
     normalizeArgs: normArgsPush
     splitArgs: splitArgsDefault
+    sliceFrom: 1
+    argsToForeignKeys: argsToFKeys
 
   shift:
     normalizeArgs: normArgsPop
     splitArgs: splitArgsDefault
-    sliceFrom: 1
 
   move:
     compound: true

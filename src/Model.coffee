@@ -156,6 +156,8 @@ Model:: =
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
   
+  # TODO There is a lot of mutation of txn going on here.
+  #      Clean this up.
   _addTxn: (method, path, args..., callback) ->
     refHelper = @_refHelper
     model = @
@@ -177,6 +179,7 @@ Model:: =
     ver = if @_force then null else @_adapter.ver
     id = @_nextTxnId()
     txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
+    # NOTE: This converts the transaction
     txn = refHelper.dereferenceTxn txn, @_specModel()[0]
     @_txns[id] = txn
     txn.callback = callback
