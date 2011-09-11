@@ -17,7 +17,7 @@ Store::listen = (to, namespace) ->
   io.configure ->
     io.set 'browser client', false
     io.set 'transports', DEFAULT_TRANSPORTS
-  io.configure 'production' ->
+  io.configure 'production', ->
     io.set 'log level', 1
   socketUri = if typeof to is 'number' then ':' + to else ''
   if namespace
