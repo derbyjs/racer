@@ -37,10 +37,6 @@ module.exports =
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'
-    require = ['racer']
-    options.require = if options.require
-        require.concat options.require
-      else require
     if (minify = options.minify) is undefined then minify = true
     options.filter = uglify if minify
     
