@@ -346,7 +346,9 @@ Model::_eventListener = (method, pattern, callback) ->
   # on(method, pattern, callback)
   re = pathParser.regExp pattern
   return ([path, args...]) ->
-    callback re.exec(path).slice(1).concat(args)... if re.test path
+    if re.test path
+      callback re.exec(path).slice(1).concat(args)...
+      return true
 
 # EventEmitter::addListener and once return this. The Model equivalents return
 # the listener instead, since it is made internally for method subscriptions
@@ -357,7 +359,10 @@ Model::on = Model::addListener = (type, pattern, callback) ->
   @_on type, listener = @_eventListener type, pattern, callback
   return listener
 
-Model::_once = EventEmitter::once
 Model::once = (type, pattern, callback) ->
-  @_once type, listener = @_eventListener type, pattern, callback
+  listener = @_eventListener type, pattern, callback
+  self = this
+  @_on type, g = ->
+    matches = listener arguments...
+    self.removeListener type, g  if matches
   return listener

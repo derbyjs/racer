@@ -303,6 +303,23 @@ module.exports =
     model.set 'color', 'green'
   , 1
 
+  'model.once should only emit once': wrapTest (done) ->
+    model = new Model
+    
+    model.once 'set', 'color', done
+    model.set 'color', 'green'
+    model.set 'color', 'red'
+  , 1
+
+  'model.once should only emit once per path': wrapTest (done) ->
+    model = new Model
+    
+    model.once 'set', 'color', done
+    model.set 'other', 3
+    model.set 'color', 'green'
+    model.set 'color', 'red'
+  , 1
+
   'test client emits events on receipt of a transaction iff it did not create the transaction': wrapTest (done) ->
     [sockets, model] = mockSocketModel('clientA')
     eventCalled = false
