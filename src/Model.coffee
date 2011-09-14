@@ -253,6 +253,28 @@ Model:: =
       cache.path = path
       cache.lastReplayedTxnId = transaction.id txn
     return [obj, path]
+
+  snapshot: ->
+    model = Object.create this
+    model._adapter = adapter.snapshot()
+    return model
+
+  atomic: (block, callback) ->
+    model = @snapshot()
+
+    commit = (callback) ->
+    abort = ->
+    retry = ->
+
+    if block.length == 1
+      block model
+      commit(callback)
+    else if block.length == 2
+      block model, commit
+    else if block.length == 3
+      block model, commit, abort
+    else if block.length == 4
+      block model, commit, abort, retry
   
   ## Model reference functions ##
 
