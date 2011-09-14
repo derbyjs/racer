@@ -1,3 +1,9 @@
+# Transactions are represented as an Array:
+# [ base = version at the time of the transaction
+# , transaction id
+# , method
+# , arguments
+# , metadata]
 module.exports =
   create: (obj) ->
     txn = [obj.base, obj.id, obj.method, obj.args]
