@@ -9,7 +9,7 @@ Memory = module.exports = ->
 
 Memory:: =
   get: (path, obj = @_data) ->
-    if path then @lookup(path, false, obj: obj).obj else obj
+    if path then @lookup(path, obj).obj else obj
   
   set: (path, value, ver, options = {}) ->
     if value && value.$r
@@ -20,16 +20,22 @@ Memory:: =
       refObjCopy = merge {}, value
       value = refObjCopy
     @ver = ver
-    {parent, prop} = out = @lookup path, true, options
+    obj = options.obj
+    options = Object.create options
+    options.addPath = {}
+    {parent, prop} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
     return if options.returnMeta then out else obj
   
   del: (path, ver, options = {}) ->
     @ver = ver
-    {parent, prop, obj, path} = out = @lookup path, false, options
+    {obj, proto} = options
+    options = Object.create options
+    options.addPath = false
+    {parent, prop, obj, path} = out = @lookup path, obj, options
     unless parent
       return if options.returnMeta then out else obj
-    if options.proto
+    if proto
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
@@ -42,7 +48,6 @@ Memory:: =
               specHelper.create value
             else
               value
-        # TODO This line may be the culprit
         # TODO Replace this with cross browser code
         parent.__proto__ = curr
     delete parent[prop]
@@ -51,11 +56,9 @@ Memory:: =
   # TODO Re-write this because the ability to use it in so many ways is too error-prone
   #      Also, this is a ridiculously long function.
   #      returnMeta option is really only used for path retrieval
-  # TODO Replace with signature lookup(path, addPath, obj, options)
-  lookup: (path, addPath, options) ->
-    origPath = path
-    {proto, array} = options
-    next = options.obj || @_data
+  lookup: (path, obj, options = {}) ->
+    {addPath, proto, dontFollowLastRef} = options
+    next = obj || @_data
     props = path.split '.'
     
     path = ''
@@ -64,14 +67,13 @@ Memory:: =
 
     while i < len
       parent = next
-      prop = props[i++]
-      
       # In speculative model operations, return a prototype referenced object
       if proto && !specHelper.isSpeculative parent
         parent = specHelper.create parent
-      
+
+      prop = props[i++]
       pathSegment = prop.dereffedProp || prop
-      prop = if prop.arrIndex isnt undefined then prop.arrIndex else prop
+      prop = if prop.arrIndex is undefined then prop else prop.arrIndex
 
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + pathSegment else pathSegment
@@ -83,10 +85,8 @@ Memory:: =
           # Return undefined if the object can't be found
           return {obj: next, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
-        if array && i == len
-          next = if proto then specHelper.create [] else []
-        else
-          next = if proto then specHelper.create {} else {}
+        setTo = if i == len then addPath else {}
+        next = if proto then specHelper.create setTo else setTo
         parent[prop] = next
       else if proto && typeof next == 'object' && !specHelper.isSpeculative(next)
         next = specHelper.create next
@@ -94,18 +94,18 @@ Memory:: =
       
       # Check for model references
       if ref = next.$r
-        if i == len && options.dontFollowLastRef
+        if i == len && dontFollowLastRef
           return {path, parent, prop, obj: next}
         {obj: rObj, path: rPath, remainingProps: rRemainingProps} =
-          @lookup(ref, addPath, options)
+          @lookup ref, obj, options
         dereffedPath = rPath + if rRemainingProps?.length then '.' + rRemainingProps.join '.' else ''
         unless key = next.$k
           next = rObj
         else
-          keyVal = @lookup(key, false, options).obj
+          keyVal = @lookup(key, obj).obj
           if specHelper.isArray(keyVal)
             next = keyVal.map (key) =>
-              @lookup(dereffedPath + '.' + key, false, options).obj
+              @lookup(dereffedPath + '.' + key, obj).obj
             # Map array index to key it should be in the dereferenced
             # object
             if props[i]
@@ -113,9 +113,9 @@ Memory:: =
                 arrIndex: arrIndex = parseInt props[i], 10
                 dereffedProp: keyVal[arrIndex]
           else
-            dereffedPath = dereffedPath + '.' + @lookup(key, false, options).obj
+            dereffedPath = dereffedPath + '.' + @lookup(key, obj).obj
             # TODO deref the 2nd lookup term above
-            next = @lookup(dereffedPath, addPath, options).obj
+            next = @lookup(dereffedPath, obj, options).obj
         path = dereffedPath if i < len
         
         if next is undefined && !addPath && i < len
@@ -151,8 +151,8 @@ for method, {compound, normalizeArgs} of arrMutators
     return ->
       {path, methodArgs, ver, options} = normalizeArgs arguments...
       @ver = ver
-      options.array = true
-      out = @lookup path, true, options
+      options.addPath = []
+      out = @lookup path, options.obj, options
       arr = out.obj
       throw new Error 'Not an Array' unless specHelper.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
@@ -161,8 +161,8 @@ for method, {compound, normalizeArgs} of arrMutators
       return if options.returnMeta then out else ret
 
 Memory::move = (path, from, to, ver, options = {}) ->
-  value = @lookup("#{path}.#{from}", false, options).obj
-  to += @lookup(path, false, options).obj.length if to < 0
+  value = @lookup("#{path}.#{from}", options.obj).obj
+  to += @lookup(path, options.obj).obj.length if to < 0
   if from > to
     @insertBefore path, to, value, ver, options
     from++
