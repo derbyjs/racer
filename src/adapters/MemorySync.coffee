@@ -51,9 +51,6 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  # TODO Re-write this because the ability to use it in so many ways is too error-prone
-  #      Also, this is a ridiculously long function.
-  #      returnMeta option is really only used for path retrieval
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, proto, dontFollowLastRef} = options
     next = obj
