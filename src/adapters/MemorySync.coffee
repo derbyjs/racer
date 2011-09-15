@@ -67,7 +67,6 @@ Memory:: =
     while i < len
       parent = curr
       prop = props[i++]
-      # Traverse down the curr segment in the path
       curr = parent[prop]
 
       if Array.isArray path
