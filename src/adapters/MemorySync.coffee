@@ -11,7 +11,7 @@ Memory:: =
   get: (path, obj = @_data) ->
     if path then @lookup(path, obj).obj else obj
   
-  set: (path, value, ver, options = {}) ->
+  set: (path, value, ver, obj, options = {}) ->
     if value && value.$r
       # If we are setting a reference, then copy the transaction
       # , so we do not mutate the transaction stored in Model::_txns.
@@ -20,16 +20,14 @@ Memory:: =
       refObjCopy = merge {}, value
       value = refObjCopy
     @ver = ver
-    obj = options.obj
-    options = Object.create options
     options.addPath = {}
     {parent, prop} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
     return if options.returnMeta then out else obj
   
-  del: (path, ver, options = {}) ->
+  del: (path, ver, obj, options = {}) ->
     @ver = ver
-    {obj, proto} = options
+    {proto} = options
     options = Object.create options
     options.addPath = false
     {parent, prop, obj, path} = out = @lookup path, obj, options
@@ -56,9 +54,9 @@ Memory:: =
   # TODO Re-write this because the ability to use it in so many ways is too error-prone
   #      Also, this is a ridiculously long function.
   #      returnMeta option is really only used for path retrieval
-  lookup: (path, obj, options = {}) ->
+  lookup: (path, obj = @_data, options = {}) ->
     {addPath, proto, dontFollowLastRef} = options
-    next = obj || @_data
+    next = obj
     props = path.split '.'
     
     path = ''
@@ -149,10 +147,10 @@ for method, {compound, normalizeArgs} of arrMutators
       outOfBounds = xtraConf.outOfBounds
       fn = xtraConf.fn
     return ->
-      {path, methodArgs, ver, options} = normalizeArgs arguments...
+      {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
       @ver = ver
       options.addPath = []
-      out = @lookup path, options.obj, options
+      out = @lookup path, obj, options
       arr = out.obj
       throw new Error 'Not an Array' unless specHelper.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
@@ -160,12 +158,12 @@ for method, {compound, normalizeArgs} of arrMutators
       ret = if fn then fn arr, methodArgs else arr[method] methodArgs...
       return if options.returnMeta then out else ret
 
-Memory::move = (path, from, to, ver, options = {}) ->
-  value = @lookup("#{path}.#{from}", options.obj).obj
-  to += @lookup(path, options.obj).obj.length if to < 0
+Memory::move = (path, from, to, ver, obj, options = {}) ->
+  value = @lookup("#{path}.#{from}", obj).obj
+  to += @lookup(path, obj).obj.length if to < 0
   if from > to
-    @insertBefore path, to, value, ver, options
+    @insertBefore path, to, value, ver, obj, options
     from++
   else
-    @insertAfter path, to, value, ver, options
-  @remove path, from, 1, ver, options
+    @insertAfter path, to, value, ver, obj, options
+  @remove path, from, 1, ver, obj, options

@@ -40,20 +40,20 @@ RefHelper:: =
     adapter = @_adapter
 
     adapter.__set = adapter.set
-    adapter.set = (path, value, ver, options = {}) ->
+    adapter.set = (path, value, ver, obj, options = {}) ->
+      obj ||= @_data
       out = null
       # Save a record of any references being set
-      options.obj ||= @_data
 
       maybeIndexRefs = (_path, _value) =>
         if refHelper.isPointer _value
-          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, options
+          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, obj, options
         if _path == path
-          out = @__set path, value, ver, options
+          out = @__set path, value, ver, obj, options
 
         # TODO Move all instances of updateRefsForKey to an event listener?
         # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey _path, ver, options
+        refHelper.updateRefsForKey _path, ver, obj, options
 
       unless Object == value?.constructor
         maybeIndexRefs path, value
@@ -72,11 +72,11 @@ RefHelper:: =
       return out
 
     adapter.__del = adapter.del
-    adapter.del = (path, ver, options = {}) ->
-      options.obj ||= @_data
-      out = @__del path, ver, options
-      if refHelper.isPathPointedTo path, options.obj
-        refHelper.cleanupPointersTo path, options
+    adapter.del = (path, ver, obj, options = {}) ->
+      obj ||= @_data
+      out = @__del path, ver, obj, options
+      if refHelper.isPathPointedTo path, obj
+        refHelper.cleanupPointersTo path, obj, options
       return out
 
     # Wrap all array mutators at adapter layer to add ref logic
@@ -84,17 +84,17 @@ RefHelper:: =
       adapter['__' + method] = adapter[method]
       adapter[method] = do (method, normalizeArgs, indexesInArgs) ->
         return ->
-          {path, methodArgs, ver, options} = normalizeArgs arguments...
-          options.obj ||= @_data
-          #if refHelper.isArrayRef path, options.obj
+          {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
+          obj ||= @_data
+          #if refHelper.isArrayRef path, obj
           if indexesInArgs
             newIndexes = indexesInArgs(methodArgs).map (index) ->
-              return refHelper.arrRefIndex index, path, options.obj
+              return refHelper.arrRefIndex index, path, obj
             indexesInArgs methodArgs, newIndexes
 
-          out = @['__' + method] path, methodArgs..., ver, options
+          out = @['__' + method] path, methodArgs..., ver, obj, options
           # Check to see if mutating a reference's key. If so, update references
-          refHelper.updateRefsForKey path, ver, options
+          refHelper.updateRefsForKey path, ver, obj, options
           return out
 
   # This function returns the index of an array ref member, given a member
@@ -168,12 +168,12 @@ RefHelper:: =
   # @param {String} type can be undefined or 'array'
   # @param {Number} ver
   # @param {Object} options
-  $indexRefs: (path, ref, key, type, ver, options) ->
+  $indexRefs: (path, ref, key, type, ver, obj, options) ->
     adapter = @_adapter
     refHelper = @
     oldRefOptions = merge {dontFollowLastRef: true}, options
     oldRefOptions.addPath = false
-    oldRefObj = adapter.lookup(path, oldRefOptions.obj, oldRefOptions).obj
+    oldRefObj = adapter.lookup(path, obj, oldRefOptions).obj
     if key
       entry = [ref, key]
       entry.push type if type
@@ -183,68 +183,68 @@ RefHelper:: =
 #      path = @denormalizePath path, options.obj
       _options = Object.create options
       _options.addPath = {}
-      adapter.lookup("$keys.#{key}.$", _options.obj, _options).obj[path] = entry
+      adapter.lookup("$keys.#{key}.$", obj, _options).obj[path] = entry
       _options = Object.create options
       _options.addPath = false
-      keyVal = adapter.lookup(key, _options.obj, _options).obj
+      keyVal = adapter.lookup(key, obj, _options).obj
       # keyVal is only valid if it can be a valid path segment
       return if type is undefined and keyVal is undefined
       if type == 'array'
         keyOptions = merge {}, options
         keyOptions.addPath = []
-        keyVal = adapter.lookup(key, keyOptions.obj, keyOptions).obj
+        keyVal = adapter.lookup(key, obj, keyOptions).obj
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
-        @_removeOld$refs oldRefObj, path, ver, options
+        @_removeOld$refs oldRefObj, path, ver, obj, options
         return refsKeys.forEach (refsKey) ->
-          refHelper._update$refs refsKey, path, ref, key, type, options
+          refHelper._update$refs refsKey, path, ref, key, type, obj, options
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
         _options = Object.create options
         _options.addPath = false
-        refs = adapter.lookup("$keys.#{oldKey}.$", _options.obj, _options).obj
+        refs = adapter.lookup("$keys.#{oldKey}.$", obj, _options).obj
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, options unless hasKeys refs, ignore: specHelper.reserved
+          adapter.del "$keys.#{oldKey}", ver, obj, options unless hasKeys refs, ignore: specHelper.reserved
       refsKey = ref
-    @_removeOld$refs oldRefObj, path, ver, options
-    @_update$refs refsKey, path, ref, key, type, options
+    @_removeOld$refs oldRefObj, path, ver, obj, options
+    @_update$refs refsKey, path, ref, key, type, obj, options
 
   # Private helper function for $indexRefs
-  _removeOld$refs: (oldRefObj, path, ver, options) ->
+  _removeOld$refs: (oldRefObj, path, ver, obj, options) ->
     if oldRefObj && oldRef = oldRefObj.$r
       if oldKey = oldRefObj.$k
         _options = Object.create options
         _options.addPath = false
-        oldKeyVal = @_adapter.lookup(oldKey, _options.obj, _options).obj
+        oldKeyVal = @_adapter.lookup(oldKey, obj, _options).obj
       if oldKey && (oldRefObj.$t == 'array')
         # If this key was used in an array ref: {$r: path, $k: [...]}
         refHelper = @
         oldKeyVal.forEach (oldKeyMem) ->
-          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, options
-        @_removeFrom$refs oldRef, undefined, path, ver, options
+          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, obj, options
+        @_removeFrom$refs oldRef, undefined, path, ver, obj, options
       else
-        @_removeFrom$refs oldRef, oldKeyVal, path, ver, options
+        @_removeFrom$refs oldRef, oldKeyVal, path, ver, obj, options
 
   # Private helper function for $indexRefs
-  _removeFrom$refs: (ref, key, path, ver, options) ->
+  _removeFrom$refs: (ref, key, path, ver, obj, options) ->
     refWithKey = ref + '.' + key if key
     _options = Object.create options
     _options.addPath = false
-    refEntries = @_adapter.lookup("$refs.#{refWithKey}.$", _options.obj, _options).obj
+    refEntries = @_adapter.lookup("$refs.#{refWithKey}.$", obj, _options).obj
     return unless refEntries
     delete refEntries[path]
     unless hasKeys(refEntries, ignore: specHelper.reserved)
-      @_adapter.del "$refs.#{ref}", ver, options
+      @_adapter.del "$refs.#{ref}", ver, obj, options
     
   # Private helper function for $indexRefs
-  _update$refs: (refsKey, path, ref, key, type, options) ->
+  _update$refs: (refsKey, path, ref, key, type, obj, options) ->
     entry = [ref, key]
     entry.push type if type
     # TODO DRY - Above 2 lines are duplicated below
     _options = Object.create options
     _options.addPath = {}
-    out = @_adapter.lookup("$refs.#{refsKey}.$", _options.obj, _options)
+    out = @_adapter.lookup("$refs.#{refsKey}.$", obj, _options)
     out.obj[path] = entry
 
   # If path is a reference's key ($k), then update all entries in the
@@ -254,14 +254,14 @@ RefHelper:: =
   #                         *
   #                         |
   #                       Update <keyVal> = <lookup(key)>
-  updateRefsForKey: (path, ver, options) ->
+  updateRefsForKey: (path, ver, obj, options) ->
     _options = Object.create options
     _options.addPath = false
-    if refs = @_adapter.lookup("$keys.#{path}.$", _options.obj, _options).obj
-      @_eachValidRef refs, options.obj, (path, ref, key, type) =>
-        @$indexRefs path, ref, key, type, ver, options
-    @eachValidRefPointingTo path, options.obj, (pointingPath, targetPathRemainder, ref, key, type) =>
-      @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, options
+    if refs = @_adapter.lookup("$keys.#{path}.$", obj, _options).obj
+      @_eachValidRef refs, obj, (path, ref, key, type) =>
+        @$indexRefs path, ref, key, type, ver, obj, options
+    @eachValidRefPointingTo path, obj, (pointingPath, targetPathRemainder, ref, key, type) =>
+      @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, obj, options
 
   ## Iterators ##
   _eachValidRef: (refs, obj = @_adapter._data, callback) ->
@@ -364,19 +364,19 @@ RefHelper:: =
     ignoreRoots.push ref
     return false
 
-  cleanupPointersTo: (path, options) ->
+  cleanupPointersTo: (path, obj, options) ->
     adapter = @_adapter
     _options = Object.create options
     _options.addPath = false
-    refs = adapter.lookup("$refs.#{path}.$", _options.obj, _options).obj
+    refs = adapter.lookup("$refs.#{path}.$", obj, _options).obj
     return if refs is undefined
     model = @_model
     for pointingPath, [ref, key] of refs
-      keyVal = key && adapter.lookup(key, _options.obj, _options).obj
+      keyVal = key && adapter.lookup(key, obj, _options).obj
       if keyVal && specHelper.isArray keyVal
         keyMem = path.substr(ref.length + 1, pointingPath.length)
         # TODO Use model.remove here instead?
-        adapter.remove key, keyVal.indexOf(keyMem), 1, null, options
+        adapter.remove key, keyVal.indexOf(keyMem), 1, null, obj, options
 #      else
 #        # TODO Use model.del here instead?
 #        adapter.del pointingPath, null, options

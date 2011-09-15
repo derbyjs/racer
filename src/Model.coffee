@@ -246,7 +246,7 @@ Model:: =
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
         args = transaction.args(txn).slice 0
-        args.push adapter.ver, obj: obj, proto: true, returnMeta: true
+        args.push adapter.ver, obj, proto: true, returnMeta: true
         meta = adapter[transaction.method txn] args...
         path = meta.path
       cache.obj = obj

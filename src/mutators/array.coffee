@@ -1,15 +1,19 @@
-# - Move argsNormalizer code here
-# - 
 module.exports =
   push:
-    normalizeArgs: normArgsPush = (path, values..., ver, options) ->
+    normalizeArgs: normArgsPush = (path, values..., ver, obj, options) ->
+      if obj is undefined || obj.constructor != Object
+        if options is undefined
+          if obj isnt undefined
+            values.push ver
+            ver = options
+        else
+          values.push ver, obj
+          ver = options
+        obj = undefined
+        options = {}
       if options is undefined
         options = {}
-      if options.constructor != Object
-        values.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: values, ver, options}
+      return {path, methodArgs: values, ver, obj, options}
     splitArgs: (args) -> [[], args]
     sliceFrom: 1
     argsToForeignKeys: argsToFKeys = (args, path, $r) ->
@@ -24,13 +28,13 @@ module.exports =
       return args
 
   pop:
-    normalizeArgs: normArgsPop = (path, ver, options = {}) ->
-      return {path, methodArgs: [], ver, options}
+    normalizeArgs: normArgsPop = (path, ver, obj, options = {}) ->
+      return {path, methodArgs: [], ver, obj, options}
     splitArgs: splitArgsDefault = (args) -> [args, []]
 
   insertAfter:
-    normalizeArgs: normArgsInsert = (path, pivotIndex, value, ver, options = {}) ->
-      return {path, methodArgs: [pivotIndex, value], ver, options}
+    normalizeArgs: normArgsInsert = (path, pivotIndex, value, ver, obj, options = {}) ->
+      return {path, methodArgs: [pivotIndex, value], ver, obj, options}
     # Extracts or sets the arguments in args that represent indexes
     indexesInArgs: indexInArgs = indexesInArgsForInsert = (args, newVals) ->
       if newVals
@@ -49,20 +53,29 @@ module.exports =
     argsToForeignKeys: argsToFKeys
 
   remove:
-    normalizeArgs: (path, startIndex, howMany, ver, options = {}) ->
-      return {path, methodArgs: [startIndex, howMany], ver, options}
+    normalizeArgs: (path, startIndex, howMany, ver, obj, options = {}) ->
+      return {path, methodArgs: [startIndex, howMany], ver, obj, options}
     indexesInArgs: indexInArgs
     splitArgs: splitArgsDefault
 
   splice:
-    normalizeArgs: (path, startIndex, removeCount, newMembers..., ver, options) ->
+    # obj and options are optional
+    normalizeArgs: (path, startIndex, removeCount, newMembers..., ver, obj, options) ->
+      if obj is undefined || obj.constructor != Object
+        if options is undefined
+          # ..., 9, undefined
+          # ..., undefined, undefined
+          if obj isnt undefined
+            newMembers.push ver
+            ver = options
+        else
+          newMembers.push ver, obj
+          ver = options
+        obj = undefined
+        options = {}
       if options is undefined
         options = {}
-      if options.constructor != Object
-        newMembers.push ver
-        ver = options
-        options = {}
-      return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, options}
+      return {path, methodArgs: [startIndex, removeCount, newMembers...], ver, obj, options}
     indexesInArgs: indexInArgs
     splitArgs: (args) -> [args[0..1], args.slice 2]
     sliceFrom: 3
@@ -80,8 +93,8 @@ module.exports =
 
   move:
     compound: true
-    normalizeArgs: (path, from, to, ver, options = {}) ->
-      return {path, methodArgs: [from, to], ver, options}
+    normalizeArgs: (path, from, to, ver, obj, options = {}) ->
+      return {path, methodArgs: [from, to], ver, obj, options}
     indexesInArgs: (args, newVals) ->
       if newVals
         args[0..1] = newVals[0..1]
