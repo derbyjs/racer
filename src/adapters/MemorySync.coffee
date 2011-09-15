@@ -53,71 +53,65 @@ Memory:: =
 
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, proto, dontFollowLastRef} = options
-    next = obj
+    curr = obj
     props = path.split '.'
     
     path = ''
     i = 0
     len = props.length
 
-    while i < len
-      parent = next
-      # In speculative model operations, return a prototype referenced object
-      if proto && !specHelper.isSpeculative parent
-        parent = specHelper.create parent
+    # spec the root node if in proto mode
+    if proto && !specHelper.isSpeculative curr
+      curr = specHelper.create curr
 
+    while i < len
+      parent = curr
       prop = props[i++]
-      pathSegment = prop.dereffedProp || prop
-      prop = if prop.arrIndex is undefined then prop else prop.arrIndex
+      # Traverse down the curr segment in the path
+      curr = parent[prop]
+
+      if Array.isArray path
+        # Dereference the path and prop
+        [_, path, array] = path
+        prop = array[prop] # id in the ref array key
 
       # Store the absolute path we are about to traverse
-      path = if path then path + '.' + pathSegment else pathSegment
+      path = if path then path + '.' + prop else prop
 
-      # Traverse down the next segment in the path
-      next = parent[prop]
-      if next is undefined
+      if curr is undefined
         unless addPath
-          # Return undefined if the object can't be found
-          return {obj: next, path, remainingProps: props.slice i}
+          return {obj: curr, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
-        next = if proto then specHelper.create setTo else setTo
-        parent[prop] = next
-      else if proto && typeof next == 'object' && !specHelper.isSpeculative(next)
-        next = specHelper.create next
-        parent[prop] = next
+        curr = parent[prop] = if proto then specHelper.create setTo else setTo
+      else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
+        curr = parent[prop] = specHelper.create curr
       
       # Check for model references
-      if ref = next.$r
+      if ref = curr.$r
         if i == len && dontFollowLastRef
-          return {path, parent, prop, obj: next}
-        {obj: rObj, path: rPath, remainingProps: rRemainingProps} =
-          @lookup ref, obj, options
-        dereffedPath = rPath + if rRemainingProps?.length then '.' + rRemainingProps.join '.' else ''
-        unless key = next.$k
-          next = rObj
+          return {path, parent, prop, obj: curr}
+        {obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+        dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
+        unless key = curr.$k
+          curr = rObj
         else
           keyVal = @lookup(key, obj).obj
-          if specHelper.isArray(keyVal)
-            next = keyVal.map (key) =>
-              @lookup(dereffedPath + '.' + key, obj).obj
+          if isArrayRef = specHelper.isArray(keyVal)
+            curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
             # Map array index to key it should be in the dereferenced
             # object
-            if props[i]
-              props[i] =
-                arrIndex: arrIndex = parseInt props[i], 10
-                dereffedProp: keyVal[arrIndex]
+            props[i] = parseInt props[i], 10 if props[i]
+            path = [path, dereffedPath, keyVal] if i < len
           else
-            dereffedPath = dereffedPath + '.' + @lookup(key, obj).obj
+            dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
-            next = @lookup(dereffedPath, obj, options).obj
-        path = dereffedPath if i < len
-        
-        if next is undefined && !addPath && i < len
-          # Return undefined if the reference points to nothing and getting
-          return {obj: next, path, remainingProps: props.slice i}
-    
-    return {path, parent, prop, obj: next}
+            curr = @lookup(dereffedPath, obj, options).obj
+        path = dereffedPath unless i == len || isArrayRef
+        if curr is undefined && !addPath && i < len
+          # Return undefined if the reference points to nothing
+          return {obj: curr, path, remainingProps: props.slice i}
+    return {path, parent, prop, obj: curr}
 
 xtraArrMutConf =
   insertAfter:
