@@ -5,26 +5,30 @@ module.exports = (AdapterSync) ->
 
   'test get and set': ->
     adapterSync = new AdapterSync
-    adapterSync.get().should.eql {}
+    ver = 0
+    adapterSync.get().should.eql { val: {}, ver }
     
-    adapterSync.set 'color', 'green'
-    adapterSync.get('color').should.eql 'green'
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.get('color').should.eql { val: 'green', ver }
     
-    adapterSync.set 'info.numbers', first: 2, second: 10
-    adapterSync.get('info.numbers').should.eql first: 2, second: 10
+    adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
+    adapterSync.get('info.numbers').should.eql { val: {first: 2, second: 10}, ver}
     adapterSync.get().should.eql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+      val:
+        color: 'green'
+        info:
+          numbers:
+            first: 2
+            second: 10
+      ver: ver
     
-    adapterSync.set 'info', 'new'
-    adapterSync.get().should.eql color: 'green', info: 'new'
+    adapterSync.set 'info', 'new', ++ver
+    adapterSync.get().should.eql { val: {color: 'green', info: 'new'}, ver}
   
   'getting an unset path should return undefined': ->
     adapterSync = new AdapterSync
-    adapterSync.set 'info.numbers', {}
+    ver = 0
+    adapterSync.set 'info.numbers', {}, ++ver
     
     should.equal undefined, adapterSync.get 'color'
     should.equal undefined, adapterSync.get 'color.favorite'
@@ -32,38 +36,41 @@ module.exports = (AdapterSync) ->
 
   'test del': ->
     adapterSync = new AdapterSync
-    adapterSync.set 'color', 'green'
-    adapterSync.set 'info.numbers', first: 2, second: 10
+    ver = 0
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
     
-    adapterSync.del 'color'
+    adapterSync.del 'color', ++ver
     adapterSync.get().should.eql
-      info:
-        numbers:
-          first: 2
-          second: 10
+      val:
+        info:
+          numbers:
+            first: 2
+            second: 10
+      ver: ver
     
-    adapterSync.del 'info.numbers'
-    adapterSync.get().should.eql info: {}
+    adapterSync.del 'info.numbers', ++ver
+    adapterSync.get().should.eql {val: {info: {}}, ver}
     
     # Make sure deleting something that doesn't exist isn't a problem
-    adapterSync.del 'a.b.c'
+    adapterSync.del 'a.b.c', ++ver
 
   'test push and pop': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
     
     adapterSync.push 'colors', 'green', ++ver
-    adapterSync.get('colors').should.eql ['green']
+    adapterSync.get('colors').should.eql {val: ['green'], ver}
 
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
     adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
-    adapterSync.get('colors').should.eql ['red', 'blue', 'purple']
+    adapterSync.get('colors').should.eql {val: ['red', 'blue', 'purple'], ver}
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.eql ['red', 'blue']
+    adapterSync.get('colors').should.eql {val: ['red', 'blue'], ver}
     adapterSync.push 'colors', 'orange', ++ver
-    adapterSync.get('colors').should.eql ['red', 'blue', 'orange']
+    adapterSync.get('colors').should.eql {val: ['red', 'blue', 'orange'], ver}
 
     adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
@@ -85,19 +92,19 @@ module.exports = (AdapterSync) ->
   'test shift and unshift': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
     
     adapterSync.unshift 'colors', 'green', ++ver
-    adapterSync.get('colors').should.eql ['green']
+    adapterSync.get('colors').should.eql {val: ['green'], ver}
 
     adapterSync.shift 'colors', ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
     adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
-    adapterSync.get('colors').should.eql ['red', 'blue', 'purple']
+    adapterSync.get('colors').should.eql {val: ['red', 'blue', 'purple'], ver}
     adapterSync.shift 'colors', ++ver
-    adapterSync.get('colors').should.eql ['blue', 'purple']
+    adapterSync.get('colors').should.eql {val: ['blue', 'purple'], ver}
     adapterSync.unshift 'colors', 'orange', ++ver
-    adapterSync.get('colors').should.eql ['orange', 'blue', 'purple']
+    adapterSync.get('colors').should.eql {val: ['orange', 'blue', 'purple'], ver}
 
     adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
@@ -119,25 +126,25 @@ module.exports = (AdapterSync) ->
   'test insertAfter': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
 
     # on undefined
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
-    adapterSync.get('colors').should.eql ['yellow']
+    adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
     # on an empty array
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
-    adapterSync.get('colors').should.eql ['yellow']
+    adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
     # insertAfter like push
     adapterSync.insertAfter 'colors', 0, 'black', ++ver
 
     # in-between an array with length >= 2
-    adapterSync.get('colors').should.eql ['yellow', 'black']
+    adapterSync.get('colors').should.eql {val: ['yellow', 'black'], ver}
     adapterSync.insertAfter 'colors', 0, 'violet', ++ver
-    adapterSync.get('colors').should.eql ['yellow', 'violet', 'black']
+    adapterSync.get('colors').should.eql {val: ['yellow', 'violet', 'black'], ver}
 
     # out of bounds
     didThrowOutOfBounds = false
@@ -161,29 +168,29 @@ module.exports = (AdapterSync) ->
   'test insertBefore': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
 
     # on undefined
     adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
-    adapterSync.get('colors').should.eql ['yellow']
+    adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
     # on an empty array
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
     adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
-    adapterSync.get('colors').should.eql ['yellow']
+    adapterSync.get('colors').should.eql {val: ['yellow'], ver}
     
     # like shift
     adapterSync.insertBefore 'colors', 0, 'violet', ++ver
-    adapterSync.get('colors').should.eql ['violet', 'yellow']
+    adapterSync.get('colors').should.eql {val: ['violet', 'yellow'], ver}
 
     # like push
     adapterSync.insertBefore 'colors', 2, 'black', ++ver
-    adapterSync.get('colors').should.eql ['violet', 'yellow', 'black']
+    adapterSync.get('colors').should.eql {val: ['violet', 'yellow', 'black'], ver}
     
     # in-between an array with length >= 2
     adapterSync.insertBefore 'colors', 1, 'orange', ++ver
-    adapterSync.get('colors').should.eql ['violet', 'orange', 'yellow', 'black']
+    adapterSync.get('colors').should.eql {val: ['violet', 'orange', 'yellow', 'black'], ver}
 
     # out of bounds
     didThrowOutOfBounds = false
@@ -207,7 +214,7 @@ module.exports = (AdapterSync) ->
   'test remove (from array)': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
 
 #    # on undefined
 #    didThrowNotAnArray = false
@@ -231,20 +238,20 @@ module.exports = (AdapterSync) ->
     # on an empty array
     adapterSync.set 'colors', [], ++ver
     adapterSync.remove 'colors', 0, 3, ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
     
     # on a non-empty array, with howMany to remove in-bounds
     adapterSync.push 'colors', 'red', 'yellow', 'orange', ++ver
     adapterSync.remove 'colors', 0, 2, ++ver
-    adapterSync.get('colors').should.eql ['orange']
+    adapterSync.get('colors').should.eql {val: ['orange'], ver}
 
     # on a non-empty array, with howMany to remove out of bounds
     adapterSync.remove 'colors', 0, 2, ++ver
-    adapterSync.get('colors').should.eql []
+    adapterSync.get('colors').should.eql {val: [], ver}
 
     # on a non-empty array, with startAt index out-of-bounds
     adapterSync.push 'colors', 'blue', 'green', 'pink', ++ver
-    adapterSync.get('colors').should.eql ['blue', 'green', 'pink']
+    adapterSync.get('colors').should.eql {val: ['blue', 'green', 'pink'], ver}
     didThrowOutOfBounds = false
     try
       adapterSync.remove 'colors', -1, 1, ++ver
@@ -263,11 +270,11 @@ module.exports = (AdapterSync) ->
   'test splice': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.eql {}
+    adapterSync.get().should.eql {val: {}, ver}
 
     # on undefined
     adapterSync.splice 'undefined', 0, 3, 1, 2, ++ver
-    adapterSync.get('undefined').should.eql [1, 2]
+    adapterSync.get('undefined').should.eql {val: [1, 2], ver}
 
     # on a defined non-array
     didThrowNotAnArray = false
@@ -282,28 +289,28 @@ module.exports = (AdapterSync) ->
     # on an empty array
     adapterSync.set 'colors', [], ++ver
     adapterSync.splice 'colors', 0, 0, 'red', 'orange', 'yellow', 'green', 'blue', 'violet', ++ver
-    adapterSync.get('colors').should.eql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
+    adapterSync.get('colors').should.eql {val: ['red', 'orange', 'yellow', 'green', 'blue', 'violet'], ver}
     
     # on a non-empty array
     adapterSync.splice 'colors', 2, 3, 'pink', 'gray', ++ver
-    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet']
+    adapterSync.get('colors').should.eql {val: ['red', 'orange', 'pink', 'gray', 'violet'], ver}
 
     # like push
     adapterSync.splice 'colors', 5, 0, 'peach', ++ver
-    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet', 'peach']
+    adapterSync.get('colors').should.eql {val: ['red', 'orange', 'pink', 'gray', 'violet', 'peach'], ver}
 
     # like pop
     adapterSync.splice 'colors', 5, 1, ++ver
-    adapterSync.get('colors').should.eql ['red', 'orange', 'pink', 'gray', 'violet']
+    adapterSync.get('colors').should.eql {val: ['red', 'orange', 'pink', 'gray', 'violet'], ver}
 
     # like remove
     adapterSync.splice 'colors', 1, 2, ++ver
-    adapterSync.get('colors').should.eql ['red', 'gray', 'violet']
+    adapterSync.get('colors').should.eql {val: ['red', 'gray', 'violet'], ver}
 
     # like shift
     adapterSync.splice 'colors', 0, 1, ++ver
-    adapterSync.get('colors').should.eql ['gray', 'violet']
+    adapterSync.get('colors').should.eql {val: ['gray', 'violet'], ver}
 
     # with an out-of-bounds index
     adapterSync.splice 'colors', 100, 50, 'blue', ++ver
-    adapterSync.get('colors').should.eql ['gray', 'violet', 'blue']
+    adapterSync.get('colors').should.eql {val: ['gray', 'violet', 'blue'], ver}
