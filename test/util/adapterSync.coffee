@@ -12,8 +12,8 @@ module.exports = (AdapterSync) ->
     adapterSync.get('color').should.eql { val: 'green', ver }
     
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
-    adapterSync.get('info.numbers').should.eql { val: {first: 2, second: 10}, ver}
-    adapterSync.get().should.eql
+    adapterSync.get('info.numbers').should.specEql { val: {first: 2, second: 10}, ver}
+    adapterSync.get().should.specEql
       val:
         color: 'green'
         info:
@@ -30,27 +30,40 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'info.numbers', {}, ++ver
     
-    should.equal undefined, adapterSync.get 'color'
-    should.equal undefined, adapterSync.get 'color.favorite'
-    should.equal undefined, adapterSync.get 'info.numbers.first'
+    adapterSync.get('color').should.eql {val: undefined, ver}
+    adapterSync.get('color.favorite').should.eql {val: undefined, ver}
+    adapterSync.get('info.numbers.first').should.eql {val: undefined, ver}
 
-  'test del': ->
+  'test del @single': ->
     adapterSync = new AdapterSync
     ver = 0
+    adapterSync.version().should.equal ver
     adapterSync.set 'color', 'green', ++ver
+    adapterSync.version('color').should.equal ver
+    adapterSync.version().should.equal ver
+
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
+    adapterSync.version('info.numbers').should.equal ver
+    adapterSync.version('info').should.equal ver
+    adapterSync.version().should.equal ver
+    # TODO Hmmm, how do we treat versions when we get to eg mongodb?
+    adapterSync.version('color').should.equal ver-1
     
     adapterSync.del 'color', ++ver
-    adapterSync.get().should.eql
+    adapterSync.get().should.specEql
       val:
         info:
           numbers:
             first: 2
             second: 10
       ver: ver
+    adapterSync.version('color').should.equal ver
+    adapterSync.version('info.numbers').should.equal ver-1
+    adapterSync.version('info').should.equal ver-1
+    adapterSync.version().should.equal ver
     
     adapterSync.del 'info.numbers', ++ver
-    adapterSync.get().should.eql {val: {info: {}}, ver}
+    adapterSync.get().should.specEql {val: {info: {}}, ver}
     
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver

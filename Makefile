@@ -11,6 +11,12 @@ test-single:
 		--tags single \
 		$(ASYNC_TESTS_FAST)
 
+test-adapter-sync:
+	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
+		-I src \
+		$(TESTFLAGS) \
+		./test/adapters/MemorySync.test.coffee
+
 test-async-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
 		-I src \

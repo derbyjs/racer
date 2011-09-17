@@ -4,12 +4,20 @@ arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
   @_data = {}
-  @ver = 0
+  @ver = 0    # root node starts at ver 0
   return
 
 Memory:: =
+  version: (path, obj = @_data) ->
+    return @lookup(path, obj).ver if path
+    return @ver
+
   get: (path, obj = @_data) ->
-    if path then @lookup(path, obj).obj else obj
+    if path
+      {obj, ver} = @lookup path, obj
+      return {val: obj, ver}
+    else
+      return val: obj, ver: @ver
   
   set: (path, value, ver, obj, options = {}) ->
     if value && value.$r
@@ -20,16 +28,20 @@ Memory:: =
       refObjCopy = merge {}, value
       value = refObjCopy
     @ver = ver
-    options.addPath = {}
+    options.addPath = {} # set the final node to {} if not found
+    options.setVer = ver unless options.proto
     {parent, prop} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
     return if options.returnMeta then out else obj
   
   del: (path, ver, obj, options = {}) ->
+    if ver < @ver
+      throw new Error 'Cannot set to a ver that is less than adapter ver'
     @ver = ver
-    {proto} = options
+    proto = options.proto
     options = Object.create options
     options.addPath = false
+    options.setVer = ver unless proto
     {parent, prop, obj, path} = out = @lookup path, obj, options
     unless parent
       return if options.returnMeta then out else obj
@@ -52,7 +64,7 @@ Memory:: =
     return if options.returnMeta then out else obj
 
   lookup: (path, obj = @_data, options = {}) ->
-    {addPath, proto, dontFollowLastRef} = options
+    {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
     props = path.split '.'
     
@@ -63,6 +75,9 @@ Memory:: =
     # spec the root node if in proto mode
     if proto && !specHelper.isSpeculative curr
       curr = specHelper.create curr
+
+    @ver = setVer if setVer
+    ver = @ver
 
     while i < len
       parent = curr
@@ -79,23 +94,39 @@ Memory:: =
 
       if curr is undefined
         unless addPath
-          return {obj: curr, path, remainingProps: props.slice i}
+          return {ver, obj: curr, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
         curr = parent[prop] = if proto then specHelper.create setTo else setTo
       else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
         curr = parent[prop] = specHelper.create curr
-      
+
       # Check for model references
-      if ref = curr.$r
+      unless ref = curr.$r
+        if typeof curr == 'object'
+          if setVer
+            curr.__ver__ = setVer
+          else if curr.__ver__ is undefined
+            # Lazy adding of ver
+            curr.__ver__ = ver
+          ver = curr.__ver__
+      else
         if i == len && dontFollowLastRef
-          return {path, parent, prop, obj: curr}
-        {obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+          ver = curr.__ver__
+          return {ver, path, parent, prop, obj: curr}
+
+        {ver, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
         unless key = curr.$k
           curr = rObj
+          if typeof curr == 'object'
+            curr.__ver__ = setVer if setVer
+            ver = curr.__ver__
         else
-          keyVal = @lookup(key, obj).obj
+          # keyVer reflects the version set via an array op
+          # memVer reflects the version set via an op on a member
+          #  or member subpath
+          {ver: keyVer, obj: keyVal} = @lookup key, obj, {setVer}
           if isArrayRef = specHelper.isArray(keyVal)
             curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
             # Map array index to key it should be in the dereferenced
@@ -109,8 +140,8 @@ Memory:: =
         path = dereffedPath unless i == len || isArrayRef
         if curr is undefined && !addPath && i < len
           # Return undefined if the reference points to nothing
-          return {obj: curr, path, remainingProps: props.slice i}
-    return {path, parent, prop, obj: curr}
+          return {ver, obj: curr, path, remainingProps: props.slice i}
+    return {ver, path, parent, prop, obj: curr}
 
 xtraArrMutConf =
   insertAfter:

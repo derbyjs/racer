@@ -12,6 +12,6 @@ module.exports =
         arr.toString()
     return y
 
-  reserved: ['_proto', 'toString']
+  reserved: ['_proto', 'toString', '__ver__']
 
   isSpeculative: (obj) -> '_proto' of obj
