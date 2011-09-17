@@ -1,6 +1,7 @@
 should = require 'should'
 require '../util'
 
+# TODO Remove specEql once we start using @_vers implementation
 module.exports = (AdapterSync) ->
 
   'test get and set': ->
@@ -24,6 +25,37 @@ module.exports = (AdapterSync) ->
     
     adapterSync.set 'info', 'new', ++ver
     adapterSync.get().should.eql { val: {color: 'green', info: 'new'}, ver}
+
+  'setting a path to a ver should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.version('color').should.equal ver
+  
+  'setting a path to a ver should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.version().should.equal ver
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.version().should.equal ver
+
+  'setting a chained path to a ver should update all subpath vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.version().should.equal ver
+    adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
+    adapterSync.version('info.numbers').should.equal ver
+    adapterSync.version('info').should.equal ver
+    adapterSync.version().should.equal ver
+
+  'setting a path to a ver should not update a sibling path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'color', 'green', ++ver
+
+    adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
+    # TODO Hmmm, how do we treat versions when we get to eg mongodb?
+    adapterSync.version('color').should.equal ver-1
   
   'getting an unset path should return undefined': ->
     adapterSync = new AdapterSync
@@ -37,18 +69,8 @@ module.exports = (AdapterSync) ->
   'test del @single': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.version().should.equal ver
     adapterSync.set 'color', 'green', ++ver
-    adapterSync.version('color').should.equal ver
-    adapterSync.version().should.equal ver
-
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
-    adapterSync.version('info.numbers').should.equal ver
-    adapterSync.version('info').should.equal ver
-    adapterSync.version().should.equal ver
-    # TODO Hmmm, how do we treat versions when we get to eg mongodb?
-    adapterSync.version('color').should.equal ver-1
-    
     adapterSync.del 'color', ++ver
     adapterSync.get().should.specEql
       val:
@@ -57,16 +79,21 @@ module.exports = (AdapterSync) ->
             first: 2
             second: 10
       ver: ver
-    adapterSync.version('color').should.equal ver
-    adapterSync.version('info.numbers').should.equal ver-1
-    adapterSync.version('info').should.equal ver-1
-    adapterSync.version().should.equal ver
     
     adapterSync.del 'info.numbers', ++ver
     adapterSync.get().should.specEql {val: {info: {}}, ver}
     
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver
+
+  'deleting a path using a ver should update the root ver': ->
+    # TODO
+
+  'deleting a path using a ver should update all subpath vers': ->
+    # TODO
+
+  'deleting a path using a ver should not update a sibling path ver': ->
+    # TODO
 
   'test push and pop': ->
     adapterSync = new AdapterSync

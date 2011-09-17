@@ -5,6 +5,7 @@ arrMutators = require '../mutators/array'
 Memory = module.exports = ->
   @_data = {}
   @ver = 0    # root node starts at ver 0
+  @_vers = {}
   return
 
 Memory:: =
@@ -63,9 +64,12 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
+  # TODO Remove setVer because versions are only set when not in proto mode
+  # TODO Remove __ver__ from reserved list in specHelper
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
+    vers = @_vers
     props = path.split '.'
     
     path = ''
