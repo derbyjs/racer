@@ -64,12 +64,11 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  # TODO Remove setVer because versions are only set when not in proto mode
   # TODO Remove __ver__ from reserved list in specHelper
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
-    vers = @_vers
+    versCurr = @_vers
     props = path.split '.'
     
     path = ''
@@ -81,12 +80,15 @@ Memory:: =
       curr = specHelper.create curr
 
     @ver = setVer if setVer
-    ver = @ver
+    ver = @ver # Track ver for getters
 
     while i < len
       parent = curr
       prop = props[i++]
       curr = parent[prop]
+
+      versParent = versCurr
+      versCurr = versParent[prop]
 
       if Array.isArray path
         # Dereference the path and prop
@@ -98,39 +100,41 @@ Memory:: =
 
       if curr is undefined
         unless addPath
-          return {ver, obj: curr, path, remainingProps: props.slice i}
+          return {ver, versCurr, obj: curr, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
         curr = parent[prop] = if proto then specHelper.create setTo else setTo
+        if setVer
+          versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
       else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
         curr = parent[prop] = specHelper.create curr
 
       # Check for model references
       unless ref = curr.$r
-        if typeof curr == 'object'
-          if setVer
-            curr.__ver__ = setVer
-          else if curr.__ver__ is undefined
-            # Lazy adding of ver
-            curr.__ver__ = ver
-          ver = curr.__ver__
+        if setVer
+          versCurr.ver = setVer
+#       else if versCurr.ver is undefined
+#          # Lazy adding of ver
+#          curr.__ver__ = ver
+        ver = versCurr.ver if versCurr.ver
       else
         if i == len && dontFollowLastRef
-          ver = curr.__ver__
-          return {ver, path, parent, prop, obj: curr}
+          ver = versCurr.ver if versCurr.ver
+          return {ver, versCurr, path, parent, prop, obj: curr}
 
-        {ver, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+        {ver, versCurr, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
         unless key = curr.$k
           curr = rObj
           if typeof curr == 'object'
-            curr.__ver__ = setVer if setVer
-            ver = curr.__ver__
+            versCurr.ver = setVer if setVer
+            ver = versCurr.ver
         else
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          {ver: keyVer, obj: keyVal} = @lookup key, obj, {setVer}
+          {ver: keyVer, versCurr: keyVersCurr, obj: keyVal} = @lookup key, obj, {setVer}
+          # TODO Finish up versCurr keysVersCurr code from here
           if isArrayRef = specHelper.isArray(keyVal)
             curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
             # Map array index to key it should be in the dereferenced
@@ -144,8 +148,8 @@ Memory:: =
         path = dereffedPath unless i == len || isArrayRef
         if curr is undefined && !addPath && i < len
           # Return undefined if the reference points to nothing
-          return {ver, obj: curr, path, remainingProps: props.slice i}
-    return {ver, path, parent, prop, obj: curr}
+          return {ver, versCurr, obj: curr, path, remainingProps: props.slice i}
+    return {ver, versCurr, path, parent, prop, obj: curr}
 
 xtraArrMutConf =
   insertAfter:

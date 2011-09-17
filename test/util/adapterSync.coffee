@@ -1,10 +1,9 @@
 should = require 'should'
 require '../util'
 
-# TODO Remove specEql once we start using @_vers implementation
 module.exports = (AdapterSync) ->
 
-  'test get and set': ->
+  'test get and set @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql { val: {}, ver }
@@ -13,8 +12,8 @@ module.exports = (AdapterSync) ->
     adapterSync.get('color').should.eql { val: 'green', ver }
     
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
-    adapterSync.get('info.numbers').should.specEql { val: {first: 2, second: 10}, ver}
-    adapterSync.get().should.specEql
+    adapterSync.get('info.numbers').should.eql { val: {first: 2, second: 10}, ver}
+    adapterSync.get().should.eql
       val:
         color: 'green'
         info:
@@ -26,20 +25,20 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'info', 'new', ++ver
     adapterSync.get().should.eql { val: {color: 'green', info: 'new'}, ver}
 
-  'setting a path to a ver should update the path ver': ->
+  'setting a path to a ver should update the path ver @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
     adapterSync.version('color').should.equal ver
   
-  'setting a path to a ver should update the root ver': ->
+  'setting a path to a ver should update the root ver @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.version().should.equal ver
     adapterSync.set 'color', 'green', ++ver
     adapterSync.version().should.equal ver
 
-  'setting a chained path to a ver should update all subpath vers': ->
+  'setting a chained path to a ver should update all subpath vers @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.version().should.equal ver
@@ -48,7 +47,7 @@ module.exports = (AdapterSync) ->
     adapterSync.version('info').should.equal ver
     adapterSync.version().should.equal ver
 
-  'setting a path to a ver should not update a sibling path ver': ->
+  'setting a path to a ver should not update a sibling path ver @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
@@ -57,7 +56,7 @@ module.exports = (AdapterSync) ->
     # TODO Hmmm, how do we treat versions when we get to eg mongodb?
     adapterSync.version('color').should.equal ver-1
   
-  'getting an unset path should return undefined': ->
+  'getting an unset path should return undefined @single': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'info.numbers', {}, ++ver
@@ -72,7 +71,7 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'color', 'green', ++ver
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
     adapterSync.del 'color', ++ver
-    adapterSync.get().should.specEql
+    adapterSync.get().should.eql
       val:
         info:
           numbers:
@@ -81,7 +80,7 @@ module.exports = (AdapterSync) ->
       ver: ver
     
     adapterSync.del 'info.numbers', ++ver
-    adapterSync.get().should.specEql {val: {info: {}}, ver}
+    adapterSync.get().should.eql {val: {info: {}}, ver}
     
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver
