@@ -226,8 +226,9 @@ Model:: =
   #      in assignemnts to vars becoming stale?
   _specModel: ->
     cache = @_cache
+    len = @_txnQueue.length
     if lastReplayedTxnId = cache.lastReplayedTxnId
-      if cache.lastReplayedTxnId == @_txnQueue[@_txnQueue.length-1]
+      if cache.lastReplayedTxnId == @_txnQueue[len-1]
         return [cache.obj, cache.path]
       obj = cache.obj
       replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
@@ -235,9 +236,10 @@ Model:: =
       replayFrom = 0
 
     adapter = @_adapter
-    if len = @_txnQueue.length
+    if len
       # Then generate a speculative model
       unless obj
+        # TODO adapter implementation details leaking in here
         # TODO Do not need Object.create here?
         obj = cache.obj = specHelper.create adapter._data
 
