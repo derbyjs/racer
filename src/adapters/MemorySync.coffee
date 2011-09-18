@@ -81,7 +81,6 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  # TODO Remove __ver__ from reserved list in specHelper
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
