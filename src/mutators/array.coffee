@@ -70,7 +70,10 @@ module.exports =
           # ..., undefined, undefined
           if obj isnt undefined
             newMembers.push ver
-            ver = options
+            if options isnt undefined
+              ver = options
+            else
+              ver = obj
         else
           newMembers.push ver, obj
           ver = options

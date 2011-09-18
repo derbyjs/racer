@@ -265,6 +265,42 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
+  '''unshifting a member onto a path + specifying a version should
+  set the path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.unshift 'colors', 'green', ++ver
+    adapterSync.version('colors').should.equal ver
+
+  '''unshifting a member onto a path + specifying a version should
+  update the root ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.version().should.equal ver
+    adapterSync.unshift 'colors', 'green', ++ver
+    adapterSync.version().should.equal ver
+
+  '''unshifting a member onto a path + specifying a version should
+  update all subpath vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: [] }, ++ver
+    adapterSync.version('favorites').should.equal ver
+    adapterSync.unshift 'favorites.colors', 'green', ++ver
+    adapterSync.version('favorites').should.equal ver
+    adapterSync.version().should.equal ver
+
+  '''unshifting a member onto a path + specifying a version should
+  not update a sibling path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: [] }, ++ver
+    adapterSync.set 'favorites.day', 'saturday', ++ver
+    adapterSync.version('favorites.day').should.equal ver
+    adapterSync.unshift 'favorites.colors', 'green', ++ver
+    adapterSync.version('favorites.colors').should.equal ver
+    adapterSync.version('favorites.day').should.equal ver-1
+
   'test insertAfter': ->
     adapterSync = new AdapterSync
     ver = 0
