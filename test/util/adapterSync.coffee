@@ -301,6 +301,40 @@ module.exports = (AdapterSync) ->
     adapterSync.version('favorites.colors').should.equal ver
     adapterSync.version('favorites.day').should.equal ver-1
 
+  '''shifting a path + specifying a version should update 
+  the path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors', 'red', 'green', 'blue', ++ver
+    adapterSync.shift 'colors', ++ver
+    adapterSync.version('colors').should.equal ver
+
+  '''shifting a path + specifying a version should update
+  the root ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors', 'red', 'green', 'blue', ++ver
+    adapterSync.shift 'colors', ++ver
+    adapterSync.version().should.equal ver
+
+  '''shifting a nested path + specifying a version should
+  update all subpath vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors.favs', 'red', 'green', 'blue', ++ver
+    adapterSync.shift 'colors.favs', ++ver
+    adapterSync.version('colors.favs').should.equal ver
+    adapterSync.version('colors').should.equal ver
+
+  '''shifting a path + specifying a version should
+  not update a sibling path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors.favs', 'red', 'green', 'blue', ++ver
+    adapterSync.push 'colors.blacklist', 'orange', ++ver
+    adapterSync.shift 'colors.favs', ++ver
+    adapterSync.version('colors.blacklist').should.equal ver-1
+
   'test insertAfter': ->
     adapterSync = new AdapterSync
     ver = 0
