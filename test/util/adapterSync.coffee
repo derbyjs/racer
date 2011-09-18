@@ -783,3 +783,7 @@ module.exports = (AdapterSync) ->
     adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
     {ver: refVer} = adapterSync.lookup 'users.1.friends', undefined, dontFollowLastRef: true
     refVer.should.equal constVer
+
+  # TODO Get @_vers storing versions in more appropriate data structures (i.e., Arrays)
+  #      when the corresponding paths in @_data are also Arrays of object literals or are
+  #      array refs.
