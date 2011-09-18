@@ -646,3 +646,62 @@ module.exports = (AdapterSync) ->
     adapterSync.splice 'nested.colors', 1, 2, 'green', ++ver
     adapterSync.version('nested.colors').should.equal ver
     adapterSync.version('nested.directions').should.equal constVer
+
+  # Ref Path Versioning
+  'setting a path that contains a ref should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    adapterSync.version('users.1.account.name').should.equal ver
+
+  'setting a path that contains a ref should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    adapterSync.version().should.equal ver
+
+  'setting a path that contains a ref should update all subpath vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    adapterSync.version('users.1.account.name').should.equal ver
+    adapterSync.version('users.1.account').should.equal ver
+    adapterSync.version('users.1').should.equal ver
+    adapterSync.version('users').should.equal ver
+
+  'setting a path that contains a ref should not update sibling path vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, ++ver
+    adapterSync.set 'users.1.name', 'skynet', constVer = ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    adapterSync.version('users.1.name').should.equal constVer
+
+  '''setting a path that contains a ref should update the de-referenced
+  ref path ver and its subpath vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    adapterSync.version('accounts.1.name').should.equal ver
+    adapterSync.version('accounts.1').should.equal ver
+    adapterSync.version('accounts').should.equal ver
+
+  '''the version of a ref literal should be the version of the time it
+  was set as the literal, not subsequent versions associated with 
+  updates to the object it points to''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
+    adapterSync.set 'users.1.account', {$r: 'accounts.1'}, constVer = ++ver
+    adapterSync.set 'users.1.account.name', 'bbdo', ++ver
+    {ver: refVer} = adapterSync.lookup 'users.1.account', undefined, dontFollowLastRef: true
+    refVer.should.equal constVer
