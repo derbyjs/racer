@@ -705,3 +705,81 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'users.1.account.name', 'bbdo', ++ver
     {ver: refVer} = adapterSync.lookup 'users.1.account', undefined, dontFollowLastRef: true
     refVer.should.equal constVer
+
+  # Array Ref Path Versioning
+  'pushing on a path that is an array ref should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'users',
+      1: { name: 'cartman', friendIds: ['2', '3'] }
+      2: { name: 'stan' }
+      3: { name: 'kyle' }
+    , ++ver
+    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
+    adapterSync.push 'users.1.friends',
+      id: '4'
+      name: 'kenny'
+    , ++ver
+    adapterSync.version('users.1.friends').should.equal ver
+
+  '''pushing a path that is an array ref should set the new member
+  version if the member is not yet stored in the model''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'users',
+      1: { id: '1', name: 'cartman', friendIds: ['2', '3'] }
+      2: { id: '2', name: 'stan' }
+      3: { id: '3', name: 'kyle' }
+    , ++ver
+    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
+    adapterSync.push 'users.1.friends',
+      id: '4'
+      name: 'kenny'
+    , ++ver
+    adapterSync.version('users.4').should.equal ver
+
+
+  '''pushing a path that is an array ref should not set the new member
+  version if the member is already stored in the model''': ->
+    # This test only passes if versions are set pro-actively for
+    # all nodes of object_literal where e.g., adapter.set(path, object_literal)
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'users',
+      1: { id: '1', name: 'cartman', friendIds: ['2', '3'] }
+      2: { id: '2', name: 'stan' }
+      3: { id: '3', name: 'kyle' }
+      4: { id: '4', name: 'kenny' }
+    , constVer = ++ver
+    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
+    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+    adapterSync.version('users.4').should.equal constVer
+
+  '''pushing a path that is an array ref should update the version of
+  the array ref key''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'users',
+      1: { id: '1', name: 'cartman', friendIds: ['2', '3'] }
+      2: { id: '2', name: 'stan' }
+      3: { id: '3', name: 'kyle' }
+      4: { id: '4', name: 'kenny' }
+    , ++ver
+    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
+    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+    adapterSync.version('users.1.friendIds').should.equal ver
+
+  '''pushing a path that is an array ref should not update the version
+  of the object literal representing the array ref pointer''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'users',
+      1: { id: '1', name: 'cartman', friendIds: ['2', '3'] }
+      2: { id: '2', name: 'stan' }
+      3: { id: '3', name: 'kyle' }
+      4: { id: '4', name: 'kenny' }
+    , ++ver
+    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, constVer = ++ver
+    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+    {ver: refVer} = adapterSync.lookup 'users.1.friends', undefined, dontFollowLastRef: true
+    refVer.should.equal constVer

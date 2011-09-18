@@ -10,7 +10,9 @@ Memory = module.exports = ->
 
 Memory:: =
   version: (path, obj = @_data) ->
-    return @lookup(path, obj).ver if path
+    if path
+      val = @lookup(path, obj).ver
+      return val
     return @ver
 
   get: (path, obj = @_data) ->
@@ -31,9 +33,19 @@ Memory:: =
     @ver = ver
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop} = out = @lookup path, obj, options
+    {parent, prop, versCurr} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
+    if !options.proto && 'object' == typeof value
+      # TODO Handle arrays
+      @_recordVersion versCurr, value, ver
     return if options.returnMeta then out else obj
+
+  _recordVersion: (versCurr, obj, ver) ->
+    # TODO Handle arrays
+    for k, v of obj
+      versCurr[k] = {}
+      versCurr[k].ver = ver
+      @_recordVersion versCurr[k], v, ver if 'object' == typeof v
   
   del: (path, ver, obj, options = {}) ->
     if ver < @ver
