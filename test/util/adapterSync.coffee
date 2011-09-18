@@ -85,14 +85,29 @@ module.exports = (AdapterSync) ->
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver
 
-  'deleting a path using a ver should update the root ver': ->
-    # TODO
+  'deleting a path using a ver should update the root ver @single': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.del 'color', ++ver
+    adapterSync.version().should.equal ver
 
-  'deleting a path using a ver should update all subpath vers': ->
-    # TODO
+  'deleting a path using a ver should update all subpath vers @single': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors.first', 'green', ++ver
+    adapterSync.set 'colors.second', 'red', ++ver
+    adapterSync.del 'colors.first', ++ver
+    adapterSync.version('colors').should.equal ver
+    adapterSync.version().should.equal ver
 
-  'deleting a path using a ver should not update a sibling path ver': ->
-    # TODO
+  'deleting a path using a ver should not update a sibling path ver @single': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors.first', 'green', ++ver
+    adapterSync.set 'colors.second', 'red', ++ver
+    adapterSync.del 'colors.first', ++ver
+    adapterSync.version('colors.second').should.equal ver-1
 
   'test push and pop': ->
     adapterSync = new AdapterSync
