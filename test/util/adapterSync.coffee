@@ -537,6 +537,37 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
+  'remove on a path + specifying a version should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.remove 'colors', 1, 1, ++ver
+    adapterSync.version('colors').should.equal ver
+
+  'remove on a path + specifying a version should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.remove 'colors', 1, 1, ++ver
+    adapterSync.version().should.equal ver
+
+  'remove on a path + specifying a version should update all subpath vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nested.colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.remove 'nested.colors', 1, 1, ++ver
+    adapterSync.version('nested.colors').should.equal ver
+    adapterSync.version('nested').should.equal ver
+
+  '''remove on a path + specifying a version should not update sibling
+  paths''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nested.directions', ['west'], constVer = ++ver
+    adapterSync.set 'nested.colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.remove 'nested.colors', 1, 1, ++ver
+    adapterSync.version('nested.directions').should.equal constVer
+
   'test splice': ->
     adapterSync = new AdapterSync
     ver = 0
