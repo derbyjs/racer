@@ -452,6 +452,35 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
+  'insertBefore on a path + specifying a version should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
+    adapterSync.version('colors').should.equal ver
+
+  'insertBefore on a path + specifying a version should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
+    adapterSync.version().should.equal ver
+
+  '''insertBefore on a path + specifying a version should update all
+  subpath vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.insertBefore 'colors.favs', 0, 'yellow', ++ver
+    adapterSync.version('colors.favs').should.equal ver
+    adapterSync.version('colors').should.equal ver
+
+  '''insertBefore on a path + specifying a version should not update
+  sibling path vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors.best', 'green', ++ver
+    adapterSync.insertBefore 'colors.favs', 0, 'yellow', ++ver
+    adapterSync.version('colors.favs').should.equal ver
+    adapterSync.version('colors.best').should.equal ver-1
+
   'test remove (from array)': ->
     adapterSync = new AdapterSync
     ver = 0
