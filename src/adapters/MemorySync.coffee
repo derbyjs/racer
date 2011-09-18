@@ -36,16 +36,21 @@ Memory:: =
     {parent, prop, versCurr} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
     if !options.proto && 'object' == typeof value
-      # TODO Handle arrays
-      @_recordVersion versCurr, value, ver
+      @_prefillVersion versCurr, value, ver
     return if options.returnMeta then out else obj
 
-  _recordVersion: (versCurr, obj, ver) ->
-    # TODO Handle arrays
-    for k, v of obj
-      versCurr[k] = {}
-      versCurr[k].ver = ver
-      @_recordVersion versCurr[k], v, ver if 'object' == typeof v
+  _prefillVersion: (versCurr, obj, ver) ->
+    if Array.isArray obj
+      for v, i in obj
+        @_storeVer versCurr, i, v, [], ver
+    else if Object == obj.constructor
+      for k, v of obj
+        @_storeVer versCurr, k, v, {}, ver
+
+  _storeVer: (versCurr, prop, val, setTo, ver) ->
+    versCurr[prop] = setTo
+    versCurr[prop].ver = ver
+    @_prefillVersion versCurr[prop], val, ver if 'object' == typeof val
   
   del: (path, ver, obj, options = {}) ->
     if ver < @ver
