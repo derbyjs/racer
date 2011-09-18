@@ -3,7 +3,7 @@ require '../util'
 
 module.exports = (AdapterSync) ->
 
-  'test get and set @single': ->
+  'test get and set': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql { val: {}, ver }
@@ -25,20 +25,38 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'info', 'new', ++ver
     adapterSync.get().should.eql { val: {color: 'green', info: 'new'}, ver}
 
-  'setting a path to a ver should update the path ver @single': ->
+  'setting a path to a ver should update the path ver': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
     adapterSync.version('color').should.equal ver
+
+  '''setting a path to an object and fetching the
+  version of that object should return the same
+  version of the parent object''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: {} }, ++ver
+    adapterSync.version('favorites').should.equal ver
+    adapterSync.version('favorites.colors').should.equal ver
+
+  '''setting a path to an object and later updating a
+  property of that object should set the version of
+  that object''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: {} }, ++ver
+    adapterSync.set 'favorites.colors.first', 'green', ++ver
+    adapterSync.version('favorites.colors').should.equal ver
   
-  'setting a path to a ver should update the root ver @single': ->
+  'setting a path to a ver should update the root ver': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.version().should.equal ver
     adapterSync.set 'color', 'green', ++ver
     adapterSync.version().should.equal ver
 
-  'setting a chained path to a ver should update all subpath vers @single': ->
+  'setting a chained path to a ver should update all subpath vers': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.version().should.equal ver
@@ -47,7 +65,7 @@ module.exports = (AdapterSync) ->
     adapterSync.version('info').should.equal ver
     adapterSync.version().should.equal ver
 
-  'setting a path to a ver should not update a sibling path ver @single': ->
+  'setting a path to a ver should not update a sibling path ver': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
@@ -56,7 +74,7 @@ module.exports = (AdapterSync) ->
     # TODO Hmmm, how do we treat versions when we get to eg mongodb?
     adapterSync.version('color').should.equal ver-1
   
-  'getting an unset path should return undefined @single': ->
+  'getting an unset path should return undefined': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'info.numbers', {}, ++ver
@@ -65,7 +83,7 @@ module.exports = (AdapterSync) ->
     adapterSync.get('color.favorite').should.eql {val: undefined, ver}
     adapterSync.get('info.numbers.first').should.eql {val: undefined, ver}
 
-  'test del @single': ->
+  'test del': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
@@ -85,14 +103,14 @@ module.exports = (AdapterSync) ->
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver
 
-  'deleting a path using a ver should update the root ver @single': ->
+  'deleting a path using a ver should update the root ver': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
     adapterSync.del 'color', ++ver
     adapterSync.version().should.equal ver
 
-  'deleting a path using a ver should update all subpath vers @single': ->
+  'deleting a path using a ver should update all subpath vers': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors.first', 'green', ++ver
@@ -101,7 +119,7 @@ module.exports = (AdapterSync) ->
     adapterSync.version('colors').should.equal ver
     adapterSync.version().should.equal ver
 
-  'deleting a path using a ver should not update a sibling path ver @single': ->
+  'deleting a path using a ver should not update a sibling path ver': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors.first', 'green', ++ver
@@ -142,6 +160,42 @@ module.exports = (AdapterSync) ->
       e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
+
+  '''pushing a member onto a path + specifying a version should
+  set the path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors', 'green', ++ver
+    adapterSync.version('colors').should.equal ver
+
+  '''pushing a member onto a path + specifying a version should
+  update the root ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.version().should.equal ver
+    adapterSync.push 'colors', 'green', ++ver
+    adapterSync.version().should.equal ver
+
+  '''pushing a member onto a path + specifying a version should
+  update all subpath vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: [] }, ++ver
+    adapterSync.version('favorites').should.equal ver
+    adapterSync.push 'favorites.colors', 'green', ++ver
+    adapterSync.version('favorites').should.equal ver
+    adapterSync.version().should.equal ver
+
+  '''pushing a member onto a path + specifying a version should
+  not update a sibling path ver''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'favorites', { colors: [] }, ++ver
+    adapterSync.set 'favorites.day', 'saturday', ++ver
+    adapterSync.version('favorites.day').should.equal ver
+    adapterSync.push 'favorites.colors', 'green', ++ver
+    adapterSync.version('favorites.colors').should.equal ver
+    adapterSync.version('favorites.day').should.equal ver-1
 
   'test shift and unshift': ->
     adapterSync = new AdapterSync

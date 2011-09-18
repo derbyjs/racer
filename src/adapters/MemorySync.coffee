@@ -104,19 +104,18 @@ Memory:: =
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
         curr = parent[prop] = if proto then specHelper.create setTo else setTo
-        if setVer
-          versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
       else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
         curr = parent[prop] = specHelper.create curr
+
+      if setVer && versCurr is undefined && addPath
+        setTo = if i == len then addPath else {}
+        versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
 
       # Check for model references
       unless ref = curr.$r
         if setVer
           versCurr.ver = setVer
-#       else if versCurr.ver is undefined
-#          # Lazy adding of ver
-#          curr.__ver__ = ver
-        ver = versCurr.ver if versCurr.ver
+        ver = versCurr.ver if versCurr?.ver
       else
         if i == len && dontFollowLastRef
           ver = versCurr.ver if versCurr.ver
@@ -179,6 +178,7 @@ for method, {compound, normalizeArgs} of arrMutators
       {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
       @ver = ver
       options.addPath = []
+      options.setVer = ver unless options.proto
       out = @lookup path, obj, options
       arr = out.obj
       throw new Error 'Not an Array' unless specHelper.isArray arr

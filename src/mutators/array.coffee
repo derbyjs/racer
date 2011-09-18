@@ -5,7 +5,10 @@ module.exports =
         if options is undefined
           if obj isnt undefined
             values.push ver
-            ver = options
+            if options isnt undefined
+              ver = options
+            else
+              ver = obj
         else
           values.push ver, obj
           ver = options
