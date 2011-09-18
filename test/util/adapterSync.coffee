@@ -615,3 +615,34 @@ module.exports = (AdapterSync) ->
     # with an out-of-bounds index
     adapterSync.splice 'colors', 100, 50, 'blue', ++ver
     adapterSync.get('colors').should.eql {val: ['gray', 'violet', 'blue'], ver}
+
+  'splice on a path + specifying a version should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.splice 'colors', 1, 2, 'green', ++ver
+    adapterSync.version('colors').should.equal ver
+
+  'splice on a path + specifying a version should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.splice 'colors', 1, 2, 'green', ++ver
+    adapterSync.version().should.equal ver
+
+  'splice on a path + specifying a version should update all subpath vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nested.colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.splice 'nested.colors', 1, 2, 'green', ++ver
+    adapterSync.version('nested.colors').should.equal ver
+    adapterSync.version('nested').should.equal ver
+
+  'splice on a path + specifying a version should not update sibling vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nested.directions', ['west'], constVer = ++ver
+    adapterSync.set 'nested.colors', ['red', 'orange', 'yellow'], ++ver
+    adapterSync.splice 'nested.colors', 1, 2, 'green', ++ver
+    adapterSync.version('nested.colors').should.equal ver
+    adapterSync.version('nested.directions').should.equal constVer
