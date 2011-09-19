@@ -125,6 +125,8 @@ Memory:: =
       if setVer && versCurr is undefined && addPath
         setTo = if i == len then addPath else {}
         versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
+      if versCurr is undefined
+        versCurr = versParent
 
       # Check for model references
       unless ref = curr.$r

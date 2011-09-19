@@ -92,7 +92,7 @@ module.exports = (AdapterSync) ->
       didErr = true
     didErr.should.be.false
 
-  'lookup of a speculative ref with dontFollowLastRef option should not err @single': ->
+  'lookup of a speculative ref with dontFollowLastRef option should not err': ->
     adapterSync = new AdapterSync
     adapterSync.set 'color', {$r: 'colors.green'}, undefined, obj = specHelper.create(adapterSync._data), proto: true
     didErr = false
