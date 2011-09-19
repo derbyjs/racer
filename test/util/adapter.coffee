@@ -281,7 +281,7 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Out of Bounds'
         done()
 
-  '''insertAfter > length should throw an "Out of Bounds" error''': wrapTest (done) ->
+  'insertAfter > length should throw an "Out of Bounds" error': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
