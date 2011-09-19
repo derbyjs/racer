@@ -52,6 +52,22 @@ Memory:: =
       return callback err
     callback null
 
+  _unshift: MemorySync::unshift
+  unshift: (path, values..., ver, callback) ->
+    try
+      @_unshift path, values..., ver
+    catch err
+      return callback err
+    callback null, values...
+
+  _shift: MemorySync::shift
+  shift: (path, ver, callback) ->
+    try
+      @_shift path, ver
+    catch err
+      return callback err
+    callback null
+
   _insertAfter: MemorySync::insertAfter
   insertAfter: (path, afterIndex, value, ver, callback) ->
     try
