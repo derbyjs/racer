@@ -7,9 +7,9 @@ transaction = require './transaction'
 # then make sure to abort atomic model if any of the changes
 # modify paths.
 
-AtomicModel = module.exports = (parentModel) ->
+AtomicModel = module.exports = (id, parentModel) ->
   self = this
-  self.id = '' #TODO This is the transaction id
+  self.id = id
   adapter = self._adapter = parentModel._adapter
   self.ver = adapter.ver # Take a snapshot of the version
 
@@ -35,11 +35,15 @@ AtomicModel = module.exports = (parentModel) ->
   return
 
 AtomicModel:: =
+  isMyOp: (id) ->
+    extracted = id.substr 0, id.lastIndexOf('.')
+    return extracted == @id
+
   oplog: ->
     modelId = @id
     txns = @_txns
     txnQueue = @_txnQueue
-    return (txns[id] for id in txnQueue when id.split('.')[0] == modelId)
+    return (txns[id] for id in txnQueue when @isMyOp id)
 
   get: (path) ->
     {val, ver} = @_adapter.get path, @_specModel()[0]
@@ -73,6 +77,6 @@ AtomicModel:: =
     txnQueue = @_txnQueue
     for id in txnQueue
       myTxn = txns[id]
-      if id.split('.')[0] == modelId && transaction.doesSharePath(txn, myTxn) && ver < transaction.base txn
+      if @isMyOp id && transaction.doesSharePath(txn, myTxn) && ver < transaction.base txn
         return true
     return false

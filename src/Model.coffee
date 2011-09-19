@@ -265,13 +265,13 @@ Model:: =
     return [obj, path]
 
   snapshot: ->
-    model = new AtomicModel this
+    model = new AtomicModel @_nextTxnId(), this
     model._adapter = adapter.snapshot()
     return model
 
   atomic: (block, callback) ->
     #model = @snapshot()
-    model = new AtomicModel this
+    model = new AtomicModel @_nextTxnId(), this
     commit = (callback) ->
     abort = ->
     retry = ->
