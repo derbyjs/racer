@@ -417,3 +417,17 @@ module.exports = (Adapter) ->
 
   # TODO Add remove tests
   # TODO Add splice tests
+
+  'moving from index A to index B should work @single': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.set 'colors', ['red', 'orange', 'yellow', 'green', 'blue'], ++_ver, (err) ->
+      should.equal null, err
+      adapter.move 'colors', 1, 3, ++_ver, (err) ->
+        should.equal null, err
+        adapter.get 'colors', (err, value, ver) ->
+          should.equal null, err
+          value.should.eql ['red', 'yellow', 'green', 'orange', 'blue']
+          ver.should.equal _ver
+          done()
+
