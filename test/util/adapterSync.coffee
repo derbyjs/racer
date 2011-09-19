@@ -407,8 +407,6 @@ module.exports = (AdapterSync) ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql {val: {}, ver}
-
-    # on undefined
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
     adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
