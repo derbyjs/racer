@@ -73,6 +73,23 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
     # TODO Hmmm, how do we treat versions when we get to eg mongodb?
     adapterSync.version('color').should.equal ver-1
+
+  '''speculative setting a path without specifying a version
+  should not modify versions''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'color', 'green', ++ver
+    adapterSync.set 'color', 'red', undefined, undefined, {proto: true}
+    adapterSync.version('color').should.equal ver
+
+  'speculative setting a nested path should not throw an error': ->
+    adapterSync = new AdapterSync
+    didErr = false
+    try
+      adapterSync.set 'nested.color', 'red', undefined, undefined, {proto: true}
+    catch e
+      didErr = true
+    didErr.should.be.false
   
   'getting an unset path should return undefined': ->
     adapterSync = new AdapterSync
