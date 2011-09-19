@@ -276,7 +276,7 @@ module.exports = (Adapter) ->
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
       should.equal null, err
-      adapter.insertAfter 'colors', 2, 'violet', (err) ->
+      adapter.insertAfter 'colors', 2, 'violet', ++_ver, (err) ->
         err.should.not.be.null
         err.message.should.equal 'Out of Bounds'
         done()
