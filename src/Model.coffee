@@ -298,9 +298,9 @@ Model:: =
     {val, ver} = @_adapter.get path, @_specModel()[0]
     return val
   
-  set: (path, value, callback) ->
-    @_addOpTxn 'set', path, value, callback
-    return value
+  set: (path, val, callback) ->
+    @_addOpTxn 'set', path, val, callback
+    return val
   
   setNull: (path, value, callback) ->
     obj = @get path

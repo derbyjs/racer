@@ -51,10 +51,44 @@ AtomicModel:: =
       @_addOpTxn 'get', path
     return val
 
-  set: (path, value, callback) ->
-    @_validateAtomic path
-    @_addOp 'set', path, value, callback
+  set: (path, val) ->
+    @_addOpTxn 'set', path, val, callback
+    return val
 
+  setNull: (path, val) ->
+    obj = @get path
+    return obj if `obj != null`
+    @set path, val
+
+  del: (path) ->
+    @_addOpTxn 'del', path
+
+  push: (path, values...) ->
+    @_addOpTxn 'push', path, values...
+
+  pop: (path) ->
+    @_addOpTxn 'pop', path
+
+  unshift: (path, values...) ->
+    @_addOpTxn 'unshift', path, values...
+
+  shift: (path) ->
+    @_addOpTxn 'shift', path
+
+  insertAfter: (path, afterIndex, val) ->
+    @_addOpTxn 'insertAfter', path, afterIndex, val
+
+  insertBefore: (path, beforeIndex, val) ->
+    @_addOpTxn 'insertBefore', path, beforeIndex, val
+
+  remove: (path, start, howMany = 1) ->
+    @_addOpTxn 'remove', path, start, howMany
+
+  splice: (path, startIndex, removeCount, newMembers...) ->
+    @_addOpTxn 'splice', path, startIndex, removeCount, newMembers...
+
+  move: (path, from, to) ->
+    @_addOpTxn 'move', path, from, to
 
   _nextTxnId: -> @id + '.' + ++@_opCount
 

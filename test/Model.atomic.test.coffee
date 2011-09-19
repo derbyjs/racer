@@ -40,6 +40,19 @@ module.exports =
       transaction.args(parentTxn).should.eql ['direction', 'west']
       done()
 
+  '''an atomic transaction should commit all its ops
+  to the parent model if no commit param was passed to
+  model.atomic''': -> #TODO
+
+  '''a parent model should pass any speculative ops
+  to its child atomic models''': -> # TODO
+
+  '''a parent model should pass any accepted ops to
+  its child atomic models''': -> #TODO
+
+  '''a parent model should pass any aborted ops to
+  its child atomic models''': -> #TODO
+
 #  'an atomic transaction should commit all its ops': wrapTest (done)->
 #    model = new Model
 #    model.atomic (model) ->
