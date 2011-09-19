@@ -42,13 +42,13 @@ Memory:: =
   _prefillVersion: (versCurr, obj, ver) ->
     if Array.isArray obj
       for v, i in obj
-        @_storeVer versCurr, i, v, [], ver
+        @_storeVer versCurr, i, v, ver
     else if Object == obj.constructor
       for k, v of obj
-        @_storeVer versCurr, k, v, {}, ver
+        @_storeVer versCurr, k, v, ver
 
-  _storeVer: (versCurr, prop, val, setTo, ver) ->
-    versCurr[prop] = setTo
+  _storeVer: (versCurr, prop, val, ver) ->
+    versCurr[prop] = if Array.isArray val then [] else {}
     versCurr[prop].ver = ver
     @_prefillVersion versCurr[prop], val, ver if 'object' == typeof val
   
@@ -87,6 +87,7 @@ Memory:: =
     versCurr = @_vers
     props = path.split '.'
     
+    origPath = path
     path = ''
     i = 0
     len = props.length
@@ -101,15 +102,17 @@ Memory:: =
     while i < len
       parent = curr
       prop = props[i++]
+      if prop == ''
+        throw new Error "You have a mistake in your path #{origPath}"
       curr = parent[prop]
 
       versParent = versCurr
       versCurr = versParent[prop]
 
-      if Array.isArray path
-        # Dereference the path and prop
-        [_, path, array] = path
-        prop = array[prop] # id in the ref array key
+#      if Array.isArray path
+#        # Dereference the path and prop
+#        [_, path, array] = path
+#        prop = array[prop] # id in the ref array key
 
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
@@ -148,14 +151,22 @@ Memory:: =
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          {ver: keyVer, versCurr: keyVersCurr, obj: keyVal} = @lookup key, obj, {setVer}
-          # TODO Finish up versCurr keysVersCurr code from here
+          keyVal = @lookup(key, obj).obj
           if isArrayRef = specHelper.isArray(keyVal)
-            curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
-            # Map array index to key it should be in the dereferenced
-            # object
-            props[i] = parseInt props[i], 10 if props[i]
-            path = [path, dereffedPath, keyVal] if i < len
+            if i < len
+              prop = parseInt props[i++], 10
+              prop = keyVal[prop]
+              path = dereffedPath + '.' + prop
+              {versCurr, obj: curr} = curr = @lookup path, obj, {setVer}
+            else
+              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
+
+
+#            curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
+#            # Map array index to key it should be in the dereferenced
+#            # object
+#            props[i] = parseInt props[i], 10 if props[i]
+#            path = [path, dereffedPath, keyVal] if i < len
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
