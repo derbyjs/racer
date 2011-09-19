@@ -22,7 +22,7 @@ Memory:: =
     else
       return val: obj, ver: @ver
   
-  set: (path, value, ver, obj, options = {}) ->
+  set: (path, value, ver, obj = @_data, options = {}) ->
     if value && value.$r
       # If we are setting a reference, then copy the transaction
       # , so we do not mutate the transaction stored in Model::_txns.
@@ -106,8 +106,9 @@ Memory:: =
         throw new Error "You have a mistake in your path #{origPath}"
       curr = parent[prop]
 
-      versParent = versCurr
-      versCurr = versParent[prop]
+      if versCurr
+        versParent = versCurr
+        versCurr = versParent[prop]
 
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
