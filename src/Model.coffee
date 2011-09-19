@@ -286,7 +286,9 @@ Model:: =
   
   ## Data accessor and mutator methods ##
   
-  get: (path) -> @_adapter.get path, @_specModel()[0]
+  get: (path) ->
+    {val, ver} = @_adapter.get path, @_specModel()[0]
+    return val
   
   set: (path, value, callback) ->
     @_addTxn 'set', path, value, callback
