@@ -109,11 +109,6 @@ Memory:: =
       versParent = versCurr
       versCurr = versParent[prop]
 
-#      if Array.isArray path
-#        # Dereference the path and prop
-#        [_, path, array] = path
-#        prop = array[prop] # id in the ref array key
-
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
 
@@ -160,13 +155,6 @@ Memory:: =
               {versCurr, obj: curr} = curr = @lookup path, obj, {setVer}
             else
               curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
-
-
-#            curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
-#            # Map array index to key it should be in the dereferenced
-#            # object
-#            props[i] = parseInt props[i], 10 if props[i]
-#            path = [path, dereffedPath, keyVal] if i < len
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
