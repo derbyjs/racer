@@ -82,10 +82,13 @@ Memory:: =
     return if options.returnMeta then out else obj
 
   lookup: (path, obj = @_data, options = {}) ->
-    {addPath, setVer, proto, dontFollowLastRef} = options
+    {addPath, setVer, proto, dontFollowLastRef, dontSplitPath, versCurr} = options
     curr = obj
-    versCurr = @_vers
-    props = path.split '.'
+    versCurr ||= @_vers
+    if dontSplitPath
+      props = [path]
+    else
+      props = path.split '.'
     
     origPath = path
     path = ''

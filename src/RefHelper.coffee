@@ -196,7 +196,7 @@ RefHelper:: =
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         @_removeOld$refs oldRefObj, path, ver, obj, options
         return refsKeys.forEach (refsKey) ->
-          refHelper._update$refs refsKey, path, ref, key, type, obj, options
+          refHelper._update$refs refsKey, path, ref, key, type, ver, obj, options
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
@@ -208,7 +208,7 @@ RefHelper:: =
           adapter.del "$keys.#{oldKey}", ver, obj, options unless hasKeys refs, ignore: specHelper.reserved
       refsKey = ref
     @_removeOld$refs oldRefObj, path, ver, obj, options
-    @_update$refs refsKey, path, ref, key, type, obj, options
+    @_update$refs refsKey, path, ref, key, type, ver, obj, options
 
   # Private helper function for $indexRefs
   _removeOld$refs: (oldRefObj, path, ver, obj, options) ->
@@ -238,14 +238,17 @@ RefHelper:: =
       @_adapter.del "$refs.#{ref}", ver, obj, options
     
   # Private helper function for $indexRefs
-  _update$refs: (refsKey, path, ref, key, type, obj, options) ->
+  _update$refs: (refsKey, path, ref, key, type, ver, obj, options) ->
     entry = [ref, key]
     entry.push type if type
     # TODO DRY - Above 2 lines are duplicated below
     _options = Object.create options
     _options.addPath = {}
-    out = @_adapter.lookup("$refs.#{refsKey}.$", obj, _options)
-    out.obj[path] = entry
+    _options.setVer = ver unless _options.proto
+    {obj, versCurr} = @_adapter.lookup "$refs.#{refsKey}.$", obj, _options
+    _options.dontSplitPath = true
+    _options.versCurr = versCurr
+    @_adapter.set path, entry, ver, obj, _options
 
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
