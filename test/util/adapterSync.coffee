@@ -155,23 +155,39 @@ module.exports = (AdapterSync) ->
     adapterSync.del 'colors.first', ++ver
     adapterSync.version('colors.second').should.equal ver-1
 
-  'test push and pop': ->
+  'should be able to push a single value onto an undefined path': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql {val: {}, ver}
-    
     adapterSync.push 'colors', 'green', ++ver
     adapterSync.get('colors').should.eql {val: ['green'], ver}
 
+  'should be able to pop from an single member array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {val: {}, ver}
+    adapterSync.push 'colors', 'green', ++ver
     adapterSync.pop 'colors', ++ver
     adapterSync.get('colors').should.eql {val: [], ver}
+
+  'should be able to push multiple members onto an array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {val: {}, ver}
+    adapterSync.push 'colors', 'green', ++ver
     adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
-    adapterSync.get('colors').should.eql {val: ['red', 'blue', 'purple'], ver}
+    adapterSync.get('colors').should.eql {val: ['green', 'red', 'blue', 'purple'], ver}
+
+  'should be able to pop from a multiple member array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
     adapterSync.pop 'colors', ++ver
     adapterSync.get('colors').should.eql {val: ['red', 'blue'], ver}
-    adapterSync.push 'colors', 'orange', ++ver
-    adapterSync.get('colors').should.eql {val: ['red', 'blue', 'orange'], ver}
 
+  'pop on a non array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
     adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
     try
@@ -180,7 +196,11 @@ module.exports = (AdapterSync) ->
       e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
-    
+
+  'push on a non array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
     try
       adapterSync.push 'nonArray', 5, 6, ++ver
