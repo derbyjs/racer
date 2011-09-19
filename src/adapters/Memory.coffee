@@ -3,6 +3,7 @@ MemorySync = require './MemorySync'
 Memory = module.exports = ->
   @_data = {}
   @ver = 0
+  @_vers = {}
   return
 
 Memory:: =
@@ -10,11 +11,14 @@ Memory:: =
     @_data = {}
     @ver = 0
     callback null
+
+  _prefillVersion: MemorySync::_prefillVersion
+  _storeVer: MemorySync::_storeVer
   
   _get: MemorySync::get
   get: (path, callback) ->
-    value = @_get path
-    callback null, value, @ver
+    {val, ver} = @_get path
+    callback null, val, ver
   
   _set: MemorySync::set
   set: (path, value, ver, callback) ->
