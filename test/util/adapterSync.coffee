@@ -403,7 +403,7 @@ module.exports = (AdapterSync) ->
     adapterSync.shift 'colors.favs', ++ver
     adapterSync.version('colors.blacklist').should.equal ver-1
 
-  'test insertAfter': ->
+  'insertAfter -1 on an undefined path should result in a new array': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql {val: {}, ver}
@@ -412,21 +412,45 @@ module.exports = (AdapterSync) ->
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
     adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
-    # on an empty array
-    adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.eql {val: [], ver}
+  '''insertAfter -1 on an empty array should fill the array with
+  only those elements''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', [], ++ver
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
     adapterSync.get('colors').should.eql {val: ['yellow'], ver}
 
-    # insertAfter like push
+  '''insertAfter the length-1 of an array should act like a push
+  on the array''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow'], ++ver
     adapterSync.insertAfter 'colors', 0, 'black', ++ver
-
-    # in-between an array with length >= 2
     adapterSync.get('colors').should.eql {val: ['yellow', 'black'], ver}
+
+  'insertAfter should be able to insert in-between an array with length>=2': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'black'], ++ver
     adapterSync.insertAfter 'colors', 0, 'violet', ++ver
     adapterSync.get('colors').should.eql {val: ['yellow', 'violet', 'black'], ver}
 
-    # out of bounds
+  'insertAfter == length should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'black'], ++ver
+    didThrowOutOfBounds = false
+    try
+      adapterSync.insertAfter 'colors', 2, 'violet', ++ver
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+
+  'insertAfter > length should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'black'], ++ver
     didThrowOutOfBounds = false
     try
       adapterSync.insertAfter 'colors', 100, 'violet', ++ver
@@ -435,7 +459,21 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-    # not on an array
+  'insertAfter < -1 should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'black'], ++ver
+    didThrowOutOfBounds = false
+    try
+      adapterSync.insertAfter 'colors', -2, 'violet', ++ver
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+
+  'insertAfter on a non-array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
     didThrowNotAnArray = false
     adapterSync.set 'nonArray', '9', ++ver
     try
