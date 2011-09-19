@@ -979,3 +979,5 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'color', 'red', ++ver
     adapterSync.version('direction').should.equal ver
+
+  # TODO Add move tests

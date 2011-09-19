@@ -431,3 +431,4 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
+  # TODO Add more move tests

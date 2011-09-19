@@ -27,6 +27,9 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # version number to the version number of the Stm in case of a Redis failure
   self._startId = ''
 
+  # atomic models that have been generated stored by atomic transaction id.
+  self._atomicModels = {}
+
   self._txnCount = 0
   self._txns = txns = {}
   self._txnQueue = txnQueue = []
@@ -34,7 +37,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   txnApplier = new TxnApplier
     applyTxn: (txn) ->
       if transaction.base(txn) > adapter.ver
-        self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId(txn)
+        self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId txn
     onTimeout: -> self._reqNewTxns()
 
   self._onTxn = (txn, num) ->
@@ -54,17 +57,17 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
     self._cache.invalidateSpecModelCache()
   
-  # The value of @_force is checked in @_addTxn. It can be used to create a
+  # The value of @_force is checked in @_addOpTxn. It can be used to create a
   # transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
 
-  # The value of @_silent is checked in @_addTxn. It can be used to perform an
+  # The value of @_silent is checked in @_addOpTxn. It can be used to perform an
   # operation without triggering an event locally, such as model.silent.set
   # It only silences the first local event, so events on public paths that
   # get synced to the server are still emitted
   self.silent = Object.create self, _silent: value: true
 
-  @_refHelper = refHelper = new RefHelper @
+  self._refHelper = refHelper = new RefHelper self
   for method in mutatorNames
     do (method) ->
       self.on method, ([path, args...]) ->
@@ -156,17 +159,22 @@ Model:: =
   ## Transaction handling ##
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
+
+  _normalizeIncomingTxn: (method, path, args...) ->
+    # TODO
   
   # TODO There is a lot of mutation of txn going on here.
   #      Clean this up.
-  _addTxn: (method, path, args..., callback) ->
+  _addOpTxn: (method, path, args..., callback) ->
     refHelper = @_refHelper
     model = @
 
     if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
-      [firstArgs, members] = (mutators.basic[method] || mutators.array[method]).splitArgs args
+      [firstArgs, members] =
+        (mutators.basic[method] || mutators.array[method]).splitArgs args
       members = members.map (member) ->
         return member if refHelper.isRefObj member
+        # MUTATION
         model.set $r + '.' + member.id, member
         return {$r, $k: member.id.toString()}
       args = firstArgs.concat members
@@ -257,13 +265,13 @@ Model:: =
     return [obj, path]
 
   snapshot: ->
-    model = Object.create this
+    model = new AtomicModel this
     model._adapter = adapter.snapshot()
     return model
 
   atomic: (block, callback) ->
-    model = @snapshot()
-
+    #model = @snapshot()
+    model = new AtomicModel this
     commit = (callback) ->
     abort = ->
     retry = ->
@@ -291,7 +299,7 @@ Model:: =
     return val
   
   set: (path, value, callback) ->
-    @_addTxn 'set', path, value, callback
+    @_addOpTxn 'set', path, value, callback
     return value
   
   setNull: (path, value, callback) ->
@@ -300,7 +308,7 @@ Model:: =
     @set path, value, callback
   
   del: (path, callback) ->
-    @_addTxn 'del', path, callback
+    @_addOpTxn 'del', path, callback
   
   incr: (path, byNum, callback) ->
     # incr(path, callback)
@@ -318,41 +326,41 @@ Model:: =
     if 'function' != typeof callback && callback isnt undefined
       values.push callback
       callback = null
-    @_addTxn 'push', path, values..., callback
+    @_addOpTxn 'push', path, values..., callback
 
   pop: (path, callback) ->
-    @_addTxn 'pop', path, callback
+    @_addOpTxn 'pop', path, callback
 
   unshift: (path, values..., callback) ->
     if 'function' != typeof callback && callback isnt undefined
       values.push callback
       callback = null
-    @_addTxn 'unshift', path, values..., callback
+    @_addOpTxn 'unshift', path, values..., callback
 
   shift: (path, callback) ->
-    @_addTxn 'shift', path, callback
+    @_addOpTxn 'shift', path, callback
 
   insertAfter: (path, afterIndex, value, callback) ->
-    @_addTxn 'insertAfter', path, afterIndex, value, callback
+    @_addOpTxn 'insertAfter', path, afterIndex, value, callback
 
   insertBefore: (path, beforeIndex, value, callback) ->
-    @_addTxn 'insertBefore', path, beforeIndex, value, callback
+    @_addOpTxn 'insertBefore', path, beforeIndex, value, callback
 
   remove: (path, start, howMany = 1, callback) ->
     # remove(path, start, callback)
     if typeof howMany is 'function'
       callback = howMany
       howMany = 1
-    @_addTxn 'remove', path, start, howMany, callback
+    @_addOpTxn 'remove', path, start, howMany, callback
 
   splice: (path, startIndex, removeCount, newMembers..., callback) ->
     if 'function' != typeof callback && callback isnt undefined
       newMembers.push callback
       callback = null
-    @_addTxn 'splice', path, startIndex, removeCount, newMembers..., callback
+    @_addOpTxn 'splice', path, startIndex, removeCount, newMembers..., callback
 
   move: (path, from, to, callback) ->
-    @_addTxn 'move', path, from, to, callback
+    @_addOpTxn 'move', path, from, to, callback
 
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000
@@ -392,3 +400,5 @@ Model::once = (type, pattern, callback) ->
     matches = listener arguments...
     self.removeListener type, g  if matches
   return listener
+
+AtomicModel = require './AtomicModel'
