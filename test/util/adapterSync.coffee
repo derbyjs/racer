@@ -1,5 +1,6 @@
 should = require 'should'
 require '../util'
+specHelper = require '../../src/specHelper'
 
 module.exports = (AdapterSync) ->
 
@@ -87,6 +88,16 @@ module.exports = (AdapterSync) ->
     didErr = false
     try
       adapterSync.set 'nested.color', 'red', undefined, undefined, {proto: true}
+    catch e
+      didErr = true
+    didErr.should.be.false
+
+  'lookup of a speculative ref with dontFollowLastRef option should not err @single': ->
+    adapterSync = new AdapterSync
+    adapterSync.set 'color', {$r: 'colors.green'}, undefined, obj = specHelper.create(adapterSync._data), proto: true
+    didErr = false
+    try
+      adapterSync.lookup 'color', obj, {dontFollowLastRef: true}
     catch e
       didErr = true
     didErr.should.be.false
