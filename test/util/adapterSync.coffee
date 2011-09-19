@@ -162,7 +162,7 @@ module.exports = (AdapterSync) ->
     adapterSync.push 'colors', 'green', ++ver
     adapterSync.get('colors').should.eql {val: ['green'], ver}
 
-  'should be able to pop from an single member array path': ->
+  'should be able to pop from a single member array path': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql {val: {}, ver}
