@@ -77,20 +77,76 @@ module.exports = (Adapter) ->
           ver.should.eql 0
           done()
 
-#  'test push and pop': wrapTest (done) ->
-#    adapter = new Adapter
-#    adapter.push 'colors', 'green', (err, value) ->
-#      should.equal null, err
-#      value.should.eql 1
-#      adapter.get 'colors', (err, value, ver) ->
-#        should.equal null, err
-#        value.should.eql ['green']
-#        ver.should.eql 1
-#        adapter.pop 'colors', (err, value, ver) ->
-#          should.equal null, err
-#          value.should.equal 'green'
-#          adapter.get 'colors', (err, value, ver) ->
-#            should.equal null, ver
-#            value.should.eql []
-#            ver.should.eql 2
-#            done()
+  'should be able to push a single value onto an undefined path': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.push 'colors', 'green', ++_ver, (err) ->
+      should.equal null, err
+      adapter.get 'colors', (err, value, ver) ->
+        should.equal null, err
+        value.should.eql ['green']
+        ver.should.eql _ver
+        done()
+
+  'should be able to pop from a single member array path': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.push 'colors', 'green', ++_ver, (err) ->
+      should.equal null, err
+      adapter.get 'colors', (err, value, ver) ->
+        should.equal null, err
+        value.should.eql ['green']
+        ver.should.eql _ver
+        adapter.pop 'colors', ++_ver, (err) ->
+          should.equal null, err
+          adapter.get 'colors', (err, value, ver) ->
+            should.equal null, err
+            value.should.eql []
+            ver.should.eql _ver
+            done()
+
+  'should be able to push multiple members onto an array path': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.push 'colors', 'green', ++_ver, (err) ->
+      should.equal null, err
+      adapter.push 'colors', 'red', 'blue', 'purple', ++_ver, (err) ->
+        should.equal null, err
+        adapter.get 'colors', (err, value, ver) ->
+          should.equal null, err
+          value.should.eql ['green', 'red', 'blue', 'purple']
+          ver.should.equal _ver
+          done()
+
+  'should be able to pop from a multiple member array path': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.push 'colors', 'red', 'blue', 'purple', ++_ver, (err) ->
+      should.equal null, err
+      adapter.pop 'colors', ++_ver, (err) ->
+        should.equal null, err
+        adapter.get 'colors', (err, value, ver) ->
+          should.equal null, err
+          value.should.eql ['red', 'blue']
+          ver.should.equal _ver
+          done()
+
+  'pop on a non array should result in a "Not an Array" error': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.set 'nonArray', '9', ++_ver, (err) ->
+      should.equal null, err
+      adapter.pop 'nonArray', ++_ver, (err) ->
+        err.should.not.be.null
+        err.message.should.equal 'Not an Array'
+        done()
+
+  'push on a non array should result in a "Not an Array" error': wrapTest (done) ->
+    adapter = new Adapter
+    _ver = 0
+    adapter.set 'nonArray', '9', ++_ver, (err) ->
+      should.equal null, err
+      adapter.push 'nonArray', 5, 6, ++_ver, (err) ->
+        err.should.not.be.null
+        err.message.should.equal 'Not an Array'
+        done()
