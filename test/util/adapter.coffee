@@ -418,7 +418,7 @@ module.exports = (Adapter) ->
   # TODO Add remove tests
   # TODO Add splice tests
 
-  'moving from index A to index B should work @single': wrapTest (done) ->
+  'moving from index A to index B should work': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['red', 'orange', 'yellow', 'green', 'blue'], ++_ver, (err) ->
