@@ -279,23 +279,39 @@ module.exports = (AdapterSync) ->
     adapterSync.pop 'colors.favs', ++ver
     adapterSync.version('colors.blacklist').should.equal ver-1
 
-  'test shift and unshift': ->
+  'should be able to unshift a single value onto an undefined path': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql {val: {}, ver}
-    
     adapterSync.unshift 'colors', 'green', ++ver
     adapterSync.get('colors').should.eql {val: ['green'], ver}
 
+  'should be able to shift from a single member array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {val: {}, ver}
+    adapterSync.unshift 'colors', 'green', ++ver
     adapterSync.shift 'colors', ++ver
     adapterSync.get('colors').should.eql {val: [], ver}
+
+  'should be able to unshift multiple members onto an array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {val: {}, ver}
     adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
     adapterSync.get('colors').should.eql {val: ['red', 'blue', 'purple'], ver}
+
+  'should be able to shift from a multiple member array path': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.get().should.eql {val: {}, ver}
+    adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
     adapterSync.shift 'colors', ++ver
     adapterSync.get('colors').should.eql {val: ['blue', 'purple'], ver}
-    adapterSync.unshift 'colors', 'orange', ++ver
-    adapterSync.get('colors').should.eql {val: ['orange', 'blue', 'purple'], ver}
 
+  'shift on a non array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
     adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
     try
@@ -304,7 +320,11 @@ module.exports = (AdapterSync) ->
       e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
-    
+
+  'unshift on a non array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nonArray', '9', ++ver
     didThrowNotAnArray = false
     try
       adapterSync.unshift 'nonArray', 5, 6, ++ver
