@@ -51,7 +51,8 @@ module.exports =
       done()
 
   '''AtomicModel sets should be reflected in the parent
-  model after an implicit commit @single''': wrapTest (done) ->
+  speculative model after an implicit commit -- i.e., if no
+  commit param was passed to model.atomic @single''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel) ->
@@ -59,9 +60,44 @@ module.exports =
     model.get().should.specEql direction: 'north'
     done()
 
-  '''an atomic transaction should commit all its ops
-  to the parent model if no commit param was passed to
-  model.atomic''': -> #TODO
+  # TODO Pass the following tests
+
+  '''AtomicModel should commit *all* its ops to the parent
+  model''': wrapTest (done) ->
+    model = new Model
+    model.atomic (atomicModel) ->
+      atomicModel.set 'color', 'green'
+      atomicModel.set 'volume', 'high'
+    , (err) ->
+      err.should.be.null
+      model._adapter._data.should.eql
+        color: 'green'
+        volume: 'high'
+      done()
+
+  '''AtomicModel commits should only callback once the
+  status of that commit is known''': wrapTest (done) ->
+    model = new Model
+    model.atomic (atomicModel) ->
+      atomicModel.set 'direction', 'north'
+    , (err) ->
+      err.should.be.null
+      done()
+
+  '''AtomicModel commits should callback with an error if
+  the commit failed''': -> # TODO
+
+  '''a model should clean up its atomic model upon a
+  successful commit of that atomic model's transaction''': wrapTest (done) ->
+    model = new Model
+    atomicModelId = null
+    model.atomic (atomicModel) ->
+      atomicModelId = atomicModel.id
+      atomicModel.set 'direction', 'north'
+    , (err) ->
+      err.should.be.null
+      should.equal undefined, model._atomicModels[atomicModelId]
+      done()
 
   '''a parent model should pass any speculative ops
   to its child atomic models''': -> # TODO
@@ -72,16 +108,6 @@ module.exports =
   '''a parent model should pass any aborted ops to
   its child atomic models''': -> #TODO
 
-#  'an atomic transaction should commit all its ops': wrapTest (done)->
-#    model = new Model
-#    model.atomic (model) ->
-#      model.set 'color', 'green'
-#      model.set 'volume', 'high'
-#    , (err) ->
-#      err.should.be.null
-#      done()
-#  , 1
-#
 #  'a failed atomic transaction should not have any of its ops persisted': wrapTest (done)->
 #    [socket, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
 #    modelA.atomic (model) ->

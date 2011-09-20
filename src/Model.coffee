@@ -57,11 +57,11 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
     if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
     self._cache.invalidateSpecModelCache()
   
-  # The value of @_force is checked in @_addOpTxn. It can be used to create a
+  # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
   # transaction without conflict detection, such as model.force.set
   self.force = Object.create self, _force: value: true
 
-  # The value of @_silent is checked in @_addOpTxn. It can be used to perform an
+  # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
   # operation without triggering an event locally, such as model.silent.set
   # It only silences the first local event, so events on public paths that
   # get synced to the server are still emitted
@@ -160,15 +160,20 @@ Model:: =
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
 
-  _normalizeIncomingTxn: (method, path, args...) ->
-    # TODO
-  
+  _queueTxn: (txn, callback) -> # TODO Add callback param?
+    id = transaction.id txn
+    @_txns[id] = txn
+    txn.callback = callback
+    @_txnQueue.push id
+    
+
   # TODO There is a lot of mutation of txn going on here.
   #      Clean this up.
-  _addOpTxn: (method, path, args..., callback) ->
+  _addOpAsTxn: (method, path, args..., callback) ->
     refHelper = @_refHelper
     model = @
 
+    # Transform args
     if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
       [firstArgs, members] =
         (mutators.basic[method] || mutators.array[method]).splitArgs args
@@ -190,9 +195,7 @@ Model:: =
     txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
     # NOTE: This converts the transaction
     txn = refHelper.dereferenceTxn txn, @_specModel()[0]
-    @_txns[id] = txn
-    txn.callback = callback
-    @_txnQueue.push id
+    @_queueTxn txn
 
     txnArgs = transaction.args txn
     path = txnArgs[0]
@@ -230,6 +233,16 @@ Model:: =
       @emit method, args, 'callback' of txn
     callback null, txnArgs... if callback = txn.callback
   
+
+  _specApply: (extractor, entity, obj) ->
+    adapter = @_adapter
+    method = extractor.method entity
+    return if method == 'get'
+    args = extractor.args(entity).slice 0
+    args.push undefined, obj, proto: true, returnMeta: true
+    meta = adapter[method] args...
+    return meta
+
   # TODO Will re-calculation of speculative model every time result
   #      in assignemnts to vars becoming stale?
   _specModel: ->
@@ -255,13 +268,13 @@ Model:: =
       while i < len
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
-        method = transaction.method txn
-        continue if method == 'get'
-        args = transaction.args(txn).slice 0
-        #args.push adapter.ver, obj, proto: true, returnMeta: true
-        args.push undefined, obj, proto: true, returnMeta: true
-        meta = adapter[method] args...
-        path = meta.path
+        if transaction.isCompound txn
+          ops = transaction.ops txn
+          for op in ops
+            meta = @_specApply transaction.op, op, obj
+        else
+          meta = @_specApply transaction, txn, obj
+        path = meta.path if meta
       cache.obj = obj
       cache.path = path
       cache.lastReplayedTxnId = transaction.id txn
@@ -276,6 +289,7 @@ Model:: =
     #model = @snapshot()
     model = new AtomicModel @_nextTxnId(), this
     commit = (callback) ->
+      model.commit()
     abort = ->
     retry = ->
 
@@ -302,7 +316,7 @@ Model:: =
     return val
   
   set: (path, val, callback) ->
-    @_addOpTxn 'set', path, val, callback
+    @_addOpAsTxn 'set', path, val, callback
     return val
   
   setNull: (path, value, callback) ->
@@ -311,7 +325,7 @@ Model:: =
     @set path, value, callback
   
   del: (path, callback) ->
-    @_addOpTxn 'del', path, callback
+    @_addOpAsTxn 'del', path, callback
   
   incr: (path, byNum, callback) ->
     # incr(path, callback)
@@ -329,41 +343,41 @@ Model:: =
     if 'function' != typeof callback && callback isnt undefined
       values.push callback
       callback = null
-    @_addOpTxn 'push', path, values..., callback
+    @_addOpAsTxn 'push', path, values..., callback
 
   pop: (path, callback) ->
-    @_addOpTxn 'pop', path, callback
+    @_addOpAsTxn 'pop', path, callback
 
   unshift: (path, values..., callback) ->
     if 'function' != typeof callback && callback isnt undefined
       values.push callback
       callback = null
-    @_addOpTxn 'unshift', path, values..., callback
+    @_addOpAsTxn 'unshift', path, values..., callback
 
   shift: (path, callback) ->
-    @_addOpTxn 'shift', path, callback
+    @_addOpAsTxn 'shift', path, callback
 
   insertAfter: (path, afterIndex, value, callback) ->
-    @_addOpTxn 'insertAfter', path, afterIndex, value, callback
+    @_addOpAsTxn 'insertAfter', path, afterIndex, value, callback
 
   insertBefore: (path, beforeIndex, value, callback) ->
-    @_addOpTxn 'insertBefore', path, beforeIndex, value, callback
+    @_addOpAsTxn 'insertBefore', path, beforeIndex, value, callback
 
   remove: (path, start, howMany = 1, callback) ->
     # remove(path, start, callback)
     if typeof howMany is 'function'
       callback = howMany
       howMany = 1
-    @_addOpTxn 'remove', path, start, howMany, callback
+    @_addOpAsTxn 'remove', path, start, howMany, callback
 
   splice: (path, startIndex, removeCount, newMembers..., callback) ->
     if 'function' != typeof callback && callback isnt undefined
       newMembers.push callback
       callback = null
-    @_addOpTxn 'splice', path, startIndex, removeCount, newMembers..., callback
+    @_addOpAsTxn 'splice', path, startIndex, removeCount, newMembers..., callback
 
   move: (path, from, to, callback) ->
-    @_addOpTxn 'move', path, from, to, callback
+    @_addOpAsTxn 'move', path, from, to, callback
 
 # Timeout in milliseconds after which sent transactions will be resent
 Model._SEND_TIMEOUT = SEND_TIMEOUT = 10000

@@ -10,6 +10,7 @@ transaction = require './transaction'
 AtomicModel = module.exports = (id, parentModel) ->
   self = this
   self.id = id
+  self.parentModel = parentModel
   adapter = self._adapter = parentModel._adapter
   self.ver = adapter.ver # Take a snapshot of the version
 
@@ -32,7 +33,11 @@ AtomicModel = module.exports = (id, parentModel) ->
 
   onTxn = self._onTxn = (txn, num) ->
     txnApplier.add txn, num
-  #parentChannel.on 'txn', onTxn
+
+  # parentRepo.on 'txn', onTxn
+  # childRepos.send 'txn', onTxn
+
+  # parentChannel.on 'txn', onTxn
 
   self._refHelper = new RefHelper self, false
 
@@ -49,6 +54,18 @@ AtomicModel:: =
     txnQueue = @_txnQueue
     return (txns[id] for id in txnQueue when @isMyOp id)
 
+  _oplogAsTxn: ->
+    ops = (transaction.op.create(
+      method: transaction.method txn
+      args: transaction.args txn
+      meta: transaction.meta txn
+    ) for txn in @oplog())
+    return transaction.create base: @ver, id: @id, ops: ops
+
+  commit: ->
+    txn = @_oplogAsTxn()
+    @parentModel._queueTxn txn
+
   get: (path) ->
     if path
       {val, ver} = @_adapter.get path, @_specModel()[0]
@@ -56,11 +73,11 @@ AtomicModel:: =
       val = @_specModel()[0]
       ver = @_adapter.ver
     if ver <= @ver
-      @_addOpTxn 'get', path ? null
+      @_addOpAsTxn 'get', path ? null
     return val
 
   set: (path, val) ->
-    @_addOpTxn 'set', path, val
+    @_addOpAsTxn 'set', path, val
     return val
 
   setNull: (path, val) ->
@@ -69,39 +86,39 @@ AtomicModel:: =
     @set path, val
 
   del: (path) ->
-    @_addOpTxn 'del', path
+    @_addOpAsTxn 'del', path
 
   push: (path, values...) ->
-    @_addOpTxn 'push', path, values...
+    @_addOpAsTxn 'push', path, values...
 
   pop: (path) ->
-    @_addOpTxn 'pop', path
+    @_addOpAsTxn 'pop', path
 
   unshift: (path, values...) ->
-    @_addOpTxn 'unshift', path, values...
+    @_addOpAsTxn 'unshift', path, values...
 
   shift: (path) ->
-    @_addOpTxn 'shift', path
+    @_addOpAsTxn 'shift', path
 
   insertAfter: (path, afterIndex, val) ->
-    @_addOpTxn 'insertAfter', path, afterIndex, val
+    @_addOpAsTxn 'insertAfter', path, afterIndex, val
 
   insertBefore: (path, beforeIndex, val) ->
-    @_addOpTxn 'insertBefore', path, beforeIndex, val
+    @_addOpAsTxn 'insertBefore', path, beforeIndex, val
 
   remove: (path, start, howMany = 1) ->
-    @_addOpTxn 'remove', path, start, howMany
+    @_addOpAsTxn 'remove', path, start, howMany
 
   splice: (path, startIndex, removeCount, newMembers...) ->
-    @_addOpTxn 'splice', path, startIndex, removeCount, newMembers...
+    @_addOpAsTxn 'splice', path, startIndex, removeCount, newMembers...
 
   move: (path, from, to) ->
-    @_addOpTxn 'move', path, from, to
+    @_addOpAsTxn 'move', path, from, to
 
   _nextTxnId: -> @id + '.' + ++@_opCount
 
-  _addOpTxn: (method, path, args...) ->
-    # TODO figure out how to re-use most of Model::_addOpTxn
+  _addOpAsTxn: (method, path, args...) ->
+    # TODO figure out how to re-use most of Model::_addOpAsTxn
     refHelper = @_refHelper
 
     ver = @ver
@@ -113,6 +130,7 @@ AtomicModel:: =
 
   # TODO Remove Model::_specModel from name
   _specModel: Model::_specModel
+  _specApply: Model::_specApply
 
   _conflictsWithMe: (txn) ->
     modelId = @id
