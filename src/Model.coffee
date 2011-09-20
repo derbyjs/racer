@@ -86,6 +86,7 @@ Model.genAddOpAsTxn = (options) ->
     refHelper = @_refHelper
     model = @
 
+    # just in case we did atomicModel.get()
     getWorld = null == path
 
     unless getWorld
@@ -114,7 +115,6 @@ Model.genAddOpAsTxn = (options) ->
     # NOTE: This converts the transaction
     unless getWorld
       txn = refHelper.dereferenceTxn txn, @_specModel()[0]
-    # else just in case we did atomicModel.get()
 
     @_queueTxn txn, callback
 
