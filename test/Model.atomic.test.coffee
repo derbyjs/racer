@@ -60,7 +60,28 @@ module.exports =
     model.get().should.specEql direction: 'north'
     done()
 
+  '''if passed an explicit commit callback, AtomicModel
+  should not reflect any of its ops in the parent speculative
+  model until the commit callback is invoked inside the
+  atomic block @single''': wrapTest (done) ->
+    model = new Model
+    model.set 'direction', 'west'
+    model.atomic (atomicModel, commit) ->
+      atomicModel.set 'direction', 'north'
+      setTimeout ->
+        commit()
+        done()
+      , 200
+    model.get().should.specEql direction: 'west'
+
+
   # TODO Pass the following tests
+
+  # TODO Tests involving refs and array refs
+
+  'AtomicModel commits should get passed to Store': -> # TODO
+
+  'AtomicModel commits should get passed to STM': -> # TODO
 
   '''AtomicModel should commit *all* its ops to the parent
   model''': wrapTest (done) ->
@@ -98,6 +119,20 @@ module.exports =
       err.should.be.null
       should.equal undefined, model._atomicModels[atomicModelId]
       done()
+
+  '''a model should not clean up its atomic model before the
+  result of a commit (success or err) is known''': wrapTest (done) ->
+    model = new Model
+    atomicModelId = null
+    model.atomic (atomicModel, commit) ->
+      atomicModelId = atomicModel.id
+      atomicModel.set 'direction', 'north'
+      setTimeout commit, 200
+    , (err) ->
+      err.should.be.null
+      should.equal undefined, model._atomicModels[atomicModelId]
+      done()
+    model._atomicModels[atomicModelId].should.not.be.undefined
 
   '''a parent model should pass any speculative ops
   to its child atomic models''': -> # TODO
