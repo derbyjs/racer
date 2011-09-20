@@ -79,6 +79,8 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
 Model.genAddOpAsTxn = (options) ->
   {callback: hasCallback, getVer, commit} = options
+  # TODO There is a lot of mutation of txn going on here.
+  #      Clean this up.
   return (method, path, args..., callback) ->
     if !hasCallback && callback isnt undefined
       args.push callback
@@ -230,10 +232,6 @@ Model:: =
     txn.callback = callback if callback
     @_txnQueue.push id
     
-
-  # TODO There is a lot of mutation of txn going on here.
-  #      Clean this up.
-      
 
   _addOpAsTxn: Model.genAddOpAsTxn
     callback: true

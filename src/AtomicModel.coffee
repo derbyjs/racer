@@ -128,7 +128,6 @@ AtomicModel:: =
     getVer: -> @ver
     commit: false
 
-  # TODO Remove Model::_specModel from name
   _specModel: Model::_specModel
   _specApply: Model::_specApply
 
