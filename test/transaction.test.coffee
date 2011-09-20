@@ -4,25 +4,27 @@ transaction = require 'transaction'
 pathParser = require 'pathParser.server'
 require 'transaction.server'
 
-# transaction object literal
-txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-
 module.exports =
   # Property getters
 
   'test transaction.base': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.base(txn).should.eql 2
 
   'test transaction.id': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.id(txn).should.eql '4.0'
 
   'test transaction.method': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.method(txn).should.eql 'set'
 
   'test transaction.args': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.args(txn).should.eql ['count', 1]
 
   'test transaction.path': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.path(txn).should.eql 'count'
 
   'test transaction.ops': ->
@@ -98,6 +100,16 @@ module.exports =
     transaction.op.meta(op).should.eql some: 'A'
     transaction.op.meta op, some: 'B'
     transaction.op.meta(op).should.eql some: 'B'
+
+  '''transaction.compound should return true if the txn
+  has several ops''': ->
+    txn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
+    transaction.isCompound(txn).should.be.true
+
+  '''transaction.compound should return false if the txn
+  has only one op''': ->
+    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.isCompound(txn).should.be.false
 
   # Evaluating (but not applying) transactions
 

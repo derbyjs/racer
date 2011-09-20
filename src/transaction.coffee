@@ -57,6 +57,9 @@ module.exports =
     txn[2] = ops unless ops is undefined
     return txn[2]
 
+  isCompound: (txn) ->
+    return Array.isArray txn[2]
+
   op:
     create: (obj) ->
       op = [obj.method, obj.args]
