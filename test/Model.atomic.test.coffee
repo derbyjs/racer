@@ -77,23 +77,31 @@ module.exports =
 
   # TODO Pass the following tests
 
-  # TODO Tests involving refs and array refs
-
-  'AtomicModel commits should get passed to Store': -> # TODO
-
-  'AtomicModel commits should get passed to STM': -> # TODO
-
-  '''AtomicModel should commit *all* its ops to the parent
-  model''': wrapTest (done) ->
+  '''Model::atomic(lambda, callback) should invoke its
+  callback once it receives a successful response for
+  the txn from the upstream repo''': wrapTest (done) ->
     model = new Model
+    # TODO stub out appropriate methods/callbacks in model
+    #      to fake a successful response without going through
+    #      additional Store + Socket.IO + STM + Redis stack
     model.atomic (atomicModel) ->
-      atomicModel.set 'color', 'green'
-      atomicModel.set 'volume', 'high'
+      atomicModel.set 'direction', 'north'
     , (err) ->
       err.should.be.null
-      model._adapter._data.should.eql
-        color: 'green'
-        volume: 'high'
+      done()
+
+  '''Model::atomic(lambda, callback) should callback
+  with an error if the commit failed at some point
+  in an upstream repo''': wrapTest (done) ->
+    model = new Model
+    # TODO stub out appropriate methods/callbacks in model
+    #      to fake an err response without going through
+    #      additional Store + Socket.IO + STM + Redis stack
+    model.atomic (atomicModel) ->
+      atomicModel.set 'direction', 'north'
+    , (err) ->
+      err.should.not.be.null
+      err.message.should.equal ''
       done()
 
   '''AtomicModel commits should only callback once the
@@ -105,8 +113,25 @@ module.exports =
       err.should.be.null
       done()
 
-  '''AtomicModel commits should callback with an error if
-  the commit failed''': -> # TODO
+  # TODO Tests involving refs and array refs
+
+  'AtomicModel commits should get passed to Store': -> # TODO
+
+  'AtomicModel commits should get passed to STM': -> # TODO
+
+  '''AtomicModel should commit *all* its ops to the parent
+  model's permanent, non-speculative data upon a successful
+  transaction response from the parent repo''': wrapTest (done) ->
+    model = new Model
+    model.atomic (atomicModel) ->
+      atomicModel.set 'color', 'green'
+      atomicModel.set 'volume', 'high'
+    , (err) ->
+      err.should.be.null
+      model._adapter._data.should.eql
+        color: 'green'
+        volume: 'high'
+      done()
 
   '''a model should clean up its atomic model upon a
   successful commit of that atomic model's transaction''': wrapTest (done) ->

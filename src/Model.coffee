@@ -160,10 +160,10 @@ Model:: =
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
 
-  _queueTxn: (txn, callback) -> # TODO Add callback param?
+  _queueTxn: (txn, callback) ->
     id = transaction.id txn
     @_txns[id] = txn
-    txn.callback = callback
+    txn.callback = callback if callback
     @_txnQueue.push id
     
 
@@ -280,13 +280,13 @@ Model:: =
       cache.lastReplayedTxnId = transaction.id txn
     return [obj, path]
 
+  # TODO
   snapshot: ->
     model = new AtomicModel @_nextTxnId(), this
     model._adapter = adapter.snapshot()
     return model
 
   atomic: (block, callback) ->
-    #model = @snapshot()
     model = new AtomicModel @_nextTxnId(), this
     commit = (callback) ->
       model.commit()
