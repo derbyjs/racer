@@ -115,6 +115,10 @@ module.exports =
 
   # TODO Tests involving refs and array refs
 
+  # TODO Tests for event emission
+
+  # TODO How to handle private paths?
+
   'AtomicModel commits should get passed to Store': -> # TODO
 
   'AtomicModel commits should get passed to STM': -> # TODO

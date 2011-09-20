@@ -77,6 +77,70 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
   return
 
+Model.genAddOpAsTxn = (options) ->
+  {callback: hasCallback, getVer, commit} = options
+  return (method, path, args..., callback) ->
+    if !hasCallback && callback isnt undefined
+      args.push callback
+      callback = undefined
+    refHelper = @_refHelper
+    model = @
+
+    getWorld = null == path
+
+    unless getWorld
+      # Transform args if path represents an array ref
+      # argsNormalizer = new ArgsNormalizer refHelper
+      # args = argsNormalizer.transform(method, path, args)
+      if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
+        [firstArgs, members] =
+          (mutators.basic[method] || mutators.array[method]).splitArgs args
+        members = members.map (member) ->
+          return member if refHelper.isRefObj member
+          # MUTATION
+          model.set $r + '.' + member.id, member
+          return {$r, $k: member.id.toString()}
+        args = firstArgs.concat members
+
+      # Convert id args to index args if we happen to be
+      # using array ref mutator id api
+      if mutators.array[method]?.indexesInArgs
+        idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
+    
+    # Create a new transaction and add it to a local queue
+    ver = getVer.call model
+    id = @_nextTxnId()
+    txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
+    # NOTE: This converts the transaction
+    unless getWorld
+      txn = refHelper.dereferenceTxn txn, @_specModel()[0]
+    # else just in case we did atomicModel.get()
+
+    @_queueTxn txn, callback
+
+    unless getWorld
+      txnArgs = transaction.args txn
+      path = txnArgs[0]
+      # Apply a private transaction immediately and don't send it to the store
+      if pathParser.isPrivate path
+        @_cache.invalidateSpecModelCache()
+        return @_applyTxn txn, !txn.emitted && !@_silent
+
+      if idAsIndex isnt undefined
+        meta = txnArgs[1] # txnArgs[1] has form {id: id}
+        meta.index = idAsIndex
+        transaction.meta txn, meta
+
+      # Emit an event on creation of the transaction
+      unless @_silent
+        @emit method, txnArgs, true
+        txn.emitted = true
+
+      txnArgs[1] = idAsIndex if idAsIndex isnt undefined
+
+    # Send it over Socket.IO or to the store on the server
+    @_commit txn if commit
+
 Model:: =
 
   ## Socket.io communication ##
@@ -169,55 +233,12 @@ Model:: =
 
   # TODO There is a lot of mutation of txn going on here.
   #      Clean this up.
-  _addOpAsTxn: (method, path, args..., callback) ->
-    refHelper = @_refHelper
-    model = @
+      
 
-    # Transform args
-    if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
-      [firstArgs, members] =
-        (mutators.basic[method] || mutators.array[method]).splitArgs args
-      members = members.map (member) ->
-        return member if refHelper.isRefObj member
-        # MUTATION
-        model.set $r + '.' + member.id, member
-        return {$r, $k: member.id.toString()}
-      args = firstArgs.concat members
-
-    # Convert id args to index args if we happen to be
-    # using array ref mutator id api
-    if mutators.array[method]?.indexesInArgs
-      idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
-    
-    # Create a new transaction and add it to a local queue
-    ver = if @_force then null else @_adapter.ver
-    id = @_nextTxnId()
-    txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
-    # NOTE: This converts the transaction
-    txn = refHelper.dereferenceTxn txn, @_specModel()[0]
-    @_queueTxn txn
-
-    txnArgs = transaction.args txn
-    path = txnArgs[0]
-    # Apply a private transaction immediately and don't send it to the store
-    if pathParser.isPrivate path
-      @_cache.invalidateSpecModelCache()
-      return @_applyTxn txn, !txn.emitted && !@_silent
-
-    if idAsIndex isnt undefined
-      meta = txnArgs[1] # txnArgs[1] has form {id: id}
-      meta.index = idAsIndex
-      transaction.meta txn, meta
-
-    # Emit an event on creation of the transaction
-    unless @_silent
-      @emit method, txnArgs, true
-      txn.emitted = true
-
-    txnArgs[1] = idAsIndex if idAsIndex isnt undefined
-
-    # Send it over Socket.IO or to the store on the server
-    @_commit txn
+  _addOpAsTxn: Model.genAddOpAsTxn
+    callback: true
+    getVer: -> if @_force then null else @_adapter.ver
+    commit: true
   
   _applyTxn: (txn, forceEmit) ->
     method = transaction.method txn

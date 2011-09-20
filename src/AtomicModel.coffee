@@ -41,6 +41,11 @@ AtomicModel = module.exports = (id, parentModel) ->
 
   self._refHelper = new RefHelper self, false
 
+  # Proxy events to the parent model
+  ['emit', 'on', 'once'].forEach (method) ->
+    self[method] = ->
+      parentModel[method].apply parentModel, arguments
+
   return
 
 AtomicModel:: =
@@ -117,16 +122,11 @@ AtomicModel:: =
 
   _nextTxnId: -> @id + '.' + ++@_opCount
 
-  _addOpAsTxn: (method, path, args...) ->
-    # TODO figure out how to re-use most of Model::_addOpAsTxn
-    refHelper = @_refHelper
-
-    ver = @ver
-    id = @_nextTxnId()
-    txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
-    txn = refHelper.dereferenceTxn txn, @_specModel()[0] if transaction.path txn
-    @_txns[id] = txn
-    @_txnQueue.push id
+  _queueTxn: Model::_queueTxn
+  _addOpAsTxn: Model.genAddOpAsTxn
+    callback: false
+    getVer: -> @ver
+    commit: false
 
   # TODO Remove Model::_specModel from name
   _specModel: Model::_specModel
