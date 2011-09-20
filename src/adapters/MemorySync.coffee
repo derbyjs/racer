@@ -55,7 +55,7 @@ Memory:: =
   del: (path, ver, obj, options = {}) ->
     if ver < @ver
       throw new Error 'Cannot set to a ver that is less than adapter ver'
-    @ver = ver
+    @ver = ver unless ver is undefined
     proto = options.proto
     options = Object.create options
     options.addPath = false
@@ -197,7 +197,7 @@ for method, {compound, normalizeArgs} of arrMutators
       fn = xtraConf.fn
     return ->
       {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
-      @ver = ver
+      @ver = ver unless ver is undefined
       options.addPath = []
       options.setVer = ver unless options.proto
       out = @lookup path, obj, options
