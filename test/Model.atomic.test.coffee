@@ -50,6 +50,15 @@ module.exports =
       atomicModel.get().should.specEql direction: 'north'
       done()
 
+  '''AtomicModel sets should be reflected in the parent
+  model after an implicit commit @single''': wrapTest (done) ->
+    model = new Model
+    model.set 'direction', 'west'
+    model.atomic (atomicModel) ->
+      atomicModel.set 'direction', 'north'
+    model.get().should.specEql direction: 'north'
+    done()
+
   '''an atomic transaction should commit all its ops
   to the parent model if no commit param was passed to
   model.atomic''': -> #TODO
