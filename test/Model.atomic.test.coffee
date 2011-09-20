@@ -40,6 +40,16 @@ module.exports =
       transaction.args(parentTxn).should.eql ['direction', 'west']
       done()
 
+  '''AtomicModel sets should be reflected in the atomic
+  model but not the parent model @single''': wrapTest (done) ->
+    model = new Model
+    model.set 'direction', 'west'
+    model.atomic (atomicModel) ->
+      atomicModel.set 'direction', 'north'
+      model.get().should.specEql direction: 'west'
+      atomicModel.get().should.specEql direction: 'north'
+      done()
+
   '''an atomic transaction should commit all its ops
   to the parent model if no commit param was passed to
   model.atomic''': -> #TODO

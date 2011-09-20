@@ -13,7 +13,11 @@ AtomicModel = module.exports = (id, parentModel) ->
   adapter = self._adapter = parentModel._adapter
   self.ver = adapter.ver # Take a snapshot of the version
 
-  self._cache = parentModel._cache
+  self._cache =
+    invalidateSpecModelCache: ->
+      delete @obj
+      delete @lastReplayedTxnId
+      delete @path
 
   self._opCount = 0
   self._txns = parentModel._txns
@@ -30,7 +34,7 @@ AtomicModel = module.exports = (id, parentModel) ->
     txnApplier.add txn, num
   #parentChannel.on 'txn', onTxn
 
-  self._refHelper = new RefHelper self
+  self._refHelper = new RefHelper self, false
 
   return
 
@@ -46,13 +50,17 @@ AtomicModel:: =
     return (txns[id] for id in txnQueue when @isMyOp id)
 
   get: (path) ->
-    {val, ver} = @_adapter.get path, @_specModel()[0]
+    if path
+      {val, ver} = @_adapter.get path, @_specModel()[0]
+    else
+      val = @_specModel()[0]
+      ver = @_adapter.ver
     if ver <= @ver
-      @_addOpTxn 'get', path
+      @_addOpTxn 'get', path ? null
     return val
 
   set: (path, val) ->
-    @_addOpTxn 'set', path, val, callback
+    @_addOpTxn 'set', path, val
     return val
 
   setNull: (path, val) ->
@@ -99,10 +107,11 @@ AtomicModel:: =
     ver = @ver
     id = @_nextTxnId()
     txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
-    txn = refHelper.dereferenceTxn txn, @_specModel()[0]
+    txn = refHelper.dereferenceTxn txn, @_specModel()[0] if transaction.path txn
     @_txns[id] = txn
     @_txnQueue.push id
 
+  # TODO Remove Model::_specModel from name
   _specModel: Model::_specModel
 
   _conflictsWithMe: (txn) ->

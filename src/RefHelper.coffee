@@ -6,11 +6,11 @@ argsNormalizer = require './argsNormalizer'
 mutators = require './mutators'
 arrayMutators = mutators.array
 
-module.exports = RefHelper = (model) ->
+module.exports = RefHelper = (model, doSetup = true) ->
   @_model = model
   @_adapter = model._adapter
 
-  @_setup()
+  @_setup() if doSetup
   return
 
 # RefHelper contains code that manages an index of refs: the pointer path,

@@ -30,7 +30,7 @@ Memory:: =
       # during speculative model creation.
       refObjCopy = merge {}, value
       value = refObjCopy
-    @ver = ver
+    @ver = ver unless ver is undefined
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
     {parent, prop, versCurr} = out = @lookup path, obj, options

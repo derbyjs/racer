@@ -255,9 +255,12 @@ Model:: =
       while i < len
         # Apply each pending operation to the speculative model
         txn = @_txns[@_txnQueue[i++]]
+        method = transaction.method txn
+        continue if method == 'get'
         args = transaction.args(txn).slice 0
-        args.push adapter.ver, obj, proto: true, returnMeta: true
-        meta = adapter[transaction.method txn] args...
+        #args.push adapter.ver, obj, proto: true, returnMeta: true
+        args.push undefined, obj, proto: true, returnMeta: true
+        meta = adapter[method] args...
         path = meta.path
       cache.obj = obj
       cache.path = path
