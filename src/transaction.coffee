@@ -6,8 +6,11 @@
 # , metadata]
 module.exports =
   create: (obj) ->
-    txn = [obj.base, obj.id, obj.method, obj.args]
-    txn.push obj.meta if obj.meta
+    if obj.ops
+      txn = [obj.base, obj.id, obj.ops]
+    else
+      txn = [obj.base, obj.id, obj.method, obj.args]
+      txn.push obj.meta if obj.meta
     return txn
 
   base: (txn, val) ->
@@ -48,3 +51,27 @@ module.exports =
   meta: (txn, obj) ->
     txn[4] = obj if obj isnt undefined
     return txn[4]
+
+
+  ops: (txn, ops) ->
+    txn[2] = ops unless ops is undefined
+    return txn[2]
+
+  op:
+    create: (obj) ->
+      op = [obj.method, obj.args]
+      op.push meta if meta = obj.meta
+      return op
+
+    method: (op, name) ->
+      op[0] = name if name isnt undefined
+      return op[0]
+
+    args: (op, vals) ->
+      if vals isnt undefined
+        op[1] = vals
+      return op[1]
+
+    meta: (op, obj) ->
+      op[2] = obj if obj isnt undefined
+      return op[2]

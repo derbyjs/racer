@@ -25,6 +25,22 @@ module.exports =
   'test transaction.path': ->
     transaction.path(txn).should.eql 'count'
 
+  'test transaction.ops': ->
+    compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
+    transaction.ops(compoundTxn).should.eql [transaction.op.create(method: 'set', args: ['count', 1])]
+
+  'test transaction.op.method': ->
+    op = transaction.op.create method: 'set', args: ['count', 1]
+    transaction.op.method(op).should.equal 'set'
+
+  'test transaction.op.args': ->
+    op = transaction.op.create method: 'set', args: ['count', 1]
+    transaction.op.args(op).should.eql ['count', 1]
+
+  'test transaction.op.meta': ->
+    op = transaction.op.create method: 'set', args: ['count', 1], meta: { some: 'A' }
+    transaction.op.meta(op).should.eql { some: 'A' }
+
   # Property setters
 
   'test transaction.base setter': ->
@@ -56,6 +72,32 @@ module.exports =
     transaction.path(txn).should.equal 'count'
     transaction.path txn, 'age'
     transaction.path(txn).should.equal 'age'
+
+  'test transaction.ops setter': ->
+    firstOps = [transaction.op.create(method: 'set', args: ['count', 1])]
+    txn = transaction.create base: 3, id: '4.1', ops: firstOps
+    transaction.ops(txn).should.eql firstOps
+    secondOps = [transaction.op.create(method: 'push', args: ['a', 'b'])]
+    transaction.ops txn, secondOps
+    transaction.ops(txn).should.eql secondOps
+
+  'test transaction.op.method setter': ->
+    op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.op.method(op).should.equal 'set'
+    transaction.op.method op, 'del'
+    transaction.op.method(op).should.equal 'del'
+
+  'test transaction.op.args setter': ->
+    op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    transaction.op.args(op).should.eql ['count', 1]
+    transaction.op.args op, ['count', 2]
+    transaction.op.args(op).should.eql ['count', 2]
+
+  'test transaction.op.meta setter': ->
+    op = transaction.op.create method: 'set', args: ['count', 1], meta: { some: 'A' }
+    transaction.op.meta(op).should.eql some: 'A'
+    transaction.op.meta op, some: 'B'
+    transaction.op.meta(op).should.eql some: 'B'
 
   # Evaluating (but not applying) transactions
 
