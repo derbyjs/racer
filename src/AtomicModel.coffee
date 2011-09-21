@@ -24,15 +24,15 @@ AtomicModel = module.exports = (id, parentModel) ->
   self._txns = parentModel._txns
   self._txnQueue = parentModel._txnQueue.slice 0
 
-  # TODO Do we even need a txnApplier in this scenario?
-  txnApplier = new TxnApplier
-    applyTxn: (txn) ->
-      if self._conflictsWithMe txn
-        self.abort()
-      self._applyTxn txn # TODO Needs the same conds as Model txnApplier?
-
-  onTxn = self._onTxn = (txn, num) ->
-    txnApplier.add txn, num
+#  # TODO Do we even need a txnApplier in this scenario?
+#  txnApplier = new TxnApplier
+#    applyTxn: (txn) ->
+#      if self._conflictsWithMe txn
+#        self.abort()
+#      self._applyTxn txn # TODO Needs the same conds as Model txnApplier?
+#
+#  onTxn = self._onTxn = (txn, num) ->
+#    txnApplier.add txn, num
 
   # parentRepo.on 'txn', onTxn
   # childRepos.send 'txn', onTxn

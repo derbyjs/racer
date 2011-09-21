@@ -4,7 +4,7 @@ util = require './util'
 transaction = require 'transaction'
 wrapTest = util.wrapTest
 
-{mockSocketModel, mockSocketModels} = require './util/model'
+{mockSocketModels} = require './util/model'
 
 module.exports =
   'Model::atomic should log gets @single': wrapTest (done) ->
@@ -129,6 +129,34 @@ module.exports =
       sockets._disconnect()
       done()
 
+  '''a model should clean up its atomic model upon a
+  successful commit of that atomic model's transaction @single''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model', txnOk: true
+    atomicModelId = null
+    model.atomic (atomicModel) ->
+      atomicModelId = atomicModel.id
+      atomicModel.set 'direction', 'north'
+    , (err) ->
+      should.equal null, err
+      should.equal undefined, model._atomicModels[atomicModelId]
+      sockets._disconnect()
+      done()
+
+  '''a model should not clean up its atomic model before the
+  result of a commit (success or err) is known @single''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model', txnOk: true
+    atomicModelId = null
+    model.atomic (atomicModel, commit) ->
+      atomicModelId = atomicModel.id
+      atomicModel.set 'direction', 'north'
+      setTimeout commit, 200
+    , (err) ->
+      should.equal null, err
+      should.equal undefined, model._atomicModels[atomicModelId]
+      sockets._disconnect()
+      done()
+    model._atomicModels[atomicModelId].should.not.be.undefined
+
   # TODO Pass the following tests
 
   # TODO Tests involving refs and array refs
@@ -142,32 +170,6 @@ module.exports =
   'AtomicModel commits should get passed to Store': -> # TODO
 
   'AtomicModel commits should get passed to STM': -> # TODO
-
-  '''a model should clean up its atomic model upon a
-  successful commit of that atomic model's transaction''': wrapTest (done) ->
-    model = new Model
-    atomicModelId = null
-    model.atomic (atomicModel) ->
-      atomicModelId = atomicModel.id
-      atomicModel.set 'direction', 'north'
-    , (err) ->
-      err.should.be.null
-      should.equal undefined, model._atomicModels[atomicModelId]
-      done()
-
-  '''a model should not clean up its atomic model before the
-  result of a commit (success or err) is known''': wrapTest (done) ->
-    model = new Model
-    atomicModelId = null
-    model.atomic (atomicModel, commit) ->
-      atomicModelId = atomicModel.id
-      atomicModel.set 'direction', 'north'
-      setTimeout commit, 200
-    , (err) ->
-      err.should.be.null
-      should.equal undefined, model._atomicModels[atomicModelId]
-      done()
-    model._atomicModels[atomicModelId].should.not.be.undefined
 
   '''a parent model should pass any speculative ops
   to its child atomic models''': -> # TODO

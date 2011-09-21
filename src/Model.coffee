@@ -210,7 +210,8 @@ Model:: =
       # that may have been missed
       socket.emit 'sub', clientId, storeSubs, adapter.ver, self._startId
       # Resend all transactions in the queue
-      commit txns[id] for id in txnQueue
+      for id in txnQueue
+        commit txns[id]
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
@@ -260,9 +261,9 @@ Model:: =
 
     if callback = txn.callback
       if isCompound
-        callback null, transaction.ops(txn)
+        callback null, transaction.ops(txn)...
       else
-        callback null, args... if callback = txn.callback
+        callback null, args...
   
 
   _applyMutation: (extractor, mutation, {obj, proto, ver, forceEmit, txnHasCallback}) ->
@@ -329,8 +330,12 @@ Model:: =
 
   atomic: (block, callback) ->
     model = new AtomicModel @_nextTxnId(), this
-    commit = (callback) ->
-      model.commit callback
+    @_atomicModels[model.id] = model
+    self = this
+    commit = (_callback) ->
+      model.commit (err) ->
+        delete self._atomicModels[model.id] unless err
+        _callback.apply null, arguments if _callback ||= callback
     abort = ->
     retry = ->
 
