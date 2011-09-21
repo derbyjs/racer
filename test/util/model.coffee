@@ -12,7 +12,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   return [serverSockets, model]
 
 exports.mockSocketModels = (clientIds..., options = {}) ->
-  if Object.constructor != options
+  if Object != options.constructor
     clientIds.push options
     options = txnOk: true
   serverSockets = new mocks.ServerSocketsMock
