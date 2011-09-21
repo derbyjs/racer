@@ -100,16 +100,21 @@ module.exports =
       sockets._disconnect()
       done()
 
-  # TODO Pass the following tests
-
-  '''AtomicModel commits should only callback once the
-  status of that commit is known''': wrapTest (done) ->
-    model = new Model
+  '''AtomicModel commits should not callback if it has not
+  yet received the status of that commit @single''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model', txnOk: false
+    counter = 1
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
     , (err) ->
-      err.should.be.null
+      counter++
+    setTimeout ->
+      counter.should.equal 1
+      sockets._disconnect()
       done()
+    , 200
+
+  # TODO Pass the following tests
 
   # TODO Tests involving refs and array refs
 
