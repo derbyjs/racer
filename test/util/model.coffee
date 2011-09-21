@@ -4,7 +4,8 @@ transaction = require '../../src/transaction'
   
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new mocks.ServerSocketsMock()
-  serverSockets.on 'connection', (socket) -> socket.on name, onName
+  serverSockets.on 'connection', (socket) ->
+    socket.on name, onName
   browserSocket = new mocks.BrowserSocketMock(serverSockets)
   model = new Model clientId
   model._setSocket browserSocket
@@ -24,9 +25,9 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
       transaction.base txn, ++ver
       if options.txnOk
         socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum
+        serverSockets.emit 'txn', txn, socket.num++
       else if err = options.txnErr
         socket.emit 'txnErr', err, transaction.id(txn)
-      serverSockets.emit 'txn', txn, socket.num++
 
   models = clientIds.map (clientId) ->
     model = new Model clientId
