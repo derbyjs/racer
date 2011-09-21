@@ -175,9 +175,12 @@ Model:: =
     socket.on 'txnErr', (err, txnId) ->
       txn = txns[txnId]
       if txn && (callback = txn.callback)
-        args = transaction.args(txn).slice 0
-        args.unshift err
-        callback args...
+        if transaction.isCompound txn
+          callbackArgs = transaction.ops txn
+        else
+          callbackArgs = transaction.args(txn).slice 0
+        callbackArgs.unshift err
+        callback callbackArgs...
       removeTxn txnId
     
     @canConnect = true

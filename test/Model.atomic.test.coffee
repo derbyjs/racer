@@ -89,21 +89,18 @@ module.exports =
       sockets._disconnect()
       done()
 
-  # TODO Pass the following tests
-
   '''Model::atomic(lambda, callback) should callback
   with an error if the commit failed at some point
-  in an upstream repo''': wrapTest (done) ->
-    [socket, model] = mockSocketModels 'model', txnErr: 'conflict'
-    # TODO stub out appropriate methods/callbacks in model
-    #      to fake an err response without going through
-    #      additional Store + Socket.IO + STM + Redis stack
+  in an upstream repo @single''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model', txnErr: 'conflict'
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
     , (err) ->
-      err.should.not.be.null
-      err.message.should.equal ''
+      err.should.equal 'conflict'
+      sockets._disconnect()
       done()
+
+  # TODO Pass the following tests
 
   '''AtomicModel commits should only callback once the
   status of that commit is known''': wrapTest (done) ->
