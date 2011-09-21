@@ -67,9 +67,10 @@ AtomicModel:: =
     ) for txn in @oplog())
     return transaction.create base: @ver, id: @id, ops: ops
 
-  commit: ->
+  commit: (callback) ->
     txn = @_oplogAsTxn()
-    @parentModel._queueTxn txn
+    @parentModel._queueTxn txn, callback
+    @parentModel._commit txn
 
   get: (path) ->
     if path
@@ -129,7 +130,7 @@ AtomicModel:: =
     commit: false
 
   _specModel: Model::_specModel
-  _specApply: Model::_specApply
+  _applyMutation: Model::_applyMutation
 
   _conflictsWithMe: (txn) ->
     modelId = @id

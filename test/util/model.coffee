@@ -11,7 +11,10 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   browserSocket._connect()
   return [serverSockets, model]
 
-exports.mockSocketModels = (clientIds...) ->
+exports.mockSocketModels = (clientIds..., options = {}) ->
+  if Object.constructor != options
+    clientIds.push options
+    options = txnOk: true
   serverSockets = new mocks.ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
     socket.num = 1
@@ -19,7 +22,10 @@ exports.mockSocketModels = (clientIds...) ->
     txnNum = 1
     socket.on 'txn', (txn) ->
       transaction.base txn, ++ver
-      socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum
+      if options.txnOk
+        socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum
+      else if err = options.txnErr
+        socket.emit 'txnErr', err, transaction.id(txn)
       serverSockets.emit 'txn', txn, socket.num++
 
   models = clientIds.map (clientId) ->

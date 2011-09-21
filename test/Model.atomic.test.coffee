@@ -75,25 +75,26 @@ module.exports =
     model.get().should.specEql direction: 'west'
 
 
-  # TODO Pass the following tests
-
   '''Model::atomic(lambda, callback) should invoke its
   callback once it receives a successful response for
-  the txn from the upstream repo''': wrapTest (done) ->
-    model = new Model
-    # TODO stub out appropriate methods/callbacks in model
-    #      to fake a successful response without going through
-    #      additional Store + Socket.IO + STM + Redis stack
+  the txn from the upstream repo @single''': wrapTest (done) ->
+    # stub out appropriate methods/callbacks in model
+    # to fake a successful response without going through
+    # additional Store + Socket.IO + STM + Redis stack
+    [sockets, model] = mockSocketModels 'model', txnOk: true
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
-    , (err) ->
-      err.should.be.null
+    , (err, num) ->
+      should.equal null, err
+      sockets._disconnect()
       done()
+
+  # TODO Pass the following tests
 
   '''Model::atomic(lambda, callback) should callback
   with an error if the commit failed at some point
   in an upstream repo''': wrapTest (done) ->
-    model = new Model
+    [socket, model] = mockSocketModels 'model', txnErr: 'conflict'
     # TODO stub out appropriate methods/callbacks in model
     #      to fake an err response without going through
     #      additional Store + Socket.IO + STM + Redis stack
@@ -115,7 +116,9 @@ module.exports =
 
   # TODO Tests involving refs and array refs
 
-  # TODO Tests for event emission
+  # TODO Tests for event emission proxying to parent models
+
+  # TODO Tests for nested, composable transactions
 
   # TODO How to handle private paths?
 

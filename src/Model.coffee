@@ -227,9 +227,9 @@ Model:: =
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
 
   _queueTxn: (txn, callback) ->
+    txn.callback = callback if callback
     id = transaction.id txn
     @_txns[id] = txn
-    txn.callback = callback if callback
     @_txnQueue.push id
     
 
@@ -239,28 +239,47 @@ Model:: =
     commit: true
   
   _applyTxn: (txn, forceEmit) ->
-    method = transaction.method txn
-    txnArgs = transaction.args txn
-    args = txnArgs.slice 0
-    args.push transaction.base txn
-    @_adapter[method] args...
+    ver = transaction.base txn
+    if isCompound = transaction.isCompound txn
+      ops = transaction.ops txn
+      for op in ops
+        @_applyMutation transaction.op, op,
+          ver: ver
+          forceEmit: forceEmit
+          txnHasCallback: 'callback' of txn
+    else
+      args = @_applyMutation transaction, txn,
+        ver: ver
+        forceEmit: forceEmit
+        txnHasCallback: 'callback' of txn
+
     @_removeTxn transaction.id txn
-    if forceEmit
-      # For converting array ref index api back to id api
-      args[1] = meta if meta = transaction.meta txn
-      # Third argument is true for locally created transactions
-      @emit method, args, 'callback' of txn
-    callback null, txnArgs... if callback = txn.callback
+
+    if callback = txn.callback
+      if isCompound
+        callback null, transaction.ops(txn)
+      else
+        callback null, args... if callback = txn.callback
   
 
-  _specApply: (extractor, entity, obj) ->
+  _applyMutation: (extractor, mutation, {obj, proto, ver, forceEmit, txnHasCallback}) ->
     adapter = @_adapter
-    method = extractor.method entity
+    method = extractor.method mutation
     return if method == 'get'
-    args = extractor.args(entity).slice 0
-    args.push undefined, obj, proto: true, returnMeta: true
+    args = extractor.args(mutation).slice 0
+    if proto
+      args.push undefined, obj, {proto, returnMeta: true}
+    else
+      args.push ver
     meta = adapter[method] args...
-    return meta
+    # For converting array ref index api back to id api
+    args[1] = meta if meta = extractor.meta mutation
+
+    if forceEmit
+      # Third argument is true for locally created transactions
+      @emit method, args, txnHasCallback
+
+    return if proto then meta else args
 
   # TODO Will re-calculation of speculative model every time result
   #      in assignemnts to vars becoming stale?
@@ -290,9 +309,9 @@ Model:: =
         if transaction.isCompound txn
           ops = transaction.ops txn
           for op in ops
-            meta = @_specApply transaction.op, op, obj
+            meta = @_applyMutation transaction.op, op, {obj, proto: true}
         else
-          meta = @_specApply transaction, txn, obj
+          meta = @_applyMutation transaction, txn, {obj, proto: true}
         path = meta.path if meta
       cache.obj = obj
       cache.path = path
@@ -308,13 +327,13 @@ Model:: =
   atomic: (block, callback) ->
     model = new AtomicModel @_nextTxnId(), this
     commit = (callback) ->
-      model.commit()
+      model.commit callback
     abort = ->
     retry = ->
 
     if block.length == 1
       block model
-      commit(callback)
+      commit callback
     else if block.length == 2
       block model, commit
     else if block.length == 3
