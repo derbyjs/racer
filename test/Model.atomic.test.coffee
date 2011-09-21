@@ -114,6 +114,21 @@ module.exports =
       done()
     , 200
 
+  '''AtomicModel should commit *all* its ops to the parent
+  model's permanent, non-speculative data upon a successful
+  transaction response from the parent repo @single''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model', txnOk: true
+    model.atomic (atomicModel) ->
+      atomicModel.set 'color', 'green'
+      atomicModel.set 'volume', 'high'
+    , (err) ->
+      should.equal null, err
+      model._adapter._data.should.eql
+        color: 'green'
+        volume: 'high'
+      sockets._disconnect()
+      done()
+
   # TODO Pass the following tests
 
   # TODO Tests involving refs and array refs
@@ -127,20 +142,6 @@ module.exports =
   'AtomicModel commits should get passed to Store': -> # TODO
 
   'AtomicModel commits should get passed to STM': -> # TODO
-
-  '''AtomicModel should commit *all* its ops to the parent
-  model's permanent, non-speculative data upon a successful
-  transaction response from the parent repo''': wrapTest (done) ->
-    model = new Model
-    model.atomic (atomicModel) ->
-      atomicModel.set 'color', 'green'
-      atomicModel.set 'volume', 'high'
-    , (err) ->
-      err.should.be.null
-      model._adapter._data.should.eql
-        color: 'green'
-        volume: 'high'
-      done()
 
   '''a model should clean up its atomic model upon a
   successful commit of that atomic model's transaction''': wrapTest (done) ->
