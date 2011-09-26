@@ -157,6 +157,9 @@ module.exports =
       done()
     model._atomicModels[atomicModelId].should.not.be.undefined
 
+  '''an atomic model should be able to retry itself when
+  handling a commit err via the model.atomic callback''': -> # TODO
+
   # TODO Pass the following tests
 
   # TODO Tests involving refs and array refs
