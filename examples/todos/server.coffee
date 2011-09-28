@@ -32,7 +32,8 @@ app.get '/', (req, res) ->
 
 app.get '/:group', (req, res) ->
   group = req.params.group
-  store.subscribe _group: "groups.#{group}.**", (err, model) ->
+  model = store.createModel()
+  model.subscribe _group: "groups.#{group}.**", ->
     model.setNull "groups.#{group}", defaultGroup
     # Currently, refs must be explicitly declared per model; otherwise the ref
     # is not added the model's internal reference indices

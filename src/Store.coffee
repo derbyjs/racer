@@ -5,9 +5,7 @@ Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
 TxnApplier = require './TxnApplier'
-pathParser = require './pathParser.server'
 redisInfo = require './redisInfo'
-specHelper = require './specHelper'
 
 MAX_RETRIES = 20
 RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
@@ -164,102 +162,14 @@ Store = module.exports = (options = {}) ->
           txn = JSON.parse val
       done() if done
   
-  setModelValue = (modelAdapter, root, remainder, value, ver) ->
-    # Set only the specified property if there is no remainder
-    unless remainder
-      value =
-        if typeof value is 'object'
-          if specHelper.isArray value then [] else {}
-        else value
-      return modelAdapter.set root, value, ver
-    # If the remainder is a trailing **, set everything below the root
-    return modelAdapter.set root, value, ver if remainder == '**'
-    # If the remainder starts with *. or is *, set each property one level down
-    if remainder.charAt(0) == '*' && (c = remainder.charAt(1)) == '.' || c == ''
-      [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
-      for prop of value
-        nextRoot = if root then root + '.' + prop else prop
-        nextValue = value[prop]
-        if appendRoot
-          nextRoot += '.' + appendRoot
-          nextValue = pathParser.fastLookup appendRoot, nextValue
-        setModelValue modelAdapter, nextRoot, remainder, nextValue, ver
-    # TODO: Support ** not at the end of a path
-    # TODO: Support (a|b) syntax
+  @createModel = (callback) ->
+    model = new Model
+    model.store = self
+    model._ioUri = self._ioUri
+    model._startId = startId
+    nextClientId (clientId) -> model._setClientId clientId
+    return model
 
-  populateModel = (model, paths, callback) ->
-    _paths = []
-    for path in paths
-      if typeof path is 'object'
-        for key, value of path
-          root = pathParser.splitPattern(value)[0]
-          model.set key, model.ref root
-          _paths.push value
-        continue
-      _paths.push path
-    
-    # Store subscriptions in the model so that it can submit them to the
-    # server when it connects
-    model._storeSubs = model._storeSubs.concat _paths
-    # Subscribe while the model still only resides on the server
-    # The model is unsubscribed before sending to the browser
-    clientId = model._clientId
-    pubSub.subscribe clientId, _paths
-    
-    maxVer = 0
-    getting = _paths.length
-    modelAdapter = model._adapter
-    for path in _paths
-      [root, remainder] = pathParser.splitPattern path
-      adapter.get root, (err, value, ver) ->
-        if err
-          callback err if callback
-          return callback = null
-        maxVer = Math.max maxVer, ver
-        setModelValue modelAdapter, root, remainder, value, ver
-        return if --getting
-        modelAdapter.ver = maxVer
-        
-        # Apply any transactions in the STM that have not yet been applied
-        # to the store
-        forTxnSince maxVer + 1, clientId, onTxn = (txn) ->
-          method = transaction.method txn
-          args = transaction.args(txn).slice 0
-          args.push transaction.base txn
-          modelAdapter[method] args...
-        , done = ->
-          localModels[clientId] = model
-          callback null, model if callback
-
-  @subscribe = (model, paths..., callback) ->
-    # TODO: Support path wildcards, references, and functions
-    
-    if arguments.length is 1
-      # If subscribe(callback)
-      callback = model
-    else
-      # If subscribe(model, paths..., callback)
-      return populateModel model, paths, callback if model instanceof Model
-      # If subscribe(paths..., callback)
-      paths.unshift model
-    
-    nextClientId waitForStartId = (clientId) ->
-      return setTimeout waitForStartId, 10, clientId unless startId
-      model = new Model(clientId)
-      model.store = self
-      model._ioUri = self._ioUri
-      model._startId = startId
-      populateModel model, paths, callback
-  
-  @unsubscribe = (model, paths..., callback) ->
-    throw new Error 'Unimplemented'
-    modelAdapter = model._adapter
-    if !paths.length
-      # If unsubscribe(model, callback)
-      modelAdapter.flush() # unpopulate
-    else
-      # If unsubscribe(model, paths..., callback)
-  
 
   ## Mutator Interface ##
 

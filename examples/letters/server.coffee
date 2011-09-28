@@ -36,7 +36,8 @@ app.get '/:room?', (req, res) ->
   _room = room.toLowerCase().replace /[_ ]/g, '-'
   return res.redirect "/#{_room}" if _room != room
   
-  store.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', (err, model) ->
+  model = store.createModel()
+  model.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', ->
     model.setNull '_room.letters', defaultLetters
     model.set '_roomName', room
     # model.bundle waits for any pending model operations to complete and then
@@ -57,7 +58,7 @@ app.get '/:room?', (req, res) ->
       <!DOCTYPE html>
       <title>Letters game</title>
       <link rel=stylesheet href=style.css>
-      <link rel=stylesheet href=http://fonts.googleapis.com/css?family=Anton>
+      <link rel=stylesheet href="http://fonts.googleapis.com/css?family=Anton">
       <div id=back>
         <div id=page>
           <p id=info>
@@ -70,7 +71,7 @@ app.get '/:room?', (req, res) ->
       </div>
       <script>init=#{bundle}</script>
       <script src=script.js></script>
-      """
+    """
 
 store.sockets.on 'connection', (socket) ->
   socket.on 'join', (room) ->
