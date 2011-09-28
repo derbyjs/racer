@@ -4,6 +4,7 @@ MemorySync = require './adapters/MemorySync'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
 specHelper = require './specHelper'
+AtomicModel = require './AtomicModel'
 {EventEmitter} = require 'events'
 {merge} = require './util'
 mutators = require './mutators'
@@ -165,7 +166,8 @@ Model:: =
     
     # Request any transactions that may have been missed
     @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1, self._startId
-    
+   
+    # STM Callbacks
     socket.on 'txn', onTxn
     socket.on 'txnNum', @_onTxnNum
     socket.on 'txnOk', (txnId, base, num) ->
@@ -224,8 +226,7 @@ Model:: =
       setTimeout onConnected, 200
     # Needed in case page is loaded from cache while offline
     socket.on 'connect_failed', onConnected
-  
-  
+
   ## Transaction handling ##
   
   _nextTxnId: -> @_clientId + '.' + @_txnCount++
@@ -235,7 +236,6 @@ Model:: =
     id = transaction.id txn
     @_txns[id] = txn
     @_txnQueue.push id
-    
 
   _addOpAsTxn: Model.genAddOpAsTxn
     callback: true
@@ -369,10 +369,11 @@ Model:: =
     obj = @get path
     return obj  if `obj != null`
     @set path, value, callback
-  
+
+  # STM del
   del: (path, callback) ->
     @_addOpAsTxn 'del', path, callback
-  
+
   incr: (path, byNum, callback) ->
     # incr(path, callback)
     if typeof byNum is 'function'
@@ -464,4 +465,4 @@ Model::once = (type, pattern, callback) ->
     self.removeListener type, g  if matches
   return listener
 
-AtomicModel = require './AtomicModel'
+Model::constructor = Model

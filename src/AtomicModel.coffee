@@ -1,4 +1,3 @@
-Model = require './Model'
 TxnApplier = require './TxnApplier'
 RefHelper = require './RefHelper'
 transaction = require './transaction'
@@ -8,45 +7,60 @@ transaction = require './transaction'
 # modify paths.
 
 AtomicModel = module.exports = (id, parentModel) ->
-  self = this
-  self.id = id
-  self.parentModel = parentModel
-  adapter = self._adapter = parentModel._adapter
-  self.ver = adapter.ver # Take a snapshot of the version
+  proto = AtomicModel::
+  AtomicModel = (id, parentModel) ->
+    self = this
+    self.id = id
+    self.parentModel = parentModel
+    adapter = self._adapter = parentModel._adapter
+    self.ver = adapter.ver # Take a snapshot of the version
 
-  self._cache =
-    invalidateSpecModelCache: ->
-      delete @obj
-      delete @lastReplayedTxnId
-      delete @path
+    self._cache =
+      invalidateSpecModelCache: ->
+        delete @obj
+        delete @lastReplayedTxnId
+        delete @path
 
-  self._opCount = 0
-  self._txns = parentModel._txns
-  self._txnQueue = parentModel._txnQueue.slice 0
+    self._opCount = 0
+    self._txns = parentModel._txns
+    self._txnQueue = parentModel._txnQueue.slice 0
+#    # TODO Do we even need a txnApplier in this scenario?
+#    txnApplier = new TxnApplier
+#      applyTxn: (txn) ->
+#        if self._conflictsWithMe txn
+#          self.abort()
+#        self._applyTxn txn # TODO Needs the same conds as Model txnApplier?
+#  
+#    onTxn = self._onTxn = (txn, num) ->
+#      txnApplier.add txn, num
 
-#  # TODO Do we even need a txnApplier in this scenario?
-#  txnApplier = new TxnApplier
-#    applyTxn: (txn) ->
-#      if self._conflictsWithMe txn
-#        self.abort()
-#      self._applyTxn txn # TODO Needs the same conds as Model txnApplier?
-#
-#  onTxn = self._onTxn = (txn, num) ->
-#    txnApplier.add txn, num
+    # parentRepo.on 'txn', onTxn
+    # childRepos.send 'txn', onTxn
 
-  # parentRepo.on 'txn', onTxn
-  # childRepos.send 'txn', onTxn
+    # parentChannel.on 'txn', onTxn
 
-  # parentChannel.on 'txn', onTxn
+    self._refHelper = new RefHelper self, false
 
-  self._refHelper = new RefHelper self, false
+    # Proxy events to the parent model
+    ['emit', 'on', 'once'].forEach (method) ->
+      self[method] = ->
+        parentModel[method].apply parentModel, arguments
 
-  # Proxy events to the parent model
-  ['emit', 'on', 'once'].forEach (method) ->
-    self[method] = ->
-      parentModel[method].apply parentModel, arguments
+    return
 
-  return
+  proto = AtomicModel:: = proto
+  parentProto = Object.getPrototypeOf parentModel
+  proto._queueTxn = parentProto._queueTxn
+  proto._addOpAsTxn = parentModel.constructor.genAddOpAsTxn
+    callback: false
+    getVer: -> @ver
+    commit: false
+  proto._specModel = parentProto._specModel
+  proto._applyMutation = parentProto._applyMutation
+
+  return new AtomicModel id, parentModel
+
+
 
 AtomicModel:: =
   isMyOp: (id) ->
@@ -122,15 +136,6 @@ AtomicModel:: =
     @_addOpAsTxn 'move', path, from, to
 
   _nextTxnId: -> @id + '.' + ++@_opCount
-
-  _queueTxn: Model::_queueTxn
-  _addOpAsTxn: Model.genAddOpAsTxn
-    callback: false
-    getVer: -> @ver
-    commit: false
-
-  _specModel: Model::_specModel
-  _applyMutation: Model::_applyMutation
 
   _conflictsWithMe: (txn) ->
     modelId = @id
