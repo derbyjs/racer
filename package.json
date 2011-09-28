@@ -12,7 +12,8 @@
     "socket.io-client": ">=0.7",
     "es5-shim": ">=1.2.3",
     "browserify": ">=1.4.2",
-    "uglify-js": ">=1.0.6"
+    "uglify-js": ">=1.0.6",
+    "share": "0.4.1"
   },
   "devDependencies": {
     "expresso": "https://github.com/bnoguchi/expresso/tarball/0c457fcbbc513b39f743873dffce0d0ffb454384",
