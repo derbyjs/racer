@@ -4,18 +4,14 @@ util = require './util'
 wrapTest = util.wrapTest
 mockSocketModels = require('./util/model').mockSocketModels
 
-debug = (v) -> console.log require('util').inspect v, false, 100
-
 module.exports =
   ## Server-side OT ##
   '''model.set(path, model.ot(val)) should initialize the doc version
   to 0 and the initial value to val if the path is undefined @ot''': ->
     model = new Model
     model.set 'some.ot.path', model.ot('hi')
-    debug model.get()
-    debug model.get 'some.ot.path'
     model.get('some.ot.path').should.equal 'hi'
-    model.isOT('some.ot.path').should.be.true
+    model.isOTpath('some.ot.path').should.be.true
     model.version('some.ot.path').should.equal 0
 
   'model.subscribe(OTpath) should get the latest OT version doc if

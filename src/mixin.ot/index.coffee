@@ -41,9 +41,11 @@ ot = module.exports =
     # model.ot initStr
     ot: (initVal) -> $ot: initVal
 
-    isOT: (path) ->
+    isOTpath: (path) ->
       {val} = @_adapter.get path, @_specModel()[0]
       return val.$ot isnt undefined
+
+    isOTval: (val) -> return !! (val && val.$ot)
 
     getOT: (path, initVal) ->
       return field.snapshot if field = @otFields[path]
