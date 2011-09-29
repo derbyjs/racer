@@ -2,7 +2,6 @@ transaction = require './transaction'
 pathParser = require './pathParser'
 specHelper = require './specHelper'
 {merge, hasKeys} = require './util'
-argsNormalizer = require './argsNormalizer'
 mutators = require './mutators'
 arrayMutators = mutators.array
 

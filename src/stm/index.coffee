@@ -30,8 +30,6 @@ stm = module.exports =
 
         unless getWorld
           # Transform args if path represents an array ref
-          # argsNormalizer = new ArgsNormalizer refHelper
-          # args = argsNormalizer.transform(method, path, args)
           if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
             [firstArgs, members] =
               (mutators.basic[method] || mutators.array[method]).splitArgs args
