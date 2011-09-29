@@ -1,11 +1,12 @@
 text = require 'share/lib/types/text'
 
-Field = module.exports = (@model, @path, @version = 0, @type = text) ->
+Field = module.exports = (model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
   # @type.transform(op1, op2, side)
   # @type.normalize(op)
   # @type.create() -> ''
 
+  @model = model
   @snapshot = null
   @queue = []
   @pendingOp = null
@@ -13,12 +14,12 @@ Field = module.exports = (@model, @path, @version = 0, @type = text) ->
   @serverOps = {}
 
   self = this
-  @model.on 'remoteop', (op) ->
+  model._on 'change', (op, oldSnapshot, isRemote) ->
     for {p, i, d} in op
       if i
-        self.emit 'remote.insertOT', i, p
+        model.emit 'insertOT', [self.path, i, p], !isRemote
       else
-        self.emit 'remote.delOT', d, p
+        model.emit 'delOT', [self.path, d, p], !isRemote
     return
 
   # Decorate model prototype
@@ -51,8 +52,7 @@ Field:: =
   otApply: (docOp, isRemote) ->
     oldSnapshot = @snapshot
     @snapshot = @type.apply oldSnapshot, docOp
-    @model.emit 'remoteop', docOp, oldSnapshot if isRemote
-    @model.emit 'change', docOp, oldSnapshot
+    @model.emit 'change', docOp, oldSnapshot, isRemote
     return @snapshot
 
   submitOp: (op) ->
