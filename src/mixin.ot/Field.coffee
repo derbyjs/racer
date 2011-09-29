@@ -16,9 +16,9 @@ Field = module.exports = (@model, @path, @version = 0, @type = text) ->
   @model.on 'remoteop', (op) ->
     for {p, i, d} in op
       if i
-        self.emit 'insertOT', i, p
+        self.emit 'remote.insertOT', i, p
       else
-        self.emit 'delOT', d, p
+        self.emit 'remote.delOT', d, p
     return
 
   # Decorate model prototype
@@ -53,11 +53,12 @@ Field:: =
     @snapshot = @type.apply oldSnapshot, docOp
     @model.emit 'remoteop', docOp, oldSnapshot if isRemote
     @model.emit 'change', docOp, oldSnapshot
+    return @snapshot
 
   submitOp: (op) ->
     type = @type
     op = type.normalize op
-    @snapshot = type.apply @snapshot, op
+    @otApply op
     @pendingOp = if @pendingOp then type.compose @pendingOp, op else op
     setTimeout @flush, 0
 

@@ -33,7 +33,14 @@ module.exports =
     model.get('some.ot.path').should.equal 'aef'
 
   '''model should emit an insertOT event when it calls model.insertOT
-  locally''': -> # TODO
+  locally @ot''': wrapTest (done) ->
+    model = new Model
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
+      insertedStr.should.equal 'xyz'
+      pos.should.equal 1
+      done()
+    model.insertOT 'some.ot.path', 'xyz', 1
 
   '''model should emit a delOT event when it calls model.delOT
   locally''': -> # TODO
