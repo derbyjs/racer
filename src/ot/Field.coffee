@@ -70,5 +70,3 @@ Field:: =
     client_ = @type.transform client, server, 'left'
     server_ = @type.transform server, client, 'right'
     return [client_, server_]
-
-Field.field = (initVal) -> $ot: initVal

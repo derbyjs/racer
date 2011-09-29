@@ -33,6 +33,7 @@ ot = module.exports =
       op.callback = callback if callback
       field.submitOp op
 
+  proto:
     ## OT field functions ##
     # model.ot initStr
     ot: (initVal) -> $ot: initVal
@@ -44,5 +45,3 @@ ot = module.exports =
     # OT callbacks
     socket.on 'otOp', ({path, op, v}) ->
       self.otFields[path].onRemoteOp op, v
-    
-
