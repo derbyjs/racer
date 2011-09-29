@@ -21,7 +21,10 @@ ot = module.exports =
     # OT text insert
     insertOT: (path, str, pos, callback) ->
       # TODO Still need to normalize path
-      field = @otFields[path] ||= new Field @, path
+      unless field = @otFields[path]
+        field = @otFields[path] = new Field @, path
+        {val} = @_adapter.get path, @_specModel()[0]
+        field.snapshot = val?.$ot || str
       pos ?= 0
       op = [ { p: pos, i: str } ]
       op.callback = callback if callback

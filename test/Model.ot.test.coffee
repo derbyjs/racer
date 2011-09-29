@@ -19,7 +19,11 @@ module.exports =
   
   ## Client-side OT ##
   '''model.insertOT(path, str, pos, callback) should result in a new
-  string with str inserted at pos''': -> # TODO
+  string with str inserted at pos @ot''': ->
+    model = new Model
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.insertOT 'some.ot.path', 'xyz', 1
+    model.get('some.ot.path').should.equal 'axyzbcdef'
 
   '''model.delOT(path, str, pos, callback) should result in a new
   string with str removed at pos''': -> # TODO
