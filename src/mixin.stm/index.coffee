@@ -308,7 +308,7 @@ stm = module.exports =
   accessors:
     get: (path) ->
       {val, ver} = @_adapter.get path, @_specModel()[0]
-      if @isOTval val
+      if @isOtVal val
         return @getOT path, val.$ot
       return val
 

@@ -11,7 +11,7 @@ module.exports =
     model = new Model
     model.set 'some.ot.path', model.ot('hi')
     model.get('some.ot.path').should.equal 'hi'
-    model.isOTpath('some.ot.path').should.be.true
+    model.isOtPath('some.ot.path').should.be.true
     model.version('some.ot.path').should.equal 0
 
   'model.subscribe(OTpath) should get the latest OT version doc if
