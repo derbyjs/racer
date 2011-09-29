@@ -139,8 +139,8 @@ Model.mixin = (mixin) ->
     merge Model::, accessors
     Model::_accessorNames[accessorName] = 1 for accessorName of accessors
 
-OT = require './ot'
+OT = require './mixin.ot'
 Model.mixin OT
 
-STM = require './stm'
+STM = require './mixin.stm'
 Model.mixin STM
