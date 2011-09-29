@@ -50,17 +50,12 @@ AtomicModel = module.exports = (id, parentModel) ->
 
   proto = AtomicModel:: = proto
   parentProto = Object.getPrototypeOf parentModel
-  proto._queueTxn = parentProto._queueTxn
-  proto._addOpAsTxn = parentModel.constructor.genAddOpAsTxn
-    callback: false
-    getVer: -> @ver
-    commit: false
-  proto._specModel = parentProto._specModel
-  proto._applyMutation = parentProto._applyMutation
+  ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation',
+   'set', 'setNull', 'del', 'incr', 'push', 'pop', 'unshift', 'shift',
+   'insertAfter', 'insertBefore', 'remove', 'splice', 'move'].forEach (method) ->
+    proto[method] = parentProto[method]
 
   return new AtomicModel id, parentModel
-
-
 
 AtomicModel:: =
   isMyOp: (id) ->
@@ -81,6 +76,8 @@ AtomicModel:: =
     ) for txn in @oplog())
     return transaction.create base: @ver, id: @id, ops: ops
 
+  _getVer: -> @ver
+  _commit: ->
   commit: (callback) ->
     txn = @_oplogAsTxn()
     @parentModel._queueTxn txn, callback
@@ -93,47 +90,8 @@ AtomicModel:: =
       val = @_specModel()[0]
       ver = @_adapter.ver
     if ver <= @ver
-      @_addOpAsTxn 'get', path ? null
+      @_addOpAsTxn 'get', path ? null, null
     return val
-
-  set: (path, val) ->
-    @_addOpAsTxn 'set', path, val
-    return val
-
-  setNull: (path, val) ->
-    obj = @get path
-    return obj if `obj != null`
-    @set path, val
-
-  del: (path) ->
-    @_addOpAsTxn 'del', path
-
-  push: (path, values...) ->
-    @_addOpAsTxn 'push', path, values...
-
-  pop: (path) ->
-    @_addOpAsTxn 'pop', path
-
-  unshift: (path, values...) ->
-    @_addOpAsTxn 'unshift', path, values...
-
-  shift: (path) ->
-    @_addOpAsTxn 'shift', path
-
-  insertAfter: (path, afterIndex, val) ->
-    @_addOpAsTxn 'insertAfter', path, afterIndex, val
-
-  insertBefore: (path, beforeIndex, val) ->
-    @_addOpAsTxn 'insertBefore', path, beforeIndex, val
-
-  remove: (path, start, howMany = 1) ->
-    @_addOpAsTxn 'remove', path, start, howMany
-
-  splice: (path, startIndex, removeCount, newMembers...) ->
-    @_addOpAsTxn 'splice', path, startIndex, removeCount, newMembers...
-
-  move: (path, from, to) ->
-    @_addOpAsTxn 'move', path, from, to
 
   _nextTxnId: -> @id + '.' + ++@_opCount
 

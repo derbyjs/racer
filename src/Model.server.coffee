@@ -12,13 +12,13 @@ Model::_setClientId = (@_clientId) ->
   callback() for callback in @_pendingClientId  if @_pendingClientId
   return
 
-Model::_browserOnTxn = Model::_onTxn
+Model::_baseOnTxn = Model::_onTxn
 Model::_onTxn = (txn) ->
   self = this
   @_waitForClientId ->
     self.store._nextTxnNum self._clientId, (num) ->
       self._txnNum = num
-      self._browserOnTxn txn, num
+      self._baseOnTxn txn, num
 
 Model::_commit = (txn) ->
   self = this
