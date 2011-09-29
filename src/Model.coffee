@@ -195,6 +195,13 @@ Model::once = (type, pattern, callback) ->
 
 Model::constructor = Model
 
+## Mixins ##
+
+# A mixin is an object literal with:
+# proto:       methods to add to Model.prototype
+# static:      class/static methods to add to Model
+# init:        called from the Model constructor
+# setupSocket: invoked inside Model::_setSocket with fn signature (socket) -> ...
 Model._mixins = []
 Model.mixin = (mixin) ->
   @_mixins.push mixin
