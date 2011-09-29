@@ -12,8 +12,8 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self._adapter = adapter = new AdapterClass
 
   mixins = Model._mixins
-  for mixin in mixins
-    init.call @ if init = mixin.init
+  for {init} in mixins
+    init.call self if init
 
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
@@ -43,17 +43,17 @@ Model:: =
   ## Socket.io communication ##
   
   _setSocket: (socket) ->
-    @socket = socket
     self = this
-    adapter = @_adapter
+    self.socket = socket
+    adapter = self._adapter
 
-    @canConnect = true
+    self.canConnect = true
     socket.on 'fatalErr', ->
       self.canConnect = false
       self.emit 'canConnect', false
       socket.disconnect()
     
-    @connected = false
+    self.connected = false
     onConnected = ->
       self.emit 'connected', self.connected
       self.emit 'connectionStatus', self.connected, self.canConnect
@@ -70,13 +70,15 @@ Model:: =
     socket.on 'connect_failed', onConnected
 
     mixins = Model._mixins
-    for mixin in mixins
-      setup.call @, socket if setup = mixin.setupSocket
+    for {setupSocket} in mixins
+      setupSocket.call @, socket if setupSocket
 
   ## Model reference functions ##
 
   # Creates a reference object for use in model data methods
   ref: RefHelper::ref
+  
+  # Creates an array reference object for use in model data methods
   arrayRef: RefHelper::arrayRef
 
 ## Model events ##

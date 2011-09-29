@@ -14,7 +14,7 @@ Field = require './Field'
 # TODO Decorate adapter?
 
 ot = module.exports =
-  proto:
+  accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
       # TODO Still need to normalize path
