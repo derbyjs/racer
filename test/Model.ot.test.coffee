@@ -43,7 +43,14 @@ module.exports =
     model.insertOT 'some.ot.path', 'xyz', 1
 
   '''model should emit a delOT event when it calls model.delOT
-  locally''': -> # TODO
+  locally @ot''': wrapTest (done) ->
+    model = new Model
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'delOT', 'some.ot.path', (deletedStr, pos) ->
+      deletedStr.should.equal 'bcd'
+      pos.should.equal 1
+      done()
+    model.delOT 'some.ot.path', 3, 1
 
   ## Client-server OT communication ##
   '''client model should emit an insertOT event when it receives
