@@ -5,8 +5,6 @@ TxnApplier = require '../TxnApplier'
 specHelper = require '../specHelper'
 mutators = require '../mutators'
 
-# TODO Define onTxn in this scope
-# TODO Defined onTxnNum in this scope
 stm = module.exports =
   static:
     # Timeout in milliseconds after which sent transactions will be resent
