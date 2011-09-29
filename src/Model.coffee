@@ -28,7 +28,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
   self._refHelper = refHelper = new RefHelper self
   
-  accessors = self._accessorNames
+  accessors = Model._accessorNames
   for method of accessors
     continue if method == 'get'
     do (method) ->
@@ -40,8 +40,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   return
 
 Model:: =
-  _accessorNames: {}
-
   ## Socket.io communication ##
   
   _setSocket: (socket) ->
@@ -132,6 +130,7 @@ Model::constructor = Model
 
 # NOTE: Order of mixins may be important because of dependencies.
 Model._mixins = []
+Model._accessorNames = {}
 Model.mixin = (mixin) ->
   @_mixins.push mixin
   merge Model::, proto if proto = mixin.proto
@@ -139,7 +138,7 @@ Model.mixin = (mixin) ->
 
   if accessors = mixin.accessors
     merge Model::, accessors
-    Model::_accessorNames[accessorName] = 1 for accessorName of accessors
+    Model._accessorNames[accessorName] = 1 for accessorName of accessors
 
 OT = require './mixin.ot'
 Model.mixin OT
