@@ -85,6 +85,8 @@ Model:: =
 
 ## Model events ##
 
+# TODO Make events a Model mixin?
+
 merge Model::, EventEmitter::
 
 Model::_eventListener = (method, pattern, callback) ->
