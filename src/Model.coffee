@@ -79,84 +79,6 @@ Model:: =
   ref: RefHelper::ref
   arrayRef: RefHelper::arrayRef
 
-  ## Data accessor and mutator methods ##
-  
-  get: (path) ->
-    {val, ver} = @_adapter.get path, @_specModel()[0]
-    return val
-  
-  set: (path, val, callback) ->
-    if v = val.$ot
-      # TODO Only allow val to appear to user only
-      #      if/once the path is in the permanent, not
-      #      speculative model
-      # TODO Eval path to refs
-      adapter.set path, val, ver
-      return v
-    @_addOpAsTxn 'set', path, val, callback
-    return val
-  
-  setNull: (path, value, callback) ->
-    obj = @get path
-    return obj  if `obj != null`
-    @set path, value, callback
-
-  # STM del
-  del: (path, callback) ->
-    @_addOpAsTxn 'del', path, callback
-
-  incr: (path, byNum, callback) ->
-    # incr(path, callback)
-    if typeof byNum is 'function'
-      callback = byNum
-      byNum = 1
-    # incr(path)
-    else if typeof byNum isnt 'number'
-      byNum = 1
-    @set path, (@get(path) || 0) + byNum, callback
-
-  ## Array methods ##
-  
-  push: (path, values..., callback) ->
-    if 'function' != typeof callback && callback isnt undefined
-      values.push callback
-      callback = null
-    @_addOpAsTxn 'push', path, values..., callback
-
-  pop: (path, callback) ->
-    @_addOpAsTxn 'pop', path, callback
-
-  unshift: (path, values..., callback) ->
-    if 'function' != typeof callback && callback isnt undefined
-      values.push callback
-      callback = null
-    @_addOpAsTxn 'unshift', path, values..., callback
-
-  shift: (path, callback) ->
-    @_addOpAsTxn 'shift', path, callback
-
-  insertAfter: (path, afterIndex, value, callback) ->
-    @_addOpAsTxn 'insertAfter', path, afterIndex, value, callback
-
-  insertBefore: (path, beforeIndex, value, callback) ->
-    @_addOpAsTxn 'insertBefore', path, beforeIndex, value, callback
-
-  remove: (path, start, howMany = 1, callback) ->
-    # remove(path, start, callback)
-    if typeof howMany is 'function'
-      callback = howMany
-      howMany = 1
-    @_addOpAsTxn 'remove', path, start, howMany, callback
-
-  splice: (path, startIndex, removeCount, newMembers..., callback) ->
-    if 'function' != typeof callback && callback isnt undefined
-      newMembers.push callback
-      callback = null
-    @_addOpAsTxn 'splice', path, startIndex, removeCount, newMembers..., callback
-
-  move: (path, from, to, callback) ->
-    @_addOpAsTxn 'move', path, from, to, callback
-
 ## Model events ##
 
 merge Model::, EventEmitter::
@@ -200,11 +122,14 @@ Model::constructor = Model
 # static:      class/static methods to add to Model
 # init:        called from the Model constructor
 # setupSocket: invoked inside Model::_setSocket with fn signature (socket) -> ...
+# accessors:   get, set, etc.
 Model._mixins = []
 Model.mixin = (mixin) ->
   @_mixins.push mixin
   merge Model::, proto if proto = mixin.proto
   merge Model, static if static = mixin.static
+
+  merge Model::, accessors if accessors = mixin.accessors
 
 OT = require './ot'
 Model.mixin OT
