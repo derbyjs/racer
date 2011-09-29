@@ -25,8 +25,12 @@ module.exports =
     model.insertOT 'some.ot.path', 'xyz', 1
     model.get('some.ot.path').should.equal 'axyzbcdef'
 
-  '''model.delOT(path, str, pos, callback) should result in a new
-  string with str removed at pos''': -> # TODO
+  '''model.delOT(path, len, pos, callback) should result in a new
+  string with str removed at pos @ot''': ->
+    model = new Model
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.delOT 'some.ot.path', 3, 1
+    model.get('some.ot.path').should.equal 'aef'
 
   '''model should emit an insertOT event when it calls model.insertOT
   locally''': -> # TODO

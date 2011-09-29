@@ -34,8 +34,11 @@ ot = module.exports =
     # OT text del
     delOT: (path, len, pos, callback) ->
       # TODO Still need to normalize path
-      field = @otFields[path] ||= new Field @, path
-      op = [ { p: pos, d: field.snapshot[pos...pos+length] } ]
+      unless field = @otFields[path]
+        field = @otFields[path] = new Field @, path
+        {val} = @_adapter.get path, @_specModel()[0]
+        field.snapshot = val?.$ot || str
+      op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
       op.callback = callback if callback
       field.submitOp op
 
