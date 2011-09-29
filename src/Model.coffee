@@ -3,8 +3,6 @@ MemorySync = require './adapters/MemorySync'
 RefHelper = require './RefHelper'
 {EventEmitter} = require 'events'
 merge = require('./util').merge
-mutators = require './mutators'
-mutatorNames = Object.keys(mutators.basic).concat Object.keys(mutators.array)
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
@@ -29,7 +27,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.silent = Object.create self, _silent: value: true
 
   self._refHelper = refHelper = new RefHelper self
-  for method in mutatorNames
+  
+  accessors = self._accessorNames
+  for method of accessors
+    continue if method == 'get'
     do (method) ->
       self.on method, ([path, args...]) ->
         # Emit events on any references that point to the path or any of its
@@ -39,6 +40,8 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   return
 
 Model:: =
+  _accessorNames: {}
+
   ## Socket.io communication ##
   
   _setSocket: (socket) ->
@@ -124,13 +127,17 @@ Model::constructor = Model
 # init:        called from the Model constructor
 # setupSocket: invoked inside Model::_setSocket with fn signature (socket) -> ...
 # accessors:   get, set, etc.
+
+# NOTE: Order of mixins may be important because of dependencies.
 Model._mixins = []
 Model.mixin = (mixin) ->
   @_mixins.push mixin
   merge Model::, proto if proto = mixin.proto
   merge Model, static if static = mixin.static
 
-  merge Model::, accessors if accessors = mixin.accessors
+  if accessors = mixin.accessors
+    merge Model::, accessors
+    Model::_accessorNames[accessorName] = 1 for accessorName of accessors
 
 OT = require './ot'
 Model.mixin OT
