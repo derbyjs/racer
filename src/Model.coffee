@@ -4,7 +4,6 @@ RefHelper = require './RefHelper'
 {EventEmitter} = require 'events'
 merge = require('./util').merge
 mutators = require './mutators'
-arrayMutators = mutators.array
 mutatorNames = Object.keys(mutators.basic).concat Object.keys(mutators.array)
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
