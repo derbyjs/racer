@@ -14,6 +14,9 @@ Field = require './Field'
 # TODO Decorate adapter?
 
 ot = module.exports =
+  init: ->
+    @otFields = {}
+
   accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
@@ -37,6 +40,17 @@ ot = module.exports =
     ## OT field functions ##
     # model.ot initStr
     ot: (initVal) -> $ot: initVal
+
+    isOT: (path) ->
+      {val} = @_adapter.get path, @_specModel()[0]
+      return val.$ot isnt undefined
+
+    getOT: (path, initVal) ->
+      return field.snapshot if field = @otFields[path]
+      field = @otFields[path] = new Field @, path
+      return field.snapshot = initVal
+
+    version: (path) -> @otFields[path].version
   
 
   # Socket setup

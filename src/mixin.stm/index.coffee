@@ -315,16 +315,11 @@ stm = module.exports =
   accessors:
     get: (path) ->
       {val, ver} = @_adapter.get path, @_specModel()[0]
+      if v = val.$ot
+        return @getOT path, v
       return val
 
     set: (path, val, callback) ->
-      if v = val.$ot
-        # TODO Only allow val to appear to user only
-        #      if/once the path is in the permanent, not
-        #      speculative model
-        # TODO Eval path to refs
-        adapter.set path, val, ver
-        return v
       @_addOpAsTxn 'set', path, val, callback
       return val
     

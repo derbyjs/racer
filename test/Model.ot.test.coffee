@@ -1,0 +1,68 @@
+Model = require 'Model'
+should = require 'should'
+util = require './util'
+wrapTest = util.wrapTest
+mockSocketModels = require('./util/model').mockSocketModels
+
+debug = (v) -> console.log require('util').inspect v, false, 100
+
+module.exports =
+  ## Server-side OT ##
+  '''model.set(path, model.ot(val)) should initialize the doc version
+  to 0 and the initial value to val if the path is undefined @ot''': ->
+    model = new Model
+    model.set 'some.ot.path', model.ot('hi')
+    debug model.get()
+    debug model.get 'some.ot.path'
+    model.get('some.ot.path').should.equal 'hi'
+    model.isOT('some.ot.path').should.be.true
+    model.version('some.ot.path').should.equal 0
+
+  'model.subscribe(OTpath) should get the latest OT version doc if
+  the path is specified before-hand as being OT': -> # TODO
+  
+  ## Client-side OT ##
+  '''model.insertOT(path, str, pos, callback) should result in a new
+  string with str inserted at pos''': -> # TODO
+
+  '''model.delOT(path, str, pos, callback) should result in a new
+  string with str removed at pos''': -> # TODO
+
+  '''model should emit an insertOT event when it calls model.insertOT
+  locally''': -> # TODO
+
+  '''model should emit a delOT event when it calls model.delOT
+  locally''': -> # TODO
+
+  ## Client-server OT communication ##
+  '''client model should emit an insertOT event when it receives
+  an OT message from the server with an insertOT op''': -> # TODO
+
+  '''client model should emit an delOT event when it receives
+  an OT message from the server with an delOT op''': -> # TODO
+
+  '''local client model insertOT's should result in the same
+  text in sibling windows''': -> # TODO
+
+  ## Validity ##
+  '''1 insertOT by window A and 1 insertOT by window B on the
+  same path should result in the same 'valid' text in both windows
+  after both ops have propagated, transformed, and applied both
+  ops''': -> # TODO
+
+  '''1 insertOT by window A and 1 delOT by window B on the
+  same path should result in the same 'valid' text in both windows
+  after both ops have propagated, transformed, and applied both
+  ops''': -> # TODO
+
+  '''1 delOT by window A and 1 delOT by window B on the
+  same path should result in the same 'valid' text in both windows
+  after both ops have propagated, transformed, and applied both
+  ops''': -> # TODO
+
+  # TODO ## Realtime mode conflicts (w/STM) ##
+
+  # TODO ## Do Refs ##
+
+  # TODO Speculative workspaces with immediate OT
+  # TODO Gate OT behind STM

@@ -1,5 +1,6 @@
-Field = module.exports = (@model, @path, @version, @type) ->
-  @type ||= require 'share/lib/types/text'
+text = require 'share/lib/types/text'
+
+Field = module.exports = (@model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
   # @type.transform(op1, op2, side)
   # @type.normalize(op)
@@ -30,6 +31,8 @@ Field = module.exports = (@model, @path, @version, @type) ->
     field.submitOp op
 
   # Decorate adapter
+
+  return
 
 Field:: =
   onRemoteOp: (op, v) ->
