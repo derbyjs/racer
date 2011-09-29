@@ -23,6 +23,8 @@ Store = module.exports = (options = {}) ->
   # Client for event subscriptions of txns only
   @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
 
+  @otFields = {}
+
   # TODO: Make sure there are no weird race conditions here, since we are
   # caching the value of starts and it could potentially be stale when a
   # transaction is received
@@ -115,6 +117,15 @@ Store = module.exports = (options = {}) ->
         redisClient.del 'txnClock.' + clientId, (err, value) ->
           throw err if err
       
+      # Handling OT messages
+      socket.on 'otOp', (msg = {path, op, v}) ->
+        {queue} = self.otFields[path] ||=
+          listener: null
+          queue: []
+          busy: false
+        queue.push msg
+
+      # Handling transaction messages
       socket.on 'txn', (txn, clientStartId) ->
         base = transaction.base txn
         return if hasInvalidVer socket, base, clientStartId

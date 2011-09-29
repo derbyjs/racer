@@ -3,9 +3,9 @@ specHelper = require '../specHelper'
 arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
-  @_data = {}
+  @_data = {} # maps path -> val
   @ver = 0    # root node starts at ver 0
-  @_vers = {}
+  @_vers = {} # maps path -> ver
   return
 
 Memory:: =
