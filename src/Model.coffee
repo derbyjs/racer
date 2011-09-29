@@ -12,7 +12,9 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._adapter = adapter = new AdapterClass
 
-  init.call @ for init in self.inits
+  mixins = Model._mixins
+  for mixin in mixins
+    init.call @ if init = mixin.init
 
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
@@ -39,9 +41,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   return
 
 Model:: =
-  inits: []
-  socketSetup: []
-
   ## Socket.io communication ##
   
   _setSocket: (socket) ->
@@ -71,7 +70,9 @@ Model:: =
     # Needed in case page is loaded from cache while offline
     socket.on 'connect_failed', onConnected
 
-    setup.call @, socket for setup in @socketSetup
+    mixins = Model._mixins
+    for mixin in mixins
+      setup.call @, socket if setup = mixin.setupSocket
 
   ## Model reference functions ##
 
@@ -194,8 +195,11 @@ Model::once = (type, pattern, callback) ->
 
 Model::constructor = Model
 
-Model.mixin = (mod, opts) ->
-  mod Model, opts
+Model._mixins = []
+Model.mixin = (mixin) ->
+  @_mixins.push mixin
+  merge Model::, proto if proto = mixin.proto
+  merge Model, static if static = mixin.static
 
 OT = require './ot'
 Model.mixin OT

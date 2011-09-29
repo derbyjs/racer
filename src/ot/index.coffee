@@ -11,38 +11,38 @@
 
 Field = require './Field'
 
-ot = module.exports = (Model, opts = {}) ->
-  # Decorate model prototype
+# TODO Decorate adapter?
 
-  # OT text insert
-  Model::insertOT = (path, str, pos, callback) ->
-    # TODO Still need to normalize path
-    field = @otFields[path] ||= new Field @, path
-    pos ?= 0
-    op = [ { p: pos, i: str } ]
-    op.callback = callback if callback
-    field.submitOp op
+ot = module.exports =
+  proto:
+    # OT text insert
+    insertOT: (path, str, pos, callback) ->
+      # TODO Still need to normalize path
+      field = @otFields[path] ||= new Field @, path
+      pos ?= 0
+      op = [ { p: pos, i: str } ]
+      op.callback = callback if callback
+      field.submitOp op
 
 
-  # OT text del
-  delOT: (path, len, pos, callback) ->
-    # TODO Still need to normalize path
-    field = @otFields[path] ||= new Field @, path
-    op = [ { p: pos, d: field.snapshot[pos...pos+length] } ]
-    op.callback = callback if callback
-    field.submitOp op
+    # OT text del
+    delOT: (path, len, pos, callback) ->
+      # TODO Still need to normalize path
+      field = @otFields[path] ||= new Field @, path
+      op = [ { p: pos, d: field.snapshot[pos...pos+length] } ]
+      op.callback = callback if callback
+      field.submitOp op
+
+    ## OT field functions ##
+    # model.ot initStr
+    ot: (initVal) -> $ot: initVal
   
 
-  # Decorate adapter
-
   # Socket setup
-  Model::socketSetup.push (socket) ->
+  setupSocket: (socket) ->
     self = this
     # OT callbacks
     socket.on 'otOp', ({path, op, v}) ->
       self.otFields[path].onRemoteOp op, v
     
 
-  ## OT field functions ##
-  # model.ot initStr
-  Model::ot = (initVal) -> $ot: initVal
