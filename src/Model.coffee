@@ -1,4 +1,3 @@
-transaction = require './transaction'
 pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 RefHelper = require './RefHelper'
@@ -94,9 +93,8 @@ Model:: =
       # TODO Eval path to refs
       adapter.set path, val, ver
       return v
-    else
-      @_addOpAsTxn 'set', path, val, callback
-      return val
+    @_addOpAsTxn 'set', path, val, callback
+    return val
   
   setNull: (path, value, callback) ->
     obj = @get path
