@@ -41,30 +41,34 @@ module.exports =
     [callback, options] = [options, {}] if typeof options is 'function'
     if (minify = options.minify) is undefined then minify = true
     options.filter = uglify if minify
-    
+
     ioClient.builder DEFAULT_TRANSPORTS, {minify}, (err, value) ->
       throw err if err
       callback value + ';' + browserify.bundle options
 
-  ## Connect Middleware ##
-  # The racer module returns connect middleware for
-  # easy integration into connect/express
-  # 1. Assigns clientId's if not yet assigned
-  # 2. Instantiates a new Model and attaches it to the incoming request,
-  #    for access from route handlers later
-  middleware: (store) ->
-    return (req, res, next) ->
-      if !req.session
-        # TODO Do this check only the first time the middleware is invoked
-        throw 'Missing session middleware'
-      finish = (clientId) ->
-        req.model = new Model clientId
-        next()
-      # TODO Security checks via session
-      if clientId = req.params.clientId || req.body.clientId
-        finish clientId
-      else
-        store._nextClientId finish
-
   util: util
 
+  # Middleware adapter for Connect sessions
+  session: (store) ->
+    # The actual middleware is created by a factory so that the store
+    # can be set later
+    fn = (req, res, next) ->
+      throw 'Missing session middleware'  unless req.session
+      fn = sessionFactory store
+      fn req, res, next
+    
+    middleware = (req, res, next) -> fn req, res, next
+    middleware._setStore = (_store) -> store = _store
+    return middleware
+
+
+sessionFactory = (store) ->
+  # TODO Security checks
+  (req, res, next) ->
+    # Convert sessionID to path safe characters
+    sessionId = req.sessionID.replace /[\.+//]/g, (s) -> switch s
+      when '.' then ','
+      when '+' then '-'
+      when '/' then '_'
+    model = req.model ||= store.createModel()
+    model.subscribe _session: "sessions.#{sessionId}.**", next
