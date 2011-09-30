@@ -54,9 +54,18 @@ module.exports =
 
   ## Client-server OT communication ##
   '''client model should emit an insertOT event when it receives
-  an OT message from the server with an insertOT op''': -> # TODO
+  an OT message from the server with an insertOT op @ot''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model'
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
+      insertedStr.should.equal 'try'
+      pos.should.equal 1
+      sockets._disconnect()
+      done()
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
 
-  '''client model should emit an delOT event when it receives
+
+  '''client model should emit a delOT event when it receives
   an OT message from the server with an delOT op''': -> # TODO
 
   '''local client model insertOT's should result in the same

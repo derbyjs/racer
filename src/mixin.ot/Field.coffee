@@ -47,7 +47,7 @@ Field:: =
       [pendingOp, docOp] = xf pendingOp, docOp
 
     @version++
-    otApply docOp, true
+    @otApply docOp, true
 
   otApply: (docOp, isRemote) ->
     oldSnapshot = @snapshot

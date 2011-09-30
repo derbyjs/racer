@@ -63,7 +63,13 @@ ot = module.exports =
 
   # Socket setup
   setupSocket: (socket) ->
-    self = this
+    otFields = @otFields
+    adapter = @_adapter
+    model = this
     # OT callbacks
     socket.on 'otOp', ({path, op, v}) ->
-      self.otFields[path].onRemoteOp op, v
+      unless field = otFields[path]
+        field = otFields[path] = new Field model, path
+        {val} = adapter.get path, model._specModel()[0]
+        field.snapshot = val?.$ot || str
+      field.onRemoteOp op, v
