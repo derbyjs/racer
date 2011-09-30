@@ -176,8 +176,13 @@ Store = module.exports = (options = {}) ->
         else
           txn = JSON.parse val
       done() if done
-  
-  @createModel = (callback) ->
+
+  nextClientId = (callback) ->
+    redisClient.incr 'clientClock', (err, value) ->
+      throw err if err
+      callback value.toString(36)
+
+  @createModel = ->
     model = new Model
     model.store = self
     model._ioUri = self._ioUri
@@ -198,15 +203,13 @@ Store = module.exports = (options = {}) ->
         callback err
         return callback = null
       redisInfo.onStart redisClient, cb
-  
-  nextClientId = (callback) ->
-    redisClient.incr 'clientClock', (err, value) ->
-      throw err if err
-      callback value.toString(36)
 
-  
+  @model = @createModel()
+  for key, val of @model.async
+    @[key] = val
+
   ## Upstream Transaction Interface ##
-  
+
   stm = new Stm redisClient
   @_commit = commit = (txn, callback) ->
     ver = transaction.base txn
