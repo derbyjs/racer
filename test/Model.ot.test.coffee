@@ -64,9 +64,16 @@ module.exports =
       done()
     sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
 
-
   '''client model should emit a delOT event when it receives
-  an OT message from the server with an delOT op''': -> # TODO
+  an OT message from the server with an delOT op @ot''': wrapTest (done) ->
+    [sockets, model] = mockSocketModels 'model'
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'delOT', 'some.ot.path', (strToDel, pos) ->
+      strToDel.should.equal 'bcd'
+      pos.should.equal 1
+      sockets._disconnect()
+      done()
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
   text in sibling windows''': -> # TODO
