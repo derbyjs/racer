@@ -199,18 +199,13 @@ stm = module.exports =
 
     _applyTxn: (txn, forceEmit) ->
       ver = transaction.base txn
+      local = 'callback' of txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops
-          @_applyMutation transaction.op, op,
-            ver: ver
-            forceEmit: forceEmit
-            txnHasCallback: 'callback' of txn
+          @_applyMutation transaction.op, op, ver, forceEmit, local
       else
-        args = @_applyMutation transaction, txn,
-          ver: ver
-          forceEmit: forceEmit
-          txnHasCallback: 'callback' of txn
+        {args} = @_applyMutation transaction, txn, ver, forceEmit, local
 
       @_removeTxn transaction.id txn
 
@@ -220,24 +215,15 @@ stm = module.exports =
         else
           callback null, args...
     
-    _applyMutation: (extractor, mutation, {obj, proto, ver, forceEmit, txnHasCallback}) ->
-      adapter = @_adapter
+    _applyMutation: (extractor, mutation, appendArgs, forceEmit, local) ->
       method = extractor.method mutation
-      return if method == 'get'
-      args = extractor.args(mutation).slice 0
-      if proto
-        args.push undefined, obj, {proto, returnMeta: true}
-      else
-        args.push ver
-      meta = adapter[method] args...
+      return if method is 'get'
+      args = extractor.args(mutation).concat appendArgs
+      meta = @_adapter[method] args...
       # For converting array ref index api back to id api
-      args[1] = meta if meta = extractor.meta mutation
-
-      if forceEmit
-        # Third argument is true for locally created transactions
-        @emit method, args, txnHasCallback
-
-      return if proto then meta else args
+      args[1] = _meta  if _meta = extractor.meta mutation
+      @emit method, args, local  if forceEmit
+      return {args, meta}
 
     # TODO Will re-calculation of speculative model every time result
     #      in assignemnts to vars becoming stale?
@@ -260,6 +246,7 @@ stm = module.exports =
           # TODO Do not need Object.create here?
           obj = cache.obj = specHelper.create adapter._data
 
+        appendArgs = [undefined, obj, {proto: true, returnMeta: true}]
         i = replayFrom
         while i < len
           # Apply each pending operation to the speculative model
@@ -267,10 +254,11 @@ stm = module.exports =
           if transaction.isCompound txn
             ops = transaction.ops txn
             for op in ops
-              meta = @_applyMutation transaction.op, op, {obj, proto: true}
+              {meta} = @_applyMutation transaction.op, op, appendArgs
           else
-            meta = @_applyMutation transaction, txn, {obj, proto: true}
-          path = meta.path if meta
+            {meta} = @_applyMutation transaction, txn, appendArgs
+        
+        path = meta.path if meta
         cache.obj = obj
         cache.path = path
         cache.lastReplayedTxnId = transaction.id txn
