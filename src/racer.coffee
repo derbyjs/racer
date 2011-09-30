@@ -4,6 +4,7 @@ socketio = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 uglify = require 'uglify-js'
+connect = require 'connect'
 util = require './util'
 
 DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
@@ -49,15 +50,18 @@ module.exports =
   util: util
 
   # Middleware adapter for Connect sessions
-  session: (store) ->
+  session: (store, options) ->
     # The actual middleware is created by a factory so that the store
     # can be set later
     fn = (req, res, next) ->
       throw 'Missing session middleware'  unless req.session
       fn = sessionFactory store
       fn req, res, next
-    
-    middleware = (req, res, next) -> fn req, res, next
+
+    connectSession = connect.session options
+    middleware = (req, res, next) ->
+      connectSession req, res, ->
+        fn req, res, next
     middleware._setStore = (_store) -> store = _store
     return middleware
 
@@ -65,10 +69,9 @@ module.exports =
 sessionFactory = (store) ->
   # TODO Security checks
   (req, res, next) ->
-    # Convert sessionID to path safe characters
-    sessionId = req.sessionID.replace /[\.+//]/g, (s) -> switch s
-      when '.' then ','
-      when '+' then '-'
-      when '/' then '_'
+    # Make sure to use only the unsalted id in client side code
+    sessionId = req.sessionID
+    sessionId = sessionId.substr 0, sessionId.indexOf('.')
+    
     model = req.model ||= store.createModel()
-    model.subscribe _session: "sessions.#{sessionId}.**", next
+    model.subscribe _session: "sessions.#{sessionId}.racer.**", next
