@@ -7,9 +7,6 @@ transaction = require './transaction'
 TxnApplier = require './TxnApplier'
 redisInfo = require './redisInfo'
 
-MAX_RETRIES = 20
-RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
-
 Store = module.exports = (options = {}) ->
   self = this
   Adapter = options.Adapter || MemoryAdapter
@@ -157,6 +154,7 @@ Store = module.exports = (options = {}) ->
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
   
+
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
     
@@ -181,9 +179,6 @@ Store = module.exports = (options = {}) ->
     nextClientId (clientId) -> model._setClientId clientId
     return model
 
-
-  ## Mutator Interface ##
-
   @flush = (callback) ->
     done = false
     cb = (err) ->
@@ -198,70 +193,11 @@ Store = module.exports = (options = {}) ->
         return callback = null
       redisInfo.onStart redisClient, cb
   
-  @get = (path, callback) -> @_adapter.get path, callback
-  
-  @set = (path, value, ver, callback) ->
-    commit transaction.create(base: ver, id: nextTxnId(), method: 'set', args: [path, value]), callback
-
-  @del = (path, ver, callback) ->
-    commit transaction.create(base: ver, id: nextTxnId(), method: 'del', args: [path]), callback
-  
-  @incr = (path, byNum = 1) ->
-    @retry (atomic) ->
-      atomic.get path, (val) ->
-        atomic.set path, (val || 0) + byNum
-  
-  StoreAtomic = (store, cb) ->
-    minVer = 0
-    count = 0
-    
-    @_reset = ->
-      minVer = 0
-      count = 0
-    
-    @get = (path, callback) ->
-      store.get path, (err, value, ver) ->
-        return cb err if err
-        minVer = if minVer then Math.min minVer, ver else ver
-        callback value if callback
-    
-    @set = (path, value, callback) ->
-      count++
-      store.set path, value, minVer, (err) ->
-        return cb err if err
-        callback value if callback
-        cb() unless --count
-    
-    @del = (path, callback) ->
-      count++
-      store.del path, minVer, (err) ->
-        return cb err if err
-        callback if callback
-        cb() unless --count
-    
-    return
-  
-  @retry = (fn, callback) ->
-    retries = MAX_RETRIES
-    atomic = new StoreAtomic @, (err) ->
-      return callback && callback() unless err
-      return callback && callback 'maxRetries' unless retries--
-      atomic._reset()
-      delay = (MAX_RETRIES - retries) * RETRY_DELAY
-      setTimeout fn, delay, atomic
-    fn atomic
-  
   nextClientId = (callback) ->
     redisClient.incr 'clientClock', (err, value) ->
       throw err if err
       callback value.toString(36)
-  # Note that Store clientIds MUST begin with '#', as this is used to treat
-  # conflict detection between Store and Model transactions differently
-  clientId = ''
-  nextClientId (value) -> clientId = '#' + value
-  txnCount = 0
-  nextTxnId = -> clientId + '.' + txnCount++
-  
+
   
   ## Upstream Transaction Interface ##
   

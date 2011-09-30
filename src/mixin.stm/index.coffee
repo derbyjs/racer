@@ -4,6 +4,7 @@ AtomicModel = require '../AtomicModel'
 TxnApplier = require '../TxnApplier'
 specHelper = require '../specHelper'
 mutators = require '../mutators'
+Async = require './Async'
 
 stm = module.exports =
   static:
@@ -56,6 +57,12 @@ stm = module.exports =
       delete txns[txnId]
       if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
       @_cache.invalidateSpecModelCache()
+
+    # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
+    # transaction without conflict detection, such as model.force.set
+    @force = Object.create this, _force: value: true
+
+    @async = new Async this
 
 
   setupSocket: (socket) ->

@@ -15,10 +15,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # Paths in the store that this model is subscribed to. These get set with
   # store.subscribe, and must be sent to the store upon connecting
   self._storeSubs = []
-  
-  # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
-  # transaction without conflict detection, such as model.force.set
-  self.force = Object.create self, _force: value: true
 
   # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
   # operation without triggering an event locally, such as model.silent.set
@@ -27,10 +23,9 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self.silent = Object.create self, _silent: value: true
 
   self._refHelper = refHelper = new RefHelper self
-  
-  accessors = Model._accessorNames
-  for method of accessors
-    continue if method == 'get'
+
+  for method of Model._accessorNames
+    continue if method is 'get'
     do (method) ->
       self.on method, ([path, args...]) ->
         # Emit events on any references that point to the path or any of its
