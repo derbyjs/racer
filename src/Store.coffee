@@ -20,6 +20,7 @@ Store = module.exports = (options = {}) ->
   # Client for event subscriptions of txns only
   @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
 
+  # Maps path -> { listener: fn, queue: [msg], busy: bool }
   @otFields = {}
 
   # TODO: Make sure there are no weird race conditions here, since we are
@@ -115,11 +116,16 @@ Store = module.exports = (options = {}) ->
           throw err if err
       
       # Handling OT messages
-      socket.on 'otOp', (msg = {path, op, v}) ->
-        {queue} = self.otFields[path] ||=
-          listener: null
-          queue: []
-          busy: false
+      socket.on 'otSnapshot', (setNull, fn) ->
+        # Lazy create/snapshot the OT doc
+        if field = self.otFields[path]
+          # TODO
+
+      socket.on 'otOp', (msg = {path, op, v}, fn) ->
+        # Lazy create the OT doc
+        field = self.otFields[path] ||= new Field self, path, v
+        fieldCxns = field.clients ||= {}
+        {queue} = fieldCxns[socket.id] ||= new FieldConnection
         queue.push msg
 
       # Handling transaction messages

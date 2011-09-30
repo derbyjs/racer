@@ -24,7 +24,9 @@ ot = module.exports =
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         {val} = @_adapter.get path, @_specModel()[0]
-        field.snapshot = val?.$ot || str
+        snapshot = field.snapshot = val?.$ot || str
+        # TODO
+        field.remoteSnapshot snapshot
       pos ?= 0
       op = [ { p: pos, i: str } ]
       op.callback = callback if callback
@@ -37,7 +39,9 @@ ot = module.exports =
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         {val} = @_adapter.get path, @_specModel()[0]
-        field.snapshot = val?.$ot || str
+        snapshot = field.snapshot = val?.$ot || str
+        # TODO
+        field.remoteSnapshot snapshot
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
       op.callback = callback if callback
       field.submitOp op

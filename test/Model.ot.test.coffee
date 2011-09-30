@@ -76,7 +76,18 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows''': -> # TODO
+  text in sibling windows''': -> wrapTest (done) ->
+    # TODO
+    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
+    modelA.set 'some.ot.path', modelA.ot('abcdef')
+    [modelA, modelB].forEach (model) ->
+      model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
+        insertedStr.should.equal 'try'
+        pos.should.equal 1
+        sockets._disconnect()
+        done()
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
+  , 2
 
   ## Validity ##
   '''1 insertOT by window A and 1 insertOT by window B on the
