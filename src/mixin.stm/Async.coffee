@@ -54,15 +54,27 @@ Async:: =
     @model.store._adapter.get path, callback
 
   set: (path, value, ver, callback) ->
-    @model.store._commit transaction.create(base: ver, id: @_nextTxnId(), method: 'set', args: [path, value]), callback
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'set', args: [path, value]
+    @model.store._commit txn, callback
 
   del: (path, ver, callback) ->
-    @model.store._commit transaction.create(base: ver, id: @_nextTxnId(), method: 'del', args: [path]), callback
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'del', args: [path]
+    @model.store._commit txn, callback
 
-  incr: (path, byNum = 1) ->
+  incr: (path, byNum, callback) ->
+    if typeof byNum is 'function'
+      # For incr(path, callback)
+      callback = byNum
+      byNum = 1
+    else
+      # For incr(path)
+      byNum ?= 1
+    
+    tryVal = null
     @retry (atomic) ->
       atomic.get path, (val) ->
-        atomic.set path, (val || 0) + byNum
+        atomic.set path, tryVal = (val || 0) + byNum
+    , (err) -> callback err, tryVal
 
   retry: (fn, callback) ->
     retries = MAX_RETRIES

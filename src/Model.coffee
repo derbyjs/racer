@@ -2,7 +2,7 @@ pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
 RefHelper = require './RefHelper'
 {EventEmitter} = require 'events'
-merge = require('./util').merge
+{merge} = require './util'
 
 Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
