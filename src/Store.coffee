@@ -123,10 +123,13 @@ Store = module.exports = (options = {}) ->
 
       socket.on 'otOp', (msg = {path, op, v}, fn) ->
         # Lazy create the OT doc
-        field = self.otFields[path] ||= new Field self, path, v
-        fieldCxns = field.clients ||= {}
-        {queue} = fieldCxns[socket.id] ||= new FieldConnection
-        queue.push msg
+        unless field = self.otFields[path]
+          field = self.otFields[path] = new Field self, path, v
+          fieldClient = field.registerSocket socket
+          # TODO Cleanup with field.unregisterSocket
+        fieldClient ||= field.client socket.id
+        fieldClient.queue.push [msg, fn]
+        fieldClient.flush()
 
       # Handling transaction messages
       socket.on 'txn', (txn, clientStartId) ->
