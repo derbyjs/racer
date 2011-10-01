@@ -27,9 +27,9 @@ AsyncAtomic:: =
     @count++
     cb = @cb
     self = this
-    @async.set path, value, @minVer, (err) ->
+    @async.set path, value, @minVer, (err, value) ->
       return cb err if err
-      callback value if callback
+      callback null, value if callback
       cb() unless --self.count
 
   del: (path, callback) ->
@@ -38,7 +38,7 @@ AsyncAtomic:: =
     self = this
     @async.del path, @minVer, (err) ->
       return cb err if err
-      callback if callback
+      callback() if callback
       cb() unless --self.count
 
 
