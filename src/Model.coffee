@@ -34,10 +34,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
   return
 
-Model:: =
-  ## Socket.io communication ##
+
+## Socket.io communication ##
   
-  _setSocket: (socket) ->
+Model::_setSocket = (socket) ->
     self = this
     self.socket = socket
     adapter = self._adapter
@@ -68,17 +68,8 @@ Model:: =
     for {setupSocket} in mixins
       setupSocket.call @, socket if setupSocket
 
-  ## Model reference functions ##
-
-  # Creates a reference object for use in model data methods
-  ref: RefHelper::ref
-  
-  # Creates an array reference object for use in model data methods
-  arrayRef: RefHelper::arrayRef
 
 ## Model events ##
-
-# TODO Make events a Model mixin?
 
 merge Model::, EventEmitter::
 
@@ -112,7 +103,13 @@ Model::once = (type, pattern, callback) ->
     self.removeListener type, g  if matches
   return listener
 
-Model::constructor = Model
+
+## Model reference functions ##
+
+# Create reference objects for use in model data methods
+Model::ref = RefHelper::ref
+Model::arrayRef = RefHelper::arrayRef
+
 
 ## Mixins ##
 
