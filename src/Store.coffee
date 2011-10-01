@@ -106,7 +106,7 @@ Store = module.exports = (options = {}) ->
     # `sockets.on 'connection'...` callback.
     socket.on 'sub', (clientId, paths, ver, clientStartId) ->
       return if hasInvalidVer socket, ver, clientStartId
-      
+
       # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
       #      to subscribers of the relevant namespace(s)
       socket.on 'disconnect', ->
@@ -114,7 +114,16 @@ Store = module.exports = (options = {}) ->
         delete clientSockets[clientId]
         redisClient.del 'txnClock.' + clientId, (err, value) ->
           throw err if err
-      
+
+      socket.on 'subAdd', (clientId, paths, callback) ->
+        console.log 'subAdd'
+        pubSub.subscribe clientId, paths
+        # TODO: Return the current value of new subscriptions
+        callback 'hi'
+
+      socket.on 'subRemove', (clientId, paths) ->
+        throw 'Unimplemented: subRemove'
+
       # Handling OT messages
       socket.on 'otSnapshot', (setNull, fn) ->
         # Lazy create/snapshot the OT doc

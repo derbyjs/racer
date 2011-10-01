@@ -110,7 +110,7 @@ stm = module.exports =
         txn = txns[id]
         return if txn.timeout > now
         commit txn
-    
+
     socket.on 'connect', ->
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
@@ -131,6 +131,14 @@ stm = module.exports =
     ## Socket.io communication ##
     _commit: ->
     _reqNewTxns: ->
+
+    ## Subscriptions ##
+
+    subscribe: (paths..., callback) ->
+      # TODO: Send a signal to get latest data instead of all transactions
+      # since the base version
+      @socket.emit 'subAdd', @_clientId, paths, (data) ->
+        callback()
 
     ## Transaction handling ##
     
