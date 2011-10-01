@@ -132,13 +132,51 @@ stm = module.exports =
     _commit: ->
     _reqNewTxns: ->
 
+
     ## Subscriptions ##
 
-    subscribe: (paths..., callback) ->
-      # TODO: Send a signal to get latest data instead of all transactions
-      # since the base version
+    subscribe: (_paths..., callback) ->
+      # For subscribe(paths...)
+      unless typeof callback is 'function'
+        _paths.push callback
+        callback = ->
+
+      # TODO: Support all path wildcards, references, and functions
+      paths = []
+      for path in _paths
+        if typeof path is 'object'
+          for key, value of path
+            root = pathParser.splitPattern(value)[0]
+            @set key, @ref root
+            paths.push value
+          continue
+        paths.push path
+
+      # Store subscriptions in the model so that it can submit them to the
+      # server when it connects
+      @_storeSubs = @_storeSubs.concat paths
+
+      @_addSub paths, callback
+
+    _addSub: (paths, callback) ->
+      self = this
       @socket.emit 'subAdd', @_clientId, paths, (data) ->
+        self._initSubData data
         callback()
+
+    _initSubData: (data) ->
+      adapter = @_adapter
+      setSubDatum adapter, datum  for datum in data
+      return
+
+    unsubscribe: (paths..., callback) ->
+      # For unsubscribe(paths...)
+      unless typeof callback is 'function'
+        paths.push callback
+        callback = ->
+
+      throw new Error 'Unimplemented: unsubscribe'
+
 
     ## Transaction handling ##
     
@@ -380,3 +418,26 @@ stm = module.exports =
     move: (path, from, to, callback) ->
       @_addOpAsTxn 'move', path, from, to, callback
 
+
+setSubDatum = (adapter, [root, remainder, value, ver]) ->
+  # Set only the specified property if there is no remainder
+  unless remainder
+    value =
+      if typeof value is 'object'
+        if specHelper.isArray value then [] else {}
+      else value
+    return adapter.set root, value, ver
+  # If the remainder is a trailing **, set everything below the root
+  return adapter.set root, value, ver if remainder == '**'
+  # If the remainder starts with *. or is *, set each property one level down
+  if remainder.charAt(0) == '*' && (c = remainder.charAt(1)) == '.' || c == ''
+    [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
+    for prop of value
+      nextRoot = if root then root + '.' + prop else prop
+      nextValue = value[prop]
+      if appendRoot
+        nextRoot += '.' + appendRoot
+        nextValue = pathParser.fastLookup appendRoot, nextValue
+      setSubDatum adapter, nextRoot, remainder, nextValue, ver
+  # TODO: Support ** not at the end of a path
+  # TODO: Support (a|b) syntax

@@ -4,6 +4,7 @@ Model = require './Model.server'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
+pathParser = require './pathParser'
 TxnApplier = require './TxnApplier'
 redisInfo = require './redisInfo'
 
@@ -118,8 +119,8 @@ Store = module.exports = (options = {}) ->
       socket.on 'subAdd', (clientId, paths, callback) ->
         console.log 'subAdd'
         pubSub.subscribe clientId, paths
-        # TODO: Return the current value of new subscriptions
-        callback 'hi'
+        self._subData paths, (err, data) ->
+          callback data
 
       socket.on 'subRemove', (clientId, paths) ->
         throw 'Unimplemented: subRemove'
@@ -173,6 +174,17 @@ Store = module.exports = (options = {}) ->
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
   
+
+  @_subData = (paths, callback) ->
+    getting = paths.length
+    data = []
+    for path in paths
+      [root, remainder] = pathParser.splitPattern path
+      @get root, (err, value, ver) ->
+        return callback err  if err
+        data.push [root, remainder, value, ver]
+        return if --getting
+        callback null, data
 
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
