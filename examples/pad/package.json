@@ -1,0 +1,12 @@
+{
+  "name": "racer-pad-example",
+  "description": "Realtime text demo for Racer",
+  "version": "0.0.12",
+  "main": "./server.js",
+  "dependencies": {
+    "racer": "*",
+    "express": ">=2.4",
+    "connect-gzip": ">=0.1"
+  },
+  "private": true
+}

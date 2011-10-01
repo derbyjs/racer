@@ -1,0 +1,23 @@
+/* CSS Reset */
+
+html,body,p,h1,ul,li,table,tr,th,td {
+  margin: 0;
+  padding: 0;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+body {
+  color: #000;
+  background: #f7f7f7;
+}
+body,h1 {
+  font: 13px/16px Arial, sans-serif;
+}
+a {
+  color: #01c;
+}
+
+
+/* Page styles */
