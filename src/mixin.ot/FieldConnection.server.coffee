@@ -32,7 +32,7 @@ FieldConnection:: =
     field = @field
     field.applyOp opData, (err, appliedVer) ->
       if err
-        socketioCallback, err.message
+        socketioCallback err.message
       else
       socketioCallback null,
         path: field.path, v: appliedVer

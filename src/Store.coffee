@@ -120,6 +120,7 @@ Store = module.exports = (options = {}) ->
         # Lazy create/snapshot the OT doc
         if field = self.otFields[path]
           # TODO
+          TODO = 'TODO'
 
       socket.on 'otOp', (msg = {path, op, v}, fn) ->
         # Lazy create the OT doc
