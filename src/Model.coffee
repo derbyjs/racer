@@ -38,35 +38,35 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 ## Socket.io communication ##
   
 Model::_setSocket = (socket) ->
-    self = this
-    self.socket = socket
-    adapter = self._adapter
+  self = this
+  self.socket = socket
+  adapter = self._adapter
 
-    self.canConnect = true
-    socket.on 'fatalErr', ->
-      self.canConnect = false
-      self.emit 'canConnect', false
-      socket.disconnect()
-    
+  self.canConnect = true
+  socket.on 'fatalErr', ->
+    self.canConnect = false
+    self.emit 'canConnect', false
+    socket.disconnect()
+
+  self.connected = false
+  onConnected = ->
+    self.emit 'connected', self.connected
+    self.emit 'connectionStatus', self.connected, self.canConnect
+
+  socket.on 'connect', ->
+    self.connected = true
+    onConnected()
+
+  socket.on 'disconnect', ->
     self.connected = false
-    onConnected = ->
-      self.emit 'connected', self.connected
-      self.emit 'connectionStatus', self.connected, self.canConnect
-    
-    socket.on 'connect', ->
-      self.connected = true
-      onConnected()
+    # Slight delay after disconnect so that offline doesn't flash on reload
+    setTimeout onConnected, 200
+  # Needed in case page is loaded from cache while offline
+  socket.on 'connect_failed', onConnected
 
-    socket.on 'disconnect', ->
-      self.connected = false
-      # Slight delay after disconnect so that offline doesn't flash on reload
-      setTimeout onConnected, 200
-    # Needed in case page is loaded from cache while offline
-    socket.on 'connect_failed', onConnected
-
-    mixins = Model._mixins
-    for {setupSocket} in mixins
-      setupSocket.call @, socket if setupSocket
+  mixins = Model._mixins
+  for {setupSocket} in mixins
+    setupSocket.call @, socket if setupSocket
 
 
 ## Model events ##
