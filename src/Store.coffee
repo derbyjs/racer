@@ -117,7 +117,6 @@ Store = module.exports = (options = {}) ->
           throw err if err
 
       socket.on 'subAdd', (clientId, paths, callback) ->
-        console.log 'subAdd'
         pubSub.subscribe clientId, paths
         self._subData paths, (err, data) ->
           callback data
