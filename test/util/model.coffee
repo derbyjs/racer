@@ -38,15 +38,12 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
   return [serverSockets, models...]
 
 
-try
-  browserRacer = require '../../src/racer.browser'
-catch e
-  throw e unless e.message == 'io is not defined'
+browserRacer = require '../../src/racer.browser'
 serverRacer = require '../../src/racer'
 nextNs = 1
 exports.fullyWiredModels = (numWindows, callback) ->
   sandboxPath = "tests.#{nextNs++}"
-  serverSockets = new mocks.ServerSocketMock
+  serverSockets = new mocks.ServerSocketsMock()
   store = serverRacer.createStore
     redis: {db: 2}
     sockets: serverSockets
@@ -55,12 +52,13 @@ exports.fullyWiredModels = (numWindows, callback) ->
   i = numWindows
   while i--
     browserModel = new Model
-    console.log "!!"
     serverModel = store.createModel()
-    store.subscribe _test: fullPath = "#{sandboxPath}.**", ->
+    serverModel.subscribe _test: fullPath = "#{sandboxPath}.**", ->
       serverModel.setNull sandboxPath, {}
       serverModel.bundle (bundle) ->
-        browserRacer.init.call browserModel, bundle
+        bundle = JSON.parse(bundle)
+        bundle.socket = new mocks.BrowserSocketMock serverSockets
+        browserRacer.init.call model: browserModel, bundle
         browserModels.push browserModel
         if browserModels.length == numWindows
           callback serverSockets, browserModels...

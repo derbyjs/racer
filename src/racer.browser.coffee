@@ -2,11 +2,12 @@ require 'es5-shim'
 util = require './util'
 Model = require './Model'
 
-# Patch Socket.io-client to publish the close event and disconnet immediately
-io.Socket::onClose = ->
-  @open = false
-  @publish 'close'
-  @onDisconnect()
+if 'undefined' != typeof io # io will be undefined in tests - see test/util/model fullyWiredModels
+  # Patch Socket.io-client to publish the close event and disconnet immediately
+  io.Socket::onClose = ->
+    @open = false
+    @publish 'close'
+    @onDisconnect()
 
 
 isReady = false
@@ -24,7 +25,8 @@ racer = module.exports =
     model._startId = options.startId
     model._txnCount = options.txnCount
     model._onTxnNum options.txnNum
-    model._setSocket io.connect options.ioUri,
+    # options.socket makes it easier to test - see text/util/model fullyWiredModels
+    model._setSocket options.socket || io.connect options.ioUri,
       'reconnection delay': 50
       'max reconnection attempts': 20
     isReady = true

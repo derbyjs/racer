@@ -33,7 +33,7 @@ module.exports =
     model.get('some.ot.path').should.equal 'aef'
 
   '''model should emit an insertOT event when it calls model.insertOT
-  locally @ot @single''': wrapTest (done) ->
+  locally @ot''': wrapTest (done) ->
     model = new Model
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
@@ -76,7 +76,7 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows @ot @single''': -> wrapTest (done) ->
+  text in sibling windows @ot @single''': wrapTest (done) ->
     numModels = 2
     fullyWiredModels numModels, (sockets, modelA, modelB) ->
       modelA.set '_test.text', modelA.ot('abcdef')
@@ -84,6 +84,7 @@ module.exports =
         insertedStr.should.equal 'xyz'
         pos.should.equal 1
         modelB.get('_test.text').should.equal 'axyzbcdef'
+        console.log "!!!!"
         sockets._disconnect()
         done()
       modelA.insertOT '_test.text', 'xyz', 1

@@ -20,13 +20,12 @@ ot = module.exports =
   accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
-      # TODO Still need to normalize path
+      path = @_refHelper.dereferencedPath path, @_specModel()[0]
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         {val} = @_adapter.get path, @_specModel()[0]
         snapshot = field.snapshot = val?.$ot || str
-        # TODO
-        field.remoteSnapshot snapshot
+        # TODO field.remoteSnapshot snapshot
       pos ?= 0
       op = [ { p: pos, i: str } ]
       op.callback = callback if callback
@@ -35,13 +34,12 @@ ot = module.exports =
 
     # OT text del
     delOT: (path, len, pos, callback) ->
-      # TODO Still need to normalize path
+      path = @_refHelper.dereferencedPath path, @_specModel()[0]
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         {val} = @_adapter.get path, @_specModel()[0]
         snapshot = field.snapshot = val?.$ot || str
-        # TODO
-        field.remoteSnapshot snapshot
+        # TODO field.remoteSnapshot snapshot
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
       op.callback = callback if callback
       field.submitOp op
