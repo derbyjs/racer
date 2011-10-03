@@ -6,6 +6,7 @@ PubSub = require './PubSub'
 transaction = require './transaction'
 pathParser = require './pathParser'
 TxnApplier = require './TxnApplier'
+specHelper = require './specHelper'
 redisInfo = require './redisInfo'
 
 Store = module.exports = (options = {}) ->
@@ -173,15 +174,40 @@ Store = module.exports = (options = {}) ->
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
   
+  addSubDatum = (data, root, remainder, value, ver) ->
+    # Set the entire object if the remainder is '**'
+    if remainder == '**'
+      return data.push [root, remainder, value, ver]
+
+    # Set only the specified property if there is no remainder
+    if !remainder
+      value = if typeof value is 'object'
+          if specHelper.isArray value then [] else {}
+        else value
+      return data.push [root, remainder, value, ver]
+
+    # If the remainder starts with *. or is *, set each property one level down
+    if remainder[0] == '*' && (c = remainder[1]) == '.' || !c
+      [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
+      for prop of value
+        nextRoot = if root then root + '.' + prop else prop
+        nextValue = value[prop]
+        if appendRoot
+          nextRoot += '.' + appendRoot
+          nextValue = pathParser.fastLookup appendRoot, nextValue
+        addSubDatum data, nextRoot, remainder, nextValue, ver
+    # TODO: Support ** not at the end of a path
+    # TODO: Support (a|b) syntax
 
   @_subData = (paths, callback) ->
     getting = paths.length
     data = []
     for path in paths
       [root, remainder] = pathParser.splitPattern path
+
       @get root, (err, value, ver) ->
         return callback err  if err
-        data.push [root, remainder, value, ver]
+        addSubDatum data, root, remainder, value, ver
         return if --getting
         callback null, data
 
