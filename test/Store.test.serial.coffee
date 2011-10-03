@@ -60,66 +60,58 @@ module.exports =
       (++callbackCount).should.eql 1
       done()
 
-# TODO Re-write the following tests for Model::subscribe
-#  'subscribe should create a new model if one is not passed in': (done) ->
-#    store.subscribe 'a', 'b', (err, modelA) ->
-#      should.equal null, err
-#      store.subscribe 'c', (err, modelB) ->
-#        modelA.should.not.eql modelB
-#        done()
-#  
-#  'subscribe should use the passed in model if present': (done) ->
-#    store.subscribe 'a', 'b', (err, modelA) ->
-#      store.subscribe modelA, 'c', (err, modelB) ->
-#        should.equal null, err
-#        modelA.should.equal modelB
-#        done()
-#  
-#  'test that subscribe only copies the appropriate properties': (done) ->
-#    count = 6
-#    finish = -> done() unless --count
-#    store.set 'a', {b: 1, c: 2, d: [1, 2]}, null, ->
-#      store.set 'e', {c: 7}, null, ->
-#        store.subscribe 'a', (err, model) ->
-#          model.get().should.eql a: {}
-#          finish()
-#        store.subscribe 'a.b', (err, model) ->
-#          model.get().should.eql a: {b: 1}
-#          finish()
-#        store.subscribe 'a.d', (err, model) ->
-#          model.get().should.eql a: {d: []}
-#          finish()
-#        # TODO: Fix this case. It is pretty nasty because arrays could be
-#        # embedded anywhere along the path
-#        # store.subscribe 'a.d.1', (err, model) ->
-#        #   model.get().should.eql a: {d: [undefined, 1]}
-#        #   finish()
-#        store.subscribe 'a.**', (err, model) ->
-#          model.get().should.eql a: {b: 1, c: 2, d: [1, 2]}
-#          finish()
-#        store.subscribe 'a.*', (err, model) ->
-#          model.get().should.eql a: {b: 1, c: 2, d: []}
-#          finish()
-#        store.subscribe '*.c', (err, model) ->
-#          model.get().should.eql a: {c: 2}, e: {c: 7}
-#          finish()
-  
-  'test store.retry': (done) ->
-    incr = (path, callback) ->
-      store.retry (atomic) ->
-        atomic.get path, (count = 0) ->
-          atomic.set path, ++count
-      , callback
-    i = 5
-    cbCount = 5
-    while i--
-      incr 'count', ->
-        unless --cbCount
-          setTimeout ->
-            store.get 'count', (err, value) ->
-              value.should.eql 5
-              done()
-          , 50
+  'test that subscribe only copies the appropriate properties': (done) ->
+    count = 4
+    finish = -> done() unless --count
+    store.set 'a', {b: 1, c: 2, d: [1, 2]}, null, ->
+      store.set 'e', {c: 7}, null, ->
+
+        model0 = store.createModel()
+        model0.subscribe 'a', ->
+          model0.get().should.eql a: {}
+          finish()
+
+        model1 = store.createModel()
+        model1.subscribe 'a.b', ->
+          model1.get().should.eql a: {b: 1}
+          finish()
+
+        model2 = store.createModel()
+        model2.subscribe 'a.d', ->
+          model2.get().should.eql a: {d: []}
+          finish()
+
+        # TODO: Fix this case. It is pretty nasty because arrays could be
+        # embedded anywhere along the path
+        # model3 = store.createModel()
+        # model3.subscribe 'a.d.1', (err, model) ->
+        #   model3.get().should.eql a: {d: [undefined, 1]}
+        #   finish()
+
+        # model4 = store.createModel()
+        # model4.subscribe '**', ->
+        #   model4.get().should.eql a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}
+        #   finish()
+
+        model5 = store.createModel()
+        model5.subscribe 'a.**', ->
+          model5.get().should.eql a: {b: 1, c: 2, d: [1, 2]}
+          finish()
+
+        # model6 = store.createModel()
+        # model6.subscribe '*', ->
+        #   model6.get().should.eql a: {}, e: {}
+        #   finish()
+
+        # model7 = store.createModel()
+        # model7.subscribe 'a.*', ->
+        #   model7.get().should.eql a: {b: 1, c: 2, d: []}
+        #   finish()
+
+        # model8 = store.createModel()
+        # model8.subscribe '*.c', ->
+        #   model8.get().should.eql a: {c: 2}, e: {c: 7}
+        #   finish()
 
   'store._commit should apply transactions in order': (done) ->
     idIn = []

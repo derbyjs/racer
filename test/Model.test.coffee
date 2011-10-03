@@ -5,7 +5,7 @@ util = require './util'
 transaction = require 'transaction'
 wrapTest = util.wrapTest
 
-mockSocketModel = require('./util/model').mockSocketModel
+{mockSocketModel} = require './util/model'
 
 module.exports =
   
