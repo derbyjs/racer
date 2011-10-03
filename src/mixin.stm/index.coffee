@@ -420,15 +420,15 @@ stm = module.exports =
 
 
 setSubDatum = (adapter, [root, remainder, value, ver]) ->
-  # Set only the specified property if there is no remainder
-  unless remainder
+  # If the remainder is a trailing ** or there is no remainder
+  # set everything below the root
+  if remainder == '**' || !remainder
     value =
       if typeof value is 'object'
         if specHelper.isArray value then [] else {}
       else value
     return adapter.set root, value, ver
-  # If the remainder is a trailing **, set everything below the root
-  return adapter.set root, value, ver if remainder == '**'
+
   # If the remainder starts with *. or is *, set each property one level down
   if remainder.charAt(0) == '*' && (c = remainder.charAt(1)) == '.' || c == ''
     [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2

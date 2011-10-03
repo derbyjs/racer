@@ -35,7 +35,7 @@ Memory:: =
     options.setVer = ver unless options.proto
     {parent, prop, versCurr} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
-    if !options.proto && 'object' == typeof value
+    if !options.proto && typeof value is 'object'
       @_prefillVersion versCurr, value, ver
     return if options.returnMeta then out else obj
 
@@ -43,14 +43,14 @@ Memory:: =
     if Array.isArray obj
       for v, i in obj
         @_storeVer versCurr, i, v, ver
-    else if Object == obj.constructor
+    else
       for k, v of obj
         @_storeVer versCurr, k, v, ver
 
   _storeVer: (versCurr, prop, val, ver) ->
     versCurr[prop] = if Array.isArray val then [] else {}
     versCurr[prop].ver = ver
-    @_prefillVersion versCurr[prop], val, ver if 'object' == typeof val
+    @_prefillVersion versCurr[prop], val, ver if typeof val is 'object'
   
   del: (path, ver, obj, options = {}) ->
     if ver < @ver
@@ -116,7 +116,7 @@ Memory:: =
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
 
-      if curr is undefined
+      unless curr?
         unless addPath
           return {ver, versCurr, obj: curr, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path

@@ -8,6 +8,9 @@ module.exports = (AdapterSync) ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.eql { val: {}, ver }
+
+    adapterSync.set 'color', null, ++ver
+    adapterSync.get('color').should.eql { val: null, ver }
     
     adapterSync.set 'color', 'green', ++ver
     adapterSync.get('color').should.eql { val: 'green', ver }
