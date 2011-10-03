@@ -2,7 +2,7 @@ Model = require 'Model'
 should = require 'should'
 util = require './util'
 wrapTest = util.wrapTest
-mockSocketModels = require('./util/model').mockSocketModels
+{mockSocketModels, fullyWiredModels} = require './util/model'
 
 module.exports =
   ## Server-side OT ##
@@ -76,24 +76,39 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows''': -> wrapTest (done) ->
-    # TODO
-    [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
-    modelA.set 'some.ot.path', modelA.ot('abcdef')
-    [modelA, modelB].forEach (model) ->
-      model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
-        insertedStr.should.equal 'try'
+  text in sibling windows @ot @single''': -> wrapTest (done) ->
+    numModels = 2
+    fullyWiredModels numModels, (sockets, modelA, modelB) ->
+      modelA.set '_test.text', modelA.ot('abcdef')
+      modelB.on 'insertOT', '_test.text', (insertedStr, pos) ->
+        insertedStr.should.equal 'xyz'
         pos.should.equal 1
+        modelB.get('_test.text').should.equal 'axyzbcdef'
         sockets._disconnect()
         done()
-    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
+      modelA.insertOT '_test.text', 'xyz', 1
   , 2
 
   ## Validity ##
   '''1 insertOT by window A and 1 insertOT by window B on the
   same path should result in the same 'valid' text in both windows
   after both ops have propagated, transformed, and applied both
-  ops''': -> # TODO
+  ops''': -> wrapTest (done) ->
+    numModels = 2
+    fullyWiredModels numModels, (sockets, modelA, modelB) ->
+      modelA.set '_test.text', modelA.ot('abcdef')
+      [modelA, modelB].forEach (model) ->
+        model.on 'insertOT', '_test.text', (insertedStr, pos) ->
+          return if --numModels # Wait until all models have applied their insertOT
+          insertedStr.should.equal 'try'
+          pos.should.equal 1
+          sockets._disconnect()
+          done()
+      modelA.insertOT '_test.text', 
+      modelB.insertOT '_test.text'
+
+      sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
+  , 2
 
   '''1 insertOT by window A and 1 delOT by window B on the
   same path should result in the same 'valid' text in both windows

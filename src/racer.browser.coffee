@@ -13,9 +13,10 @@ isReady = false
 
 racer = module.exports =
 
-  model: model = new Model
+  model: new Model
 
   init: (options) ->
+    model = @model
     model._adapter._data = options.data
     model._adapter.ver = options.base
     model._clientId = options.clientId
@@ -34,6 +35,7 @@ racer = module.exports =
   ready: (onready) -> ->
     racer.onready = onready
     if isReady
+      model = @model
       connected = model.socket.socket.connected
       onready()
       # Republish the Socket.IO connect event after the onready callback

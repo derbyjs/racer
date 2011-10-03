@@ -1,36 +1,41 @@
 transaction = require './transaction'
-module.exports = Model = require './Model'
+BrowserModel = require './Model'
+
+module.exports = ServerModel = ->
+  BrowserModel.apply @, arguments
+
+ServerModel:: = Object.create BrowserModel::
 
 # Update Model's prototype to provide server-side functionality
 
-Model::_waitForClientId = (callback) ->
+ServerModel::_waitForClientId = (callback) ->
   (@_pendingClientId || @_pendingClientId = []).push callback
-Model::_setClientId = (@_clientId) ->
+ServerModel::_setClientId = (@_clientId) ->
   @_waitForClientId = (callback) -> callback()
   callback() for callback in @_pendingClientId  if @_pendingClientId
   return
 
-Model::_baseOnTxn = Model::_onTxn
-Model::_onTxn = (txn) ->
+ServerModel::_baseOnTxn = ServerModel::_onTxn
+ServerModel::_onTxn = (txn) ->
   self = this
   @_waitForClientId ->
     self.store._nextTxnNum self._clientId, (num) ->
       self._txnNum = num
       self._baseOnTxn txn, num
 
-Model::_commit = (txn) ->
+ServerModel::_commit = (txn) ->
   self = this
   @store._commit txn, (err, txn) ->
     return self._removeTxn transaction.id txn if err
     self._onTxn txn
 
-Model::bundle = (callback) ->
+ServerModel::bundle = (callback) ->
   self = this
   # Wait for all pending transactions to complete before returning
   return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
   @_waitForClientId -> self._bundle callback
 
-Model::_bundle = (callback) ->
+ServerModel::_bundle = (callback) ->
   # Unsubscribe the model from PubSub events. It will be resubscribed again
   # when the model connects over socket.io
   clientId = @_clientId
@@ -47,10 +52,10 @@ Model::_bundle = (callback) ->
     txnNum: @_txnNum
     ioUri: @_ioUri
 
-Model::connected = true
-Model::canConnect = true
+ServerModel::connected = true
+ServerModel::canConnect = true
 
-Model::_addSub = (paths, callback) ->
+ServerModel::_addSub = (paths, callback) ->
   store = @store
   self = this
   @_waitForClientId ->
