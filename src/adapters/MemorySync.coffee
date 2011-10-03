@@ -105,8 +105,7 @@ Memory:: =
     while i < len
       parent = curr
       prop = props[i++]
-      if prop == ''
-        throw new Error "You have a mistake in your path #{origPath}"
+      throw new Error '"' + origPath + '" is not a valid model path'  if prop == ''
       curr = parent[prop]
 
       if versCurr
