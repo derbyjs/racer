@@ -4,7 +4,9 @@ util = require './util'
 wrapTest = util.wrapTest
 {mockSocketModels, fullyWiredModels} = require './util/model'
 
+# TODO Make sure to flush redis before and after all tests
 module.exports =
+
   ## Server-side OT ##
   '''model.set(path, model.ot(val)) should initialize the doc version
   to 0 and the initial value to val if the path is undefined @ot''': ->
@@ -84,11 +86,9 @@ module.exports =
         insertedStr.should.equal 'xyz'
         pos.should.equal 1
         modelB.get('_test.text').should.equal 'axyzbcdef'
-        console.log "!!!!"
         sockets._disconnect()
         done()
       modelA.insertOT '_test.text', 'xyz', 1
-  , 2
 
   ## Validity ##
   '''1 insertOT by window A and 1 insertOT by window B on the
@@ -105,8 +105,8 @@ module.exports =
           pos.should.equal 1
           sockets._disconnect()
           done()
-      modelA.insertOT '_test.text', 
-      modelB.insertOT '_test.text'
+      modelA.insertOT '_test.text', (text, pos) ->
+      modelB.insertOT '_test.text', (text, pos) ->
 
       sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
   , 2

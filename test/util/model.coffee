@@ -53,12 +53,13 @@ exports.fullyWiredModels = (numWindows, callback) ->
   while i--
     browserModel = new Model
     serverModel = store.createModel()
-    serverModel.subscribe _test: fullPath = "#{sandboxPath}.**", ->
-      serverModel.setNull sandboxPath, {}
-      serverModel.bundle (bundle) ->
-        bundle = JSON.parse(bundle)
-        bundle.socket = new mocks.BrowserSocketMock serverSockets
-        browserRacer.init.call model: browserModel, bundle
-        browserModels.push browserModel
-        if browserModels.length == numWindows
-          callback serverSockets, browserModels...
+    do (browserModel) ->
+      serverModel.subscribe _test: fullPath = "#{sandboxPath}.**", ->
+        serverModel.setNull sandboxPath, {}
+        serverModel.bundle (bundle) ->
+          bundle = JSON.parse(bundle)
+          bundle.socket = new mocks.BrowserSocketMock serverSockets
+          browserRacer.init.call model: browserModel, bundle
+          browserModels.push browserModel
+          if browserModels.length == numWindows
+            callback serverSockets, browserModels...
