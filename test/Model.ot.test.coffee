@@ -23,6 +23,7 @@ module.exports =
   '''model.insertOT(path, str, pos, callback) should result in a new
   string with str inserted at pos @ot''': ->
     model = new Model
+    model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.insertOT 'some.ot.path', 'xyz', 1
     model.get('some.ot.path').should.equal 'axyzbcdef'
@@ -30,6 +31,7 @@ module.exports =
   '''model.delOT(path, len, pos, callback) should result in a new
   string with str removed at pos @ot''': ->
     model = new Model
+    model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.delOT 'some.ot.path', 3, 1
     model.get('some.ot.path').should.equal 'aef'
@@ -37,6 +39,7 @@ module.exports =
   '''model should emit an insertOT event when it calls model.insertOT
   locally @ot''': wrapTest (done) ->
     model = new Model
+    model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
       insertedStr.should.equal 'xyz'
@@ -47,6 +50,7 @@ module.exports =
   '''model should emit a delOT event when it calls model.delOT
   locally @ot''': wrapTest (done) ->
     model = new Model
+    model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'delOT', 'some.ot.path', (deletedStr, pos) ->
       deletedStr.should.equal 'bcd'

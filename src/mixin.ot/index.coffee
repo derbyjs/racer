@@ -4,8 +4,6 @@
 # TODO Implement server component with socket.io as entry point - Modify Store
 # TODO Server broadcasting of ops to browsers
 # TODO Browser handling of remote ops
-# TODO Enough hooks via exposed events on browser
-# TODO Persistence to a datastore
 #
 # TODO Do JSON OT
 

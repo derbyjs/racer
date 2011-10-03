@@ -63,7 +63,9 @@ Field:: =
     @otApply op
     @pendingOp = if @pendingOp then type.compose @pendingOp, op else op
     @pendingCallbacks.push callback if callback
-    setTimeout @flush, 0
+    setTimeout =>
+      @flush()
+    , 0
 
   # Sends ops to the server
   flush: ->

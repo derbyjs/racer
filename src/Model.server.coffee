@@ -1,25 +1,21 @@
 transaction = require './transaction'
 BrowserModel = require './Model'
+Promise = require './Promise'
 
 module.exports = ServerModel = ->
   BrowserModel.apply @, arguments
+  @clientIdPromise = new Promise()
+  return
 
 ServerModel:: = Object.create BrowserModel::
 
 # Update Model's prototype to provide server-side functionality
 
-ServerModel::_waitForClientId = (callback) ->
-  (@_pendingClientId || @_pendingClientId = []).push callback
-ServerModel::_setClientId = (@_clientId) ->
-  @_waitForClientId = (callback) -> callback()
-  callback() for callback in @_pendingClientId  if @_pendingClientId
-  return
-
 ServerModel::_baseOnTxn = ServerModel::_onTxn
 ServerModel::_onTxn = (txn) ->
   self = this
-  @_waitForClientId ->
-    self.store._nextTxnNum self._clientId, (num) ->
+  @clientIdPromise.on (clientId) ->
+    self.store._nextTxnNum clientId, (num) ->
       self._txnNum = num
       self._baseOnTxn txn, num
 
@@ -33,12 +29,12 @@ ServerModel::bundle = (callback) ->
   self = this
   # Wait for all pending transactions to complete before returning
   return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
-  @_waitForClientId -> self._bundle callback
+  Promise.parallel(@clientIdPromise, @startIdPromise).on -> self._bundle callback
 
 ServerModel::_bundle = (callback) ->
   # Unsubscribe the model from PubSub events. It will be resubscribed again
   # when the model connects over socket.io
-  clientId = @_clientId
+  clientId = @clientId
   @store._pubSub.unsubscribe clientId
   delete @store._localModels[clientId]
   
@@ -58,10 +54,10 @@ ServerModel::canConnect = true
 ServerModel::_addSub = (paths, callback) ->
   store = @store
   self = this
-  @_waitForClientId ->
+  @clientIdPromise.on (clientId) ->
+    self.clientId = clientId
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
-    clientId = self.clientId
     store._pubSub.subscribe clientId, paths
     store._localModels[clientId] = self
 

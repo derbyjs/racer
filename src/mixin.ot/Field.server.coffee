@@ -1,5 +1,6 @@
 text = require 'share/lib/types/text'
-syncqueue = requre 'share/lib/server/syncqueue'
+syncqueue = require 'share/lib/server/syncqueue'
+FieldConnection = require './FieldConnection.server'
 
 # DB needs to keep around
 # data: {type, v, snapshot, meta}
@@ -37,6 +38,7 @@ Field = module.exports = (adapter, path, @version, @type = text) ->
           # TODO Emit to other windows (path, newOpData)
           @field.connections.emit 'otOp', newOpData
           callback()
+  return
 
 Field ::=
   getSnapshot: (callback) ->
@@ -48,7 +50,7 @@ Field ::=
     process.nextTick => @queue opData, callback
 
   registerSocket: (socket, ver) ->
-    client = new FieldConnection @, @socket
+    client = new FieldConnection @, socket
     if ver?
       # TODO Test out race conditions e.g., if we request to listen since ver and then miss some ops after
       client.listenSinceVer ver ? null

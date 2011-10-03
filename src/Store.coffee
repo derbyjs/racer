@@ -8,6 +8,8 @@ pathParser = require './pathParser'
 TxnApplier = require './TxnApplier'
 specHelper = require './specHelper'
 redisInfo = require './redisInfo'
+Promise = require './Promise'
+Field = require './mixin.ot/Field.server'
 
 Store = module.exports = (options = {}) ->
   self = this
@@ -30,7 +32,7 @@ Store = module.exports = (options = {}) ->
   # transaction is received
   # TODO: Make sure this works when redis crashes and is restarted
   redisStarts = null
-  startId = null
+  startIdPromise = new Promise
   # Calling select right away queues the command before any commands that
   # a client might add before connect happens. If select is not queued first,
   # the subsequent commands could happen on the wrong db
@@ -43,14 +45,14 @@ Store = module.exports = (options = {}) ->
         subscribeToStarts true
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
-      startId = starts[0][0]
+      startIdPromise.fulfill starts[0][0]
   
   # Ignore the first connect event
   ignoreSubscribe = true
   redisClient.on 'connect', subscribeToStarts
   redisClient.on 'end', ->
     redisStarts = null
-    startId = null
+    startIdPromise.reset()
 
 
   ## Downstream Transactional Interface ##
@@ -89,13 +91,13 @@ Store = module.exports = (options = {}) ->
   hasInvalidVer = (socket, ver, clientStartId) ->
     # Don't allow a client to connect unless there is a valid startId to
     # compare the model's against
-    unless startId
+    unless startIdPromise.value
       socket.disconnect()
       return true
     # TODO: Map the client's version number to the Stm's and update the client
     # with the new startId unless the client's version includes versions that
     # can't be mapped
-    unless clientStartId && clientStartId == startId
+    unless clientStartId && clientStartId == startIdPromise.value
       socket.emit 'fatalErr'
       return true
     return false
@@ -132,10 +134,11 @@ Store = module.exports = (options = {}) ->
           # TODO
           TODO = 'TODO'
 
-      socket.on 'otOp', (msg = {path, op, v}, fn) ->
+      socket.on 'otOp', (msg, fn) ->
+        {path, op, v} = msg
         # Lazy create the OT doc
         unless field = self.otFields[path]
-          field = self.otFields[path] = new Field self, path, v
+          field = self.otFields[path] = new Field self._adapter, path, v
           fieldClient = field.registerSocket socket
           # TODO Cleanup with field.unregisterSocket
         fieldClient ||= field.client socket.id
@@ -236,8 +239,9 @@ Store = module.exports = (options = {}) ->
     model = new Model
     model.store = self
     model._ioUri = self._ioUri
-    model._startId = startId
-    nextClientId (clientId) -> model._setClientId clientId
+    model.startIdPromise = startIdPromise
+    startIdPromise.on (startId) -> model._startId = startId
+    nextClientId (clientId) -> model.clientIdPromise.fulfill clientId
     return model
 
   @flush = (callback) ->

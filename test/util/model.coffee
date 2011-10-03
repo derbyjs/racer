@@ -52,14 +52,17 @@ exports.fullyWiredModels = (numWindows, callback) ->
   i = numWindows
   while i--
     browserModel = new Model
+    browserSocket = new mocks.BrowserSocketMock serverSockets
+    browserModel._setSocket browserSocket
     serverModel = store.createModel()
-    do (browserModel) ->
+    do (browserModel, browserSocket) ->
       serverModel.subscribe _test: fullPath = "#{sandboxPath}.**", ->
         serverModel.setNull sandboxPath, {}
         serverModel.bundle (bundle) ->
           bundle = JSON.parse(bundle)
-          bundle.socket = new mocks.BrowserSocketMock serverSockets
+          bundle.socket = browserSocket
           browserRacer.init.call model: browserModel, bundle
+          browserSocket._connect()
           browserModels.push browserModel
           if browserModels.length == numWindows
             callback serverSockets, browserModels...
