@@ -420,7 +420,7 @@ RefHelper:: =
   # @param {Object} data is the speculative or true model data
   isArrayRef: (path, data) ->
     refObj = @_adapter.lookup(path, data, dontFollowLastRef: true).obj
-    return false if refObj is undefined
+    return false unless refObj?
     {$r, $k, $t} = refObj
     return false if $t != 'array'
     $k && $k = @dereferencedPath $k, data

@@ -189,8 +189,8 @@ Store = module.exports = (options = {}) ->
         else value
       return data.push [root, remainder, value, ver]
 
-    # If the remainder starts with *. or is *, set each property one level down
-    if remainder[0] == '*' && (c = remainder[1]) == '.' || !c
+    if remainder.substr(0, 2) == '*.' || remainder == '*'
+      # Set each property one level down
       [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
       for prop of value
         nextRoot = if root then root + '.' + prop else prop
@@ -199,6 +199,7 @@ Store = module.exports = (options = {}) ->
           nextRoot += '.' + appendRoot
           nextValue = pathParser.fastLookup appendRoot, nextValue
         addSubDatum data, nextRoot, remainder, nextValue, ver
+    return
     # TODO: Support ** not at the end of a path
     # TODO: Support (a|b) syntax
 
@@ -213,6 +214,7 @@ Store = module.exports = (options = {}) ->
         addSubDatum data, root, remainder, value, ver
         return if --getting
         callback null, data
+    return
 
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId

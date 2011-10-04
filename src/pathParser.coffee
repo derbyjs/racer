@@ -27,3 +27,12 @@ module.exports =
     for prop in path.split '.'
       return unless obj = obj[prop]
     return obj
+
+  splitPattern: (path) ->
+    if ~(i = path.search /[\*\(]/)
+      root = path.substr 0, i - 1  # Subtract one to remove the trailing '.'
+      remainder = path.substr i
+    else
+      root = path
+      remainder = ''
+    [root, remainder]

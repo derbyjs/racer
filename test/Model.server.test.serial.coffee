@@ -19,11 +19,11 @@ module.exports =
     model.subscribe _preso: 'presos.racer.**', ->
       model.set 'presos.racer', { slides: [] }
       model.bundle (bundle) ->
-        obj = JSON.parse bundle
+        {data} = JSON.parse bundle
         # transactions committed
         model._txnQueue.should.be.empty
         # and applied
-        model.get('presos.racer').should.not.equal undefined
+        data.presos.racer.should.eql { slides: [] }
         done()
  
   'bundle should not pass anything speculative to the data key when using 2 speculative sets  with a shared path (aka lazy speculative marking of an object that was the value of a set  should not modify the object itself)': (done) ->
