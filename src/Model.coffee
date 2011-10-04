@@ -133,3 +133,6 @@ Model.mixin OT
 
 STM = require './mixin.stm'
 Model.mixin STM
+
+SUBSCRIBE = require './mixin.subscribe'
+Model.mixin SUBSCRIBE

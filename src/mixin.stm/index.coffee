@@ -70,12 +70,7 @@ stm = module.exports =
 
 
   setupSocket: (socket) ->
-    self = this
-    adapter = @_adapter
-    txns = @_txns
-    txnQueue = @_txnQueue
-    onTxn = @_onTxn
-    removeTxn = @_removeTxn
+    {_adapter, _txns, _txnQueue, _onTxn, _removeTxn} = self = this
     
     @_commit = commit = (txn) ->
       return unless socket.socket.connected
@@ -83,17 +78,17 @@ stm = module.exports =
       socket.emit 'txn', txn, self._startId
 
     # STM Callbacks
-    socket.on 'txn', onTxn
+    socket.on 'txn', _onTxn
 
     socket.on 'txnNum', @_onTxnNum
 
     socket.on 'txnOk', (txnId, base, num) ->
-      if txn = txns[txnId]
-        transaction.base txn, base
-        onTxn txn, num
+      return unless txn = _txns[txnId]
+      transaction.base txn, base
+      _onTxn txn, num
 
     socket.on 'txnErr', (err, txnId) ->
-      txn = txns[txnId]
+      txn = _txns[txnId]
       if txn && (callback = txn.callback)
         if transaction.isCompound txn
           callbackArgs = transaction.ops txn
@@ -101,26 +96,22 @@ stm = module.exports =
           callbackArgs = transaction.args(txn).slice 0
         callbackArgs.unshift err
         callback callbackArgs...
-      removeTxn txnId
+      _removeTxn txnId
     # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1, self._startId
+    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.ver + 1, self._startId
 
-    storeSubs = Object.keys @_storeSubs
     resendInterval = null
     resend = ->
       now = +new Date
-      for id in txnQueue
-        txn = txns[id]
+      for id in _txnQueue
+        txn = _txns[id]
         return if txn.timeout > now
         commit txn
 
     socket.on 'connect', ->
-      # Establish subscriptions upon connecting and get any transactions
-      # that may have been missed
-      socket.emit 'sub', self._clientId, storeSubs, adapter.ver, self._startId
       # Resend all transactions in the queue
-      for id in txnQueue
-        commit txns[id]
+      for id in _txnQueue
+        commit _txns[id]
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
@@ -134,52 +125,6 @@ stm = module.exports =
     ## Socket.io communication ##
     _commit: ->
     _reqNewTxns: ->
-
-
-    ## Subscriptions ##
-
-    subscribe: (_paths..., callback) ->
-      # For subscribe(paths...)
-      unless typeof callback is 'function'
-        _paths.push callback
-        callback = ->
-
-      # TODO: Support all path wildcards, references, and functions
-      paths = []
-      for path in _paths
-        if typeof path is 'object'
-          for key, value of path
-            root = pathParser.splitPattern(value)[0]
-            @set key, @ref root
-            paths.push value
-          continue
-        unless @_storeSubs[path]
-          # These subscriptions are reestablished when the client connects
-          @_storeSubs[path] = 1
-          paths.push path
-      
-      return callback()  unless paths.length
-      @_addSub paths, callback
-
-    _addSub: (paths, callback) ->
-      self = this
-      return callback()  unless @connected
-      @socket.emit 'subAdd', @_clientId, paths, (data) ->
-        self._initSubData data
-        callback()
-
-    _initSubData: (data) ->
-      adapter = @_adapter
-      setSubDatum adapter, datum  for datum in data
-      return
-
-    unsubscribe: (paths..., callback) ->
-      # For unsubscribe(paths...)
-      unless typeof callback is 'function'
-        paths.push callback
-        callback = ->
-
-      throw new Error 'Unimplemented: unsubscribe'
 
 
     ## Transaction handling ##
@@ -421,14 +366,3 @@ stm = module.exports =
 
     move: (path, from, to, callback) ->
       @_addOpAsTxn 'move', path, from, to, callback
-
-
-setSubDatum = (adapter, [root, remainder, value, ver]) ->
-  if root is ''
-    if typeof value is 'object'
-      for k, v of value
-        adapter.set k, v, ver
-      return
-    throw 'Cannot subscribe to "' + root + remainder + '"'
-
-  return adapter.set root, value, ver

@@ -11,6 +11,12 @@ redisInfo = require './redisInfo'
 Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 
+# store = new Store
+#   adapter: SomeAdapter
+#   redis:
+#     port: xxxx
+#     host: xxxx
+#     db:   xxxx
 Store = module.exports = (options = {}) ->
   self = this
   Adapter = options.Adapter || MemoryAdapter
@@ -25,6 +31,7 @@ Store = module.exports = (options = {}) ->
   @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
+  # TODO Encapsulate this at a lower level of abstraction
   @otFields = {}
 
   # TODO: Make sure there are no weird race conditions here, since we are

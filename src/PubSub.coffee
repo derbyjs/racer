@@ -3,6 +3,11 @@ pathParser = require './pathParser.server'
 transaction = require './transaction.server'
 {hasKeys} = require './util'
 
+# new PubSub
+#   redis: {...}
+#   pubClient: redisClientA
+#   subClient: redisClientB
+#   onMessage: (clientId, txn) ->
 PubSub = module.exports = (options = {}) ->
   adapterName = options.adapter || 'Redis'
   onMessage = options.onMessage || ->
