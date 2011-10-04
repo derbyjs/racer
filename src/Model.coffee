@@ -12,10 +12,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   for {init} in mixins
     init.call self if init
 
-  # Paths in the store that this model is subscribed to. These get set with
-  # store.subscribe, and must be sent to the store upon connecting
-  self._storeSubs = []
-
   # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
   # operation without triggering an event locally, such as model.silent.set
   # It only silences the first local event, so events on public paths that

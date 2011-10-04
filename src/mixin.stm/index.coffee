@@ -21,6 +21,10 @@ stm = module.exports =
         delete @lastReplayedTxnId
         delete @path
 
+    # Paths in the store that this model is subscribed to. These get set with
+    # model.subscribe, and must be sent to the store upon connecting
+    @_storeSubs = {}
+
     # The startId is the ID of the last Redis restart. This is sent along with
     # each versioned message from the Model so that the Store can map the model's
     # version number to the version number of the Stm in case of a Redis failure
@@ -101,7 +105,7 @@ stm = module.exports =
     # Request any transactions that may have been missed
     @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1, self._startId
 
-    storeSubs = @_storeSubs
+    storeSubs = Object.keys @_storeSubs
     resendInterval = null
     resend = ->
       now = +new Date
@@ -149,16 +153,17 @@ stm = module.exports =
             @set key, @ref root
             paths.push value
           continue
-        paths.push path
-
-      # Store subscriptions in the model so that it can submit them to the
-      # server when it connects
-      @_storeSubs = @_storeSubs.concat paths
-
+        unless @_storeSubs[path]
+          # These subscriptions are reestablished when the client connects
+          @_storeSubs[path] = 1
+          paths.push path
+      
+      return callback()  unless paths.length
       @_addSub paths, callback
 
     _addSub: (paths, callback) ->
       self = this
+      return callback()  unless @connected
       @socket.emit 'subAdd', @_clientId, paths, (data) ->
         self._initSubData data
         callback()
@@ -358,7 +363,7 @@ stm = module.exports =
     
     setNull: (path, value, callback) ->
       obj = @get path
-      return obj  if `obj != null`
+      return obj  if obj?
       @set path, value, callback
 
     # STM del
