@@ -101,7 +101,6 @@ stm = module.exports =
     # Request any transactions that may have been missed
     @_reqNewTxns = -> socket.emit 'txnsSince', adapter.ver + 1, self._startId
 
-    clientId = @_clientId
     storeSubs = @_storeSubs
     resendInterval = null
     resend = ->
@@ -114,7 +113,7 @@ stm = module.exports =
     socket.on 'connect', ->
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
-      socket.emit 'sub', clientId, storeSubs, adapter.ver, self._startId
+      socket.emit 'sub', self._clientId, storeSubs, adapter.ver, self._startId
       # Resend all transactions in the queue
       for id in txnQueue
         commit txns[id]

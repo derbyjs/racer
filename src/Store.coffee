@@ -140,9 +140,10 @@ Store = module.exports = (options = {}) ->
         # Lazy create the OT doc
         unless field = self.otFields[path]
           field = self.otFields[path] = new Field self._adapter, path, v
+
+        unless fieldClient = field.client socket.id
           fieldClient = field.registerSocket socket
           # TODO Cleanup with field.unregisterSocket
-        fieldClient ||= field.client socket.id
         fieldClient.queue.push [msg, fn]
         fieldClient.flush()
 

@@ -3,7 +3,6 @@
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
   return setTimeout callEmit, 0, target, name, args if async
-  args = JSON.parse JSON.stringify args
   EventEmitter::emit.call target, name, args...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
@@ -24,8 +23,11 @@ ServerSocketsMock:: =
     callEmit socket, name, args for socket in @_sockets
   __proto__: EventEmitter::
 
+nextSocketId = 1
+
 ServerSocketMock = (@_serverSockets, @_browserSocket) ->
   EventEmitter.call this
+  @id = @_browserSocket.id
   @broadcast =
     emit: (name, args...) =>
       for socket in @_serverSockets._sockets
@@ -37,6 +39,7 @@ ServerSocketMock:: =
 
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
   EventEmitter.call this
+  @id = nextSocketId++
   @_serverSocket = new ServerSocketMock @_serverSockets, this
   @socket = connected: false
   return

@@ -34,14 +34,14 @@ FieldConnection:: =
       if err
         socketioCallback err.message
       else
-      socketioCallback null,
-        path: field.path, v: appliedVer
+        socketioCallback null,
+          path: field.path, v: appliedVer
       callback()
 
   # ver = null if we want to listen since HEAD
   listenSinceVer: (ver) ->
     unless ver == null
-      ops = @field.getOpsSince ver
+      ops = @field.getOps ver
       for op in ops
-        # TODO Compose ops into a single op
+        # TODO Compose ops into a single op?
         @socket.emit 'otOp', op

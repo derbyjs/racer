@@ -51,11 +51,10 @@ exports.fullyWiredModels = (numWindows, callback) ->
   browserModels = []
   i = numWindows
   while i--
+    serverModel = store.createModel()
     browserModel = new Model
     browserSocket = new mocks.BrowserSocketMock serverSockets
-    browserModel._setSocket browserSocket
-    serverModel = store.createModel()
-    do (browserModel, browserSocket) ->
+    do (serverModel, browserModel, browserSocket) ->
       serverModel.subscribe _test: fullPath = "#{sandboxPath}.**", ->
         serverModel.setNull sandboxPath, {}
         serverModel.bundle (bundle) ->

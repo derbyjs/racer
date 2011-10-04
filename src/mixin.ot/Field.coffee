@@ -16,37 +16,26 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
   @serverOps = {}
 
   self = this
-  model._on 'change', (op, oldSnapshot, isRemote) ->
+  model._on 'change', ([path, op, oldSnapshot], isRemote) ->
+    return unless path == self.path
     for {p, i, d} in op
       if i
-        model.emit 'insertOT', [self.path, i, p], !isRemote
+        model.emit 'insertOT', [path, i, p], !isRemote
       else
-        model.emit 'delOT', [self.path, d, p], !isRemote
+        model.emit 'delOT', [path, d, p], !isRemote
     return
-
-  # Decorate model prototype
-  model.insertOT = (path, str, pos, callback) ->
-    # TODO Still need to normalize path
-    field = @otFields[path] ||= new OT @, path
-    pos ?= 0
-    op = [ { p: pos, i: str } ]
-    op.callback = callback if callback
-    field.submitOp op
-
-  # Decorate adapter
 
   return
 
 Field:: =
   onRemoteOp: (op, v) ->
-    # TODO
     return if v < @version
     throw new Error "Expected version #{@version} but got #{v}" unless v == @version
     docOp = @serverOps[@version] = op
     if @inflightOp
-      [@inflightOp, docOp] = xf @inflightOp, docOp
+      [@inflightOp, docOp] = @xf @inflightOp, docOp
     if @pendingOp
-      [@pendingOp, docOp] = xf @pendingOp, docOp
+      [@pendingOp, docOp] = @xf @pendingOp, docOp
 
     @version++
     @otApply docOp, true
@@ -54,7 +43,7 @@ Field:: =
   otApply: (docOp, isRemote) ->
     oldSnapshot = @snapshot
     @snapshot = @type.apply oldSnapshot, docOp
-    @model.emit 'change', docOp, oldSnapshot, isRemote
+    @model.emit 'change', [@path, docOp, oldSnapshot], isRemote
     return @snapshot
 
   submitOp: (op, callback) ->
@@ -78,21 +67,25 @@ Field:: =
     @pendingCallbacks = []
 
     # @model.socket.send msg, (err, res) ->
-    @model.socket.emit 'otOp', path: @path, op: @inflightOp, v: @version, (err, {ver}) =>
+    @model.socket.emit 'otOp', path: @path, op: @inflightOp, v: @version, (err, msg) =>
       # TODO console.log arguments
-      oldInflightOp = inflightOp
-      inflightOp = null
+      oldInflightOp = @inflightOp
+      @inflightOp = null
       if err
         unless @type.invert
           throw new Error "Op apply failed (#{err}) and the OT type does not define an invert function."
 
+        # TODO make this throw configurable on/off
+        throw new Error err
+
         undo = @type.invert oldInflightOp
-        if pendingOp
-          [pendingOp, undo] = @xf pendingOp, undo
-        otApply undo, true
+        if @pendingOp
+          [@pendingOp, undo] = @xf @pendingOp, undo
+        @otApply undo, true
         callback err for callback in @inflightCallbacks
         return @flush
 
+      ver = msg.v if msg
       unless ver == @version
         throw new Error 'Invalid version from server'
 

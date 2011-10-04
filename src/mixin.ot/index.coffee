@@ -26,8 +26,7 @@ ot = module.exports =
         # TODO field.remoteSnapshot snapshot
       pos ?= 0
       op = [ { p: pos, i: str } ]
-      op.callback = callback if callback
-      field.submitOp op
+      field.submitOp op, callback
 
 
     # OT text del
@@ -39,8 +38,7 @@ ot = module.exports =
         snapshot = field.snapshot = val?.$ot || str
         # TODO field.remoteSnapshot snapshot
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
-      op.callback = callback if callback
-      field.submitOp op
+      field.submitOp op, callback
 
   proto:
     ## OT field functions ##
@@ -71,5 +69,5 @@ ot = module.exports =
       unless field = otFields[path]
         field = otFields[path] = new Field model, path
         {val} = adapter.get path, model._specModel()[0]
-        field.snapshot = val?.$ot || str
+        field.snapshot = val?.$ot || ''
       field.onRemoteOp op, v
