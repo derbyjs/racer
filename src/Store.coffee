@@ -32,7 +32,7 @@ Store = module.exports = (options = {}) ->
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
-  @otFields = {}
+  @otFields = otFields = {}
 
   # TODO: Make sure there are no weird race conditions here, since we are
   # caching the value of starts and it could potentially be stale when a
@@ -70,26 +70,36 @@ Store = module.exports = (options = {}) ->
   # Therefore, we can only pass the current `redisClient` as the
   # pubsub's @_publishClient.
   @_localModels = localModels = {}
+  onTxnMsg = (clientId, txn) ->
+    # Don't send transactions back to the model that created them.
+    # On the server, the model directly handles the store._commit callback.
+    # Over Socket.io, a 'txnOk' message is sent below.
+    return if clientId == transaction.clientId txn
+    # For models only present on the server, process the transaction
+    # directly in the model
+    return model._onTxn txn if model = localModels[clientId]
+    # Otherwise, send the transaction over Socket.io
+    if socket = clientSockets[clientId]
+      # Prevent sending duplicate transactions by only sending new versions
+      base = transaction.base txn
+      if base > socket.__base
+        socket.__base = base
+        nextTxnNum clientId, (num) ->
+          socket.emit 'txn', txn, num
+  onOtMsg = (clientId, ot) ->
+    connections = otFields[ot.path].connections
+    if socket = clientSockets[clientId]
+      return if socket.id == ot.meta.src
+      console.log "emitting to #{socket.id} otOp"
+      socket.emit 'otOp', ot
   @_pubSub = pubSub = new PubSub
     redis: redisOptions
     pubClient: redisClient
     subClient: txnSubClient
-    onMessage: (clientId, txn) ->
-      # Don't send transactions back to the model that created them.
-      # On the server, the model directly handles the store._commit callback.
-      # Over Socket.io, a 'txnOk' message is sent below.
-      return if clientId == transaction.clientId txn
-      # For models only present on the server, process the transaction
-      # directly in the model
-      return model._onTxn txn if model = localModels[clientId]
-      # Otherwise, send the transaction over Socket.io
-      if socket = clientSockets[clientId]
-        # Prevent sending duplicate transactions by only sending new versions
-        base = transaction.base txn
-        if base > socket.__base
-          socket.__base = base
-          nextTxnNum clientId, (num) ->
-            socket.emit 'txn', txn, num
+    onMessage: (clientId, {txn, ot}) ->
+      console.log arguments
+      return onTxnMsg clientId, txn if txn
+      return onOtMsg clientId, ot
 
   @_nextTxnNum = nextTxnNum = (clientId, callback) ->
     redisClient.incr 'txnClock.' + clientId, (err, value) ->
@@ -146,7 +156,7 @@ Store = module.exports = (options = {}) ->
         {path, op, v} = msg
         # Lazy create the OT doc
         unless field = self.otFields[path]
-          field = self.otFields[path] = new Field self._adapter, path, v
+          field = self.otFields[path] = new Field self._adapter, self._pubSub, path, v
 
         unless fieldClient = field.client socket.id
           fieldClient = field.registerSocket socket
@@ -285,7 +295,7 @@ Store = module.exports = (options = {}) ->
       transaction.base txn, ver
       callback err, txn if callback
       return if err
-      pubSub.publish transaction.path(txn), txn
+      pubSub.publish transaction.path(txn), txn: txn
       txnApplier.add txn, ver
   
   ## Ensure Serialization of Transactions to the DB ##

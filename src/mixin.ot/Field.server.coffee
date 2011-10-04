@@ -6,7 +6,7 @@ FieldConnection = require './FieldConnection.server'
 # data: {type, v, snapshot, meta}
 # ops: [op]
 
-Field = module.exports = (adapter, path, @version, @type = text) ->
+Field = module.exports = (adapter, pubSub, path, @version, @type = text) ->
   @adapter = adapter
   @path = path
 
@@ -16,12 +16,6 @@ Field = module.exports = (adapter, path, @version, @type = text) ->
 
   # Maps socketId -> fieldConnection
   @connections = {}
-  Object.defineProperty @connections, 'emit',
-    enumerable: false
-    value: (channel, data) ->
-      for socketId, client of @
-        continue if client.socket.id == data.meta.src
-        client.socket.emit channel, data
 
   # Used in @applyOp
   @applyQueue = syncqueue ({op, v: opVersion, meta: opMeta}, callback) =>
@@ -51,7 +45,7 @@ Field = module.exports = (adapter, path, @version, @type = text) ->
     newDocData = {@snapshot, type: @type.name, v: opVersion+1, meta: @meta}
     @ops.push {op, v: opVersion, meta: opMeta}
 
-    @connections.emit 'otOp', newOpData
+    pubSub.publish @path, ot: newOpData
     callback null, opVersion
 
 #    adapter.applyOT path, newOpData, newDocData, ->
