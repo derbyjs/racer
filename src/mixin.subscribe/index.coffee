@@ -1,3 +1,5 @@
+pathParser = require '../pathParser'
+
 module.exports =
   setupSocket: (socket) ->
     self = this
