@@ -45,6 +45,7 @@ Store = module.exports = (options = {}) ->
         subscribeToStarts true
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
+      startIdPromise.reset() if startIdPromise.value
       startIdPromise.fulfill starts[0][0]
   
   # Ignore the first connect event
