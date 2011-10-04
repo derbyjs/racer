@@ -29,7 +29,6 @@ PubSub:: =
 
 PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
-  
   redisOptions = {port, host, db} = options.redis || {}
   namespace = (db || 0) + '.'
   @_namespace = (path) -> namespace + path
@@ -59,7 +58,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
   _onMessage = (glob, path, message) ->
     message = JSON.parse message
     if subscribers = subs[glob]
-      for key, [subscriberId, re] of subscribers
+      for _, [subscriberId, re] of subscribers
         onMessage subscriberId, message if re.test path
   
   subClient.on 'message', (path, message) -> _onMessage path, path, message
