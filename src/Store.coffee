@@ -90,14 +90,12 @@ Store = module.exports = (options = {}) ->
     connections = otFields[ot.path].connections
     if socket = clientSockets[clientId]
       return if socket.id == ot.meta.src
-      console.log "emitting to #{socket.id} otOp"
       socket.emit 'otOp', ot
   @_pubSub = pubSub = new PubSub
     redis: redisOptions
     pubClient: redisClient
     subClient: txnSubClient
     onMessage: (clientId, {txn, ot}) ->
-      console.log arguments
       return onTxnMsg clientId, txn if txn
       return onOtMsg clientId, ot
 
