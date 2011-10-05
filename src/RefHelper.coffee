@@ -430,6 +430,8 @@ RefHelper:: =
 
   dereferencedPath: (path, data) ->
     meta = @_adapter.lookup path, data, returnMeta: true
+    if meta.remainingProps
+      return meta.path + '.' + meta.remainingProps.join '.'
     return meta.path
 
   denormalizePath: (path, data) ->
