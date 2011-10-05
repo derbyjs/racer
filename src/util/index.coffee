@@ -1,7 +1,8 @@
 module.exports =
 
-  merge: (a, b) ->
-    a[k] = v for k, v of b
+  merge: (a, froms...) ->
+    for b in froms
+      a[k] = v for k, v of b
     return a
 
   hasKeys: (o, options = {}) ->

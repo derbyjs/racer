@@ -18,16 +18,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   # get synced to the server are still emitted
   self.silent = Object.create self, _silent: value: true
 
-  self._refHelper = refHelper = new RefHelper self
-
-  for method of Model._accessorNames
-    continue if method is 'get'
-    do (method) ->
-      self.on method, ([path, args...]) ->
-        # Emit events on any references that point to the path or any of its
-        # ancestor paths
-        refHelper.notifyPointersTo path, @get(), method, args
-
   return
 
 
@@ -67,45 +57,38 @@ Model::_setSocket = (socket) ->
 
 ## Model events ##
 
-merge Model::, EventEmitter::
+merge Model::, EventEmitter::,
+  _eventListener: (method, pattern, callback) ->
+    # on(type, listener)
+    # Test for function by looking for call, since pattern can be a regex,
+    # which has a typeof == 'function' as well
+    return pattern if pattern.call
+    
+    # on(method, pattern, callback)
+    re = pathParser.regExp pattern
+    return ([path, args...]) ->
+      if re.test path
+        callback re.exec(path).slice(1).concat(args)...
+        return true
 
-Model::_eventListener = (method, pattern, callback) ->
-  # on(type, listener)
-  # Test for function by looking for call, since pattern can be a regex,
-  # which has a typeof == 'function' as well
-  return pattern if pattern.call
-  
-  # on(method, pattern, callback)
-  re = pathParser.regExp pattern
-  return ([path, args...]) ->
-    if re.test path
-      callback re.exec(path).slice(1).concat(args)...
-      return true
+  # EventEmitter::addListener and once return this. The Model equivalents return
+  # the listener instead, since it is made internally for method subscriptions
+  # and may need to be passed to removeListener
 
-# EventEmitter::addListener and once return this. The Model equivalents return
-# the listener instead, since it is made internally for method subscriptions
-# and may need to be passed to removeListener
+  _on: EventEmitter::on
+  on: (type, pattern, callback) ->
+    @_on type, listener = @_eventListener type, pattern, callback
+    return listener
 
-Model::_on = EventEmitter::on
-Model::on = Model::addListener = (type, pattern, callback) ->
-  @_on type, listener = @_eventListener type, pattern, callback
-  return listener
+  once: (type, pattern, callback) ->
+    listener = @_eventListener type, pattern, callback
+    self = this
+    @_on type, g = ->
+      matches = listener arguments...
+      self.removeListener type, g  if matches
+    return listener
 
-Model::once = (type, pattern, callback) ->
-  listener = @_eventListener type, pattern, callback
-  self = this
-  @_on type, g = ->
-    matches = listener arguments...
-    self.removeListener type, g  if matches
-  return listener
-
-
-## Model reference functions ##
-
-# Create reference objects for use in model data methods
-Model::ref = RefHelper::ref
-Model::arrayRef = RefHelper::arrayRef
-
+Model::addListener = Model::on
 
 ## Mixins ##
 
@@ -118,7 +101,7 @@ Model::arrayRef = RefHelper::arrayRef
 
 # NOTE: Order of mixins may be important because of dependencies.
 Model._mixins = []
-Model._accessorNames = {}
+Model._withAccessors = []
 Model.mixin = (mixin) ->
   @_mixins.push mixin
   merge Model::, proto if proto = mixin.proto
@@ -126,7 +109,18 @@ Model.mixin = (mixin) ->
 
   if accessors = mixin.accessors
     merge Model::, accessors
-    Model._accessorNames[accessorName] = 1 for accessorName of accessors
+    # Apply prior mixins' withAccessors
+    withAccessors accessors, Model for withAccessors in Model._withAccessors
+
+  if withAccessors = mixin.withAccessors
+    Model._withAccessors.push withAccessors
+    # Apply to all accessors mixed in to date
+    withAccessors Model::accessors, Model
+
+  return Model
+
+REFS = require './mixin.refs'
+Model.mixin REFS
 
 OT = require './mixin.ot'
 Model.mixin OT
