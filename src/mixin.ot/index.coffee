@@ -1,10 +1,3 @@
-# TODO Transition from entry point model.set(path, OT.field(val)) to racer.init client bundle
-# TODO Browser model methods insert + del should apply ops and send them to server
-# TODO Make sure browser OT works with refs
-# TODO Implement server component with socket.io as entry point - Modify Store
-# TODO Server broadcasting of ops to browsers
-# TODO Browser handling of remote ops
-#
 # TODO Do JSON OT
 
 Field = require './Field'
