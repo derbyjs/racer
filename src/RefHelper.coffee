@@ -1,3 +1,4 @@
+# TODO Move into mixin.refs
 transaction = require './transaction'
 pathParser = require './pathParser'
 specHelper = require './specHelper'
@@ -321,7 +322,7 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (targetPath, obj, method, args, ignoreRoots = []) ->
+  notifyPointersTo: (targetPath, obj, method, args, isLocal, ignoreRoots = []) ->
     # Takes care of regular refs
     @eachValidRefPointingTo targetPath, obj, (pointingPath, targetPathRemainder, ref, key, type) =>
       unless type == 'array'
@@ -335,7 +336,7 @@ RefHelper:: =
         unless index == -1
           pointingPath += '.' + index
           pointingPath += '.' + rest.join('.') if rest.length
-      @_model.emit method, [pointingPath, args...]
+      @_model.emit method, [pointingPath, args...], isLocal
 
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, obj, (pointingPath, ref, key) =>

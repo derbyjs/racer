@@ -22,7 +22,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
 
 ## Socket.io communication ##
-  
+ 
 Model::_setSocket = (socket) ->
   self = this
   self.socket = socket
