@@ -13,7 +13,6 @@ flushRedis = (done) ->
       redis.quit()
       done()
 
-# TODO Make sure to flush redis before and after all tests
 module.exports =
   setup: (done) ->
     flushRedis done
@@ -98,10 +97,9 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows @ot @single''': (done) ->
+  text in sibling windows @ot''': (done) ->
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
-      [modelA, modelB].forEach (model) ->
       modelA.set '_test.text', modelA.ot('abcdef')
       modelB.on 'insertOT', '_test.text', (insertedStr, pos) ->
         insertedStr.should.equal 'xyz'
@@ -112,26 +110,32 @@ module.exports =
         done()
       modelA.insertOT '_test.text', 'xyz', 1
 
-#  ## Validity ##
-#  '''1 insertOT by window A and 1 insertOT by window B on the
-#  same path should result in the same 'valid' text in both windows
-#  after both ops have propagated, transformed, and applied both
-#  ops''': (done) ->
-#    numModels = 2
-#    fullyWiredModels numModels, (sockets, modelA, modelB) ->
-#      modelA.set '_test.text', modelA.ot('abcdef')
-#      [modelA, modelB].forEach (model) ->
-#        model.on 'insertOT', '_test.text', (insertedStr, pos) ->
-#          return if --numModels # Wait until all models have applied their insertOT
-#          insertedStr.should.equal 'try'
-#          pos.should.equal 1
-#          sockets._disconnect()
-#          done()
-#      modelA.insertOT '_test.text', (text, pos) ->
-#      modelB.insertOT '_test.text', (text, pos) ->
-#
-#      sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
-#
+  ## Validity ##
+  '''1 insertOT by window A and 1 insertOT by window B on the
+  same path should result in the same 'valid' text in both windows
+  after both ops have propagated, transformed, and applied both
+  ops @ot''': (done) ->
+    numModels = 2
+    fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
+      modelB.on 'set', '_test.text', ->
+        modelB.insertOT '_test.text', 'tuv', 2
+      modelA.set '_test.text', modelA.ot('abcdef')
+
+      models = [modelA, modelB]
+      models.forEach (model, i) ->
+        otherModel = models[i+1] || models[i-1]
+        model.__events__ = 0
+        model._on 'insertOT', ([path, insertedStr, pos], isRemote) ->
+          return unless path == '_test.text'
+          if ++model.__events__ == 2
+            model.__final__ = model.get '_test.text'
+            if model.__events__ == otherModel.__events__
+              model.__final__.should.equal otherModel.__final__
+              sockets._disconnect()
+              store.disconnect()
+              done()
+      modelA.insertOT '_test.text', 'xyz', 1
+
 #  '''1 insertOT by window A and 1 delOT by window B on the
 #  same path should result in the same 'valid' text in both windows
 #  after both ops have propagated, transformed, and applied both
