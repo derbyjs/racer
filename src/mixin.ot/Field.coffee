@@ -18,13 +18,13 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
   @serverOps = {}
 
   self = this
-  model._on 'change', ([path, op, oldSnapshot], isRemote) ->
+  model._on 'change', ([path, op, oldSnapshot], isLocal) ->
     return unless path == self.path
     for {p, i, d} in op
       if i
-        model.emit 'insertOT', [path, i, p], !isRemote
+        model.emit 'insertOT', [path, i, p], isLocal
       else
-        model.emit 'delOT', [path, d, p], !isRemote
+        model.emit 'delOT', [path, d, p], isRemote
     return
 
   return
@@ -40,12 +40,12 @@ Field:: =
       [@pendingOp, docOp] = @xf @pendingOp, docOp
 
     @version++
-    @otApply docOp, true
+    @otApply docOp, false
 
-  otApply: (docOp, isRemote) ->
+  otApply: (docOp, isLocal = true) ->
     oldSnapshot = @snapshot
     @snapshot = @type.apply oldSnapshot, docOp
-    @model.emit 'change', [@path, docOp, oldSnapshot], isRemote
+    @model.emit 'change', [@path, docOp, oldSnapshot], isLocal
     return @snapshot
 
   submitOp: (op, callback) ->
@@ -97,7 +97,7 @@ Field:: =
         undo = @type.invert oldInflightOp
         if @pendingOp
           [@pendingOp, undo] = @xf @pendingOp, undo
-        @otApply undo, true
+        @otApply undo
         callback err for callback in @inflightCallbacks
         return @flush
 
