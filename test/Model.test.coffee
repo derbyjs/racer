@@ -8,6 +8,11 @@ wrapTest = util.wrapTest
 {mockSocketModel} = require './util/model'
 
 module.exports =
+
+  'get should return the adapter data when there are no pending transactions': ->
+    model = new Model
+    model._adapter._data = { a: 1 }
+    model.get().should.specEql { a: 1 }
   
   'test internal creation of client transactions on set': ->
     model = new Model '0'
