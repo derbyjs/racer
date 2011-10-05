@@ -104,8 +104,6 @@ module.exports =
       modelB.on 'insertOT', '_test.text', (insertedStr, pos) ->
         insertedStr.should.equal 'xyz'
         pos.should.equal 1
-        console.log require('util').inspect(modelB._adapter._data, false, 100)
-        console.log require('util').inspect(modelB.get(), false, 100)
         modelB.get('_test.text').should.equal 'axyzbcdef'
         sockets._disconnect()
         done()

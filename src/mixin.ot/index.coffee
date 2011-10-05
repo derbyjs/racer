@@ -28,7 +28,6 @@ ot = module.exports =
       op = [ { p: pos, i: str } ]
       field.submitOp op, callback
 
-
     # OT text del
     delOT: (path, len, pos, callback) ->
       path = @_refHelper.dereferencedPath path, @_specModel()[0]

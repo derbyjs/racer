@@ -87,7 +87,6 @@ Store = module.exports = (options = {}) ->
         nextTxnNum clientId, (num) ->
           socket.emit 'txn', txn, num
   onOtMsg = (clientId, ot) ->
-    connections = otFields[ot.path].connections
     if socket = clientSockets[clientId]
       return if socket.id == ot.meta.src
       socket.emit 'otOp', ot
@@ -190,6 +189,14 @@ Store = module.exports = (options = {}) ->
       socket.__base = 0
       # Set up subscriptions to the store for the model
       clientSockets[clientId] = socket
+
+      # We guard against the following race condition:
+      # Window 1 and Window 2 are both snapshotted at the same ver.
+      # Window 1 commits a txn A. Window 1 subscribes.
+      # Window 2 subscribes, but before the server can publish the
+      # txn A that it missed, Window 1 publishes txn B that
+      # is immediately broadcast to Window 2 just before txn A is
+      # broadcast to Window 2.
       pubSub.subscribe clientId, paths
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId

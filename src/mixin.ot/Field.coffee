@@ -1,4 +1,6 @@
 text = require 'share/lib/types/text'
+specHelper = require '../specHelper'
+Promise = require '../Promise'
 
 Field = module.exports = (model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
@@ -58,6 +60,15 @@ Field:: =
 
   # Sends ops to the server
   flush: ->
+    # Used to flush the OT ops to the server when the OT flag on
+    # the path transforms from speculative to permanent.
+    unless @specTrigger
+      @specTrigger = new Promise
+      @specTrigger.on => @flush()
+      if specHelper.isSpeculative @model._adapter.get @path, @model._specModel()[0]
+        @specTrigger.fulfill true
+      return
+
     # Only one inflight op at a time
     return if @inflightOp != null || @pendingOp == null
 

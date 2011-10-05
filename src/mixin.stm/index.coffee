@@ -303,6 +303,14 @@ stm = module.exports =
       return val
 
     set: (path, val, callback) ->
+      if @isOtVal val
+        origCallback = callback
+        self = this
+        callback = ->
+          fullPath = self._refHelper.dereferencedPath path, self._specModel()[0]
+          field = self.otFields[fullPath]
+          field.specTrigger.fulfill true
+          origCallback.apply null, arguments if origCallback
       @_addOpAsTxn 'set', path, val, callback
       return val
     
