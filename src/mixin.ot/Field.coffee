@@ -24,7 +24,7 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
       if i
         model.emit 'insertOT', [path, i, p], isLocal
       else
-        model.emit 'delOT', [path, d, p], isRemote
+        model.emit 'delOT', [path, d, p], isLocal
     return
 
   return
