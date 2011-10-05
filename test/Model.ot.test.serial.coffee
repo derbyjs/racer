@@ -3,20 +3,22 @@ should = require 'should'
 util = require './util'
 wrapTest = util.wrapTest
 {mockSocketModels, fullyWiredModels} = require './util/model'
-redis = require('redis').createClient()
-redis.createClient
+
+flushRedis = (done) ->
+  redis = require('redis').createClient()
+  redis.select 2, (err) ->
+    throw err if err
+    redis.flushdb (err) ->
+      throw err if err
+      redis.quit()
+      done()
 
 # TODO Make sure to flush redis before and after all tests
 module.exports =
   setup: (done) ->
-    redis.select 2, (err) ->
-      throw err if err
-      redis.flushdb (err) ->
-        throw err if err
-        redis.quit()
-        done()
+    flushRedis done
   teardown: (done) ->
-    @setup(done)
+    flushRedis done
 
   ## Server-side OT ##
   '''model.set(path, model.ot(val)) should initialize the doc version
@@ -98,7 +100,7 @@ module.exports =
   '''local client model insertOT's should result in the same
   text in sibling windows @ot @single''': (done) ->
     numModels = 2
-    fullyWiredModels numModels, (sockets, modelA, modelB) ->
+    fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       [modelA, modelB].forEach (model) ->
       modelA.set '_test.text', modelA.ot('abcdef')
       modelB.on 'insertOT', '_test.text', (insertedStr, pos) ->
@@ -106,6 +108,7 @@ module.exports =
         pos.should.equal 1
         modelB.get('_test.text').should.equal 'axyzbcdef'
         sockets._disconnect()
+        store.disconnect()
         done()
       modelA.insertOT '_test.text', 'xyz', 1
 

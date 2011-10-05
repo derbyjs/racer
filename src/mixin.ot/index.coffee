@@ -51,6 +51,7 @@ ot = module.exports =
     isOtVal: (val) -> return !! (val && val.$ot)
 
     getOT: (path, initVal) ->
+      path = @_refHelper.dereferencedPath path, @_specModel()[0]
       return field.snapshot if field = @otFields[path]
       field = @otFields[path] = new Field @, path
       return field.snapshot = initVal

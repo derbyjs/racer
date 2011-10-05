@@ -58,15 +58,20 @@ Field:: =
       @flush()
     , 0
 
+  specTrigger: (shouldFulfill) ->
+    unless @_specTrigger
+      @_specTrigger = new Promise
+      @_specTrigger.on => @flush()
+    @_specTrigger.fulfill true if shouldFulfill
+    return @_specTrigger
+
   # Sends ops to the server
   flush: ->
     # Used to flush the OT ops to the server when the OT flag on
     # the path transforms from speculative to permanent.
-    unless @specTrigger
-      @specTrigger = new Promise
-      @specTrigger.on => @flush()
-      if specHelper.isSpeculative @model._adapter.get @path, @model._specModel()[0]
-        @specTrigger.fulfill true
+    unless @_specTrigger
+      shouldFulfill = specHelper.isSpeculative @model._adapter.get(@path, @model._specModel()[0])
+      @specTrigger shouldFulfill
       return
 
     # Only one inflight op at a time

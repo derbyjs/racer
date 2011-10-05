@@ -309,7 +309,7 @@ stm = module.exports =
         callback = ->
           fullPath = self._refHelper.dereferencedPath path, self._specModel()[0]
           field = self.otFields[fullPath]
-          field.specTrigger.fulfill true
+          field.specTrigger true
           origCallback.apply null, arguments if origCallback
       @_addOpAsTxn 'set', path, val, callback
       return val
