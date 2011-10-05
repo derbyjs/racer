@@ -39,6 +39,7 @@ Field = module.exports = (adapter, pubSub, path, @version, @type = text) ->
 
     try
       @snapshot = @type.apply @snapshot, op
+      @version++ # TODO Should this be here? Compare to share
     catch err
       return callback err
     newOpData = {@path, op, meta: opMeta, v: opVersion}
