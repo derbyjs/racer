@@ -69,6 +69,9 @@ ot = module.exports =
     socket.on 'otOp', ({path, op, v}) ->
       unless field = otFields[path]
         field = otFields[path] = new Field model, path
-        {val} = adapter.get path, model._specModel()[0]
-        field.snapshot = val?.$ot || ''
-      field.onRemoteOp op, v
+        field.specTrigger().on ->
+          {val} = adapter.get path, model._specModel()[0]
+          field.snapshot = val?.$ot || ''
+          field.onRemoteOp op, v
+      else
+        field.onRemoteOp op, v
