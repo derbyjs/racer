@@ -19,6 +19,7 @@ ot = module.exports =
     # OT text insert
     insertOT: (path, str, pos, callback) ->
       path = @_refHelper.dereferencedPath path, @_specModel()[0]
+      # TODO DRY this unless block up. Also appears in mixin.stm
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         {val} = @_adapter.get path, @_specModel()[0]
