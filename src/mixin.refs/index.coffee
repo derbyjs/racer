@@ -12,10 +12,10 @@ module.exports =
         for method of accessors
           continue if method is 'get'
           do (method) ->
-            self.on method, ([path, args...]) ->
+            self._on method, ([path, args...], isLocal) ->
               # Emit events on any references that point to the path or any of its
               # ancestor paths
-              refHelper.notifyPointersTo path, @get(), method, args
+              refHelper.notifyPointersTo path, @get(), method, args, isLocal
 
   proto:
     # Create reference objects for use in model data methods
