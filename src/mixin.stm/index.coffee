@@ -5,6 +5,7 @@ TxnApplier = require '../TxnApplier'
 specHelper = require '../specHelper'
 mutators = require '../mutators'
 Async = require './Async'
+Field = require '../mixin.ot/Field'
 
 stm = module.exports =
   static:
@@ -224,6 +225,20 @@ stm = module.exports =
       meta = @_adapter[method] args...
       # For converting array ref index api back to id api
       args[1] = _meta  if _meta = extractor.meta mutation
+
+      # This marks an OT field as being non-speculative, so that OT ops can begin to be sent to the server
+      # TODO Make this more comprehensive - if @involvesOtVal val
+      # TODO Make sure this is not called during specModel, only on remote txns received
+      # TODO See if we can move this into mixin.ot
+      if method == 'set' && @isOtVal(args[1])
+        path = args[0]
+        # TODO DRY this up. Appears, too, in mixin.ot/index
+        unless field = @otFields[path]
+          field = @otFields[path] = new Field @, path
+          {val} = @_adapter.get path, @_specModel()[0]
+          snapshot = field.snapshot = val?.$ot || str
+        field.specTrigger true
+
       @emit method, args, local  if forceEmit
       return {args, meta}
 
@@ -303,14 +318,6 @@ stm = module.exports =
       return val
 
     set: (path, val, callback) ->
-      if @isOtVal val
-        origCallback = callback
-        self = this
-        callback = ->
-          fullPath = self._refHelper.dereferencedPath path, self._specModel()[0]
-          field = self.otFields[fullPath]
-          field.specTrigger true
-          origCallback.apply null, arguments if origCallback
       @_addOpAsTxn 'set', path, val, callback
       return val
     

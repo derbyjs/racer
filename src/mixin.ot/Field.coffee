@@ -62,7 +62,7 @@ Field:: =
     unless @_specTrigger
       @_specTrigger = new Promise
       @_specTrigger.on => @flush()
-    @_specTrigger.fulfill true if shouldFulfill
+    @_specTrigger.fulfill true if shouldFulfill && !@_specTrigger.value
     return @_specTrigger
 
   # Sends ops to the server
