@@ -230,7 +230,7 @@ stm = module.exports =
       # TODO Make this more comprehensive - if @involvesOtVal val
       # TODO Make sure this is not called during specModel, only on remote txns received
       # TODO See if we can move this into mixin.ot
-      if method == 'set' && @isOtVal(args[1])
+      if method == 'set' && (!appendArgs[2] || !appendArgs[2].proto) && @isOtVal(args[1])
         path = args[0]
         # TODO DRY this up. Appears, too, in mixin.ot/index
         unless field = @otFields[path]
