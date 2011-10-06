@@ -129,7 +129,7 @@ module.exports =
   'transactions should dereference paths': wrapTest (done) ->
     count = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql expected[count++]
+      txn.slice().should.eql expected[count++]
       sockets._disconnect()
       done()
     expected = [

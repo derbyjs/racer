@@ -39,7 +39,7 @@ stm = module.exports =
     txnApplier = new TxnApplier
       applyTxn: (txn) ->
         if transaction.base(txn) > adapter.ver
-          self._applyTxn txn, !txn.emitted && @_clientId != transaction.clientId txn
+          self._applyTxn txn, !txn.emitted || self._clientId != transaction.clientId txn
       onTimeout: -> self._reqNewTxns()
 
     @_onTxn = (txn, num) =>

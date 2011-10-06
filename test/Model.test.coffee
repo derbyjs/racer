@@ -36,7 +36,7 @@ module.exports =
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
+      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model.get('color').should.eql 'green'
@@ -51,7 +51,7 @@ module.exports =
   'test client del roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
+      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model._adapter._data.should.eql {}
@@ -67,7 +67,7 @@ module.exports =
   'test client push roundtrip with server echoing transaction': wrapTest (done) ->
     ver = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
+      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
       model.get('colors').should.eql ['red']
