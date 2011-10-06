@@ -34,7 +34,9 @@ app.get '/:group', (req, res) ->
       <title>Pad</title>
       <link rel=stylesheet href=style.css>
       <body>
-      <textarea id=editor>#{model.get '_room.text'}</textarea>
+      <div id=editor-container>
+        <textarea id=editor>#{model.get '_room.text'}</textarea>
+      </div>
       <script>init=#{bundle}</script>
       <script src=script.js></script>
       """
