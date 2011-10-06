@@ -48,6 +48,7 @@ module.exports =
       callback value + ';' + browserify.bundle options
 
   util: util
+  Model: Model
 
   # Returns Middleware adapter for Connect sessions
   session: session

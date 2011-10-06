@@ -52,4 +52,4 @@ racer = module.exports =
       model.socket.socket.publish 'connect' if connected
 
   util: util
-
+  Model: Model
