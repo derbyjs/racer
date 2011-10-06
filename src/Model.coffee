@@ -26,7 +26,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 Model::_setSocket = (socket) ->
   self = this
   self.socket = socket
-  adapter = self._adapter
 
   self.canConnect = true
   socket.on 'fatalErr', ->
