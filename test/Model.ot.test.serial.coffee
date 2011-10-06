@@ -127,20 +127,49 @@ module.exports =
         model.__events__ = 0
         model._on 'insertOT', ([path, insertedStr, pos], isRemote) ->
           return unless path == '_test.text'
-          if ++model.__events__ == 2
-            model.__final__ = model.get '_test.text'
-            if model.__events__ == otherModel.__events__
-              model.__final__.should.equal otherModel.__final__
-              sockets._disconnect()
-              store.disconnect()
-              done()
+          return if ++model.__events__ < 2
+          model.__final__ = model.get '_test.text'
+          if model.__events__ == otherModel.__events__
+            model.__final__.should.equal otherModel.__final__
+            sockets._disconnect()
+            store.disconnect()
+            done()
       modelA.insertOT '_test.text', 'xyz', 1
 
-#  '''1 insertOT by window A and 1 delOT by window B on the
-#  same path should result in the same 'valid' text in both windows
-#  after both ops have propagated, transformed, and applied both
-#  ops''': -> # TODO
-#
+  '''1 insertOT by window A and 1 delOT by window B on the
+  same path should result in the same 'valid' text in both windows
+  after both ops have propagated, transformed, and applied both
+  ops @ot''': (done) ->
+    numModels = 2
+    fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
+      modelB.on 'set', '_test.text', ->
+        modelB.insertOT '_test.text', 'tuv', 2
+      modelA.set '_test.text', modelA.ot('abcdef')
+
+      modelA.__events__ = 0
+      modelB.__events__ = 0
+      ['insertOT', 'delOT'].forEach (mutator) ->
+        modelA._on mutator, ([path, _, _], isRemote) ->
+          return unless path == '_test.text'
+          return if ++modelA.__events__ < 2
+          modelA.__final__ = modelA.get '_test.text'
+          if modelB.__events__ == 3
+            modelA.__final__.should.equal modelB.__final__
+            sockets._disconnect()
+            store.disconnect()
+            done()
+
+        modelB._on mutator, ([path, _, _], isRemote) ->
+          return unless path == '_test.text'
+          return if ++modelB.__events__ < 3
+          modelB.__final__ = modelB.get '_test.text'
+          if modelA.__events__ == 2
+            modelB.__final__.should.equal modelA.__final__
+            sockets._disconnect()
+            store.disconnect()
+            done()
+      modelA.delOT '_test.text', 3, 1
+
 #  '''1 delOT by window A and 1 delOT by window B on the
 #  same path should result in the same 'valid' text in both windows
 #  after both ops have propagated, transformed, and applied both
