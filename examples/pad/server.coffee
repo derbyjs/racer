@@ -34,7 +34,7 @@ app.get '/:group', (req, res) ->
       <title>Pad</title>
       <link rel=stylesheet href=style.css>
       <body>
-      <textarea id=editor disabled>Loading...</textarea>
+      <textarea id=editor>Edit me</textarea>
       <script>init=#{bundle}</script>
       <script src=script.js></script>
       """

@@ -26,53 +26,54 @@ racer.onready = ->
     model.delOT '_room.text', oldval.length - commonStart - commonEnd, commonStart unless oldval.length == commonStart + commonEnd
     model.insertOT '_room.text', newval[commonStart ... newval.length - commonEnd], commonStart unless newval.length == commonStart + commonEnd
 
-  setup = (snapshot) ->
-    editor.disabled = false
-    prevvalue = editor.value = snapshot
+  editor.disabled = false
+  prevvalue = editor.value = model.get '_room.text'
 
-    replaceText = (newText, transformCursor) ->
-      newSelection = [
-        transformCursor elem.selectionStart
-        transformCursor elem.selectionEnd
-      ]
+  replaceText = (newText, transformCursor) ->
+    newSelection = [
+      transformCursor editor.selectionStart
+      transformCursor editor.selectionEnd
+    ]
 
-      scrollTop = elem.scrollTop
-      elem.value = newText
-      elem.scrollTop = scrollTop if elem.scrollTop != scrollTop
-      [elem.selectionStart, elem.selectionEnd] = newSelection
+    scrollTop = editor.scrollTop
+    editor.value = newText
+    editor.scrollTop = scrollTop if editor.scrollTop != scrollTop
+    [editor.selectionStart, editor.selectionEnd] = newSelection
 
-    model.on 'insertOT', '_room.text', (text, pos) ->
-      transformCursor = (cursor) ->
-        if pos <= cursor
-          cursor + text.length
-        else
-          cursor
-
-      replaceText elem.value[...pos] + text + elem.value[pos..], transformCursor
-
-    model.on 'delOT', (text, pos) ->
-      transformCursor = (cursor) ->
-        if pos < cursor
-          cursor - Math.min(text.length, cursor - pos)
-        else
-          cursor
-
-      replaceText elem.value[...pos] + elem.value[pos + text.length..], transformCursor
-
-    genOp = (e) ->
-      onNextTick = (fn) -> setTimeout fn, 0
-      onNextTick ->
-        if editor.value != prevValue
-          prevValue = editor.value
-          applyChange editor.value.replace /\r\n/g, '\n'
-
-    for event in ['textInput', 'keydown', 'keyup', 'select', 'cut', 'paste']
-      if editor.addEventListener
-        editor.addEventListener event, genOp, false
+  model._on 'insertOT', ([path, text, pos], isLocal) ->
+    return if isLocal
+    return unless path == '_room.text'
+    transformCursor = (cursor) ->
+      if pos <= cursor
+        cursor + text.length
       else
-        editor.attachEvent 'on'+event, genOp
+        cursor
 
-  model.on 'open', '_room', setup
+    replaceText editor.value[...pos] + text + editor.value[pos..], transformCursor
+
+  model._on 'delOT', ([path, text, pos], isLocal) ->
+    return if isLocal
+    return unless path == '_room.text'
+    transformCursor = (cursor) ->
+      if pos < cursor
+        cursor - Math.min(text.length, cursor - pos)
+      else
+        cursor
+
+    replaceText editor.value[...pos] + editor.value[pos + text.length..], transformCursor
+
+  genOp = (e) ->
+    onNextTick = (fn) -> setTimeout fn, 0
+    onNextTick ->
+      if editor.value != prevValue
+        prevValue = editor.value
+        applyChange editor.value.replace /\r\n/g, '\n'
+
+  for event in ['textInput', 'keydown', 'keyup', 'select', 'cut', 'paste']
+    if editor.addEventListener
+      editor.addEventListener event, genOp, false
+    else
+      editor.attachEvent 'on'+event, genOp
 
 racer.init @init
 delete @init

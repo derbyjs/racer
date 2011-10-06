@@ -203,6 +203,31 @@ module.exports =
           done()
       modelA.delOT '_test.text', 3, 1
 
+  '''an OT op in window A should be reflected in the data of
+  a window B that loads after window A and its OT op @ot @single''': (done) ->
+    fullyWiredModels 2, (sockets, store, modelA, modelC) ->
+
+      createModelB = ->
+        modelB = store.createModel()
+        ref = modelC._adapter._data._test.$r
+        modelB.subscribe _test: "#{ref}.**", ->
+          modelB.get('_test.text').should.equal 'axyzbcdefg'
+          sockets._disconnect()
+          store.disconnect()
+          done()
+
+      didInsert = false
+      didSet = false
+      modelC.on 'set', '_test.text', ->
+        didSet = true
+        createModelB() if didInsert
+      modelC.on 'insertOT', '_test.text', ->
+        didInsert = true
+        createModelB() if didSet
+      modelA.set '_test.text', modelA.ot 'abcdefg'
+      modelA.insertOT '_test.text', 'xyz', 1
+
+
 #  # TODO ## Realtime mode conflicts (w/STM) ##
 #
 #  # TODO ## Do Refs ##

@@ -1,4 +1,5 @@
 # TODO Do JSON OT
+# TODO Work on offline support for OT
 
 Field = require './Field'
 
