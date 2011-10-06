@@ -151,15 +151,24 @@ Store = module.exports = (options = {}) ->
 
       socket.on 'otOp', (msg, fn) ->
         {path, op, v} = msg
+
+        flushViaFieldClient = ->
+          unless fieldClient = field.client socket.id
+            fieldClient = field.registerSocket socket
+            # TODO Cleanup with field.unregisterSocket
+          fieldClient.queue.push [msg, fn]
+          fieldClient.flush()
+
         # Lazy create the OT doc
         unless field = self.otFields[path]
           field = self.otFields[path] = new Field self._adapter, self._pubSub, path, v
+          self._adapter.get path, (err, val, ver) ->
+            # Lazy snapshot initialization
+            snapshot = field.snapshot = val?.$ot || ''
+            flushViaFieldClient()
+        else
+          flushViaFieldClient()
 
-        unless fieldClient = field.client socket.id
-          fieldClient = field.registerSocket socket
-          # TODO Cleanup with field.unregisterSocket
-        fieldClient.queue.push [msg, fn]
-        fieldClient.flush()
 
       # Handling transaction messages
       socket.on 'txn', (txn, clientStartId) ->
