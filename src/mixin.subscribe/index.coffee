@@ -1,6 +1,14 @@
+# TODO What do we do with `subscribe 'path.**'` when we migrate to a persistence store that does not carry all the '.**' data under a tree, but rather in a graph? e.g., dbrefs in mongodb, On the one extreme, we do eager loading, which enables us to use the synchronous interface of Model instances for subscribed data. The other extreme is to load the data we are subscribed to lazily in a Model instance as we need it; in this case, it is better to provide the user with a more Promise-based async interface.
+
 pathParser = require '../pathParser'
 
 module.exports =
+  init: ->
+    # Paths in the store that this model is subscribed to. These get set with
+    # model.subscribe, and must be sent to the store upon connecting
+    # Maps path -> 1
+    @_storeSubs = {}
+
   setupSocket: (socket) ->
     self = this
     {_adapter} = self = this
@@ -42,16 +50,23 @@ module.exports =
 
       throw new Error 'Unimplemented: unsubscribe'
 
+    # This method is over-written in Model.server
     _addSub: (paths, callback) ->
       self = this
       return callback() unless @connected
-      @socket.emit 'subAdd', @_clientId, paths, (data) ->
+      @socket.emit 'subAdd', @_clientId, paths, (data, otData) ->
         self._initSubData data
+        self._initSubOtData otData
         callback()
 
     _initSubData: (data) ->
       adapter = @_adapter
       setSubDatum adapter, datum  for datum in data
+      return
+
+    _initSubOtData: (data) ->
+      fields = @otFields
+      fields[path] = field for path, field of data
       return
 
 setSubDatum = (adapter, [root, remainder, value, ver]) ->

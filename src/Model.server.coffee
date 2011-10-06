@@ -29,7 +29,8 @@ ServerModel::bundle = (callback) ->
   self = this
   # Wait for all pending transactions to complete before returning
   return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
-  Promise.parallel(@clientIdPromise, @startIdPromise).on -> self._bundle callback
+  Promise.parallel(@clientIdPromise, @startIdPromise).on ->
+    self._bundle callback
 
 ServerModel::_bundle = (callback) ->
   # Unsubscribe the model from PubSub events. It will be resubscribed again
@@ -37,9 +38,14 @@ ServerModel::_bundle = (callback) ->
   clientId = @clientId
   @store._pubSub.unsubscribe clientId
   delete @store._localModels[clientId]
+
+  jsonOtFields = {}
+  for path, field of @otFields
+    jsonOtFields[path] = field.toJSON()
   
   callback JSON.stringify
     data: @get()
+    otFields: jsonOtFields
     base: @_adapter.ver
     clientId: clientId
     storeSubs: @_storeSubs
@@ -61,6 +67,7 @@ ServerModel::_addSub = (paths, callback) ->
     store._pubSub.subscribe clientId, paths
     store._localModels[clientId] = self
 
-    store._subData paths, (err, data) ->
+    store._fetchSubData paths, (err, data, otData) ->
       self._initSubData data
+      self._initSubOtData otData
       callback()

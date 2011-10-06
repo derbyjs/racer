@@ -1,6 +1,7 @@
 require 'es5-shim'
 util = require './util'
 Model = require './Model'
+Field = require './mixin.ot/Field'
 
 if 'undefined' != typeof io # io will be undefined in tests - see test/util/model fullyWiredModels
   # Patch Socket.io-client to publish the close event and disconnet immediately
@@ -18,6 +19,12 @@ racer = module.exports =
 
   init: (options) ->
     model = @model
+    
+    incomingOtFields = options.otFields
+    for path, json of incomingOtFields
+      field = Field.fromJSON json, model
+      model.otFields[path] = field
+
     model._adapter._data = options.data
     model._adapter.ver = options.base
     model._clientId = options.clientId

@@ -81,3 +81,7 @@ Field ::=
   client: (socketId) -> @connections[socketId]
 
   getOps: (start, end = @version) -> @ops[start...end]
+
+  # Used by Model.server::bundle
+  toJSON: ->
+    {@version, @path, @snapshot, @meta, @ops}

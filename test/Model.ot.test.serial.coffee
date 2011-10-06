@@ -3,6 +3,7 @@ should = require 'should'
 util = require './util'
 wrapTest = util.wrapTest
 {mockSocketModels, fullyWiredModels} = require './util/model'
+{BrowserSocketMock} = require './util/mocks'
 
 flushRedis = (done) ->
   redis = require('redis').createClient()
@@ -204,7 +205,7 @@ module.exports =
       modelA.delOT '_test.text', 3, 1
 
   '''an OT op in window A should be reflected in the data of
-  a window B that loads after window A and its OT op @ot @single''': (done) ->
+  a window B's server model that loads after window A and its OT op @ot''': (done) ->
     fullyWiredModels 2, (sockets, store, modelA, modelC) ->
 
       createModelB = ->
@@ -215,6 +216,37 @@ module.exports =
           sockets._disconnect()
           store.disconnect()
           done()
+
+      didInsert = false
+      didSet = false
+      modelC.on 'set', '_test.text', ->
+        didSet = true
+        createModelB() if didInsert
+      modelC.on 'insertOT', '_test.text', ->
+        didInsert = true
+        createModelB() if didSet
+      modelA.set '_test.text', modelA.ot 'abcdefg'
+      modelA.insertOT '_test.text', 'xyz', 1
+
+  '''an OT op in window A should be reflected in the data of
+  a window B's browser model that loads after window A and its OT op @ot''': (done) ->
+    browserRacer = require '../src/racer.browser'
+    fullyWiredModels 2, (sockets, store, modelA, modelC) ->
+
+      createModelB = ->
+        serverModelB = store.createModel()
+        ref = modelC._adapter._data._test.$r
+        serverModelB.subscribe _test: "#{ref}.**", ->
+          serverModelB.bundle (bundle) ->
+            bundle = JSON.parse bundle
+            bundle.socket = new BrowserSocketMock sockets
+            browserModelB = new Model
+            browserRacer.init.call model: browserModelB, bundle
+            browserModelB.get('_test.text').should.equal 'axyzbcdefg'
+
+            sockets._disconnect()
+            store.disconnect()
+            done()
 
       didInsert = false
       didSet = false

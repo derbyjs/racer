@@ -22,10 +22,6 @@ stm = module.exports =
         delete @lastReplayedTxnId
         delete @path
 
-    # Paths in the store that this model is subscribed to. These get set with
-    # model.subscribe, and must be sent to the store upon connecting
-    @_storeSubs = {}
-
     # The startId is the ID of the last Redis restart. This is sent along with
     # each versioned message from the Model so that the Store can map the model's
     # version number to the version number of the Stm in case of a Redis failure

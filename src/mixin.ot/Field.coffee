@@ -114,3 +114,10 @@ Field:: =
     client_ = @type.transform client, server, 'left'
     server_ = @type.transform server, client, 'right'
     return [client_, server_]
+
+
+Field.fromJSON = (json, model) ->
+  field = new Field model, json.path, json.version
+  field.snapshot = json.snapshot
+  # TODO What to do with json.ops?
+  return field

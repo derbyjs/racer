@@ -136,7 +136,7 @@ Store = module.exports = (options = {}) ->
 
       socket.on 'subAdd', (clientId, paths, callback) ->
         pubSub.subscribe clientId, paths
-        self._subData paths, (err, data) ->
+        self._fetchSubData paths, (err, data) ->
           callback data
 
       socket.on 'subRemove', (clientId, paths) ->
@@ -210,6 +210,13 @@ Store = module.exports = (options = {}) ->
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
   
+  # Accumulates an array of tuples [root, remainder, value, ver]
+  #
+  # @param {Array} data is an array that gets mutated
+  # @param {String} root is the part of the path up to ".*"
+  # @param {String} remainder is the part of the path ".*" and beyond
+  # @param {Object} value is the lookup value of the rooth path
+  # @param {Number} ver is the lookup ver of the root path
   addSubDatum = (data, root, remainder, value, ver) ->
     # Set the entire object if the remainder is '**'
     if remainder == '**'
@@ -236,17 +243,26 @@ Store = module.exports = (options = {}) ->
     # TODO: Support ** not at the end of a path
     # TODO: Support (a|b) syntax
 
-  @_subData = (paths, callback) ->
-    getting = paths.length
+  @_fetchSubData = (paths, callback) ->
+    remainingGets = paths.length
     data = []
+    otData = {}
+    store = this
     for path in paths
       [root, remainder] = pathParser.splitPattern path
 
       @get root, (err, value, ver) ->
         return callback err  if err
+        # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
+        # TODO Convert the following to work beyond MemoryStore
+        otPaths = allOtPaths value, "#{root}."
+        for otPath in otPaths
+          otData[otPath] = otField if otField = store.otFields[otPath]
+
+        # addSubDatum mutates data
         addSubDatum data, root, remainder, value, ver
-        return if --getting
-        callback null, data
+        return if --remainingGets
+        callback null, data, otData
     return
 
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
@@ -329,3 +345,14 @@ Store = module.exports = (options = {}) ->
     [redisClient, subClient, txnSubClient].forEach (client) -> client.quit()
 
   return
+
+allOtPaths = (obj, prefix = '') ->
+  results = []
+  return results unless obj && obj.constructor == Object
+  for k, v of obj
+    if v.constructor == Object
+      if v.$ot
+        results.push prefix + k
+        continue
+      results.push allOtPaths(v, k + '.')...
+  return results
