@@ -52,7 +52,7 @@ Store = module.exports = (options = {}) ->
         subscribeToStarts true
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
-      startIdPromise.reset() if startIdPromise.value
+      startIdPromise.clearValue() if startIdPromise.value
       startIdPromise.fulfill starts[0][0]
   
   # Ignore the first connect event
@@ -60,7 +60,7 @@ Store = module.exports = (options = {}) ->
   redisClient.on 'connect', subscribeToStarts
   redisClient.on 'end', ->
     redisStarts = null
-    startIdPromise.reset()
+    startIdPromise.clearValue()
 
 
   ## Downstream Transactional Interface ##

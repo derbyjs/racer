@@ -1,13 +1,12 @@
 Promise = module.exports = ->
   @callbacks = []
-  @resets = []
+  @clearValueCallbacks = []
   return
 
 Promise:: =
   on: (callback, scope) ->
-    return callback @value unless @value is undefined
-    callbacks = @callbacks
-    callbacks[callbacks.length] = [callback, scope]
+    return callback.call scope, @value unless @value is undefined
+    @callbacks.push [callback, scope]
     @
 
   fulfill: (val) ->
@@ -18,20 +17,21 @@ Promise:: =
     @callbacks = []
     @
 
-  onReset: (callback, scope) ->
-    resets = @resets
-    resets[resets.length] = [callback, scope]
+  onClearValue: (callback, scope) ->
+    @clearValueCallbacks.push [callback, scope]
+    @
 
-  reset: ->
+  clearValue: ->
     delete @value
-    callback.call scope for [callback, scope] in @resets
-    @resets = []
+    cbs = @clearValueCallbacks
+    callback.call scope for [callback, scope] in cbs
+    @clearValueCallbacks = []
     @
 
 Promise.parallel = (promises...) ->
   compositePromise = new Promise
   dependencies = promises.length
-  promises.forEach (promise) ->
+  for promise in promises
     promise.on -> --dependencies || compositePromise.fulfill(true)
-    promise.onReset -> dependencies++ || compositePromise.reset()
+    promise.onClearValue -> compositePromise.clearValue()
   return compositePromise
