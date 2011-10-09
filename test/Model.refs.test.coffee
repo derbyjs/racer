@@ -161,7 +161,7 @@ module.exports =
     model.on 'set', 'color.hex', (value) ->
       value.should.eql '#0f0'
       done()
-    model.on 'set', 'colors.**', (path, value) ->
+    model.on 'set', 'colors.*', (path, value) ->
       path.should.eql 'green.hex'
       value.should.eql '#0f0'
       done()
@@ -175,7 +175,7 @@ module.exports =
     model.on 'set', 'color.hex', (value) ->
       value.should.eql '#0f0'
       done()
-    model.on 'set', '_colors.**', (path, value) ->
+    model.on 'set', '_colors.*', (path, value) ->
       path.should.eql 'green.hex'
       value.should.eql '#0f0'
       done()
@@ -283,7 +283,7 @@ module.exports =
     model.set 'color', model.ref 'colors.green'
     model.set 'colors.green', model.ref 'bestColor'
     model.on 'set', 'color.hex', done
-    model.on 'set', 'colors.**', done
+    model.on 'set', 'colors.*', done
     model.del 'colors.green'
     model.set 'bestColor.hex', '#0f0'
   , 0
@@ -304,7 +304,7 @@ module.exports =
     model.on 'set', 'a', (value) ->
       value.should.eql 'green'
       done()
-    model.on 'set', 'b.**', (path, value) ->
+    model.on 'set', 'b.*', (path, value) ->
       path.should.eql 'y.z'
       value.should.eql 'green'
       done()

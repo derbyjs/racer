@@ -16,7 +16,7 @@ module.exports =
 
   'bundle should wait for the model transactions to be committed AND applied': (done) ->
     model = store.createModel()
-    model.subscribe _preso: 'presos.racer.**', ->
+    model.subscribe _preso: 'presos.racer.*', ->
       model.set 'presos.racer', { slides: [] }
       model.bundle (bundle) ->
         {data} = JSON.parse bundle
@@ -28,7 +28,7 @@ module.exports =
  
   'bundle should not pass anything speculative to the data key when using 2 speculative sets  with a shared path (aka lazy speculative marking of an object that was the value of a set  should not modify the object itself)': (done) ->
     model = store.createModel()
-    model.subscribe _preso: 'presos.racer.**', ->
+    model.subscribe _preso: 'presos.racer.*', ->
       model.set 'presos.racer', { slides: [] }
       model.set 'presos.racer.role', 'presenter'
       model.bundle (bundle) ->
