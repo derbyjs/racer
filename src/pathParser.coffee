@@ -21,8 +21,13 @@ module.exports =
       return unless obj = obj[prop]
     return obj
 
-  # Split the path at the first ocurrance of a wildcard
-  split: (path) -> path.split /\.?[*(]/
+  split: (path) ->
+    # Split the path at the first ocurrance of a wildcard
+    if ~(i = path.indexOf '*')
+      # Subtract 1 to remove '.' before '*'
+      [path.substr(0, i - 1), path.substr(i)]
+    else
+      [path]
 
   expand: (path) ->
     # Remove whitespace and line break characters
