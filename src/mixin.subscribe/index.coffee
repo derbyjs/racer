@@ -1,4 +1,4 @@
-# TODO What do we do with `subscribe 'path.**'` when we migrate to a persistence store that does not carry all the '.**' data under a tree, but rather in a graph? e.g., dbrefs in mongodb, On the one extreme, we do eager loading, which enables us to use the synchronous interface of Model instances for subscribed data. The other extreme is to load the data we are subscribed to lazily in a Model instance as we need it; in this case, it is better to provide the user with a more Promise-based async interface.
+# TODO What do we do with `subscribe 'path.*'` when we migrate to a persistence store that does not carry all the '.*' data under a tree, but rather in a graph? e.g., dbrefs in mongodb, On the one extreme, we do eager loading, which enables us to use the synchronous interface of Model instances for subscribed data. The other extreme is to load the data we are subscribed to lazily in a Model instance as we need it; in this case, it is better to provide the user with a more Promise-based async interface.
 
 pathParser = require '../pathParser'
 empty = ->
@@ -29,10 +29,11 @@ module.exports =
       paths = []
       storeSubs = @_storeSubs
       addPath = (path) ->
-        return if storeSubs[path]
-        # These subscriptions are reestablished when the client connects
-        storeSubs[path] = 1
-        paths.push path
+        for path in pathParser.expand path        
+          return if storeSubs[path]
+          # These subscriptions are reestablished when the client connects
+          storeSubs[path] = 1
+          paths.push path
 
       for path in _paths
         if typeof path is 'object'
