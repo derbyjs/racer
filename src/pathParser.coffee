@@ -34,32 +34,38 @@ module.exports =
     [root, remainder]
 
   expand: (path) ->
-    # Ignore all whitespace and line break characters
-    path = path.replace /\s\n/g, ''
-    stack = []
+    # Remove whitespace and line break characters
+    path = path.replace /[\s\n]/g, ''
+    # Return right away if path doesn't contain any groups
+    return [path]  unless ~path.indexOf('(')
+
+    # Break up path groups into a list of equivalent paths that contain
+    # only names and *
+    stack = {paths: paths = [''], out: []}
+    out = []
     while path
       unless match = /^([^,()]*)([,()])(.*)/.exec path
-        stack.push path
-        break
+        return (val + path for val in out)
       pre = match[1]
       token = match[2]
       path = match[3]
 
-      stack.push pre  if pre
-      if token is '('
-        parent = stack
-        parent.push stack = []
-        stack.parent = parent
-      else if token is ')'
-        stack = stack.parent
-    
-    return unroll stack, ['']
+      if pre
+        paths = (val + pre for val in paths)
+        unless token is '('
+          out = if lastClosed then paths else out.concat paths
 
-unroll = (stack, paths) ->
-  out = []
-  for item in stack
-    if typeof item is 'string'
-      for path in paths
-        out.push path + item
-    else unroll stack, out
-  return out
+      unless token is '('
+        stack.out = stack.out.concat paths
+
+      lastClosed = false
+      if token is ','
+        {paths} = stack
+      else if token is '('
+        stack = {parent: stack, paths, out: out = []}
+      else if token is ')'
+        lastClosed = true
+        paths = out = stack.out
+        stack = stack.parent
+
+    return out

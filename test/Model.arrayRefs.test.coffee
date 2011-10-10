@@ -590,7 +590,7 @@ module.exports =
     model.set '_group.todoIds', ['1']
     model.set '_group.todos',
       1: complete: false
-    # TODO Test for proper path passed to callback for `on 'set', '_group.todoList.**'`
+    # TODO Test for proper path passed to callback for `on 'set', '_group.todoList.*'`
     model.on 'set', '_group.todoList.0.complete', (value) ->
       value.should.be.true
       done()

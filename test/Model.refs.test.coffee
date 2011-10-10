@@ -229,7 +229,7 @@ module.exports =
 #    model.set 'users.8.favOne', model.ref 'users.6'
 #
 #    counter = 0
-#    model.on 'set', 'users.**', (path, value) ->
+#    model.on 'set', 'users.*', (path, value) ->
 #      counter++
 #      switch counter
 #        # callbacks for tests ops 1

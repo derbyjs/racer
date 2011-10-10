@@ -211,7 +211,7 @@ module.exports =
       createModelB = ->
         modelB = store.createModel()
         ref = modelC._adapter._data._test.$r
-        modelB.subscribe _test: "#{ref}.**", ->
+        modelB.subscribe _test: "#{ref}.*", ->
           modelB.get('_test.text').should.equal 'axyzbcdefg'
           sockets._disconnect()
           store.disconnect()
@@ -236,7 +236,7 @@ module.exports =
       createModelB = ->
         serverModelB = store.createModel()
         ref = modelC._adapter._data._test.$r
-        serverModelB.subscribe _test: "#{ref}.**", ->
+        serverModelB.subscribe _test: "#{ref}.*", ->
           serverModelB.bundle (bundle) ->
             bundle = JSON.parse bundle
             bundle.socket = new BrowserSocketMock sockets
