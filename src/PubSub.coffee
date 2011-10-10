@@ -55,16 +55,20 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
     @publish = (path, message) ->
       console.log "PUBLISH #{@_namespace path} #{JSON.stringify message}"
       @__publish path, message
-  
-  _onMessage = (pattern, path, message) ->
-    message = JSON.parse message
+
+  # These functions are obviously very similar, but they get called a lot,
+  # so they should probably be left this way for performance
+  subClient.on 'message', (path, message) ->
+    if pathSubs = subs[path]
+      message = JSON.parse message
+      for subscriberId of pathSubs
+        onMessage subscriberId, message
+  subClient.on 'pmessage', (pattern, path, message) ->
     if pathSubs = subs[pattern]
+      message = JSON.parse message
       for subscriberId, re of pathSubs
         onMessage subscriberId, message if re.test path
-  
-  subClient.on 'message', (path, message) -> _onMessage path, path, message
-  subClient.on 'pmessage', _onMessage
-  
+
   # Redis doesn't support callbacks on subscribe or unsubscribe methods, so
   # we call the callback after subscribe/unsubscribe events are published on
   # each of the paths for a given call of subscribe/unsubscribe.
