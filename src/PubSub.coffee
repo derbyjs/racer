@@ -46,6 +46,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
     for event in ['subscribe', 'unsubscribe', 'psubscribe', 'punsubscribe']
       do (event) ->
         subClient.on event, (path, count) ->
+          console.log "#{event.toUpperCase()} #{path} COUNT = #{count}"
     subClient.on 'message', (channel, message) ->
       console.log "MESSAGE #{channel} #{message}"
     subClient.on 'pmessage', (pattern, channel, message) ->
@@ -55,9 +56,9 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
       console.log "PUBLISH #{@_namespace path} #{JSON.stringify message}"
       @__publish path, message
   
-  _onMessage = (path, path, message) ->
+  _onMessage = (pattern, path, message) ->
     message = JSON.parse message
-    if pathSubs = subs[path]
+    if pathSubs = subs[pattern]
       for subscriberId, re of pathSubs
         onMessage subscriberId, message if re.test path
   

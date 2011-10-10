@@ -20,7 +20,7 @@ module.exports =
       pubClient.end()
       done()
 
-  'a published transaction to a plain path should only be received if subscribed to': (done) ->
+  'a published transaction to a plain path should be received if subscribed to': (done) ->
     pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
@@ -29,7 +29,7 @@ module.exports =
     pubSub.subscribe '1', ['channel'], ->
       pubSub.publish 'channel', 'value'
   
-  'a published transaction to a patterned `prefix.*` path should only be received if subscribed to': (done) ->
+  'a published transaction to a patterned `prefix.*` path should be received if subscribed to': (done) ->
     pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
