@@ -41,8 +41,7 @@ module.exports =
 
     # Break up path groups into a list of equivalent paths that contain
     # only names and *
-    stack = {paths: paths = [''], out: []}
-    out = []
+    stack = {paths: paths = [''], out: out = []}
     while path
       unless match = /^([^,()]*)([,()])(.*)/.exec path
         return (val + path for val in out)
@@ -55,17 +54,15 @@ module.exports =
         unless token is '('
           out = if lastClosed then paths else out.concat paths
 
-      unless token is '('
-        stack.out = stack.out.concat paths
-
       lastClosed = false
       if token is ','
+        stack.out = stack.out.concat paths
         {paths} = stack
       else if token is '('
         stack = {parent: stack, paths, out: out = []}
       else if token is ')'
         lastClosed = true
-        paths = out = stack.out
+        paths = out = stack.out.concat paths
         stack = stack.parent
 
     return out

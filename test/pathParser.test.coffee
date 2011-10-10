@@ -63,6 +63,22 @@ module.exports =
       'colors.a.here.fun.stuff.and'
       'colors.a.here.fun.stuff.here'
     ].sort()
+    expand( '(
+              green.(
+                hex,
+                name
+              ),(
+                more,
+                over,
+                here
+              ).fun
+            ).stuff').sort().should.eql [
+      'green.hex.stuff'
+      'green.name.stuff'
+      'more.fun.stuff'
+      'over.fun.stuff'
+      'here.fun.stuff'
+    ].sort()
   
   # 'test compiling of path patterns into RegEx': ->
   #   reList = pattern for pattern in [
