@@ -254,7 +254,7 @@ Store = module.exports = (options = {}) ->
         return callback err  if err
         # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
         # TODO Convert the following to work beyond MemoryStore
-        otPaths = allOtPaths value, "#{root}."
+        otPaths = allOtPaths value, root + '.'
         for otPath in otPaths
           otData[otPath] = otField if otField = store.otFields[otPath]
 
@@ -347,9 +347,9 @@ Store = module.exports = (options = {}) ->
 
 allOtPaths = (obj, prefix = '') ->
   results = []
-  return results unless obj && obj.constructor == Object
+  return results unless obj && obj.constructor is Object
   for k, v of obj
-    if v.constructor == Object
+    if v && v.constructor is Object
       if v.$ot
         results.push prefix + k
         continue
