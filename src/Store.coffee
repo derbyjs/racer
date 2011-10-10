@@ -218,8 +218,9 @@ Store = module.exports = (options = {}) ->
   # @param {Object} value is the lookup value of the rooth path
   # @param {Number} ver is the lookup ver of the root path
   addSubDatum = (data, root, remainder, value, ver) ->
-    # Set the entire object if the remainder is '**'
-    if remainder == '**'
+    # Set the entire object if the remainder is '*'
+    # Note that this does not follow references
+    if remainder == '*'
       return data.push [root, remainder, value, ver]
 
     # Set only the specified property if there is no remainder
@@ -229,9 +230,9 @@ Store = module.exports = (options = {}) ->
         else value
       return data.push [root, remainder, value, ver]
 
-    if remainder.substr(0, 2) == '*.' || remainder == '*'
+    if remainder.substr(0, 2) == '*.'
       # Set each property one level down
-      [appendRoot, remainder] = pathParser.splitPattern remainder.substr 2
+      [appendRoot, remainder] = pathParser.split remainder.substr 2
       for prop of value
         nextRoot = if root then root + '.' + prop else prop
         nextValue = value[prop]
@@ -240,8 +241,6 @@ Store = module.exports = (options = {}) ->
           nextValue = pathParser.fastLookup appendRoot, nextValue
         addSubDatum data, nextRoot, remainder, nextValue, ver
     return
-    # TODO: Support ** not at the end of a path
-    # TODO: Support (a|b) syntax
 
   @_fetchSubData = (paths, callback) ->
     remainingGets = paths.length
@@ -249,7 +248,7 @@ Store = module.exports = (options = {}) ->
     otData = {}
     store = this
     for path in paths
-      [root, remainder] = pathParser.splitPattern path
+      [root, remainder] = pathParser.split path
 
       @get root, (err, value, ver) ->
         return callback err  if err

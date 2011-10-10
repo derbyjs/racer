@@ -31,14 +31,13 @@ module.exports =
       addPath = (path) ->
         return if storeSubs[path]
         # These subscriptions are reestablished when the client connects
-        @_storeSubs[path] = 1
+        storeSubs[path] = 1
         paths.push path
-
 
       for path in _paths
         if typeof path is 'object'
           for key, value of path
-            root = pathParser.splitPattern(value)[0]
+            root = pathParser.split(value)[0]
             @set key, @ref root
             addPath value
         else addPath path

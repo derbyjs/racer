@@ -1,5 +1,5 @@
 redis = require 'redis'
-pathParser = require './pathParser.server'
+pathParser = require './pathParser'
 transaction = require './transaction.server'
 {hasKeys} = require './util'
 
@@ -55,10 +55,10 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
       console.log "PUBLISH #{@_namespace path} #{JSON.stringify message}"
       @__publish path, message
   
-  _onMessage = (glob, path, message) ->
+  _onMessage = (path, path, message) ->
     message = JSON.parse message
-    if subscribers = subs[glob]
-      for _, [subscriberId, re] of subscribers
+    if pathSubs = subs[path]
+      for subscriberId, re of pathSubs
         onMessage subscriberId, message if re.test path
   
   subClient.on 'message', (path, message) -> _onMessage path, path, message
@@ -83,23 +83,20 @@ RedisAdapter:: =
   
   subscribe: (subscriberId, paths, callback) ->
     return if subscriberId is undefined
-    
+
     subs = @_subs
     subscriberSubs = @_subscriberSubs
     toAdd = []
     for path in paths
       path = @_namespace path
-      glob = pathParser.glob path
-      unless globSubs = subs[glob]
-        subs[glob] = globSubs = {}
-        toAdd.push glob
+      unless pathSubs = subs[path]
+        subs[path] = pathSubs = {}
+        toAdd.push path
       re = pathParser.regExp path
-      # Two different path patterns may map to the same glob pattern, so the
-      # subscriptions are indexed both by subscriberId and path
-      globSubs["#{subscriberId}$#{path}"] = [subscriberId, re]
-      subscriberSubs[subscriberId] = ss = subscriberSubs[subscriberId] || {}
+      pathSubs[subscriberId] = re
+      ss = subscriberSubs[subscriberId] ||= {}
       ss[path] = re
-    
+
     handlePaths toAdd, @_pendingSubscribe, @_subscribeClient,
       'subscribe', 'psubscribe', callback
 
@@ -124,12 +121,10 @@ RedisAdapter:: =
     toRemove = []
     for path in paths
       path = @_namespace path
-      glob = pathParser.glob path
-      if globSubs = subs[glob]
-        delete globSubs["#{subscriberId}$#{path}"]
-        toRemove.push glob unless hasKeys globSubs
-      ss = subscriberSubs[subscriberId]
-      delete ss[path] if ss
+      if pathSubs = subs[path]
+        delete pathSubs[subscriberId]
+        toRemove.push path unless hasKeys pathSubs
+      delete ss[path] if ss = subscriberSubs[subscriberId]
     
     handlePaths toRemove, @_pendingUnsubscribe, @_subscribeClient,
       'unsubscribe', 'punsubscribe', callback
@@ -149,7 +144,7 @@ handlePaths = (paths, queue, client, pathFn, patternFn, callback) ->
     callback() if callback
   while i--
     path = paths[i]
-    if pathParser.isGlob path
+    if ~path.indexOf('*')
       client[patternFn] path
     else
       client[pathFn] path

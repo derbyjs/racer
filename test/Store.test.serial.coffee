@@ -68,10 +68,8 @@ module.exports =
       # TODO: Fix this case. It is pretty nasty because arrays could be
       # embedded anywhere along the path
       # 'a.d.1': {a: {d: [undefined, 1]}}
-      '**': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}}
-      'a.**': {a: {b: 1, c: 2, d: [1, 2]}}
-      '*': {a: {}, e: {}}
-      'a.*': {a: {b: 1, c: 2, d: []}}
+      '*': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}}
+      'a.*': {a: {b: 1, c: 2, d: [1, 2]}}
       '*.c': {a: {c: 2}, e: {c: 7}}
 
     patterns = Object.keys tests

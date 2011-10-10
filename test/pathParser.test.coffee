@@ -1,5 +1,5 @@
 should = require 'should'
-{isPrivate, expand} = require 'pathParser.server'
+{isPrivate, split, expand} = require 'pathParser'
 
 module.exports =
   'paths containing a segment starting with an underscore should be private': ->
@@ -11,6 +11,12 @@ module.exports =
     isPrivate('item_.stuff').should.be.false
     isPrivate('item.stuff_').should.be.false
     isPrivate('item_sdf.s_tuff').should.be.false
+
+  'test split': ->
+    split('colors.green').should.eql ['colors.green']
+    split('colors.*').should.eql ['colors', '']
+    split('*.colors').should.eql ['', '.colors']
+    split('colors.*.hex').should.eql ['colors', '.hex']
   
   'test expand': ->
     expand('colors.green').should.eql [
@@ -64,14 +70,8 @@ module.exports =
       'colors.a.here.fun.stuff.here'
     ].sort()
     expand( '(
-              green.(
-                hex,
-                name
-              ),(
-                more,
-                over,
-                here
-              ).fun
+              green.(hex,name),
+              (more,over,here).fun
             ).stuff').sort().should.eql [
       'green.hex.stuff'
       'green.name.stuff'

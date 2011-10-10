@@ -1,9 +1,6 @@
 # Interpret the path because it can be a regular
 # path, or a path pattern using a special path grammar.
 
-# TODO Improve this later once we finalize a path
-#      grammar. Possibly use jison - http://zaach.github.com/jison/
-
 module.exports =
   # Test to see if path name contains a segment that starts with an underscore.
   # Such a path is private to the current session and should not be stored
@@ -24,14 +21,8 @@ module.exports =
       return unless obj = obj[prop]
     return obj
 
-  split: (path) ->
-    if ~(i = path.search /[*(]/)
-      root = path.substr 0, i - 1  # Subtract one to remove the trailing '.'
-      remainder = path.substr i
-    else
-      root = path
-      remainder = ''
-    [root, remainder]
+  # Split the path at the first ocurrance of a wildcard
+  split: (path) -> path.split /\.?[*(]/
 
   expand: (path) ->
     # Remove whitespace and line break characters
