@@ -64,7 +64,7 @@ merge Model::, EventEmitter::,
     return pattern if pattern.call
     
     # on(method, pattern, callback)
-    re = pathParser.regExp pattern
+    re = pathParser.eventRegExp pattern
     return ([path, args...]) ->
       if re.test path
         callback re.exec(path).slice(1).concat(args)...

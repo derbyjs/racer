@@ -7,13 +7,20 @@ module.exports =
   # in persistent storage or synced with other clients.
   isPrivate: (name) -> /(?:^_)|(?:\._)/.test name
 
-  regExp: (pattern) -> if pattern instanceof RegExp then pattern else
+  eventRegExp: (pattern) ->
+    return pattern if pattern instanceof RegExp
+    return regExp pattern.replace(',', '|'), true
+
+  regExp: regExp = (pattern, capturing) ->
     new RegExp '^' + pattern.replace(/[.*]/g, (match, index) ->
       # Escape periods
       return if match is '.' then '\\.'
       # An asterisk matches any single path segment in the middle
       # and any path or paths at the end
-      else if pattern.length - index is 1 then '(.+)' else '([^.]+)'
+      else if pattern.length - index is 1
+        if capturing then '(.+)' else '.+'
+      else
+        if capturing then '([^.]+)' else '[^.]+'
     ) + '$'
 
   fastLookup: (path, obj) ->

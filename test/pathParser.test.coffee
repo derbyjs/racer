@@ -1,5 +1,13 @@
 should = require 'should'
-{isPrivate, split, expand} = require 'pathParser'
+{isPrivate, regExp, eventRegExp, split, expand} = require 'pathParser'
+
+testRegExps = (reList, sources, matches, nonMatches) ->
+  for re, i in reList
+    re.source.should.equal sources[i]
+    for obj in matches[i]
+      for match, captures of obj
+        re.exec(match).slice(1).should.eql captures
+    re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
 
 module.exports =
   'paths containing a segment starting with an underscore should be private': ->
@@ -79,48 +87,73 @@ module.exports =
       'over.fun.stuff'
       'here.fun.stuff'
     ].sort()
-  
-  # 'test compiling of path patterns into RegEx': ->
-  #   reList = pattern for pattern in [
-  #     'color'
-  #     '*'
-  #     '*.color.*'
-  #     '**'
-  #     '**.color.**'
-  #     /^(colors?)$/
-  #   ]
-  #   sources = [
-  #     '^color$'
-  #     '^([^\\.]+)$'
-  #     '^([^\\.]+)\\.color\\.([^\\.]+)$'
-  #     '^(.+)$'
-  #     '^(.+?)\\.color\\.(.+)$'
-  #     '^(colors?)$'
-  #   ]
-  #   matches = [
-  #     ['color': []]
-  #     ['any-thing': ['any-thing']]
-  #     ['x.color.y': ['x', 'y'],
-  #      'any-thing.color.x': ['any-thing', 'x']]
-  #     ['x': ['x'],
-  #      'x.y': ['x.y']]
-  #     ['x.color.y': ['x', 'y'],
-  #      'a.b-c.color.x.y': ['a.b-c', 'x.y']]
-  #     ['color': ['color'],
-  #      'colors': ['colors']]
-  #   ]
-  #   nonMatches = [
-  #     ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
-  #     ['', 'x.y', '.x', 'x.']
-  #     ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
-  #      '.color.y', 'x.color.', 'a.x.color.y', 'x.color.y.b']
-  #     ['']
-  #     ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y', '.color.y', 'x.color.']
-  #     ['colorx']
-  #   ]
-  #   for re, i in reList
-  #     re.source.should.equal sources[i]
-  #     for obj in matches[i]
-  #       for match, captures of obj
-  #         re.exec(match).slice(1).should.eql captures
-  #     re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
+
+  'test compiling of path patterns into RegEx': ->
+    reList = (regExp pattern for pattern in [
+      'color'
+      '*'
+      '*.color.*'
+      'color.*.name'
+    ])
+    sources = [
+      '^color$'
+      '^.+$'
+      '^[^.]+\\.color\\..+$'
+      '^color\\.[^.]+\\.name$'
+    ]
+    matches = [
+      ['color': []]
+      ['x': [],
+       'x.y': []]
+      ['x.color.y': [],
+       'any-thing.color.x.y': []]
+      ['color.x.name': []]
+    ]
+    nonMatches = [
+      ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
+      ['']
+      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
+       '.color.y', 'x.color.', 'a.x.color.y']
+      ['colorx.x.name', 'color.x.namex', 'color.x.y.name']
+    ]
+    testRegExps reList, sources, matches, nonMatches
+
+  'test compiling of event patterns into RegEx': ->
+    reList = (eventRegExp pattern for pattern in [
+      'color'
+      '*'
+      '*.color.*'
+      'color.*.name'
+      'colors.(red,green)'
+      /^(colors?)$/
+    ])
+    sources = [
+      '^color$'
+      '^(.+)$'
+      '^([^.]+)\\.color\\.(.+)$'
+      '^color\\.([^.]+)\\.name$'
+      '^colors\\.(red|green)$'
+      '^(colors?)$'
+    ]
+    matches = [
+      ['color': []]
+      ['x': ['x'],
+       'x.y': ['x.y']]
+      ['x.color.y': ['x', 'y'],
+       'any-thing.color.x.y': ['any-thing', 'x.y']]
+      ['color.x.name': ['x']]
+      ['colors.red': ['red'],
+       'colors.green': ['green']]
+      ['color': ['color'],
+       'colors': ['colors']]
+    ]
+    nonMatches = [
+      ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
+      ['']
+      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
+       '.color.y', 'x.color.', 'a.x.color.y']
+      ['colorx.x.name', 'color.x.namex', 'color.x.y.name']
+      ['colors.yellow', 'colors.']
+      ['colorx']
+    ]
+    testRegExps reList, sources, matches, nonMatches
