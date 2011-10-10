@@ -218,28 +218,28 @@ Store = module.exports = (options = {}) ->
   # @param {Object} value is the lookup value of the rooth path
   # @param {Number} ver is the lookup ver of the root path
   addSubDatum = (data, root, remainder, value, ver) ->
-    # Set the entire object if the remainder is '*'
-    # Note that this does not follow references
-    if remainder == '*'
+    # Set the entire object if the remainder is '', which indicates
+    # that the path ended in a '*'
+    if remainder == ''
       return data.push [root, remainder, value, ver]
 
     # Set only the specified property if there is no remainder
-    if !remainder
+    unless remainder?
       value = if typeof value is 'object'
           if specHelper.isArray value then [] else {}
         else value
       return data.push [root, remainder, value, ver]
 
-    if remainder.substr(0, 2) == '*.'
-      # Set each property one level down
-      [appendRoot, remainder] = pathParser.split remainder.substr 2
-      for prop of value
-        nextRoot = if root then root + '.' + prop else prop
-        nextValue = value[prop]
-        if appendRoot
-          nextRoot += '.' + appendRoot
-          nextValue = pathParser.fastLookup appendRoot, nextValue
-        addSubDatum data, nextRoot, remainder, nextValue, ver
+    # Set each property one level down, since the path had a '*'
+    # following the current root
+    [appendRoot, remainder] = pathParser.split remainder
+    for prop of value
+      nextRoot = if root then root + '.' + prop else prop
+      nextValue = value[prop]
+      if appendRoot
+        nextRoot += '.' + appendRoot
+        nextValue = pathParser.fastLookup appendRoot, nextValue
+      addSubDatum data, nextRoot, remainder, nextValue, ver
     return
 
   @_fetchSubData = (paths, callback) ->

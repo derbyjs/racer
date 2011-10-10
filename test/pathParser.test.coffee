@@ -14,9 +14,9 @@ module.exports =
 
   'test split': ->
     split('colors.green').should.eql ['colors.green']
-    split('colors.*').should.eql ['colors', '*']
-    split('*.colors').should.eql ['', '*.colors']
-    split('colors.*.hex').should.eql ['colors', '*.hex']
+    split('colors.*').should.eql ['colors', '']
+    split('*.colors').should.eql ['', 'colors']
+    split('colors.*.hex').should.eql ['colors', 'hex']
   
   'test expand': ->
     expand('colors.green').should.eql [
