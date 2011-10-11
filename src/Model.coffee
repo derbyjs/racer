@@ -118,5 +118,7 @@ Model.mixin = (mixin) ->
 
   return Model
 
-for item in ['./mixin.refs', './mixin.ot', './mixin.stm', './mixin.subscribe']
-  Model.mixin require item
+Model.mixin require './mixin.refs'
+Model.mixin require './mixin.ot'
+Model.mixin require './mixin.stm'
+Model.mixin require './mixin.subscribe'
