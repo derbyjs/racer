@@ -70,9 +70,9 @@ merge Model::, EventEmitter::,
         callback re.exec(path).slice(1).concat(args)...
         return true
 
-  # EventEmitter::addListener and once return this. The Model equivalents return
-  # the listener instead, since it is made internally for method subscriptions
-  # and may need to be passed to removeListener
+  # EventEmitter::on/addListener and once return this. The Model equivalents
+  # return the listener instead, since it is made internally for method
+  # subscriptions and may need to be passed to removeListener
 
   _on: EventEmitter::on
   on: (type, pattern, callback) ->
@@ -118,14 +118,5 @@ Model.mixin = (mixin) ->
 
   return Model
 
-REFS = require './mixin.refs'
-Model.mixin REFS
-
-OT = require './mixin.ot'
-Model.mixin OT
-
-STM = require './mixin.stm'
-Model.mixin STM
-
-SUBSCRIBE = require './mixin.subscribe'
-Model.mixin SUBSCRIBE
+for item in ['./mixin.refs', './mixin.ot', './mixin.stm', './mixin.subscribe']
+  Model.mixin require item
