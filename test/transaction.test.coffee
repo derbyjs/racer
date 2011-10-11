@@ -1,7 +1,7 @@
 # Tests for Op(erations)
 should = require 'should'
 transaction = require 'transaction'
-pathParser = require 'pathParser.server'
+pathParser = require 'pathParser'
 require 'transaction.server'
 
 module.exports =

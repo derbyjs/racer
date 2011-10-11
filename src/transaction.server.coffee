@@ -1,5 +1,5 @@
 transaction = require './transaction'
-pathParser = require './pathParser.server'
+pathParser = require './pathParser'
 
 transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
