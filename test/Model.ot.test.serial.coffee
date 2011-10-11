@@ -147,29 +147,13 @@ module.exports =
         modelB.insertOT '_test.text', 'tuv', 2
       modelA.set '_test.text', modelA.ot('abcdef')
 
-      modelA.__events__ = 0
-      modelB.__events__ = 0
-      ['insertOT', 'delOT'].forEach (mutator) ->
-        modelA._on mutator, ([path, _, _], isRemote) ->
-          return unless path == '_test.text'
-          return if ++modelA.__events__ < 2
-          modelA.__final__ = modelA.get '_test.text'
-          if modelB.__events__ == 3
-            modelA.__final__.should.equal modelB.__final__
-            sockets._disconnect()
-            store.disconnect()
-            done()
-
-        modelB._on mutator, ([path, _, _], isRemote) ->
-          return unless path == '_test.text'
-          return if ++modelB.__events__ < 3
-          modelB.__final__ = modelB.get '_test.text'
-          if modelA.__events__ == 2
-            modelB.__final__.should.equal modelA.__final__
-            sockets._disconnect()
-            store.disconnect()
-            done()
       modelA.delOT '_test.text', 3, 1
+      setTimeout ->
+        modelB.get('_test.text').should.equal modelA.get('_test.text')
+        sockets._disconnect()
+        store.disconnect()
+        done()
+      , 200
 
   '''1 delOT by window A and 1 delOT by window B on the
   same path should result in the same 'valid' text in both windows
@@ -180,29 +164,13 @@ module.exports =
       modelB.on 'set', '_test.text', ->
         modelB.delOT '_test.text', 3, 2
       modelA.set '_test.text', modelA.ot('abcdefghijk')
-
-      modelA.__events__ = 0
-      modelB.__events__ = 0
-      modelA._on 'delOT', ([path, _, _], isRemote) ->
-        return unless path == '_test.text'
-        return if ++modelA.__events__ < 2
-        modelA.__final__ = modelA.get '_test.text'
-        if modelB.__events__ == 2
-          modelA.__final__.should.equal modelB.__final__
-          sockets._disconnect()
-          store.disconnect()
-          done()
-
-      modelB._on 'delOT', ([path, _, _], isRemote) ->
-        return unless path == '_test.text'
-        return if ++modelB.__events__ < 2
-        modelB.__final__ = modelB.get '_test.text'
-        if modelA.__events__ == 2
-          modelB.__final__.should.equal modelA.__final__
-          sockets._disconnect()
-          store.disconnect()
-          done()
       modelA.delOT '_test.text', 3, 1
+      setTimeout ->
+        modelB.get('_test.text').should.equal modelA.get('_test.text')
+        sockets._disconnect()
+        store.disconnect()
+        done()
+      , 200
 
   '''an OT op in window A should be reflected in the data of
   a window B's server model that loads after window A and its OT op @ot''': (done) ->

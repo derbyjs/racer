@@ -7,7 +7,7 @@ transaction = require './transaction'
 
 DEFAULT_TIMEOUT = 1000
 
-module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
+module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout, init}) ->
   self = this
   if onTimeout
     timeout = DEFAULT_TIMEOUT if timeout is undefined
@@ -23,7 +23,7 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout}) ->
         @_waiter = null
   
   self._pending = {}
-  self._index = 1  # Corresponds to ver in Store and txnNum in Model
+  self._index = init ? 1  # Corresponds to ver in Store and txnNum in Model
   return
 
 TxnApplier::=

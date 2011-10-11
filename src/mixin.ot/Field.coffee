@@ -1,6 +1,7 @@
 text = require 'share/lib/types/text'
 specHelper = require '../specHelper'
 Promise = require '../Promise'
+TxnApplier = require '../TxnApplier'
 
 Field = module.exports = (model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
@@ -16,6 +17,53 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
   @inflightOp = null
   @inflightCallbacks = []
   @serverOps = {}
+
+  # Avoids race condition where another browser's op
+  # was accepted before an op submitted by this browser,
+  # but this browser receives its op ack before Redis
+  # propagates and sends notification of the other
+  # browser's op to this browser. This avoids
+  # "Invalid version" errors
+  @incomingSerializer = new TxnApplier
+    init: @version
+    applyTxn: ([op, isRemote, err], ver) =>
+      if isRemote
+        docOp = op
+        if @inflightOp
+          [@inflightOp, docOp] = @xf @inflightOp, docOp
+        if @pendingOp
+          [@pendingOp, docOp] = @xf @pendingOp, docOp
+
+        @version++
+        @otApply docOp, false
+      else
+        # TODO console.log arguments
+        oldInflightOp = @inflightOp
+        @inflightOp = null
+        if err
+          unless @type.invert
+            throw new Error "Op apply failed (#{err}) and the OT type does not define an invert function."
+
+          # TODO make this throw configurable on/off
+          throw new Error err
+
+          undo = @type.invert oldInflightOp
+          if @pendingOp
+            [@pendingOp, undo] = @xf @pendingOp, undo
+          @otApply undo
+          callback err for callback in @inflightCallbacks
+          return @flush
+
+        unless ver == @version
+          throw new Error 'Invalid version from server'
+
+        @serverOps[@version] = oldInflightOp
+        @version++
+        callback null, oldInflightOp for callback in @inflightCallbacks
+        @flush()
+    timeout: 5000
+    onTimeout: =>
+      throw new Error "Did not receive a prior op in time. Invalid version would result by applying buffered received ops unless prior op was applied first."
 
   self = this
   model._on 'change', ([path, op, oldSnapshot], isLocal) ->
@@ -34,13 +82,8 @@ Field:: =
     return if v < @version
     throw new Error "Expected version #{@version} but got #{v}" unless v == @version
     docOp = @serverOps[@version] = op
-    if @inflightOp
-      [@inflightOp, docOp] = @xf @inflightOp, docOp
-    if @pendingOp
-      [@pendingOp, docOp] = @xf @pendingOp, docOp
 
-    @version++
-    @otApply docOp, false
+    @incomingSerializer.add [docOp, true], v
 
   otApply: (docOp, isLocal = true) ->
     oldSnapshot = @snapshot
@@ -70,7 +113,9 @@ Field:: =
     # Used to flush the OT ops to the server when the OT flag on
     # the path transforms from speculative to permanent.
     unless @_specTrigger
-      shouldFulfill = specHelper.isSpeculative @model._adapter.get(@path, @model._specModel()[0])
+      # TODO See commented out line. This caused a bug because isSpeculative made a mistake by returning false when it should be true. This happens because the { text: { $ot:... }} object literal does not have _proto: true in the @model._specModel()[0] object (remember, _proto i set lazily)
+#      shouldFulfill = !specHelper.isSpeculative @model._adapter.get(@path, @model._specModel()[0])
+      shouldFulfill = !specHelper.isSpeculative @model._adapter.lookup(@path, @model._specModel()[0], proto: true).obj
       @specTrigger shouldFulfill
       return
 
@@ -84,31 +129,7 @@ Field:: =
 
     # @model.socket.send msg, (err, res) ->
     @model.socket.emit 'otOp', path: @path, op: @inflightOp, v: @version, (err, msg) =>
-      # TODO console.log arguments
-      oldInflightOp = @inflightOp
-      @inflightOp = null
-      if err
-        unless @type.invert
-          throw new Error "Op apply failed (#{err}) and the OT type does not define an invert function."
-
-        # TODO make this throw configurable on/off
-        throw new Error err
-
-        undo = @type.invert oldInflightOp
-        if @pendingOp
-          [@pendingOp, undo] = @xf @pendingOp, undo
-        @otApply undo
-        callback err for callback in @inflightCallbacks
-        return @flush
-
-      ver = msg.v if msg
-      unless ver == @version
-        throw new Error 'Invalid version from server'
-
-      @serverOps[@version] = oldInflightOp
-      @version++
-      callback null, oldInflightOp for callback in @inflightCallbacks
-      @flush()
+      @incomingSerializer.add [@inflightOp, false, err], msg.v if msg
 
   xf: (client, server) ->
     client_ = @type.transform client, server, 'left'
