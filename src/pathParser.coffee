@@ -28,7 +28,7 @@ module.exports =
       return unless obj = obj[prop]
     return obj
 
-  split: (path) -> path.split(/\.?\*\.?/)
+  split: (path) -> path.split(/\.?[(*]\.?/)
 
   expand: (path) ->
     # Remove whitespace and line break characters
