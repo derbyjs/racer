@@ -62,7 +62,7 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
         callback null, oldInflightOp for callback in @inflightCallbacks
         @flush()
     timeout: 5000
-    onTimeout: =>
+    onTimeout: ->
       throw new Error "Did not receive a prior op in time. Invalid version would result by applying buffered received ops unless prior op was applied first."
 
   self = this
