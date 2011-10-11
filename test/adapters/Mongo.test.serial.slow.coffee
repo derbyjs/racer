@@ -1,18 +1,17 @@
 should = require 'should'
 Store = require 'Store'
 MongoAdapter = require 'adapters/Mongo'
-adapter = new MongoAdapter
-adapter.connect('mongodb://localhost/racer_test')
+adapter = null
 
-finishAll = false
 module.exports =
   setup: (done) ->
+    adapter = new MongoAdapter
+    adapter.connect('mongodb://localhost/racer_test')
     adapter.flush done
   teardown: (done) ->
-    if finishAll
+    adapter.flush ->
       adapter.disconnect()
-      return done()
-    adapter.flush done
+      done()
 
   # TODO Add in MongoAdapter#insert
 
@@ -98,7 +97,3 @@ module.exports =
           should.equal undefined, val
           should.equal undefined, ver
           done()
-
-  finishAll: (done) -> finishAll = true; done()
-
-  ## !! PLACE ALL TESTS BEFORE finishAll !! ##

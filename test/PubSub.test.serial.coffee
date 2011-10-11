@@ -8,7 +8,6 @@ subClient = null
 debug = false
 newPubSub = (onMessage) -> new PubSub {pubClient, subClient, onMessage, debug}
 
-finishAll = false
 module.exports =
   setup: (done) ->
     pubClient = redis.createClient()
