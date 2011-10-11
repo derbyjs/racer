@@ -1,13 +1,13 @@
 transaction = require './transaction'
 
-# Given a stream of out of order transactions and an index, TxnApplier
+# Given a stream of out of order transactions and an index, Serializer
 # figures out what to apply immediately and what to buffer
 # to apply later if the incoming transaction has to wait first for
 # another transaction.
 
 DEFAULT_TIMEOUT = 1000
 
-module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout, init}) ->
+module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
   self = this
   if onTimeout
     timeout = DEFAULT_TIMEOUT if timeout is undefined
@@ -26,7 +26,7 @@ module.exports = TxnApplier = ({@applyTxn, onTimeout, timeout, init}) ->
   self._index = init ? 1  # Corresponds to ver in Store and txnNum in Model
   return
 
-TxnApplier::=
+Serializer::=
   _setWaiter: ->
   _clearWaiter: ->
   add: (txn, txnIndex) ->
@@ -39,13 +39,13 @@ TxnApplier::=
     # Ignore this transaction if it is older than the current index
     return false if txnIndex < index
     # Otherwise apply it immediately
-    @applyTxn txn, index
+    @withEach txn, index
     @_clearWaiter()
     # And apply any transactions that were waiting for txn
     index++
     pending = @_pending
     while txn = pending[index]
-      @applyTxn txn, index
+      @withEach txn, index
       delete pending[index++]
     @_index = index
     return true

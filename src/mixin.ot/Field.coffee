@@ -1,7 +1,7 @@
 text = require 'share/lib/types/text'
 specHelper = require '../specHelper'
 Promise = require '../Promise'
-TxnApplier = require '../TxnApplier'
+Serializer = require '../Serializer'
 
 Field = module.exports = (model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
@@ -24,9 +24,9 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
   # propagates and sends notification of the other
   # browser's op to this browser. This avoids
   # "Invalid version" errors
-  @incomingSerializer = new TxnApplier
+  @incomingSerializer = new Serializer
     init: @version
-    applyTxn: ([op, isRemote, err], ver) =>
+    withEach: ([op, isRemote, err], ver) =>
       if isRemote
         docOp = op
         if @inflightOp

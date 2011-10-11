@@ -5,7 +5,7 @@ Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
 pathParser = require './pathParser'
-TxnApplier = require './TxnApplier'
+Serializer = require './Serializer'
 specHelper = require './specHelper'
 redisInfo = require './redisInfo'
 Promise = require './Promise'
@@ -330,8 +330,8 @@ Store = module.exports = (options = {}) ->
   ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
-  txnApplier = new TxnApplier
-    applyTxn: (txn, ver) ->
+  txnApplier = new Serializer
+    withEach: (txn, ver) ->
       args = transaction.args(txn).slice 0
       method = transaction.method txn
       args.push ver, (err) ->

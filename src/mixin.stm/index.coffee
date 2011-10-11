@@ -1,7 +1,7 @@
 transaction = require '../transaction'
 pathParser = require '../pathParser'
 AtomicModel = require '../AtomicModel'
-TxnApplier = require '../TxnApplier'
+Serializer = require '../Serializer'
 specHelper = require '../specHelper'
 mutators = require '../mutators'
 Async = require './Async'
@@ -36,8 +36,8 @@ stm = module.exports =
     adapter = @_adapter
     self = this
 
-    txnApplier = new TxnApplier
-      applyTxn: (txn) ->
+    txnApplier = new Serializer
+      withEach: (txn) ->
         if transaction.base(txn) > adapter.ver
           self._applyTxn txn, !txn.emitted || self._clientId != transaction.clientId txn
       onTimeout: -> self._reqNewTxns()
