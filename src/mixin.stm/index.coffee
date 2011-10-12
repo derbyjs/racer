@@ -315,7 +315,7 @@ stm = module.exports =
 
     set: (path, val, callback) ->
       @_addOpAsTxn 'set', path, val, callback
-      return @get path
+      return val
     
     setNull: (path, value, callback) ->
       obj = @get path

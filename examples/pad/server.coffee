@@ -24,7 +24,7 @@ app.get '/', (req, res) ->
 app.get '/:group', (req, res) ->
   model = store.createModel()
   model.subscribe _room: "groups.#{req.params.group}", ->
-    text = model.setNull '_room.text', model.ot 'Edit this with friends.'
+    model.setNull '_room.text', model.ot 'Edit this with friends.'
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
     model.bundle (bundle) ->
@@ -34,7 +34,7 @@ app.get '/:group', (req, res) ->
       <link rel=stylesheet href=style.css>
       <body>
       <div id=editor-container>
-        <textarea id=editor>#{text}</textarea>
+        <textarea id=editor>#{model.get '_room.text'}</textarea>
       </div>
       <script>init=#{bundle}</script>
       <script src=script.js></script>

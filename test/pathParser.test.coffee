@@ -49,6 +49,10 @@ module.exports =
       'colors.green.name.stuff'
       'colors.red.*.stuff'
     ]
+    expand('colors.(green(,.name))').should.eql [
+      'colors.green'
+      'colors.green.name'
+    ]
     expand( 'colors.(
               green.(
                 hex,
