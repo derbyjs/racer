@@ -39,13 +39,15 @@ ServerModel::_bundle = (callback) ->
   @store._pubSub.unsubscribe clientId
   delete @store._localModels[clientId]
 
-  jsonOtFields = {}
+  otFields = {}
   for path, field of @otFields
-    jsonOtFields[path] = field.toJSON()
+    # OT objects aren't serializable until after one or more OT operations
+    # have occured on that object
+    otFields[path] = field.toJSON()  if field.toJSON
   
   callback JSON.stringify
     data: @get()
-    otFields: jsonOtFields
+    otFields: otFields
     base: @_adapter.ver
     clientId: clientId
     storeSubs: @_storeSubs

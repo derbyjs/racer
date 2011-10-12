@@ -308,14 +308,14 @@ stm = module.exports =
   ## Data accessor and mutator methods ##
   accessors:
     get: (path) ->
-      {val, ver} = @_adapter.get path, @_specModel()[0]
+      {val} = @_adapter.get path, @_specModel()[0]
       if @isOtVal val
         return @getOT path, val.$ot
       return val
 
     set: (path, val, callback) ->
       @_addOpAsTxn 'set', path, val, callback
-      return val
+      return @get path
     
     setNull: (path, value, callback) ->
       obj = @get path
