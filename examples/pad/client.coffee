@@ -34,46 +34,33 @@ racer.onready = ->
       transformCursor editor.selectionStart
       transformCursor editor.selectionEnd
     ]
-
     scrollTop = editor.scrollTop
     editor.value = newText
     editor.scrollTop = scrollTop if editor.scrollTop != scrollTop
     [editor.selectionStart, editor.selectionEnd] = newSelection
 
-  model._on 'insertOT', ([path, text, pos], isLocal) ->
-    return if isLocal
-    return unless path == '_room.text'
-    transformCursor = (cursor) ->
-      if pos <= cursor
-        cursor + text.length
-      else
-        cursor
+  model.on 'insertOT', '_room.text', (text, pos, isLocal) ->
+    unless isLocal
+      replaceText editor.value[...pos] + text + editor.value[pos..], (cursor) ->
+        if pos <= cursor then cursor + text.length else cursor
 
-    replaceText editor.value[...pos] + text + editor.value[pos..], transformCursor
-
-  model._on 'delOT', ([path, text, pos], isLocal) ->
-    return if isLocal
-    return unless path == '_room.text'
-    transformCursor = (cursor) ->
-      if pos < cursor
-        cursor - Math.min(text.length, cursor - pos)
-      else
-        cursor
-
-    replaceText editor.value[...pos] + editor.value[pos + text.length..], transformCursor
+  model.on 'delOT', '_room.text', (text, pos, isLocal) ->
+    unless isLocal
+      replaceText editor.value[...pos] + editor.value[pos + text.length..], (cursor) ->
+        if pos < cursor then cursor - Math.min(text.length, cursor - pos) else cursor
 
   genOp = (e) ->
-    onNextTick = (fn) -> setTimeout fn, 0
-    onNextTick ->
+    setTimeout ->
       if editor.value != prevValue
         prevValue = editor.value
         applyChange editor.value.replace /\r\n/g, '\n'
+    , 0
 
-  for event in ['textInput', 'keydown', 'keyup', 'select', 'cut', 'paste']
+  for event in ['input', 'keydown', 'keyup', 'select', 'cut', 'paste']
     if editor.addEventListener
       editor.addEventListener event, genOp, false
     else
-      editor.attachEvent 'on'+event, genOp
+      editor.attachEvent 'on' + event, genOp
 
 racer.init @init
 delete @init
