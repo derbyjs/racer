@@ -55,7 +55,7 @@ exports.fullyWiredModels = (numWindows, callback) ->
     browserModel = new Model
     browserSocket = new mocks.BrowserSocketMock serverSockets
     do (serverModel, browserModel, browserSocket) ->
-      serverModel.subscribe _test: fullPath = "#{sandboxPath}.*", ->
+      serverModel.subscribe _test: sandboxPath, ->
         serverModel.setNull sandboxPath, {}
         serverModel.bundle (bundle) ->
           bundle = JSON.parse(bundle)

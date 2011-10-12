@@ -218,16 +218,8 @@ Store = module.exports = (options = {}) ->
   # @param {Object} value is the lookup value of the rooth path
   # @param {Number} ver is the lookup ver of the root path
   addSubDatum = (data, root, remainder, value, ver) ->
-    # Set the entire object if the remainder is '', which indicates
-    # that the path ended in a '*'
-    if remainder == ''
-      return data.push [root, remainder, value, ver]
-
-    # Set only the specified property if there is no remainder
-    unless remainder?
-      value = if typeof value is 'object'
-          if specHelper.isArray value then [] else {}
-        else value
+    # Set the entire object if the remainder is ''
+    unless remainder
       return data.push [root, remainder, value, ver]
 
     # Set each property one level down, since the path had a '*'

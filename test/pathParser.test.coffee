@@ -22,8 +22,8 @@ module.exports =
 
   'test split': ->
     split('colors.green').should.eql ['colors.green']
-    split('colors.*').should.eql ['colors', '']
     split('*.colors').should.eql ['', 'colors']
+    split('colors.(green,red)').should.eql ['colors', 'green,red)']
     split('colors.*.hex').should.eql ['colors', 'hex']
   
   'test expand': ->
@@ -90,30 +90,32 @@ module.exports =
 
   'test compiling of path patterns into RegEx': ->
     reList = (regExp pattern for pattern in [
+      ''
       'color'
-      '*'
-      '*.color.*'
+      '*.color'
       'color.*.name'
     ])
     sources = [
-      '^color$'
-      '^.+$'
-      '^[^.]+\\.color\\..+$'
-      '^color\\.[^.]+\\.name$'
+      '^'
+      '^color(?:\\.|$)'
+      '^[^.]+\\.color(?:\\.|$)'
+      '^color\\.[^.]+\\.name(?:\\.|$)'
     ]
     matches = [
-      ['color': []]
       ['x': [],
        'x.y': []]
+      ['color': [],
+       'color.x': [],
+       'color.x.y': []]
       ['x.color.y': [],
-       'any-thing.color.x.y': []]
-      ['color.x.name': []]
+       'any-thing.color.x.y.z': []]
+      ['color.x.name': [],
+       'color.x.name.z': []]
     ]
     nonMatches = [
-      ['', 'xcolor', 'colorx', '.color', 'color.', 'x.color', 'color.x']
-      ['']
-      ['x.colorx.y', 'x.xcolor.y', 'x.color', 'color.y',
-       '.color.y', 'x.color.', 'a.x.color.y']
+      []
+      ['', 'xcolor', 'colorx', 'x.color']
+      ['color', 'x.colorx', 'x.xcolor', 'a.x.color']
       ['colorx.x.name', 'color.x.namex', 'color.x.y.name']
     ]
     testRegExps reList, sources, matches, nonMatches

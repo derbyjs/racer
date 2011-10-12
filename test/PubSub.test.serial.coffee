@@ -19,7 +19,7 @@ module.exports =
       pubClient.end()
       done()
 
-  'a published transaction to a plain path should be received if subscribed to': (done) ->
+  'a published transaction to the same path should be received if subscribed to': (done) ->
     pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
@@ -28,14 +28,17 @@ module.exports =
     pubSub.subscribe '1', ['channel'], ->
       pubSub.publish 'channel', 'value'
   
-  'a published transaction to a patterned `prefix.*` path should be received if subscribed to': (done) ->
+  'a published transaction to a subpath should be received if subscribed to': (done) ->
     pubSub = newPubSub (subscriberId, message) ->
       subscriberId.should.equal '1'
       message.should.equal 'value'
       done()
 
-    pubSub.subscribe '1', ['channel.*'], ->
+    pubSub.subscribe '1', ['channel'], ->
+      # Should match
       pubSub.publish 'channel.1', 'value'
+      # Should not match
+      pubSub.publish 'channel1', 'value'
 
   'a published transaction to a patterned `prefix.*.suffix` path should only be received if subscribed to': (done) ->
     counter = 0
@@ -110,8 +113,8 @@ module.exports =
         counter.should.equal 2
         done()
 
-    pubSub.subscribe '1', ['channel.*'], ->
-      pubSub.subscribe '1', ['channel.*'], ->
+    pubSub.subscribe '1', ['channel'], ->
+      pubSub.subscribe '1', ['channel'], ->
         pubSub.publish 'channel.1', 'first'
         pubSub.publish 'channel.1', 'last'
 
@@ -123,7 +126,7 @@ module.exports =
         counter.should.equal 3
         done()
 
-    pubSub.subscribe '1', ['channel.*'], ->
+    pubSub.subscribe '1', ['channel'], ->
       pubSub.subscribe '1', ['channel.1'], ->
         pubSub.publish 'channel.1', 'one'
         pubSub.publish 'channel.2', 'two'
@@ -144,9 +147,9 @@ module.exports =
   'subscribedToTxn should test if a client id is subscribed to a given transaction': ->
     pubSub = newPubSub()
     subscriber = '100'
-    pubSub.subscribe subscriber, ['b.*'], ->
+    pubSub.subscribe subscriber, ['b'], ->
       txnOne = [0, '1.0', 'set', 'a.b.c', 1]
-      txnTwo = [0, '1.0', 'set', 'b.c', 1]
+      txnTwo = [0, '1.0', 'set', 'b', 1]
       txnThree = [0, '1.0', 'set', 'b.c.d', 1]
       pubSub.subscribedToTxn(subscriber, txnOne).should.be.false
       pubSub.subscribedToTxn(subscriber, txnTwo).should.be.true

@@ -8,20 +8,27 @@ module.exports =
   isPrivate: (name) -> /(?:^_)|(?:\._)/.test name
 
   eventRegExp: (pattern) ->
-    return pattern if pattern instanceof RegExp
-    return regExp pattern.replace(',', '|'), true
+   if pattern instanceof RegExp then pattern else
+      new RegExp '^' + pattern.replace(/[,.*]/g, (match, index) ->
+        # Escape periods
+        if match is '.' then '\\.'
+        # Commas can be used for or, as in path.(one,two)
+        else if match is ',' then '|'
+        # An asterisk matches any single path segment in the middle
+        # and any path or paths at the end
+        else if pattern.length - index is 1 then '(.+)' else '([^.]+)'
+      ) + '$'
 
-  regExp: regExp = (pattern, capturing) ->
-    new RegExp '^' + pattern.replace(/[.*]/g, (match, index) ->
-      # Escape periods
-      return if match is '.' then '\\.'
-      # An asterisk matches any single path segment in the middle
-      # and any path or paths at the end
-      else if pattern.length - index is 1
-        if capturing then '(.+)' else '.+'
-      else
-        if capturing then '([^.]+)' else '[^.]+'
-    ) + '$'
+  regExp: (pattern) ->
+    # Match anything if there is no pattern or the pattern is ''
+    if !pattern then /^/ else
+      new RegExp '^' + pattern.replace(/[.*]/g, (match, index) ->
+        # Escape periods
+        if match is '.' then '\\.'
+        # An asterisk matches any single path segment in the middle
+        else '[^.]+'
+        # All subscriptions match the root and any path below the root
+      ) + '(?:\\.|$)'
 
   fastLookup: (path, obj) ->
     for prop in path.split '.'

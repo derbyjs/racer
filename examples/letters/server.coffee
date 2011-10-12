@@ -37,7 +37,7 @@ app.get '/:room?', (req, res) ->
   return res.redirect "/#{_room}" if _room != room
   
   model = store.createModel()
-  model.subscribe _room: "rooms.#{room}.**", 'rooms.*.players', ->
+  model.subscribe _room: "rooms.#{room}", 'rooms.*.players', ->
     model.setNull '_room.letters', defaultLetters
     model.set '_roomName', room
     # model.bundle waits for any pending model operations to complete and then

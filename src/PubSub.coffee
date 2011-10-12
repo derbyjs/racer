@@ -56,15 +56,9 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
       console.log "PUBLISH #{@_namespace path} #{JSON.stringify message}"
       @__publish path, message
 
-  # These functions are obviously very similar, but they get called a lot,
-  # so they should probably be left this way for performance
-  subClient.on 'message', (path, message) ->
-    if pathSubs = subs[path]
-      message = JSON.parse message
-      for subscriberId of pathSubs
-        onMessage subscriberId, message
   subClient.on 'pmessage', (pattern, path, message) ->
-    if pathSubs = subs[pattern]
+    # The pattern returned will have an extra * on the end
+    if pathSubs = subs[pattern.substr(0, pattern.length - 1)]
       message = JSON.parse message
       for subscriberId, re of pathSubs
         onMessage subscriberId, message if re.test path
@@ -72,15 +66,13 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
   # Redis doesn't support callbacks on subscribe or unsubscribe methods, so
   # we call the callback after subscribe/unsubscribe events are published on
   # each of the paths for a given call of subscribe/unsubscribe.
-  makeCallback = (queue, events) ->
-    fn = (path) ->
+  makeCallback = (queue, event) ->
+    subClient.on event, (path) ->
       if pending = queue[path]
         if callback = pending.shift()
           callback() unless --callback.__count
-    for event in events
-      subClient.on event, fn
-  makeCallback @_pendingSubscribe = {}, ['subscribe', 'psubscribe']
-  makeCallback @_pendingUnsubscribe = {}, ['unsubscribe', 'punsubscribe']
+  makeCallback @_pendingSubscribe = {}, 'psubscribe'
+  makeCallback @_pendingUnsubscribe = {}, 'punsubscribe'
   
   return
 
@@ -103,7 +95,7 @@ RedisAdapter:: =
       ss[path] = re
 
     handlePaths toAdd, @_pendingSubscribe, @_subscribeClient,
-      'subscribe', 'psubscribe', callback
+      'psubscribe', callback
 
   publish: (path, message) ->
     path = @_namespace path
@@ -132,7 +124,7 @@ RedisAdapter:: =
       delete ss[path] if ss = subscriberSubs[subscriberId]
     
     handlePaths toRemove, @_pendingUnsubscribe, @_subscribeClient,
-      'unsubscribe', 'punsubscribe', callback
+      'punsubscribe', callback
   
   hasSubscriptions: (subscriberId) -> subscriberId of @_subscriberSubs
 
@@ -142,17 +134,12 @@ RedisAdapter:: =
       return true if p == path || re.test path
     return false
 
-handlePaths = (paths, queue, client, pathFn, patternFn, callback) ->
+handlePaths = (paths, queue, client, fn, callback) ->
   if i = paths.length
     callback.__count = i if callback
   else
     callback() if callback
   while i--
-    path = paths[i]
-    if ~path.indexOf('*')
-      client[patternFn] path
-    else
-      client[pathFn] path
+    client[fn] path = paths[i] + '*'
     if callback
-      queue[path] = pending = queue[path] || []
-      pending.push callback
+      (queue[path] ||= []).push callback
