@@ -48,7 +48,7 @@ ServerModel::_bundle = (callback) ->
   callback JSON.stringify
     data: @get()
     otFields: otFields
-    base: @_adapter.ver
+    base: @_adapter.version()
     clientId: clientId
     storeSubs: @_storeSubs
     startId: @_startId

@@ -38,7 +38,7 @@ stm = module.exports =
 
     txnApplier = new Serializer
       withEach: (txn) ->
-        if transaction.base(txn) > adapter.ver
+        if transaction.base(txn) > adapter.version()
           self._applyTxn txn, !txn.emitted || self._clientId != transaction.clientId txn
       onTimeout: -> self._reqNewTxns()
 
@@ -95,7 +95,7 @@ stm = module.exports =
         callback callbackArgs...
       _removeTxn txnId
     # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.ver + 1, self._startId
+    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.version() + 1, self._startId
 
     resendInterval = null
     resend = ->
@@ -134,7 +134,7 @@ stm = module.exports =
       @_txns[id] = txn
       @_txnQueue.push id
 
-    _getVer: -> if @_force then null else @_adapter.ver
+    _getVer: -> if @_force then null else @_adapter.version()
 
     _addOpAsTxn: (method, path, args..., callback) ->
       # TODO: There is a lot of mutation of txn going on here. Clean this up.

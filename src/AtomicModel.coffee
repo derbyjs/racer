@@ -13,7 +13,7 @@ AtomicModel = module.exports = (id, parentModel) ->
     self.id = id
     self.parentModel = parentModel
     adapter = self._adapter = parentModel._adapter
-    self.ver = adapter.ver # Take a snapshot of the version
+    self.ver = adapter.version() # Take a snapshot of the version
 
     self._cache =
       invalidateSpecModelCache: ->
@@ -88,7 +88,7 @@ AtomicModel:: =
       {val, ver} = @_adapter.get path, @_specModel()[0]
     else
       val = @_specModel()[0]
-      ver = @_adapter.ver
+      ver = @_adapter.version()
     if ver <= @ver
       @_addOpAsTxn 'get', path ? null, null
     return val

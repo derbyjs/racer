@@ -16,7 +16,7 @@ module.exports =
       # Establish subscriptions upon connecting and get any transactions
       # that may have been missed
       storeSubs = Object.keys self._storeSubs
-      socket.emit 'sub', self._clientId, storeSubs, _adapter.ver, self._startId
+      socket.emit 'sub', self._clientId, storeSubs, _adapter.version(), self._startId
 
   proto:
     subscribe: (_paths..., callback) ->

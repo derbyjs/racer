@@ -2,14 +2,13 @@ MemorySync = require './MemorySync'
 
 Memory = module.exports = ->
   @_data = {}
-  @ver = 0
-  @_vers = {}
+  @_vers = ver: 0
   return
 
 Memory:: =
   flush: (callback) ->
     @_data = {}
-    @ver = 0
+    @_vers = ver: 0
     callback null
 
   _prefillVersion: MemorySync::_prefillVersion

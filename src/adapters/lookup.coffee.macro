@@ -14,7 +14,7 @@ lookupRef = (path, obj) ->
 #if ADD_PATH
 # Returns value
 # Used by reference indexer
-lookupAddPath = (path, obj, endInArray) ->
+lookupAddPath = (path, obj, speculative, endInArray) ->
 #end
 
 #if VERSION
@@ -26,20 +26,23 @@ lookupWithVersion = (path, obj, vers) ->
 #if SET_VERSION
 # Returns [value, parent, prop]
 # Used by delete
-# Prototypically inherits unless setVer is supplied
 lookupSetVersion = (path, obj, vers, setVer) ->
+  speculative = !setVer
 #end
 
 #if SET_VERSION_ADD_PATH
 # Returns [value, parent, prop]
 # Used by setters
-# Prototypically inherits unless setVer is supplied
 lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
+  speculative = !setVer
 #end
 
   curr = obj
   #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
   currVer = vers
+  #end
+  #if SET_VERSION or SET_VERSION_ADD_PATH
+  currVer.ver = setVer  if setVer
   #end
   props = path.split '.'
   path = ''
@@ -53,7 +56,20 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
     curr = curr[prop]
 
     #if VERSION
-    currVers = currVers[prop] || currVers
+    currVer = currVer[prop] || currVer
+    #end
+
+    #if SET_VERSION or SET_VERSION_ADD_PATH
+    parentVer = currVer
+    unless currVer = currVer[prop]
+    #end
+      #if SET_VERSION
+      currVer = parentVer
+      #elseif SET_VERSION_ADD_PATH
+      currVer = parentVer[prop] = {}
+      #end
+    #if SET_VERSION or SET_VERSION_ADD_PATH
+    currVer.ver = setVer  if setVer
     #end
 
     # The absolute path traversed so far
@@ -61,8 +77,18 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
 
     #if ADD_PATH or SET_VERSION_ADD_PATH
     # Create empty objects implied by the path
-    unless curr?
-      curr = parent[prop] = if endInArray && i == len then [] else {}    
+    if curr?
+      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
+    else
+      curr = parent[prop] = if speculative then
+          if endInArray && i == len then createArray() else createObject()
+        else
+          if endInArray && i == len then [] else {}
+    #elseif SET_VERSION
+    if curr?
+      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
+    else
+      break
     #else
     break unless curr?
     #end
@@ -73,22 +99,19 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
     #end
 
     #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
-    [refObj, currVers] = lookupWithVersion curr.$r, obj
+    [refObj, currVer] = lookupWithVersion curr.$r, obj
     #else
     refObj = lookup curr.$r, obj
     #end
     dereffedPath = obj.$lastPath
 
     if key = curr.$k
-      keyObj = lookup key, obj
-      if curr.$array
-        unless Array.isArray keyVal
-          throw new Error "Array reference key '#{keyObj}' at '#{key}' should be an array"
+      if Array.isArray keyObj = lookup key, obj
         if i < len
           prop = keyObj[props[i++]]
           dereffedPath += '.' + prop
           #if VERSION
-          [curr, currVers] = lookupWithVersion dereffedPath, obj
+          [curr, currVer] = lookupWithVersion dereffedPath, obj
           #else
           curr = lookup dereffedPath, obj
           #end
@@ -96,14 +119,15 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
           curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
         path = dereffedPath
       else
-        unless typeof keyObj is 'string' || typeof keyObj is 'number'
-          throw new Error "Reference key '#{keyObj}' at '#{key}' should be a path"
         dereffedPath += '.' + keyObj
         curr = lookup dereffedPath, obj
         path = dereffedPath unless i == len
     else
       curr = refObj
       path = dereffedPath unless i == len
+      #if SET_VERSION or SET_VERSION_ADD_PATH
+      currVer.ver = setVer  if setVer
+      #end
   
     break unless curr?
 
@@ -111,7 +135,7 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
   #if SET_VERSION
   return [curr, parent, prop]
   #elseif VERSION
-  return [curr, currVers]
+  return [curr, currVer]
   #else
   return curr
   #end

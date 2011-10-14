@@ -849,8 +849,8 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
     adapterSync.set 'users.1.account', {$r: 'accounts.1'}, constVer = ++ver
     adapterSync.set 'users.1.account.name', 'bbdo', ++ver
-    {ver: refVer} = adapterSync.lookup 'users.1.account', undefined, dontFollowLastRef: true
-    refVer.should.equal constVer
+    {currVer} = adapterSync.lookup 'users.1.account', undefined, dontFollowLastRef: true
+    currVer.ver.should.equal constVer
 
   # TODO Move the following commented out tests to Model layer. Doesn't belong in Adapter layer, since Model normalizes array ref ops args before passing the transaction op to the Adapter.
   # Array Ref Path Versioning

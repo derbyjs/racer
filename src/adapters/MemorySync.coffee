@@ -3,59 +3,51 @@ specHelper = require '../specHelper'
 arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
-  @_data = {} # maps path -> val
-  @ver = 0    # root node starts at ver 0
-  @_vers = {} # maps path -> ver
+  @_data = {}  # maps path -> val
+  @_vers = ver: 0  # maps path -> ver
   return
 
 Memory:: =
   version: (path, obj = @_data) ->
-    if path
-      val = @lookup(path, obj).ver
-      return val
-    return @ver
+    if path then @lookup(path, obj).currVer.ver else @_vers.ver
 
   get: (path, obj = @_data) ->
     if path
-      {obj, ver} = @lookup path, obj
-      return {val: obj, ver}
+      {obj, currVer} = @lookup path, obj
+      return {val: obj, ver: currVer.ver}
     else
-      return val: obj, ver: @ver
+      return val: obj, ver: @_vers.ver
   
   set: (path, value, ver, obj = @_data, options = {}) ->
     if value && value.$r
-      # If we are setting a reference, then copy the transaction
-      # , so we do not mutate the transaction stored in Model::_txns.
+      # If we are setting a reference, then copy the transaction,
+      # so we do not mutate the transaction stored in Model::_txns.
       # Mutation would otherwise occur via addition of $spec to value
       # during speculative model creation.
       refObjCopy = merge {}, value
       value = refObjCopy
-    @ver = ver unless ver is undefined
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop, versCurr} = out = @lookup path, obj, options
+    {parent, prop, currVer} = out = @lookup path, obj, options
     obj = out.obj = parent[prop] = value
     if !options.proto && typeof value is 'object'
-      @_prefillVersion versCurr, value, ver
+      @_prefillVersion currVer, value, ver
     return if options.returnMeta then out else obj
 
-  _prefillVersion: (versCurr, obj, ver) ->
+  _prefillVersion: (currVer, obj, ver) ->
     if Array.isArray obj
       for v, i in obj
-        @_storeVer versCurr, i, v, ver
+        @_storeVer currVer, i, v, ver
     else
       for k, v of obj
-        @_storeVer versCurr, k, v, ver
+        @_storeVer currVer, k, v, ver
 
-  _storeVer: (versCurr, prop, val, ver) ->
-    versCurr[prop] = if Array.isArray val then [] else {}
-    versCurr[prop].ver = ver
-    @_prefillVersion versCurr[prop], val, ver if typeof val is 'object'
+  _storeVer: (currVer, prop, val, ver) ->
+    currVer[prop] = if Array.isArray val then [] else {}
+    currVer[prop].ver = ver
+    @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
   
   del: (path, ver, obj, options = {}) ->
-    if ver < @ver
-      throw new Error 'Cannot set to a ver that is less than adapter ver'
-    @ver = ver unless ver is undefined
     proto = options.proto
     options = Object.create options
     options.addPath = false
@@ -84,7 +76,7 @@ Memory:: =
   lookup: (path, obj = @_data, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
-    versCurr ||= @_vers
+    currVer = @_vers
     props = path.split '.'
     
     origPath = path
@@ -96,54 +88,42 @@ Memory:: =
     if proto && !specHelper.isSpeculative curr
       curr = specHelper.create curr
 
-    @ver = setVer if setVer
-    ver = @ver # Track ver for getters
+    currVer.ver = setVer if setVer
 
     while i < len
       parent = curr
       prop = props[i++]
       curr = parent[prop]
 
-      if versCurr
-        versParent = versCurr
-        versCurr = versParent[prop]
+      parentVer = currVer
+      unless currVer = currVer[prop]
+        if setVer && addPath
+          currVer = parentVer[prop] = {}
+        else
+          currVer = parentVer
 
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
 
       unless curr?
         unless addPath
-          return {ver, versCurr, obj: curr, path, remainingProps: props.slice i}
+          return {currVer, obj: curr, path, remainingProps: props.slice i}
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
         curr = parent[prop] = if proto then specHelper.create setTo else setTo
       else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
         curr = parent[prop] = specHelper.create curr
-
-      if setVer && versCurr is undefined && addPath
-        setTo = if i == len then addPath else {}
-        versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
-      if versCurr is undefined
-        versCurr = versParent
       
       # Check for model references
-      unless ref = curr.$r
-        if setVer
-          versCurr.ver = setVer
-        ver = versCurr.ver if versCurr?.ver
-      else
+      if ref = curr.$r
         if i == len && dontFollowLastRef
-          ver = versCurr.ver if versCurr.ver
-          return {ver, versCurr, path, parent, prop, obj: curr}
+          break
 
-        {ver, versCurr, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+        currVer.ver = setVer if setVer
+
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
-        unless key = curr.$k
-          curr = rObj
-          if typeof curr == 'object'
-            versCurr.ver = setVer if setVer
-            ver = versCurr.ver
-        else
+        if key = curr.$k
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
@@ -153,18 +133,24 @@ Memory:: =
               prop = parseInt props[i++], 10
               prop = keyVal[prop]
               path = dereffedPath + '.' + prop
-              {versCurr, obj: curr} = curr = @lookup path, obj, {setVer}
+              {currVer, obj: curr} = curr = @lookup path, obj, {setVer}
             else
               curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
             curr = @lookup(dereffedPath, obj, options).obj
+        else
+          curr = rObj
+        
         path = dereffedPath unless i == len || isArrayRef
         if curr is undefined && !addPath && i < len
           # Return undefined if the reference points to nothing
-          return {ver, versCurr, obj: curr, path, remainingProps: props.slice i}
-    return {ver, versCurr, path, parent, prop, obj: curr}
+          return {currVer, obj: curr, path, remainingProps: props.slice i}
+      else
+        currVer.ver = setVer  if setVer
+    
+    return {currVer, path, parent, prop, obj: curr}
 
 xtraArrMutConf =
   insertAfter:
@@ -192,7 +178,6 @@ for method, {compound, normalizeArgs} of arrMutators
       fn = xtraConf.fn
     return ->
       {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
-      @ver = ver unless ver is undefined
       options.addPath = []
       options.setVer = ver unless options.proto
       out = @lookup path, obj, options
