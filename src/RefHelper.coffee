@@ -244,11 +244,8 @@ RefHelper:: =
     # TODO DRY - Above 2 lines are duplicated below
     _options = Object.create options
     _options.addPath = {}
-    _options.setVer = ver unless _options.proto
-    {obj, versCurr} = @_adapter.lookup "$refs.#{refsKey}.$", obj, _options
-    _options.dontSplitPath = true
-    _options.versCurr = versCurr
-    @_adapter.set path, entry, ver, obj, _options
+    {obj} = @_adapter.lookup "$refs.#{refsKey}.$", obj, _options
+    obj[path] = entry
 
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
@@ -431,8 +428,9 @@ RefHelper:: =
 
   dereferencedPath: (path, data) ->
     meta = @_adapter.lookup path, data, returnMeta: true
-    if meta.remainingProps
-      return meta.path + '.' + meta.remainingProps.join '.'
+    # TODO: This doesn't happen in any of the tests. Is it needed?
+    # if meta.remainingProps
+      # return meta.path + '.' + meta.remainingProps.join '.'
     return meta.path
 
   denormalizePath: (path, data) ->

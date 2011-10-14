@@ -1,4 +1,4 @@
-# TODO What do we do with `subscribe 'path.*'` when we migrate to a persistence store that does not carry all the '.*' data under a tree, but rather in a graph? e.g., dbrefs in mongodb, On the one extreme, we do eager loading, which enables us to use the synchronous interface of Model instances for subscribed data. The other extreme is to load the data we are subscribed to lazily in a Model instance as we need it; in this case, it is better to provide the user with a more Promise-based async interface.
+# TODO What do we do with subscribe when we migrate to a persistence store that does not carry all the data under a tree, but rather in a graph? e.g., dbrefs in mongodb, On the one extreme, we do eager loading, which enables us to use the synchronous interface of Model instances for subscribed data. The other extreme is to load the data we are subscribed to lazily in a Model instance as we need it; in this case, it is better to provide the user with a more Promise-based async interface.
 
 pathParser = require '../pathParser'
 empty = ->
@@ -74,12 +74,12 @@ module.exports =
       fields[path] = field for path, field of data
       return
 
-setSubDatum = (adapter, [root, remainder, value, ver]) ->
-  if root is ''
+setSubDatum = (adapter, [path, value, ver]) ->
+  if path is ''
     if typeof value is 'object'
       for k, v of value
         adapter.set k, v, ver
       return
-    throw 'Cannot subscribe to "' + root + remainder + '"'
+    throw 'Cannot subscribe to "' + path '"'
 
-  return adapter.set root, value, ver
+  return adapter.set path, value, ver

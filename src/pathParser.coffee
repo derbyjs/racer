@@ -35,7 +35,13 @@ module.exports =
       return unless obj = obj[prop]
     return obj
 
-  split: (path) -> path.split(/\.?[(*]\.?/)
+  fastLookupBreakOnRef: (path, obj) ->
+    for prop in path.split '.'
+      return obj  if obj.$r
+      return unless obj = obj[prop]
+    return obj
+
+  split: (path) -> path.split /\.?[(*]\.?/
 
   expand: (path) ->
     # Remove whitespace and line break characters

@@ -60,7 +60,7 @@ Memory:: =
     options = Object.create options
     options.addPath = false
     options.setVer = ver unless proto
-    {parent, prop, obj, path} = out = @lookup path, obj, options
+    {parent, prop, obj} = out = @lookup path, obj, options
     unless parent
       return if options.returnMeta then out else obj
     if proto
@@ -82,7 +82,7 @@ Memory:: =
     return if options.returnMeta then out else obj
 
   lookup: (path, obj = @_data, options = {}) ->
-    {addPath, setVer, proto, dontFollowLastRef, dontSplitPath, versCurr} = options
+    {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
     versCurr ||= @_vers
     if dontSplitPath
@@ -129,7 +129,7 @@ Memory:: =
         versCurr = versParent[prop] = if setTo.constructor == Object then {} else []
       if versCurr is undefined
         versCurr = versParent
-
+      
       # Check for model references
       unless ref = curr.$r
         if setVer

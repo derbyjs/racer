@@ -209,18 +209,18 @@ Store = module.exports = (options = {}) ->
       pubSub.subscribe clientId, paths
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
-  
-  # Accumulates an array of tuples [root, remainder, value, ver]
+
+
+  # Accumulates an array of tuples to set [path, value, ver]
   #
   # @param {Array} data is an array that gets mutated
   # @param {String} root is the part of the path up to ".*"
-  # @param {String} remainder is the part of the path ".*" and beyond
+  # @param {String} remainder is the part of the path after "*"
   # @param {Object} value is the lookup value of the rooth path
   # @param {Number} ver is the lookup ver of the root path
-  addSubDatum = (data, root, remainder, value, ver) ->
-    # Set the entire object if the remainder is ''
-    unless remainder
-      return data.push [root, remainder, value, ver]
+  addSubDatum = (self, data, root, remainder, value, ver, finish) ->
+    # Set the entire object
+    return data.push [root, value, ver]  unless remainder?
 
     # Set each property one level down, since the path had a '*'
     # following the current root
@@ -230,15 +230,25 @@ Store = module.exports = (options = {}) ->
       nextValue = value[prop]
       if appendRoot
         nextRoot += '.' + appendRoot
-        nextValue = pathParser.fastLookup appendRoot, nextValue
-      addSubDatum data, nextRoot, remainder, nextValue, ver
+        nextValue = pathParser.fastLookupBreakOnRef appendRoot, nextValue
+      
+      if nextValue && nextValue.$r
+        # Use @get to retreive the value for path containing a reference
+        finish.remainingGets++
+        self.get nextRoot, (err, value, ver) ->
+          console.log nextRoot, remainder, value
+          addSubDatum self, data, nextRoot, remainder, value, ver, finish
+          finish()
+      
+      addSubDatum self, data, nextRoot, remainder, nextValue, ver, finish
     return
 
   @_fetchSubData = (paths, callback) ->
-    remainingGets = paths.length
     data = []
     otData = {}
-    store = this
+    finish = -> callback null, data, otData  unless --finish.remainingGets
+    finish.remainingGets = paths.length
+    self = this
     for path in paths
       [root, remainder] = pathParser.split path
 
@@ -248,12 +258,11 @@ Store = module.exports = (options = {}) ->
         # TODO Convert the following to work beyond MemoryStore
         otPaths = allOtPaths value, root + '.'
         for otPath in otPaths
-          otData[otPath] = otField if otField = store.otFields[otPath]
+          otData[otPath] = otField if otField = self.otFields[otPath]
 
-        # addSubDatum mutates data
-        addSubDatum data, root, remainder, value, ver
-        return if --remainingGets
-        callback null, data, otData
+        # addSubDatum mutates data argument
+        addSubDatum self, data, root, remainder, value, ver, finish
+        finish()
     return
 
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
