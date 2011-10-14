@@ -26,7 +26,7 @@ Memory:: =
     if value && value.$r
       # If we are setting a reference, then copy the transaction
       # , so we do not mutate the transaction stored in Model::_txns.
-      # Mutation would otherwise occur via addition of _proto to value
+      # Mutation would otherwise occur via addition of $spec to value
       # during speculative model creation.
       refObjCopy = merge {}, value
       value = refObjCopy
@@ -102,7 +102,6 @@ Memory:: =
     while i < len
       parent = curr
       prop = props[i++]
-      throw new Error '"' + origPath + '" is not a valid model path'  if prop == ''
       curr = parent[prop]
 
       if versCurr
@@ -149,7 +148,7 @@ Memory:: =
           # memVer reflects the version set via an op on a member
           #  or member subpath
           keyVal = @lookup(key, obj).obj
-          if isArrayRef = specHelper.isArray(keyVal)
+          if isArrayRef = Array.isArray(keyVal)
             if i < len
               prop = parseInt props[i++], 10
               prop = keyVal[prop]
@@ -198,7 +197,7 @@ for method, {compound, normalizeArgs} of arrMutators
       options.setVer = ver unless options.proto
       out = @lookup path, obj, options
       arr = out.obj
-      throw new Error 'Not an Array' unless specHelper.isArray arr
+      throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
       ret = if fn then fn arr, methodArgs else arr[method] methodArgs...

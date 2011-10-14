@@ -205,7 +205,7 @@ RefHelper:: =
         refs = adapter.lookup("$keys.#{oldKey}.$", obj, _options).obj
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, obj, options unless hasKeys refs, ignore: specHelper.reserved
+          adapter.del "$keys.#{oldKey}", ver, obj, options unless hasKeys refs, ignore: [specHelper.identifier]
       refsKey = ref
     @_removeOld$refs oldRefObj, path, ver, obj, options
     @_update$refs refsKey, path, ref, key, type, ver, obj, options
@@ -234,7 +234,7 @@ RefHelper:: =
     refEntries = @_adapter.lookup("$refs.#{refWithKey}.$", obj, _options).obj
     return unless refEntries
     delete refEntries[path]
-    unless hasKeys(refEntries, ignore: specHelper.reserved)
+    unless hasKeys(refEntries, ignore: [specHelper.identifier])
       @_adapter.del "$refs.#{ref}", ver, obj, options
     
   # Private helper function for $indexRefs
@@ -268,9 +268,7 @@ RefHelper:: =
     fastLookup = pathParser.fastLookup
     for path, [ref, key, type] of refs
 
-      # Ignore the _proto key that we use to identify Object.created objs
-      # TODO Better encapsulate this
-      continue if path == '_proto'
+      continue if path == specHelper.identifier
 
       # Check to see if the reference is still the same
       o = fastLookup path, obj
@@ -373,7 +371,7 @@ RefHelper:: =
     model = @_model
     for pointingPath, [ref, key] of refs
       keyVal = key && adapter.lookup(key, obj, _options).obj
-      if keyVal && specHelper.isArray keyVal
+      if keyVal && Array.isArray keyVal
         keyMem = path.substr(ref.length + 1, pointingPath.length)
         # TODO Use model.remove here instead?
         adapter.remove key, keyVal.indexOf(keyMem), 1, null, obj, options

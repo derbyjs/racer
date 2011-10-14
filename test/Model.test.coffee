@@ -158,7 +158,6 @@ module.exports =
       color: 'red'
       info:
         numbers:
-          # No `_proto: true` here because 'info.numbers' was set to an object
           first: 2
           second: 10
     model._adapter._data.should.eql {}
@@ -178,9 +177,7 @@ module.exports =
     model.get().should.specEql
       color: 'green'
       info:
-        _proto: true
         numbers:
-          _proto: true
           third: 13
     model._adapter._data.should.eql {}
 

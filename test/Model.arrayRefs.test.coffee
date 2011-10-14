@@ -140,8 +140,8 @@ module.exports =
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
 
-  '''setting on a path that is currently an array ref should modify the
-  array ref, similar to setting an object reference in Javascript''': ->
+  'setting on a path that is currently an array ref should modify the
+    array ref, similar to setting an object reference in Javascript': ->
     model = new Model
     model.set 'mine', model.arrayRef('todos', '_mine')
     model.set '_mine', ['1', '3']

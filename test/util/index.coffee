@@ -11,10 +11,10 @@ exports.wrapTest = (fn, numCallbacks = 1) ->
 
 flatten = (a) ->
   if typeof a is 'object'
-    obj = if specHelper.isArray a then [] else {}
+    obj = if Array.isArray a then [] else {}
   else
     return a
-  if specHelper.isArray a
+  if Array.isArray a
     for val, i in a
       obj[i] = flatten val
   else
@@ -27,7 +27,7 @@ exports.protoInspect = protoInspect = (a) -> inspect flatten(a), false, null
 removeReserved = (a) ->
   if typeof a == 'object'
     for key, val of a
-      unless -1 == specHelper.reserved.indexOf key
+      if key is specHelper.identifier
         delete a[key]
         continue
       a[key] = removeReserved val
@@ -41,7 +41,7 @@ protoSubset = (a, b, exception) ->
       return false unless protoSubset a[i], b[i], exception
     else
       return false unless exception && exception(a, b, i) || a[i] == b[i]
-  if specHelper.isArray a
+  if Array.isArray a
     for v, i in a
       return false if checkProp(i) == false
   else
@@ -65,9 +65,7 @@ should.Assertion::protoEql = (val) ->
 
 
 specEql = (a, b) ->
-  exception = (objA, objB, prop) ->
-    return true unless -1 == specHelper.reserved.indexOf prop
-    return false
+  exception = (objA, objB, prop) -> prop == specHelper.identifier
   protoSubset(a, b, exception) && protoSubset(b, a, exception)
 
 should.Assertion::specEql = (val) ->

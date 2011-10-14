@@ -1,0 +1,117 @@
+#if LOOKUP
+# Returns value
+# Used generally
+lookup = (path, obj) ->
+#end
+
+#if REF
+# Returns value
+# Used by reference indexer
+# Does not dereference the final item
+lookupRef = (path, obj) ->
+#end
+
+#if ADD_PATH
+# Returns value
+# Used by reference indexer
+lookupAddPath = (path, obj, endInArray) ->
+#end
+
+#if VERSION
+# Returns [value, {ver}]
+# Used by version getter
+lookupWithVersion = (path, obj, vers) ->
+#end
+
+#if SET_VERSION
+# Returns [value, parent, prop]
+# Used by delete
+# Prototypically inherits unless setVer is supplied
+lookupSetVersion = (path, obj, vers, setVer) ->
+#end
+
+#if SET_VERSION_ADD_PATH
+# Returns [value, parent, prop]
+# Used by setters
+# Prototypically inherits unless setVer is supplied
+lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
+#end
+
+  curr = obj
+  #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
+  currVer = vers
+  #end
+  props = path.split '.'
+  path = ''
+  i = 0
+  len = props.length
+
+  while prop = props[i++]
+    #if ADD_PATH or SET_VERSION or SET_VERSION_ADD_PATH
+    parent = curr
+    #end
+    curr = curr[prop]
+
+    #if VERSION
+    currVers = currVers[prop] || currVers
+    #end
+
+    # The absolute path traversed so far
+    path = if path then path + '.' + prop else prop
+
+    #if ADD_PATH or SET_VERSION_ADD_PATH
+    # Create empty objects implied by the path
+    unless curr?
+      curr = parent[prop] = if endInArray && i == len then [] else {}    
+    #else
+    break unless curr?
+    #end
+
+    continue unless curr.$r
+    #if REF
+    break if i == len
+    #end
+
+    #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
+    [refObj, currVers] = lookupWithVersion curr.$r, obj
+    #else
+    refObj = lookup curr.$r, obj
+    #end
+    dereffedPath = obj.$lastPath
+
+    if key = curr.$k
+      keyObj = lookup key, obj
+      if curr.$array
+        unless Array.isArray keyVal
+          throw new Error "Array reference key '#{keyObj}' at '#{key}' should be an array"
+        if i < len
+          prop = keyObj[props[i++]]
+          dereffedPath += '.' + prop
+          #if VERSION
+          [curr, currVers] = lookupWithVersion dereffedPath, obj
+          #else
+          curr = lookup dereffedPath, obj
+          #end
+        else
+          curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
+        path = dereffedPath
+      else
+        unless typeof keyObj is 'string' || typeof keyObj is 'number'
+          throw new Error "Reference key '#{keyObj}' at '#{key}' should be a path"
+        dereffedPath += '.' + keyObj
+        curr = lookup dereffedPath, obj
+        path = dereffedPath unless i == len
+    else
+      curr = refObj
+      path = dereffedPath unless i == len
+  
+    break unless curr?
+
+  obj.$lastPath = path
+  #if SET_VERSION
+  return [curr, parent, prop]
+  #elseif VERSION
+  return [curr, currVers]
+  #else
+  return curr
+  #end
