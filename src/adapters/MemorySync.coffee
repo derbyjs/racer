@@ -85,10 +85,7 @@ Memory:: =
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = obj
     versCurr ||= @_vers
-    if dontSplitPath
-      props = [path]
-    else
-      props = path.split '.'
+    props = path.split '.'
     
     origPath = path
     path = ''
