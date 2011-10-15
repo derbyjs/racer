@@ -9,11 +9,11 @@ Memory = module.exports = ->
 
 Memory:: =
   version: (path, data) ->
-    if path then @lookup(path, data || @_data, @_vers).currVer.ver else @_vers.ver
+    if path then lookup(path, data || @_data, @_vers).currVer.ver else @_vers.ver
 
   get: (path, data) ->
     if path
-      {obj, currVer} = @lookup path, data || @_data, @_vers
+      {obj, currVer} = lookup path, data || @_data, @_vers
       return {val: obj, ver: currVer.ver}
     else
       return val: data || @_data, ver: @_vers.ver
@@ -21,7 +21,7 @@ Memory:: =
   set: (path, value, ver, data, options = {}) ->
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop, currVer} = out = @lookup path, data || @_data, @_vers, options
+    {parent, prop, currVer} = out = lookup path, data || @_data, @_vers, options
     obj = out.obj = parent[prop] = value
     if !options.proto && typeof value is 'object'
       @_prefillVersion currVer, value, ver
@@ -45,7 +45,7 @@ Memory:: =
     options = Object.create options
     options.addPath = false
     options.setVer = ver unless proto
-    {parent, prop, obj} = out = @lookup path, data || @_data, @_vers, options
+    {parent, prop, obj} = out = lookup path, data || @_data, @_vers, options
     unless parent
       return if options.returnMeta then out else obj
     if proto
@@ -108,7 +108,7 @@ Memory:: =
         if i == len && dontFollowLastRef
           break
         
-        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, data, vers, options
+        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = lookup ref, data, vers, options
         currVer.ver = setVer if setVer
 
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
@@ -116,19 +116,19 @@ Memory:: =
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          keyVal = @lookup(key, data, vers).obj
+          keyVal = lookup(key, data, vers).obj
           if isArrayRef = Array.isArray(keyVal)
             if i < len
               prop = parseInt props[i++], 10
               prop = keyVal[prop]
               path = dereffedPath + '.' + prop
-              {currVer, obj: curr} = curr = @lookup path, data, vers, {setVer}
+              {currVer, obj: curr} = curr = lookup path, data, vers, {setVer}
             else
-              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, data, vers).obj
+              curr = keyVal.map (key) => lookup(dereffedPath + '.' + key, data, vers).obj
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
-            curr = @lookup(dereffedPath, data, vers, options).obj
+            curr = lookup(dereffedPath, data, vers, options).obj
         else
           curr = rObj
         
@@ -169,7 +169,7 @@ for method, {compound, normalizeArgs} of arrMutators
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
       options.addPath = []
       options.setVer = ver unless options.proto
-      out = @lookup path, data || @_data, @_vers, options
+      out = lookup path, data || @_data, @_vers, options
       arr = out.obj
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
@@ -180,8 +180,8 @@ for method, {compound, normalizeArgs} of arrMutators
 Memory::move = (path, from, to, ver, data, options = {}) ->
   data ||= @_data
   vers = @_vers
-  value = @lookup("#{path}.#{from}", data, vers).obj
-  to += @lookup(path, data, vers).obj.length if to < 0
+  value = lookup("#{path}.#{from}", data, vers).obj
+  to += lookup(path, data, vers).obj.length if to < 0
   if from > to
     @insertBefore path, to, value, ver, data, options
     from++
