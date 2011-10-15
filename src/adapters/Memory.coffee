@@ -99,16 +99,18 @@ Memory:: =
       return callback err
     callback null, startIndex, removeCount, newMembers...
   
-  _move: (path, from, to, ver, obj = @_data, options = {}) ->
+  _move: (path, from, to, ver, data, options = {}) ->
     options.setVer = ver
-    value = @lookup("#{path}.#{from}", obj, options).obj
-    to += @lookup(path, obj, options).obj.length if to < 0
+    data ||= @_data
+    vers = @_vers
+    value = @lookup("#{path}.#{from}", data, vers, options).obj
+    to += @lookup(path, data, vers, options).obj.length if to < 0
     if from > to
-      @_insertBefore path, to, value, ver, obj, options
+      @_insertBefore path, to, value, ver, data, options
       from++
     else
-      @_insertAfter path, to, value, ver, obj, options
-    @_remove path, from, 1, ver, obj, options
+      @_insertAfter path, to, value, ver, data, options
+    @_remove path, from, 1, ver, data, options
   move: (path, from, to, ver, callback) ->
     try
       @_move path, from, to, ver

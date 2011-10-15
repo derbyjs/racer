@@ -851,7 +851,7 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'users.1.account', {$r: 'accounts.1'}, constVer = ++ver
     adapterSync.set 'users.1.account.name', 'bbdo', ++ver
     # TODO: Don't use internal adapter details
-    {currVer} = adapterSync.lookup 'users.1.account', adapterSync._data, dontFollowLastRef: true
+    {currVer} = adapterSync.lookup 'users.1.account', adapterSync._data, adapterSync._vers, dontFollowLastRef: true
     currVer.ver.should.equal constVer
 
   # TODO Move the following commented out tests to Model layer. Doesn't belong in Adapter layer, since Model normalizes array ref ops args before passing the transaction op to the Adapter.

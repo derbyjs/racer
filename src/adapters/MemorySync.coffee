@@ -8,20 +8,20 @@ Memory = module.exports = ->
   return
 
 Memory:: =
-  version: (path, data = @_data) ->
-    if path then @lookup(path, data).currVer.ver else @_vers.ver
+  version: (path, data) ->
+    if path then @lookup(path, data || @_data, @_vers).currVer.ver else @_vers.ver
 
-  get: (path, data = @_data) ->
+  get: (path, data) ->
     if path
-      {obj, currVer} = @lookup path, data
+      {obj, currVer} = @lookup path, data || @_data, @_vers
       return {val: obj, ver: currVer.ver}
     else
-      return val: data, ver: @_vers.ver
+      return val: data || @_data, ver: @_vers.ver
   
-  set: (path, value, ver, data = @_data, options = {}) ->
+  set: (path, value, ver, data, options = {}) ->
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop, currVer} = out = @lookup path, data, options
+    {parent, prop, currVer} = out = @lookup path, data || @_data, @_vers, options
     obj = out.obj = parent[prop] = value
     if !options.proto && typeof value is 'object'
       @_prefillVersion currVer, value, ver
@@ -40,12 +40,12 @@ Memory:: =
     currVer[prop].ver = ver
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
   
-  del: (path, ver, data = @_data, options = {}) ->
+  del: (path, ver, data, options = {}) ->
     proto = options.proto
     options = Object.create options
     options.addPath = false
     options.setVer = ver unless proto
-    {parent, prop, obj} = out = @lookup path, data, options
+    {parent, prop, obj} = out = @lookup path, data || @_data, @_vers, options
     unless parent
       return if options.returnMeta then out else obj
     if proto
@@ -66,10 +66,10 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  lookup: (path, data = @_data, options = {}) ->
+  lookup: lookup = (path, data, vers, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = data
-    currVer = @_vers
+    currVer = vers
     props = path.split '.'
     
     origPath = path
@@ -108,7 +108,7 @@ Memory:: =
         if i == len && dontFollowLastRef
           break
         
-        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, data, options
+        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, data, vers, options
         currVer.ver = setVer if setVer
 
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
@@ -116,19 +116,19 @@ Memory:: =
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          keyVal = @lookup(key, data).obj
+          keyVal = @lookup(key, data, vers).obj
           if isArrayRef = Array.isArray(keyVal)
             if i < len
               prop = parseInt props[i++], 10
               prop = keyVal[prop]
               path = dereffedPath + '.' + prop
-              {currVer, obj: curr} = curr = @lookup path, data, {setVer}
+              {currVer, obj: curr} = curr = @lookup path, data, vers, {setVer}
             else
-              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, data).obj
+              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, data, vers).obj
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
-            curr = @lookup(dereffedPath, data, options).obj
+            curr = @lookup(dereffedPath, data, vers, options).obj
         else
           curr = rObj
         
@@ -167,10 +167,9 @@ for method, {compound, normalizeArgs} of arrMutators
       fn = xtraConf.fn
     return ->
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
-      data ||= @_data
       options.addPath = []
       options.setVer = ver unless options.proto
-      out = @lookup path, data, options
+      out = @lookup path, data || @_data, @_vers, options
       arr = out.obj
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
@@ -178,9 +177,11 @@ for method, {compound, normalizeArgs} of arrMutators
       ret = if fn then fn arr, methodArgs else arr[method] methodArgs...
       return if options.returnMeta then out else ret
 
-Memory::move = (path, from, to, ver, data = @_data, options = {}) ->
-  value = @lookup("#{path}.#{from}", data).obj
-  to += @lookup(path, data).obj.length if to < 0
+Memory::move = (path, from, to, ver, data, options = {}) ->
+  data ||= @_data
+  vers = @_vers
+  value = @lookup("#{path}.#{from}", data, vers).obj
+  to += @lookup(path, data, vers).obj.length if to < 0
   if from > to
     @insertBefore path, to, value, ver, data, options
     from++
