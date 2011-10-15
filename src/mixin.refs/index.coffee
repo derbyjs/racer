@@ -12,7 +12,7 @@ module.exports =
         for method of accessors
           continue if method is 'get'
           do (method) ->
-            self._on method, ([path, args...], isLocal) ->
+            self.on method, ([path, args...], isLocal) ->
               # Emit events on any references that point to the path or any of its
               # ancestor paths
               refHelper.notifyPointersTo path, @get(), method, args, isLocal

@@ -141,10 +141,8 @@ stm = module.exports =
       refHelper = @_refHelper
       model = @
 
-      # just in case we did atomicModel.get()
-      getWorld = null == path
-
-      unless getWorld
+      # In case we did atomicModel.get()
+      unless nullPath = path is null
         # Transform args if path represents an array ref
         # argsNormalizer = new ArgsNormalizer refHelper
         # args = argsNormalizer.transform(method, path, args)
@@ -168,12 +166,12 @@ stm = module.exports =
       id = @_nextTxnId()
       txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
       # NOTE: This converts the transaction
-      unless getWorld
+      unless nullPath
         txn = refHelper.dereferenceTxn txn, @_specModel()[0]
 
       @_queueTxn txn, callback
 
-      unless getWorld
+      unless nullPath
         txnArgs = transaction.args txn
         path = txnArgs[0]
         # Apply a private transaction immediately and don't send it to the store

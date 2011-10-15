@@ -8,17 +8,17 @@ Memory = module.exports = ->
   return
 
 Memory:: =
-  version: (path, obj = @_data) ->
-    if path then @lookup(path, obj).currVer.ver else @_vers.ver
+  version: (path, data = @_data) ->
+    if path then @lookup(path, data).currVer.ver else @_vers.ver
 
-  get: (path, obj = @_data) ->
+  get: (path, data = @_data) ->
     if path
-      {obj, currVer} = @lookup path, obj
+      {obj, currVer} = @lookup path, data
       return {val: obj, ver: currVer.ver}
     else
-      return val: obj, ver: @_vers.ver
+      return val: data, ver: @_vers.ver
   
-  set: (path, value, ver, obj = @_data, options = {}) ->
+  set: (path, value, ver, data = @_data, options = {}) ->
     if value && value.$r
       # If we are setting a reference, then copy the transaction,
       # so we do not mutate the transaction stored in Model::_txns.
@@ -28,7 +28,7 @@ Memory:: =
       value = refObjCopy
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop, currVer} = out = @lookup path, obj, options
+    {parent, prop, currVer} = out = @lookup path, data, options
     obj = out.obj = parent[prop] = value
     if !options.proto && typeof value is 'object'
       @_prefillVersion currVer, value, ver
@@ -47,12 +47,12 @@ Memory:: =
     currVer[prop].ver = ver
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
   
-  del: (path, ver, obj, options = {}) ->
+  del: (path, ver, data = @_data, options = {}) ->
     proto = options.proto
     options = Object.create options
     options.addPath = false
     options.setVer = ver unless proto
-    {parent, prop, obj} = out = @lookup path, obj, options
+    {parent, prop, obj} = out = @lookup path, data, options
     unless parent
       return if options.returnMeta then out else obj
     if proto
@@ -73,9 +73,9 @@ Memory:: =
     delete parent[prop]
     return if options.returnMeta then out else obj
 
-  lookup: (path, obj = @_data, options = {}) ->
+  lookup: (path, data = @_data, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
-    curr = obj
+    curr = data
     currVer = @_vers
     props = path.split '.'
     
@@ -83,10 +83,6 @@ Memory:: =
     path = ''
     i = 0
     len = props.length
-
-    # spec the root node if in proto mode
-    if proto && !specHelper.isSpeculative curr
-      curr = specHelper.create curr
 
     currVer.ver = setVer if setVer
 
@@ -118,8 +114,8 @@ Memory:: =
       if ref = curr.$r
         if i == len && dontFollowLastRef
           break
-
-        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, obj, options
+        
+        {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = @lookup ref, data, options
         currVer.ver = setVer if setVer
 
         dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
@@ -127,19 +123,19 @@ Memory:: =
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          keyVal = @lookup(key, obj).obj
+          keyVal = @lookup(key, data).obj
           if isArrayRef = Array.isArray(keyVal)
             if i < len
               prop = parseInt props[i++], 10
               prop = keyVal[prop]
               path = dereffedPath + '.' + prop
-              {currVer, obj: curr} = curr = @lookup path, obj, {setVer}
+              {currVer, obj: curr} = curr = @lookup path, data, {setVer}
             else
-              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, obj).obj
+              curr = keyVal.map (key) => @lookup(dereffedPath + '.' + key, data).obj
           else
             dereffedPath += '.' + keyVal
             # TODO deref the 2nd lookup term above
-            curr = @lookup(dereffedPath, obj, options).obj
+            curr = @lookup(dereffedPath, data, options).obj
         else
           curr = rObj
         
@@ -177,10 +173,11 @@ for method, {compound, normalizeArgs} of arrMutators
       outOfBounds = xtraConf.outOfBounds
       fn = xtraConf.fn
     return ->
-      {path, methodArgs, ver, obj, options} = normalizeArgs arguments...
+      {path, methodArgs, ver, data, options} = normalizeArgs arguments...
+      data ||= @_data
       options.addPath = []
       options.setVer = ver unless options.proto
-      out = @lookup path, obj, options
+      out = @lookup path, data, options
       arr = out.obj
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
@@ -188,12 +185,12 @@ for method, {compound, normalizeArgs} of arrMutators
       ret = if fn then fn arr, methodArgs else arr[method] methodArgs...
       return if options.returnMeta then out else ret
 
-Memory::move = (path, from, to, ver, obj, options = {}) ->
-  value = @lookup("#{path}.#{from}", obj).obj
-  to += @lookup(path, obj).obj.length if to < 0
+Memory::move = (path, from, to, ver, data = @_data, options = {}) ->
+  value = @lookup("#{path}.#{from}", data).obj
+  to += @lookup(path, data).obj.length if to < 0
   if from > to
-    @insertBefore path, to, value, ver, obj, options
+    @insertBefore path, to, value, ver, data, options
     from++
   else
-    @insertAfter path, to, value, ver, obj, options
-  @remove path, from, 1, ver, obj, options
+    @insertAfter path, to, value, ver, data, options
+  @remove path, from, 1, ver, data, options
