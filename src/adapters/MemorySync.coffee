@@ -69,19 +69,18 @@ Memory:: =
     {addPath, setVer, proto, dontFollowLastRef} = options
     curr = data
     currVer = vers
+    currVer.ver = setVer if setVer
+
     props = path.split '.'
-    
-    data.$remainder = ''
     path = ''
+    data.$remainder = ''
     i = 0
     len = props.length
 
-    currVer.ver = setVer if setVer
-
     while i < len
-      parent = curr
       prop = props[i++]
-      curr = parent[prop]
+      parent = curr
+      curr = curr[prop]
 
       parentVer = currVer
       unless currVer = currVer[prop]
@@ -110,32 +109,30 @@ Memory:: =
         if i == len && dontFollowLastRef
           break
         
-        {currVer, obj: rObj, path: dereffedPath} = lookup ref, data, vers, options
-        dereffedPath += '.' + data.$remainder if data.$remainder
+        {currVer, obj: rObj} = lookup ref, data, vers, options
+        dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
         currVer.ver = setVer if setVer
 
         if key = curr.$k
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
           #  or member subpath
-          keyVal = lookup(key, data, vers).obj
-          if isArrayRef = Array.isArray(keyVal)
+          if Array.isArray keyObj = lookup(key, data, vers).obj
             if i < len
-              prop = parseInt props[i++], 10
-              prop = keyVal[prop]
+              prop = keyObj[props[i++]]
               path = dereffedPath + '.' + prop
               {currVer, obj: curr} = curr = lookup path, data, vers, {setVer}
             else
-              curr = keyVal.map (key) => lookup(dereffedPath + '.' + key, data, vers).obj
+              curr = (lookup(dereffedPath + '.' + index, data, vers).obj for index in keyObj)
           else
-            dereffedPath += '.' + keyVal
-            # TODO deref the 2nd lookup term above
+            dereffedPath += '.' + keyObj
             curr = lookup(dereffedPath, data, vers, options).obj
+            path = dereffedPath unless i == len
         else
           curr = rObj
+          path = dereffedPath unless i == len
         
-        path = dereffedPath unless i == len || isArrayRef
-        if curr is undefined && !addPath && i < len
+        if `curr == null` && !addPath
           # Return undefined if the reference points to nothing
           data.$remainder = props.slice(i).join '.'
           break
@@ -143,7 +140,7 @@ Memory:: =
         currVer.ver = setVer  if setVer
     
     data.$path = path
-    return {currVer, path, parent, prop, obj: curr}
+    return {currVer, parent, prop, obj: curr}
 
 xtraArrMutConf =
   insertAfter:

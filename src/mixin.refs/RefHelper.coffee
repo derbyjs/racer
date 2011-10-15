@@ -388,17 +388,17 @@ RefHelper:: =
       else
         # Update the transaction's path with a dereferenced path if not undefined.
         # TODO: This path assembling should be done in the path getter function
-        {obj, path} = @_adapter.lookup path, data, @_adapter._vers
+        {obj} = @_adapter.lookup path, data, @_adapter._vers
         args[0] = if obj is undefined && data.$remainder
-            path + '.' + data.$remainder
-          else path
+            data.$path + '.' + data.$remainder
+          else data.$path
       return txn
 
     # Update the transaction's path with a dereferenced path.
-    {obj, path} = @_adapter.lookup path, data, @_adapter._vers
+    {obj} = @_adapter.lookup path, data, @_adapter._vers
     args[0] = if obj is undefined && data.$remainder
-        path + '.' + data.$remainder
-      else path
+        data.$path + '.' + data.$remainder
+      else data.$path
     return txn
 
   # isArrayRef
