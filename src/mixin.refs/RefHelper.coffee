@@ -387,19 +387,18 @@ RefHelper:: =
           args = arrayMutators[method].argsToForeignKeys args, path, $r
       else
         # Update the transaction's path with a dereferenced path if not undefined.
-        {obj, path, remainingProps} = @_adapter.lookup path, data, @_adapter._vers
-        if obj is undefined && remainingProps?.length
-          args[0] = [path].concat(remainingProps).join('.')
-        else
-          args[0] = path
+        # TODO: This path assembling should be done in the path getter function
+        {obj, path} = @_adapter.lookup path, data, @_adapter._vers
+        args[0] = if obj is undefined && data.$remainder
+            path + '.' + data.$remainder
+          else path
       return txn
 
     # Update the transaction's path with a dereferenced path.
-    {obj, path, remainingProps} = @_adapter.lookup path, data, @_adapter._vers
-    if obj is undefined && remainingProps?.length
-      args[0] = [path].concat(remainingProps).join('.')
-    else
-      args[0] = path
+    {obj, path} = @_adapter.lookup path, data, @_adapter._vers
+    args[0] = if obj is undefined && data.$remainder
+        path + '.' + data.$remainder
+      else path
     return txn
 
   # isArrayRef
@@ -418,12 +417,10 @@ RefHelper:: =
 
   dereferencedPath: (path, data) ->
     meta = @_adapter.lookup path, data || @_adapter._data, @_adapter._vers, returnMeta: true
-    # TODO: This doesn't happen in any of the tests. Is it needed?
-    # if meta.remainingProps
-      # return meta.path + '.' + meta.remainingProps.join '.'
     return meta.path
 
   denormalizePath: (path, data) ->
-    {path, obj, remainingProps} = @_adapter.lookup path, data, @_adapter._vers
-    return path if obj || ! (remainingProps?.length)
-    return [path].concat(remainingProps).join('.')
+    {path, obj} = @_adapter.lookup path, data, @_adapter._vers
+    if obj is undefined && data.$remainder
+        path + '.' + data.$remainder
+      else path
