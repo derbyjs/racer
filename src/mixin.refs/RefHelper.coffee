@@ -416,11 +416,13 @@ RefHelper:: =
   isRefObj: (obj) -> '$r' of obj
 
   dereferencedPath: (path, data) ->
-    meta = @_adapter.lookup path, data || @_adapter._data, @_adapter._vers, returnMeta: true
-    return meta.path
+    data ||= @_adapter._data
+    @_adapter.lookup path, data, @_adapter._vers
+    return data.$path
 
   denormalizePath: (path, data) ->
-    {path, obj} = @_adapter.lookup path, data, @_adapter._vers
+    {obj} = @_adapter.lookup path, data, @_adapter._vers
+    path = data.$path
     if obj is undefined && data.$remainder
         path + '.' + data.$remainder
       else path

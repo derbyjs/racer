@@ -21,11 +21,10 @@ Memory:: =
   set: (path, value, ver, data, options = {}) ->
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
-    {parent, prop, currVer} = out = lookup path, data || @_data, @_vers, options
-    obj = out.obj = parent[prop] = value
+    {parent, prop, currVer} = lookup path, data || @_data, @_vers, options
     if !options.proto && typeof value is 'object'
       @_prefillVersion currVer, value, ver
-    return if options.returnMeta then out else obj
+    return parent[prop] = value
 
   _prefillVersion: (currVer, obj, ver) ->
     if Array.isArray obj
@@ -45,9 +44,9 @@ Memory:: =
     options = Object.create options
     options.addPath = false
     options.setVer = ver unless proto
-    {parent, prop, obj} = out = lookup path, data || @_data, @_vers, options
+    {parent, prop, obj} = lookup path, data || @_data, @_vers, options
     unless parent
-      return if options.returnMeta then out else obj
+      return obj
     if proto
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
@@ -64,7 +63,7 @@ Memory:: =
         # TODO Replace this with cross browser code
         parent.__proto__ = curr
     delete parent[prop]
-    return if options.returnMeta then out else obj
+    return obj
 
   lookup: lookup = (path, data, vers, options = {}) ->
     {addPath, setVer, proto, dontFollowLastRef} = options
@@ -143,6 +142,7 @@ Memory:: =
       else
         currVer.ver = setVer  if setVer
     
+    data.$path = path
     return {currVer, path, parent, prop, obj: curr}
 
 xtraArrMutConf =
@@ -173,13 +173,11 @@ for method, {compound, normalizeArgs} of arrMutators
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
       options.addPath = []
       options.setVer = ver unless options.proto
-      out = lookup path, data || @_data, @_vers, options
-      arr = out.obj
+      arr = lookup(path, data || @_data, @_vers, options).obj
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
-      ret = if fn then fn arr, methodArgs else arr[method] methodArgs...
-      return if options.returnMeta then out else ret
+      return if fn then fn arr, methodArgs else arr[method] methodArgs...
 
 Memory::move = (path, from, to, ver, data, options = {}) ->
   data ||= @_data

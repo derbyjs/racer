@@ -18,7 +18,7 @@ stm = module.exports =
     # Context (i.e., this) is Model instance
     @_cache =
       invalidateSpecModelCache: ->
-        delete @obj
+        delete @data
         delete @lastReplayedTxnId
         delete @path
 
@@ -214,8 +214,8 @@ stm = module.exports =
       len = @_txnQueue.length
       if lastReplayedTxnId = cache.lastReplayedTxnId
         if cache.lastReplayedTxnId == @_txnQueue[len-1]
-          return [cache.obj, cache.path]
-        obj = cache.obj
+          return [cache.data, cache.path]
+        data = cache.data
         replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
       else
         replayFrom = 0
@@ -223,12 +223,12 @@ stm = module.exports =
       adapter = @_adapter
       if len
         # Then generate a speculative model
-        unless obj
+        unless data
           # TODO adapter implementation details leaking in here
           # TODO Do not need Object.create here?
-          obj = cache.obj = specHelper.create adapter._data
+          data = cache.data = specHelper.create adapter._data
 
-        appendArgs = [undefined, obj, {proto: true, returnMeta: true}]
+        appendArgs = [undefined, data, {proto: true}]
         i = replayFrom
         while i < len
           # Apply each pending operation to the speculative model
@@ -236,15 +236,14 @@ stm = module.exports =
           if transaction.isCompound txn
             ops = transaction.ops txn
             for op in ops
-              {meta} = @_applyMutation transaction.op, op, appendArgs
+              @_applyMutation transaction.op, op, appendArgs
           else
-            {meta} = @_applyMutation transaction, txn, appendArgs
+            @_applyMutation transaction, txn, appendArgs
         
-        path = meta.path if meta
-        cache.obj = obj
-        cache.path = path
+        cache.data = data
+        cache.path = path = data.$path
         cache.lastReplayedTxnId = transaction.id txn
-      return [obj, path]
+      return [data, path]
 
     # TODO
     snapshot: ->

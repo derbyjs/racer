@@ -17,7 +17,7 @@ AtomicModel = module.exports = (id, parentModel) ->
 
     self._cache =
       invalidateSpecModelCache: ->
-        delete @obj
+        delete @data
         delete @lastReplayedTxnId
         delete @path
 
