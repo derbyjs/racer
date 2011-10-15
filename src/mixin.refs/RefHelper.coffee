@@ -104,7 +104,7 @@ RefHelper:: =
       # index api
       return start
 
-    arr = @_adapter.lookup(path, data, @_adapter._vers, addPath: []).obj
+    arr = @_adapter.lookup(path, data, @_adapter._vers, pathType: 'array').obj
     if @isArrayRef path, data
       # id api
       startIndex = arr.length
@@ -163,7 +163,7 @@ RefHelper:: =
     adapter = @_adapter
     refHelper = @
     oldRefOptions = merge {dontFollowLastRef: true}, options
-    oldRefOptions.addPath = false
+    oldRefOptions.pathType = false
     oldRefObj = adapter.lookup(path, data, adapter._vers, oldRefOptions).obj
     if key
       entry = [ref, key]
@@ -173,16 +173,16 @@ RefHelper:: =
 #      # then the dereferenced path resolves to undefined, which is flawed.
 #      path = @denormalizePath path, options.obj
       _options = Object.create options
-      _options.addPath = {}
+      _options.pathType = 'object'
       adapter.lookup("$keys.#{key}.$", data, adapter._vers, _options).obj[path] = entry
       _options = Object.create options
-      _options.addPath = false
+      _options.pathType = false
       keyVal = adapter.lookup(key, data, adapter._vers, _options).obj
       # keyVal is only valid if it can be a valid path segment
       return if type is undefined and keyVal is undefined
       if type == 'array'
         keyOptions = merge {}, options
-        keyOptions.addPath = []
+        keyOptions.pathType = 'array'
         keyVal = adapter.lookup(key, data, adapter._vers, keyOptions).obj
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         @_removeOld$refs oldRefObj, path, ver, data, options
@@ -192,7 +192,7 @@ RefHelper:: =
     else
       if oldRefObj && oldKey = oldRefObj.$k
         _options = Object.create options
-        _options.addPath = false
+        _options.pathType = false
         refs = adapter.lookup("$keys.#{oldKey}.$", data, adapter._vers, _options).obj
         if refs && refs[path]
           delete refs[path]
@@ -206,7 +206,7 @@ RefHelper:: =
     if oldRefObj && oldRef = oldRefObj.$r
       if oldKey = oldRefObj.$k
         _options = Object.create options
-        _options.addPath = false
+        _options.pathType = false
         oldKeyVal = @_adapter.lookup(oldKey, data, @_adapter._vers, _options).obj
       if oldKey && (oldRefObj.$t == 'array')
         # If this key was used in an array ref: {$r: path, $k: [...]}
@@ -221,7 +221,7 @@ RefHelper:: =
   _removeFrom$refs: (ref, key, path, ver, data, options) ->
     refWithKey = ref + '.' + key if key
     _options = Object.create options
-    _options.addPath = false
+    _options.pathType = false
     refEntries = @_adapter.lookup("$refs.#{refWithKey}.$", data, @_adapter._vers, _options).obj
     return unless refEntries
     delete refEntries[path]
@@ -234,7 +234,7 @@ RefHelper:: =
     entry.push type if type
     # TODO DRY - Above 2 lines are duplicated below
     _options = Object.create options
-    _options.addPath = {}
+    _options.pathType = 'object'
     @_adapter.lookup("$refs.#{refsKey}.$", data, @_adapter._vers, _options).obj[path] = entry
 
   # If path is a reference's key ($k), then update all entries in the
@@ -246,7 +246,7 @@ RefHelper:: =
   #                       Update <keyVal> = <lookup(key)>
   updateRefsForKey: (path, ver, data, options) ->
     _options = Object.create options
-    _options.addPath = false
+    _options.pathType = false
     if refs = @_adapter.lookup("$keys.#{path}.$", data, @_adapter._vers, _options).obj
       @_eachValidRef refs, data, (path, ref, key, type) =>
         @$indexRefs path, ref, key, type, ver, data, options
@@ -355,7 +355,7 @@ RefHelper:: =
   cleanupPointersTo: (path, data, options) ->
     adapter = @_adapter
     _options = Object.create options
-    _options.addPath = false
+    _options.pathType = false
     refs = adapter.lookup("$refs.#{path}.$", data, @_adapter._vers, _options).obj
     return if refs is undefined
     model = @_model

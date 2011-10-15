@@ -195,7 +195,7 @@ stm = module.exports =
       # TODO Make this more comprehensive - if @involvesOtVal val
       # TODO Make sure this is not called during specModel, only on remote txns received
       # TODO See if we can move this into mixin.ot
-      if method == 'set' && (!appendArgs[2] || !appendArgs[2].proto) && @isOtVal(args[1])
+      if method == 'set' && (!appendArgs[2] || !appendArgs[2].speculative) && @isOtVal(args[1])
         path = args[0]
         # TODO DRY this up. Appears, too, in mixin.ot/index
         unless field = @otFields[path]
@@ -228,7 +228,7 @@ stm = module.exports =
           # TODO Do not need Object.create here?
           data = cache.data = specHelper.create adapter._data
 
-        appendArgs = [undefined, data, {proto: true}]
+        appendArgs = [undefined, data, {speculative: true}]
         i = replayFrom
         while i < len
           # Apply each pending operation to the speculative model

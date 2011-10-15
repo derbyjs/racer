@@ -1,5 +1,5 @@
 merge = require('../util').merge
-specHelper = require '../specHelper'
+{create, createObject, createArray, isSpeculative} = require '../specHelper'
 arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
@@ -19,10 +19,10 @@ Memory:: =
       return val: data || @_data, ver: @_vers.ver
   
   set: (path, value, ver, data, options = {}) ->
-    options.addPath = {} # set the final node to {} if not found
-    options.setVer = ver unless options.proto
+    options.pathType = 'object'
+    options.setVer = ver unless options.speculative
     {parent, prop, currVer} = lookup path, data || @_data, @_vers, options
-    if !options.proto && typeof value is 'object'
+    if !options.speculative && typeof value is 'object'
       @_prefillVersion currVer, value, ver
     return parent[prop] = value
 
@@ -40,14 +40,14 @@ Memory:: =
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
   
   del: (path, ver, data, options = {}) ->
-    proto = options.proto
+    speculative = options.speculative
     options = Object.create options
-    options.addPath = false
-    options.setVer = ver unless proto
+    options.pathType = false
+    options.setVer = ver unless speculative
     {parent, prop, obj} = lookup path, data || @_data, @_vers, options
     unless parent
       return obj
-    if proto
+    if speculative
       # In speculative models, deletion of something in the model data is
       # acheived by making a copy of the parent prototype's properties that
       # does not include the deleted property
@@ -57,7 +57,7 @@ Memory:: =
         for key, value of parentProto
           unless key is prop
             curr[key] = if typeof value is 'object'
-              specHelper.create value
+              create value
             else
               value
         # TODO Replace this with cross browser code
@@ -66,7 +66,7 @@ Memory:: =
     return obj
 
   lookup: lookup = (path, data, vers, options = {}) ->
-    {addPath, setVer, proto, dontFollowLastRef} = options
+    {pathType, setVer, speculative, dontFollowLastRef} = options
     curr = data
     currVer = vers
     currVer.ver = setVer if setVer
@@ -84,7 +84,7 @@ Memory:: =
 
       parentVer = currVer
       unless currVer = currVer[prop]
-        if setVer && addPath
+        if setVer && pathType
           currVer = parentVer[prop] = {}
         else
           currVer = parentVer
@@ -92,22 +92,23 @@ Memory:: =
       # Store the absolute path we are about to traverse
       path = if path then path + '.' + prop else prop
 
-      unless curr?
-        unless addPath
+      if curr?
+        if speculative && typeof curr is 'object' && !isSpeculative(curr)
+          curr = parent[prop] = create curr
+      else
+        unless pathType
           data.$remainder = props.slice(i).join '.'
           break
-          
-          # break
-        # If addPath is true, create empty parent objects implied by path
-        setTo = if i == len then addPath else {}
-        curr = parent[prop] = if proto then specHelper.create setTo else setTo
-      else if proto && typeof curr == 'object' && !specHelper.isSpeculative(curr)
-        curr = parent[prop] = specHelper.create curr
-      
+
+        # If pathType is truthy, create empty parent objects implied by path
+        curr = parent[prop] = if speculative
+            if pathType is 'array' && i == len then createArray() else createObject()
+          else
+            if pathType is 'array' && i == len then [] else {}
+
       # Check for model references
       if ref = curr.$r
-        if i == len && dontFollowLastRef
-          break
+        break if i == len && dontFollowLastRef
         
         {currVer, obj: rObj} = lookup ref, data, vers, options
         dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
@@ -132,7 +133,7 @@ Memory:: =
           curr = rObj
           path = dereffedPath unless i == len
         
-        if `curr == null` && !addPath
+        if `curr == null` && !pathType
           # Return undefined if the reference points to nothing
           data.$remainder = props.slice(i).join '.'
           break
@@ -168,8 +169,8 @@ for method, {compound, normalizeArgs} of arrMutators
       fn = xtraConf.fn
     return ->
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
-      options.addPath = []
-      options.setVer = ver unless options.proto
+      options.pathType = 'array'
+      options.setVer = ver unless options.speculative
       arr = lookup(path, data || @_data, @_vers, options).obj
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs

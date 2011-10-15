@@ -83,14 +83,14 @@ module.exports = (AdapterSync) ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ++ver
-    adapterSync.set 'color', 'red', undefined, undefined, {proto: true}
+    adapterSync.set 'color', 'red', undefined, undefined, {speculative: true}
     adapterSync.version('color').should.equal ver
 
   'speculative setting a nested path should not throw an error': ->
     adapterSync = new AdapterSync
     didErr = false
     try
-      adapterSync.set 'nested.color', 'red', undefined, undefined, {proto: true}
+      adapterSync.set 'nested.color', 'red', undefined, undefined, {speculative: true}
     catch e
       didErr = true
     didErr.should.be.false
@@ -98,7 +98,7 @@ module.exports = (AdapterSync) ->
   'lookup of a speculative ref with dontFollowLastRef option should not err': ->
     # TODO: Don't use internal adapter details
     adapterSync = new AdapterSync
-    adapterSync.set 'color', {$r: 'colors.green'}, undefined, obj = specHelper.create(adapterSync._data), proto: true
+    adapterSync.set 'color', {$r: 'colors.green'}, undefined, obj = specHelper.create(adapterSync._data), speculative: true
     didErr = false
     try
       adapterSync.lookup 'color', obj, {dontFollowLastRef: true}

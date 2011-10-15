@@ -14,7 +14,7 @@ lookupRef = (path, obj) ->
 #if ADD_PATH
 # Returns value
 # Used by reference indexer
-lookupAddPath = (path, obj, speculative, endInArray) ->
+lookupAddPath = (path, obj, speculative, pathType) ->
 #end
 
 #if VERSION
@@ -25,15 +25,8 @@ lookupWithVersion = (path, obj, vers) ->
 
 #if SET_VERSION
 # Returns [value, parent, prop]
-# Used by delete
-lookupSetVersion = (path, obj, vers, setVer) ->
-  speculative = !setVer
-#end
-
-#if SET_VERSION_ADD_PATH
-# Returns [value, parent, prop]
-# Used by setters
-lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
+# Used by setters & delete
+lookupSetVersion = (path, obj, vers, setVer, pathType) ->
   speculative = !setVer
 #end
 
@@ -80,7 +73,7 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      curr = parent[prop] = if speculative then
+      curr = parent[prop] = if speculative
           if endInArray && i == len then createArray() else createObject()
         else
           if endInArray && i == len then [] else {}
@@ -117,7 +110,6 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
           #end
         else
           curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
-        path = dereffedPath
       else
         dereffedPath += '.' + keyObj
         curr = lookup dereffedPath, obj
