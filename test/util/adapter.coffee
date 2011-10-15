@@ -1,5 +1,5 @@
 should = require 'should'
-wrapTest = require('../util').wrapTest
+{wrapTest} = require '../util'
 
 module.exports = (Adapter) ->
 
@@ -7,7 +7,7 @@ module.exports = (Adapter) ->
     adapter = new Adapter
     adapter.get null, (err, value, ver) ->
       should.equal null, err
-      value.should.eql {}
+      value.should.specEql {}
       ver.should.eql 0
       
       adapter.set 'color', 'green', 1, (err, value) ->
@@ -20,14 +20,14 @@ module.exports = (Adapter) ->
           
           adapter.set 'info.numbers', {first: 2, second: 10}, 2, (err, value) ->
             should.equal null, err
-            value.should.eql first: 2, second: 10
+            value.should.specEql first: 2, second: 10
             adapter.get 'info.numbers', (err, value, ver) ->
               should.equal null, err
-              value.should.eql first: 2, second: 10
+              value.should.specEql first: 2, second: 10
               ver.should.eql 2
               adapter.get null, (err, value, ver) ->
                 should.equal null, err
-                value.should.eql
+                value.should.specEql
                   color: 'green'
                   info:
                     numbers:
@@ -39,7 +39,7 @@ module.exports = (Adapter) ->
                   should.equal null, err
                   adapter.get null, (err, value, ver) ->
                     should.equal null, err
-                    value.should.eql color: 'green', info: 'new'
+                    value.should.specEql color: 'green', info: 'new'
                     ver.should.eql 3
                     done()
 
@@ -51,7 +51,7 @@ module.exports = (Adapter) ->
           should.equal null, err
           adapter.get null, (err, value, ver) ->
             should.equal null, err
-            value.should.eql
+            value.should.specEql
               info:
                 numbers:
                   first: 2
@@ -62,7 +62,7 @@ module.exports = (Adapter) ->
               should.equal null, err
               adapter.get null, (err, value, ver) ->
                 should.equal null, err
-                value.should.eql info: {}
+                value.should.specEql info: {}
                 ver.should.eql 4
                 done()
 
@@ -73,7 +73,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get null, (err, value, ver) ->
           should.equal null, err
-          value.should.eql {}
+          value.should.specEql {}
           ver.should.eql 0
           done()
 
@@ -84,7 +84,7 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['green']
+        value.should.specEql ['green']
         ver.should.eql _ver
         done()
 
@@ -95,13 +95,13 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['green']
+        value.should.specEql ['green']
         ver.should.eql _ver
         adapter.pop 'colors', ++_ver, (err) ->
           should.equal null, err
           adapter.get 'colors', (err, value, ver) ->
             should.equal null, err
-            value.should.eql []
+            value.should.specEql []
             ver.should.eql _ver
             done()
 
@@ -114,7 +114,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['green', 'red', 'blue', 'purple']
+          value.should.specEql ['green', 'red', 'blue', 'purple']
           ver.should.equal _ver
           done()
 
@@ -127,7 +127,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['red', 'blue']
+          value.should.specEql ['red', 'blue']
           ver.should.equal _ver
           done()
 
@@ -158,7 +158,7 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['green']
+        value.should.specEql ['green']
         ver.should.equal _ver
         done()
 
@@ -171,7 +171,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql []
+          value.should.specEql []
           ver.should.equal _ver
           done()
 
@@ -182,7 +182,7 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['red', 'blue', 'purple']
+        value.should.specEql ['red', 'blue', 'purple']
         ver.should.equal _ver
         done()
 
@@ -194,7 +194,7 @@ module.exports = (Adapter) ->
       adapter.shift 'colors', ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
-          value.should.eql ['blue', 'purple']
+          value.should.specEql ['blue', 'purple']
           ver.should.equal _ver
           done()
 
@@ -225,7 +225,7 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['yellow']
+        value.should.specEql ['yellow']
         ver.should.equal _ver
         done()
 
@@ -239,7 +239,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['yellow']
+          value.should.specEql ['yellow']
           ver.should.equal _ver
           done()
 
@@ -253,7 +253,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['yellow', 'black']
+          value.should.specEql ['yellow', 'black']
           ver.should.equal _ver
           done()
 
@@ -267,7 +267,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['yellow', 'violet', 'black']
+          value.should.specEql ['yellow', 'violet', 'black']
           ver.should.equal _ver
           done()
 
@@ -318,7 +318,7 @@ module.exports = (Adapter) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
-        value.should.eql ['yellow']
+        value.should.specEql ['yellow']
         ver.should.equal _ver
         done()
 
@@ -332,7 +332,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['yellow']
+          value.should.specEql ['yellow']
           ver.should.equal _ver
           done()
 
@@ -345,7 +345,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['violet', 'yellow', 'black']
+          value.should.specEql ['violet', 'yellow', 'black']
           ver.should.equal _ver
           done()
 
@@ -358,7 +358,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['yellow', 'black', 'violet']
+          value.should.specEql ['yellow', 'black', 'violet']
           ver.should.equal _ver
           done()
 
@@ -371,7 +371,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['violet', 'orange', 'yellow', 'black']
+          value.should.specEql ['violet', 'orange', 'yellow', 'black']
           ver.should.equal _ver
           done()
 
@@ -427,7 +427,7 @@ module.exports = (Adapter) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
-          value.should.eql ['red', 'yellow', 'green', 'orange', 'blue']
+          value.should.specEql ['red', 'yellow', 'green', 'orange', 'blue']
           ver.should.equal _ver
           done()
 

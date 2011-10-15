@@ -2,6 +2,9 @@ should = require 'should'
 inspect = require('util').inspect
 specHelper = require '../../src/specHelper'
 
+ignore = '$remainder': 1, '$path': 1
+ignore[specHelper.identifier] = 1
+
 exports.wrapTest = (fn, numCallbacks = 1) ->
   (beforeExit) ->
     n = 0
@@ -27,7 +30,7 @@ exports.protoInspect = protoInspect = (a) -> inspect flatten(a), false, null
 removeReserved = (a) ->
   if typeof a == 'object'
     for key, val of a
-      if key is specHelper.identifier
+      if ignore[key]
         delete a[key]
         continue
       a[key] = removeReserved val
@@ -65,7 +68,7 @@ should.Assertion::protoEql = (val) ->
 
 
 specEql = (a, b) ->
-  exception = (objA, objB, prop) -> prop == specHelper.identifier
+  exception = (objA, objB, prop) -> ignore[prop]
   protoSubset(a, b, exception) && protoSubset(b, a, exception)
 
 should.Assertion::specEql = (val) ->

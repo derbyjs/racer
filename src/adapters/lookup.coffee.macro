@@ -131,7 +131,7 @@ lookupSetVersionAddPath = (path, obj, vers, setVer, endInArray) ->
   
     break unless curr?
 
-  obj.$lastPath = path
+  obj.$path = path
   #if SET_VERSION
   return [curr, parent, prop]
   #elseif VERSION

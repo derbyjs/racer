@@ -123,7 +123,7 @@ module.exports =
       atomicModel.set 'volume', 'high'
     , (err) ->
       should.equal null, err
-      model._adapter._data.should.eql
+      model._adapter._data.should.specEql
         color: 'green'
         volume: 'high'
       sockets._disconnect()

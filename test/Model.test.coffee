@@ -54,7 +54,7 @@ module.exports =
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
-      model._adapter._data.should.eql {}
+      model._adapter._data.should.specEql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
@@ -70,7 +70,7 @@ module.exports =
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
-      model.get('colors').should.eql ['red']
+      model.get('colors').should.specEql ['red']
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
@@ -115,7 +115,7 @@ module.exports =
     [sockets, model] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
-    model.get('colors').should.eql ['green']
+    model.get('colors').should.specEql ['green']
     sockets._disconnect()
   
   'transactions should be requested if pending longer than timeout': wrapTest (done) ->
@@ -160,7 +160,7 @@ module.exports =
         numbers:
           first: 2
           second: 10
-    model._adapter._data.should.eql {}
+    model._adapter._data.should.specEql {}
     
     model.set 'info.numbers.third', 13
     model.get().should.specEql
@@ -170,7 +170,7 @@ module.exports =
           first: 2
           second: 10
           third: 13
-    model._adapter._data.should.eql {}
+    model._adapter._data.should.specEql {}
     
     model._removeTxn '0.1'
     model._removeTxn '0.2'
@@ -179,14 +179,14 @@ module.exports =
       info:
         numbers:
           third: 13
-    model._adapter._data.should.eql {}
+    model._adapter._data.should.specEql {}
 
   "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
     model = new Model '0'
     model._adapter._data = obj: {}
-    model._adapter._data.should.eql obj: {}
+    model._adapter._data.should.specEql obj: {}
     model.set 'obj.a', 'b'
-    model._adapter._data.should.eql obj: {}
+    model._adapter._data.should.specEql obj: {}
 
   'test speculative value of del': ->
     model = new Model '0'
@@ -204,7 +204,7 @@ module.exports =
           first: 2
           second: 10
 
-    model._adapter._data.should.eql
+    model._adapter._data.should.specEql
       color: 'green'
       info:
         numbers:
@@ -230,7 +230,7 @@ module.exports =
     model.get().should.specEql
       info: {}
     
-    model._adapter._data.should.eql
+    model._adapter._data.should.specEql
       color: 'green'
       info:
         numbers:
@@ -281,7 +281,7 @@ module.exports =
     
     model.push 'colors', 'green'
     model.get('colors').should.specEql ['green']
-    model._adapter._data.should.eql {}
+    model._adapter._data.should.specEql {}
 
   'model events should get emitted properly': wrapTest (done) ->
     ver = 0
@@ -294,10 +294,10 @@ module.exports =
       value.should.equal 'green'
       if count is 0
         model._txnQueue.length.should.eql 1
-        model._adapter._data.should.eql {}
+        model._adapter._data.should.specEql {}
       else
         model._txnQueue.length.should.eql 0
-        model._adapter._data.should.eql color: 'green'
+        model._adapter._data.should.specEql color: 'green'
       model.get('color').should.equal 'green'
       count++
       sockets._disconnect()

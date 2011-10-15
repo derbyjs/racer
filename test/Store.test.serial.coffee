@@ -1,4 +1,5 @@
 should = require 'should'
+util = require './util'
 Store = require 'Store'
 redis = require 'redis'
 transaction = require 'transaction'
@@ -20,7 +21,7 @@ module.exports =
     store._adapter.set 'color', 'green', 1, ->
       store._redisClient.set 'color', 'green', ->
         store._adapter.get null, (err, value) ->
-          value.should.eql color: 'green'
+          value.should.specEql color: 'green'
           store._redisClient.keys '*', (err, value) ->
             # Note that flush calls redisInfo.onStart immediately after
             # flushing, so the key 'starts' should exist
@@ -77,7 +78,7 @@ module.exports =
           expected = tests[pattern]
           model = store.createModel()
           model.subscribe pattern, ->
-            model.get().should.eql expected
+            model.get().should.specEql expected
             finish()
 
   'store._commit should apply transactions in order': (done) ->

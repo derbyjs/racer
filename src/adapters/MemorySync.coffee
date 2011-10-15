@@ -72,7 +72,7 @@ Memory:: =
     currVer = vers
     props = path.split '.'
     
-    origPath = path
+    data.$remainder = ''
     path = ''
     i = 0
     len = props.length
@@ -97,6 +97,8 @@ Memory:: =
       unless curr?
         unless addPath
           return {currVer, obj: curr, path, remainingProps: props.slice i}
+          # data.$remainder = props.slice(i).join '.'
+          # break
         # If addPath is true, create empty parent objects implied by path
         setTo = if i == len then addPath else {}
         curr = parent[prop] = if proto then specHelper.create setTo else setTo
@@ -109,9 +111,11 @@ Memory:: =
           break
         
         {currVer, obj: rObj, path: dereffedPath, remainingProps: rRemainingProps} = lookup ref, data, vers, options
+        dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
+        # {currVer, obj: rObj, path: dereffedPath} = lookup ref, data, vers, options
+        # dereffedPath += '.' + data.$remainder if data.$remainder
         currVer.ver = setVer if setVer
 
-        dereffedPath += '.' + rRemainingProps.join '.' if rRemainingProps?.length
         if key = curr.$k
           # keyVer reflects the version set via an array op
           # memVer reflects the version set via an op on a member
@@ -136,6 +140,8 @@ Memory:: =
         if curr is undefined && !addPath && i < len
           # Return undefined if the reference points to nothing
           return {currVer, obj: curr, path, remainingProps: props.slice i}
+          # data.$remainder = props.slice(i).join '.'
+          # break
       else
         currVer.ver = setVer  if setVer
     
