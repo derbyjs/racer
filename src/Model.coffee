@@ -1,6 +1,5 @@
-pathParser = require './pathParser'
 MemorySync = require './adapters/MemorySync'
-RefHelper = require './RefHelper'
+pathParser = require './pathParser'
 {EventEmitter} = require 'events'
 {merge} = require './util'
 
