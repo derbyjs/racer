@@ -38,7 +38,7 @@ module.exports =
           [firstArgs, members] =
             (mutators.basic[method] || mutators.array[method]).splitArgs args
           members = members.map (member) ->
-            return member if refHelper.isRefObj member
+            return member if refHelper.isRef member
             # MUTATION
             self.set $r + '.' + member.id, member
             return {$r, $k: member.id.toString()}

@@ -161,10 +161,8 @@ RefHelper:: =
   # @param {Object} options
   $indexRefs: (path, ref, key, type, ver, data, options) ->
     adapter = @_adapter
-    refHelper = @
-    oldRefOptions = merge {dontFollowLastRef: true}, options
-    oldRefOptions.pathType = false
-    oldRefObj = adapter.lookup(path, data, adapter._vers, oldRefOptions).obj
+    self = @
+    oldRefObj = adapter.getRef path, data
     if key
       entry = [ref, key]
       entry.push type if type
@@ -187,7 +185,7 @@ RefHelper:: =
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         @_removeOld$refs oldRefObj, path, ver, data, options
         return refsKeys.forEach (refsKey) ->
-          refHelper._update$refs refsKey, path, ref, key, type, ver, data, options
+          self._update$refs refsKey, path, ref, key, type, ver, data, options
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
@@ -262,7 +260,7 @@ RefHelper:: =
 
       # Check to see if the reference is still the same
       # o = fastLookup path, obj
-      o = @_adapter.lookup(path, data, @_adapter._vers, dontFollowLastRef: true).obj
+      o = @_adapter.getRef path, data
       if o && o.$r == ref && `o.$k == key`
         # test `o.$k == key` not via ===
         # because key is converted to null when JSON.stringified before being sent here via socket.io
@@ -401,19 +399,16 @@ RefHelper:: =
       else data.$path
     return txn
 
-  # isArrayRef
-  # @param {String} path that we want to determine is a pointer or not
-  # @param {Object} data is the speculative or true model data
   isArrayRef: (path, data) ->
     data ||= @_adapter._data
-    refObj = @_adapter.lookup(path, data, @_adapter._vers, dontFollowLastRef: true).obj
+    refObj = @_adapter.getRef path, data
     return false unless refObj?
     {$r, $k, $t} = refObj
     return false if $t != 'array'
     $k && $k = @dereferencedPath $k, data
     return {$r, $k}
   
-  isRefObj: (obj) -> '$r' of obj
+  isRef: (obj) -> '$r' of obj
 
   dereferencedPath: (path, data) ->
     data ||= @_adapter._data

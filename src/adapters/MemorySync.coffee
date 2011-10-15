@@ -17,7 +17,10 @@ Memory:: =
       return {val: obj, ver: currVer.ver}
     else
       return val: data || @_data, ver: @_vers.ver
-  
+
+  getRef: (path, data) ->
+    lookup(path, data || @_data, @_vers, dontFollowLastRef: true).obj
+
   set: (path, value, ver, data, options = {}) ->
     options.pathType = 'object'
     options.setVer = ver unless options.speculative
