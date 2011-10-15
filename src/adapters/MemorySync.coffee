@@ -19,13 +19,6 @@ Memory:: =
       return val: data, ver: @_vers.ver
   
   set: (path, value, ver, data = @_data, options = {}) ->
-    if value && value.$r
-      # If we are setting a reference, then copy the transaction,
-      # so we do not mutate the transaction stored in Model::_txns.
-      # Mutation would otherwise occur via addition of $spec to value
-      # during speculative model creation.
-      refObjCopy = merge {}, value
-      value = refObjCopy
     options.addPath = {} # set the final node to {} if not found
     options.setVer = ver unless options.proto
     {parent, prop, currVer} = out = @lookup path, data, options

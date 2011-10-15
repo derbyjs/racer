@@ -7,8 +7,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._adapter = adapter = new AdapterClass
 
-  mixins = Model._mixins
-  for {init} in mixins
+  for {init} in Model._mixins
     init.call self if init
 
   # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
@@ -99,7 +98,7 @@ Model::addListener = Model::on
 
 # NOTE: Order of mixins may be important because of dependencies.
 Model._mixins = []
-Model._withAccessors = []
+Model._accessors = {}
 Model.mixin = (mixin) ->
   @_mixins.push mixin
   merge Model::, proto if proto = mixin.proto
@@ -107,17 +106,14 @@ Model.mixin = (mixin) ->
 
   if accessors = mixin.accessors
     merge Model::, accessors
-    # Apply prior mixins' withAccessors
-    withAccessors accessors, Model for withAccessors in Model._withAccessors
+    merge Model._accessors, accessors
 
   if withAccessors = mixin.withAccessors
-    Model._withAccessors.push withAccessors
-    # Apply to all accessors mixed in to date
-    withAccessors Model::accessors, Model
+    withAccessors Model, Object.keys Model._accessors
 
   return Model
 
-Model.mixin require './mixin.refs'
 Model.mixin require './mixin.ot'
 Model.mixin require './mixin.stm'
+Model.mixin require './mixin.refs'
 Model.mixin require './mixin.subscribe'

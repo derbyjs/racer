@@ -1,10 +1,12 @@
-Serializer = require './Serializer'
-transaction = require './transaction'
+Serializer = require '../Serializer'
+transaction = require '../transaction'
+{RefHelper} = require '../mixin.refs'
 
 # When parent model tries to write changes to atomic model,
 # then make sure to abort atomic model if any of the changes
 # modify paths.
 
+proto = null
 AtomicModel = module.exports = (id, parentModel) ->
   AtomicModel = (id, parentModel) ->
     self = this
@@ -46,6 +48,7 @@ AtomicModel = module.exports = (id, parentModel) ->
 
     return
 
+  AtomicModel:: = proto
   parentProto = Object.getPrototypeOf parentModel
   ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation',
    'set', 'setNull', 'del', 'incr', 'push', 'pop', 'unshift', 'shift',
@@ -54,7 +57,7 @@ AtomicModel = module.exports = (id, parentModel) ->
 
   return new AtomicModel id, parentModel
 
-proto = AtomicModel:: =
+proto =
   isMyOp: (id) ->
     extracted = id.substr 0, id.lastIndexOf('.')
     return extracted == @id

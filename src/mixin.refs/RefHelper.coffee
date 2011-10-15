@@ -1,9 +1,10 @@
-# TODO Move into mixin.refs
-transaction = require './transaction'
-pathParser = require './pathParser'
-specHelper = require './specHelper'
-{merge, hasKeys} = require './util'
-mutators = require './mutators'
+# TODO: Rewrite refs. This file is a mess
+
+transaction = require '../transaction'
+pathParser = require '../pathParser'
+specHelper = require '../specHelper'
+{merge, hasKeys} = require '../util'
+mutators = require '../mutators'
 arrayMutators = mutators.array
 
 module.exports = RefHelper = (model, doSetup = true) ->
@@ -340,7 +341,7 @@ RefHelper:: =
           ns[arg] || ns[parseInt arg, 10]
           # { $r: ref, $k: arg }
       args = firstArgs.concat arrayMemberArgs
-      @_model.emit method, [pointingPath, args...]
+      @_model.emit method, [pointingPath, args...], isLocal
 
   _toIndex: (arrayRefKey, id, data) ->
     keyArr = @_adapter.lookup(arrayRefKey, data).obj
