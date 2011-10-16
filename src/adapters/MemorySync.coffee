@@ -1,5 +1,5 @@
 merge = require('../util').merge
-{create, createObject, createArray, isSpeculative} = require '../specHelper'
+{create, createObject, createArray} = require '../specHelper'
 arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
@@ -9,30 +9,30 @@ Memory = module.exports = ->
 
 Memory:: =
   version: (path, data) ->
-    if path then lookup(path, data || @_data, @_vers).currVer.ver else @_vers.ver
+    if path then lookup(path, data || @_data, @_vers)[1].ver else @_vers.ver
 
   get: (path, data) ->
-    if path then lookup(path, data || @_data, @_vers).obj else data || @_data
+    if path then lookup(path, data || @_data, @_vers)[0] else data || @_data
 
   getWithVersion: (path, data) ->
     if path
-      {obj, currVer} = lookup path, data || @_data, @_vers
+      [obj, currVer] = lookup path, data || @_data, @_vers
       return [obj, currVer.ver]
     else
       return [data || @_data, @_vers.ver]
 
   # Used by RefHelper
   getRef: (path, data) ->
-    lookup(path, data || @_data, @_vers, dontFollowLastRef: true).obj
+    lookup(path, data || @_data, @_vers, dontFollowLastRef: true)[0]
 
   # Used by RefHelper
   getAddPath: (path, data, speculative, pathType) ->
-    lookup(path, data || @_data, @_vers, {speculative, pathType}).obj
+    lookup(path, data || @_data, @_vers, {speculative, pathType})[0]
 
   set: (path, value, ver, data, options = {}) ->
     options.pathType = 'object'
     options.setVer = ver unless options.speculative
-    {parent, prop, currVer} = lookup path, data || @_data, @_vers, options
+    [obj, currVer, parent, prop] = lookup path, data || @_data, @_vers, options
     if !options.speculative && typeof value is 'object'
       @_prefillVersion currVer, value, ver
     return parent[prop] = value
@@ -55,7 +55,7 @@ Memory:: =
     options = Object.create options
     options.pathType = false
     options.setVer = ver unless speculative
-    {parent, prop, obj} = lookup path, data || @_data, @_vers, options
+    [obj, currVer, parent, prop] = lookup path, data || @_data, @_vers, options
     unless parent
       return obj
     if speculative
@@ -104,7 +104,7 @@ for method, {compound, normalizeArgs} of arrMutators
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
       options.pathType = 'array'
       options.setVer = ver unless options.speculative
-      arr = lookup(path, data || @_data, @_vers, options).obj
+      arr = lookup(path, data || @_data, @_vers, options)[0]
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
@@ -113,8 +113,8 @@ for method, {compound, normalizeArgs} of arrMutators
 Memory::move = (path, from, to, ver, data, options = {}) ->
   data ||= @_data
   vers = @_vers
-  value = lookup("#{path}.#{from}", data, vers).obj
-  to += lookup(path, data, vers).obj.length if to < 0
+  value = lookup("#{path}.#{from}", data, vers)[0]
+  to += lookup(path, data, vers)[0].length if to < 0
   if from > to
     @insertBefore path, to, value, ver, data, options
     from++
@@ -141,17 +141,16 @@ lookup = (path, data, vers, options = {}) ->
 
     parentVer = currVer
     unless currVer = currVer[prop]
-      if setVer && pathType
-        currVer = parentVer[prop] = {}
-      else
-        currVer = parentVer
+      currVer = if setVer && pathType
+          parentVer[prop] = {}
+        else currVer = parentVer
 
-    # Store the absolute path we are about to traverse
+    # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
 
+    # Create empty objects implied by the path
     if curr?
-      if speculative && typeof curr is 'object' && !isSpeculative(curr)
-        curr = parent[prop] = create curr
+      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
       unless pathType
         data.$remainder = props.slice(i).join '.'
@@ -164,10 +163,10 @@ lookup = (path, data, vers, options = {}) ->
           if pathType is 'array' && i == len then [] else {}
 
     # Check for model references
-    if ref = curr.$r
-      break if i == len && dontFollowLastRef
+    if curr.$r
+      break if dontFollowLastRef && i == len
       
-      {currVer, obj: rObj} = lookup ref, data, vers, options
+      [refObj, currVer] = lookup curr.$r, data, vers, options
       dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
       currVer.ver = setVer if setVer
 
@@ -175,27 +174,28 @@ lookup = (path, data, vers, options = {}) ->
         # keyVer reflects the version set via an array op
         # memVer reflects the version set via an op on a member
         #  or member subpath
-        if Array.isArray keyObj = lookup(key, data, vers).obj
+        if Array.isArray keyObj = lookup(key, data, vers)[0]
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            {currVer, obj: curr} = curr = lookup path, data, vers, {setVer}
+            [curr, currVer] = lookup path, data, vers, {setVer}
           else
-            curr = (lookup(dereffedPath + '.' + index, data, vers).obj for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data, vers)[0] for index in keyObj)
         else
           dereffedPath += '.' + keyObj
-          curr = lookup(dereffedPath, data, vers, options).obj
+          curr = lookup(dereffedPath, data, vers, options)[0]
           path = dereffedPath unless i == len
       else
-        curr = rObj
+        curr = refObj
         path = dereffedPath unless i == len
       
       if `curr == null` && !pathType
-        # Return undefined if the reference points to nothing
+        # Return if the reference points to nothing
         data.$remainder = props.slice(i).join '.'
         break
+
     else
       currVer.ver = setVer  if setVer
   
   data.$path = path
-  return {currVer, parent, prop, obj: curr}
+  return [curr, currVer, parent, prop]

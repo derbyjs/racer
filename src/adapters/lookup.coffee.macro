@@ -1,132 +1,133 @@
 #if LOOKUP
 # Returns value
 # Used generally
-lookup = (path, obj) ->
+lookup = (path, data) ->
+#end
+
+#if WITH_VERSION
+# Returns [value, {ver}]
+lookupWithVersion = (path, data, vers) ->
 #end
 
 #if REF
 # Returns value
 # Used by reference indexer
 # Does not dereference the final item
-lookupRef = (path, obj) ->
+lookupRef = (path, data) ->
 #end
 
 #if ADD_PATH
 # Returns value
 # Used by reference indexer
-lookupAddPath = (path, obj, speculative, pathType) ->
-#end
-
-#if VERSION
-# Returns [value, {ver}]
-# Used by version getter
-lookupWithVersion = (path, obj, vers) ->
+lookupAddPath = (path, data, speculative, pathType) ->
 #end
 
 #if SET_VERSION
-# Returns [value, parent, prop]
+# Returns [value, {ver}, parent, prop]
 # Used by setters & delete
-lookupSetVersion = (path, obj, vers, setVer, pathType) ->
+lookupSetVersion = (path, data, vers, setVer, pathType) ->
   speculative = !setVer
 #end
 
-  curr = obj
-  #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
+  curr = data
+  #if WITH_VERSION or SET_VERSION
   currVer = vers
   #end
-  #if SET_VERSION or SET_VERSION_ADD_PATH
+  #if SET_VERSION
   currVer.ver = setVer  if setVer
   #end
   props = path.split '.'
   path = ''
+  data.$remainder = ''
   i = 0
   len = props.length
 
-  while prop = props[i++]
-    #if ADD_PATH or SET_VERSION or SET_VERSION_ADD_PATH
+  while i < len
+    prop = props[i++]
+    #if ADD_PATH or SET_VERSION
     parent = curr
     #end
     curr = curr[prop]
 
-    #if VERSION
+    #if WITH_VERSION
     currVer = currVer[prop] || currVer
     #end
 
-    #if SET_VERSION or SET_VERSION_ADD_PATH
+    #if SET_VERSION
     parentVer = currVer
     unless currVer = currVer[prop]
-    #end
-      #if SET_VERSION
-      currVer = parentVer
-      #elseif SET_VERSION_ADD_PATH
-      currVer = parentVer[prop] = {}
-      #end
-    #if SET_VERSION or SET_VERSION_ADD_PATH
-    currVer.ver = setVer  if setVer
+      currVer = if setVer && pathType
+          parentVer[prop] = {}
+        else currVer = parentVer
     #end
 
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
 
-    #if ADD_PATH or SET_VERSION_ADD_PATH
+    #if ADD_PATH or SET_VERSION
     # Create empty objects implied by the path
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
+      unless pathType
+        data.$remainder = props.slice(i).join '.'
+        break
+
+      # If pathType is truthy, create empty parent objects implied by path
       curr = parent[prop] = if speculative
-          if endInArray && i == len then createArray() else createObject()
+          if pathType is 'array' && i == len then createArray() else createObject()
         else
-          if endInArray && i == len then [] else {}
-    #elseif SET_VERSION
-    if curr?
-      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
-    else
-      break
+          if pathType is 'array' && i == len then [] else {}
+
     #else
     break unless curr?
     #end
 
-    continue unless curr.$r
-    #if REF
-    break if i == len
-    #end
-
-    #if VERSION or SET_VERSION or SET_VERSION_ADD_PATH
-    [refObj, currVer] = lookupWithVersion curr.$r, obj
-    #else
-    refObj = lookup curr.$r, obj
-    #end
-    dereffedPath = obj.$lastPath
-
-    if key = curr.$k
-      if Array.isArray keyObj = lookup key, obj
-        if i < len
-          prop = keyObj[props[i++]]
-          dereffedPath += '.' + prop
-          #if VERSION
-          [curr, currVer] = lookupWithVersion dereffedPath, obj
-          #else
-          curr = lookup dereffedPath, obj
-          #end
-        else
-          curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
-      else
-        dereffedPath += '.' + keyObj
-        curr = lookup dereffedPath, obj
-        path = dereffedPath unless i == len
-    else
-      curr = refObj
-      path = dereffedPath unless i == len
-      #if SET_VERSION or SET_VERSION_ADD_PATH
-      currVer.ver = setVer  if setVer
+    if curr.$r
+      #if REF
+      break if i == len
       #end
-  
-    break unless curr?
 
-  obj.$path = path
+      #if WITH_VERSION or SET_VERSION
+      [refObj, currVer] = lookupWithVersion curr.$r, data, vers
+      currVer.ver = setVer if setVer
+      #else
+      refObj = lookup curr.$r, data
+      #end
+      dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
+
+      if key = curr.$k
+        if Array.isArray keyObj = lookup key, data
+          if i < len
+            prop = keyObj[props[i++]]
+            dereffedPath += '.' + prop
+            #if WITH_VERSION
+            [curr, currVer] = lookupWithVersion dereffedPath, data
+            #else
+            curr = lookup dereffedPath, data
+            #end
+          else
+            curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
+        else
+          dereffedPath += '.' + keyObj
+          curr = lookup dereffedPath, data
+          path = dereffedPath unless i == len
+      else
+        curr = refObj
+        path = dereffedPath unless i == len
+        #if SET_VERSION
+        currVer.ver = setVer  if setVer
+        #end
+    
+      break unless curr?
+
+    else
+      currVer.ver = setVer  if setVer
+
+  data.$path = path
   #if SET_VERSION
-  return [curr, parent, prop]
-  #elseif VERSION
+  return [curr, currVer, parent, prop]
+  #elseif WITH_VERSION
   return [curr, currVer]
   #else
   return curr

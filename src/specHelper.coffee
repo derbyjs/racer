@@ -8,6 +8,8 @@ module.exports =
     return arr
 
   create: (proto) ->
+    return proto  if proto.$spec
+
     if Array.isArray proto
       # TODO: Slicing is obviously going to be inefficient on large arrays, but inheriting
       # from arrays is very problematic. Eventually it would be good to implement something
@@ -21,6 +23,6 @@ module.exports =
     obj.$spec = true
     return obj
 
-  isSpeculative: (obj) -> obj && '$spec' of obj
+  isSpeculative: (obj) -> obj && obj.$spec
 
   identifier: '$spec'
