@@ -200,7 +200,7 @@ stm = module.exports =
         # TODO DRY this up. Appears, too, in mixin.ot/index
         unless field = @otFields[path]
           field = @otFields[path] = new Field @, path
-          {val} = @_adapter.get path, @_specModel()[0]
+          val = @_adapter.get path, @_specModel()[0]
           snapshot = field.snapshot = val?.$ot || str
         field.specTrigger true
 
@@ -276,7 +276,7 @@ stm = module.exports =
   ## Data accessor and mutator methods ##
   accessors:
     get: (path) ->
-      {val} = @_adapter.get path, @_specModel()[0]
+      val = @_adapter.get path, @_specModel()[0]
       if @isOtVal val
         return @getOT path, val.$ot
       return val

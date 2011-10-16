@@ -12,11 +12,14 @@ Memory:: =
     if path then lookup(path, data || @_data, @_vers).currVer.ver else @_vers.ver
 
   get: (path, data) ->
+    if path then lookup(path, data || @_data, @_vers).obj else data || @_data
+
+  getWithVersion: (path, data) ->
     if path
       {obj, currVer} = lookup path, data || @_data, @_vers
-      return {val: obj, ver: currVer.ver}
+      return [obj, currVer.ver]
     else
-      return val: data || @_data, ver: @_vers.ver
+      return [data || @_data, @_vers.ver]
 
   getRef: (path, data) ->
     lookup(path, data || @_data, @_vers, dontFollowLastRef: true).obj

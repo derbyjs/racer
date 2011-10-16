@@ -14,9 +14,9 @@ Memory:: =
   _prefillVersion: MemorySync::_prefillVersion
   _storeVer: MemorySync::_storeVer
   
-  _get: MemorySync::get
+  _get: MemorySync::getWithVersion
   get: (path, callback) ->
-    {val, ver} = @_get path
+    [val, ver] = @_get path
     callback null, val, ver
   
   _set: MemorySync::set

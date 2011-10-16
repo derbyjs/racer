@@ -7,27 +7,27 @@ module.exports = (AdapterSync) ->
   'test get and set': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql { val: {}, ver }
+    adapterSync.getWithVersion().should.specEql [{}, ver]
 
     adapterSync.set 'color', null, ++ver
-    adapterSync.get('color').should.specEql { val: null, ver }
+    adapterSync.getWithVersion('color').should.specEql [null, ver]
     
     adapterSync.set 'color', 'green', ++ver
-    adapterSync.get('color').should.specEql { val: 'green', ver }
+    adapterSync.getWithVersion('color').should.specEql ['green', ver]
     
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
-    adapterSync.get('info.numbers').should.specEql { val: {first: 2, second: 10}, ver}
-    adapterSync.get().should.specEql
-      val:
+    adapterSync.getWithVersion('info.numbers').should.specEql [{first: 2, second: 10}, ver]
+    adapterSync.getWithVersion().should.specEql [
         color: 'green'
         info:
           numbers:
             first: 2
             second: 10
-      ver: ver
+      , ver
+    ]
     
     adapterSync.set 'info', 'new', ++ver
-    adapterSync.get().should.specEql { val: {color: 'green', info: 'new'}, ver}
+    adapterSync.getWithVersion().should.specEql [{color: 'green', info: 'new'}, ver]
 
   'setting a path to a ver should update the path ver': ->
     adapterSync = new AdapterSync
@@ -111,9 +111,9 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'info.numbers', {}, ++ver
     
-    adapterSync.get('color').should.specEql {val: undefined, ver}
-    adapterSync.get('color.favorite').should.specEql {val: undefined, ver}
-    adapterSync.get('info.numbers.first').should.specEql {val: undefined, ver}
+    adapterSync.getWithVersion('color').should.specEql [undefined, ver]
+    adapterSync.getWithVersion('color.favorite').should.specEql [undefined, ver]
+    adapterSync.getWithVersion('info.numbers.first').should.specEql [undefined, ver]
 
   'test del': ->
     adapterSync = new AdapterSync
@@ -121,16 +121,16 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'color', 'green', ++ver
     adapterSync.set 'info.numbers', first: 2, second: 10, ++ver
     adapterSync.del 'color', ++ver
-    adapterSync.get().should.specEql
-      val:
+    adapterSync.getWithVersion().should.specEql [
         info:
           numbers:
             first: 2
             second: 10
-      ver: ver
+      , ver
+    ]
     
     adapterSync.del 'info.numbers', ++ver
-    adapterSync.get().should.specEql {val: {info: {}}, ver}
+    adapterSync.getWithVersion().should.specEql [{info: {}}, ver]
     
     # Make sure deleting something that doesn't exist isn't a problem
     adapterSync.del 'a.b.c', ++ver
@@ -162,32 +162,32 @@ module.exports = (AdapterSync) ->
   'should be able to push a single value onto an undefined path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.push 'colors', 'green', ++ver
-    adapterSync.get('colors').should.specEql {val: ['green'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['green'], ver]
 
   'should be able to pop from a single member array path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.push 'colors', 'green', ++ver
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.specEql {val: [], ver}
+    adapterSync.getWithVersion('colors').should.specEql [[], ver]
 
   'should be able to push multiple members onto an array path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.push 'colors', 'green', ++ver
     adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
-    adapterSync.get('colors').should.specEql {val: ['green', 'red', 'blue', 'purple'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['green', 'red', 'blue', 'purple'], ver]
 
   'should be able to pop from a multiple member array path': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.push 'colors', 'red', 'blue', 'purple', ++ver
     adapterSync.pop 'colors', ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'blue'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'blue'], ver]
 
   'pop on a non array should throw a "Not an Array" error': ->
     adapterSync = new AdapterSync
@@ -286,32 +286,32 @@ module.exports = (AdapterSync) ->
   'should be able to unshift a single value onto an undefined path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.unshift 'colors', 'green', ++ver
-    adapterSync.get('colors').should.specEql {val: ['green'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['green'], ver]
 
   'should be able to shift from a single member array path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.unshift 'colors', 'green', ++ver
     adapterSync.shift 'colors', ++ver
-    adapterSync.get('colors').should.specEql {val: [], ver}
+    adapterSync.getWithVersion('colors').should.specEql [[], ver]
 
   'should be able to unshift multiple members onto an array path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'blue', 'purple'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'blue', 'purple'], ver]
 
   'should be able to shift from a multiple member array path': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.unshift 'colors', 'red', 'blue', 'purple', ++ver
     adapterSync.shift 'colors', ++ver
-    adapterSync.get('colors').should.specEql {val: ['blue', 'purple'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['blue', 'purple'], ver]
 
   'shift on a non array should throw a "Not an Array" error': ->
     adapterSync = new AdapterSync
@@ -410,9 +410,9 @@ module.exports = (AdapterSync) ->
   'insertAfter -1 on an undefined path should result in a new array': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow'], ver]
 
   '''insertAfter -1 on an empty array should fill the array with
   only those elements''': ->
@@ -420,7 +420,7 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'colors', [], ++ver
     adapterSync.insertAfter 'colors', -1, 'yellow', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow'], ver]
 
   '''insertAfter the length-1 of an array should act like a push
   on the array''': ->
@@ -428,14 +428,14 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'colors', ['yellow'], ++ver
     adapterSync.insertAfter 'colors', 0, 'black', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow', 'black'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow', 'black'], ver]
 
   'insertAfter should be able to insert in-between an array with length>=2': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ++ver
     adapterSync.insertAfter 'colors', 0, 'violet', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow', 'violet', 'black'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow', 'violet', 'black'], ver]
 
   'insertAfter == length should throw an "Out of Bounds" error': ->
     adapterSync = new AdapterSync
@@ -518,9 +518,9 @@ module.exports = (AdapterSync) ->
   'insertBefore 0 on an undefined path should result in a new array': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
     adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow'], ver]
 
   '''insertBefore 0 on an empty array should fill the array
   with only those elements''': ->
@@ -528,28 +528,28 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'colors', [], ++ver
     adapterSync.insertBefore 'colors', 0, 'yellow', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow'], ver]
 
   'insertBefore 0 in an array should act like a shift': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ++ver
     adapterSync.insertBefore 'colors', 0, 'violet', ++ver
-    adapterSync.get('colors').should.specEql {val: ['violet', 'yellow', 'black'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['violet', 'yellow', 'black'], ver]
 
   '''insertBefore the length of an array should act like a push''': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ++ver
     adapterSync.insertBefore 'colors', 2, 'violet', ++ver
-    adapterSync.get('colors').should.specEql {val: ['yellow', 'black', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['yellow', 'black', 'violet'], ver]
 
   '''insertBefore should be able to insert in-between an array with length>=2''': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['violet', 'yellow', 'black'], ++ver
     adapterSync.insertBefore 'colors', 1, 'orange', ++ver
-    adapterSync.get('colors').should.specEql {val: ['violet', 'orange', 'yellow', 'black'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['violet', 'orange', 'yellow', 'black'], ver]
 
   'insertBefore -1 should throw an "Out of Bounds" error': ->
     adapterSync = new AdapterSync
@@ -631,7 +631,7 @@ module.exports = (AdapterSync) ->
   'test remove (from array)': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
 
 #    # on undefined
 #    didThrowNotAnArray = false
@@ -655,20 +655,20 @@ module.exports = (AdapterSync) ->
     # on an empty array
     adapterSync.set 'colors', [], ++ver
     adapterSync.remove 'colors', 0, 3, ++ver
-    adapterSync.get('colors').should.specEql {val: [], ver}
+    adapterSync.getWithVersion('colors').should.specEql [[], ver]
     
     # on a non-empty array, with howMany to remove in-bounds
     adapterSync.push 'colors', 'red', 'yellow', 'orange', ++ver
     adapterSync.remove 'colors', 0, 2, ++ver
-    adapterSync.get('colors').should.specEql {val: ['orange'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['orange'], ver]
 
     # on a non-empty array, with howMany to remove out of bounds
     adapterSync.remove 'colors', 0, 2, ++ver
-    adapterSync.get('colors').should.specEql {val: [], ver}
+    adapterSync.getWithVersion('colors').should.specEql [[], ver]
 
     # on a non-empty array, with startAt index out-of-bounds
     adapterSync.push 'colors', 'blue', 'green', 'pink', ++ver
-    adapterSync.get('colors').should.specEql {val: ['blue', 'green', 'pink'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['blue', 'green', 'pink'], ver]
     didThrowOutOfBounds = false
     try
       adapterSync.remove 'colors', -1, 1, ++ver
@@ -718,11 +718,11 @@ module.exports = (AdapterSync) ->
   'test splice': ->
     adapterSync = new AdapterSync
     ver = 0
-    adapterSync.get().should.specEql {val: {}, ver}
+    adapterSync.getWithVersion().should.specEql [{}, ver]
 
     # on undefined
     adapterSync.splice 'undefined', 0, 3, 1, 2, ++ver
-    adapterSync.get('undefined').should.specEql {val: [1, 2], ver}
+    adapterSync.getWithVersion('undefined').should.specEql [[1, 2], ver]
 
     # on a defined non-array
     didThrowNotAnArray = false
@@ -737,31 +737,31 @@ module.exports = (AdapterSync) ->
     # on an empty array
     adapterSync.set 'colors', [], ++ver
     adapterSync.splice 'colors', 0, 0, 'red', 'orange', 'yellow', 'green', 'blue', 'violet', ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'orange', 'yellow', 'green', 'blue', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'orange', 'yellow', 'green', 'blue', 'violet'], ver]
     
     # on a non-empty array
     adapterSync.splice 'colors', 2, 3, 'pink', 'gray', ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'orange', 'pink', 'gray', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'orange', 'pink', 'gray', 'violet'], ver]
 
     # like push
     adapterSync.splice 'colors', 5, 0, 'peach', ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'orange', 'pink', 'gray', 'violet', 'peach'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'orange', 'pink', 'gray', 'violet', 'peach'], ver]
 
     # like pop
     adapterSync.splice 'colors', 5, 1, ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'orange', 'pink', 'gray', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'orange', 'pink', 'gray', 'violet'], ver]
 
     # like remove
     adapterSync.splice 'colors', 1, 2, ++ver
-    adapterSync.get('colors').should.specEql {val: ['red', 'gray', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'gray', 'violet'], ver]
 
     # like shift
     adapterSync.splice 'colors', 0, 1, ++ver
-    adapterSync.get('colors').should.specEql {val: ['gray', 'violet'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['gray', 'violet'], ver]
 
     # with an out-of-bounds index
     adapterSync.splice 'colors', 100, 50, 'blue', ++ver
-    adapterSync.get('colors').should.specEql {val: ['gray', 'violet', 'blue'], ver}
+    adapterSync.getWithVersion('colors').should.specEql [['gray', 'violet', 'blue'], ver]
 
   'splice on a path + specifying a version should update the path ver': ->
     adapterSync = new AdapterSync
@@ -901,7 +901,7 @@ module.exports = (AdapterSync) ->
 #      4: { id: '4', name: 'kenny' }
 #    , constVer = ++ver
 #    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
-#    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+#    adapterSync.push 'users.1.friends', adapterSync.get('users.4'), ++ver
 #    adapterSync.version('users.4').should.equal constVer
 #
 #  '''pushing a path that is an array ref should update the version of
@@ -915,7 +915,7 @@ module.exports = (AdapterSync) ->
 #      4: { id: '4', name: 'kenny' }
 #    , ++ver
 #    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, ++ver
-#    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+#    adapterSync.push 'users.1.friends', adapterSync.get('users.4'), ++ver
 #    console.log require('util').inspect(adapterSync._vers, false, 10)
 #    console.log require('util').inspect(adapterSync.get(), false, 10)
 #    adapterSync.version('users.1.friendIds').should.equal ver
@@ -931,7 +931,7 @@ module.exports = (AdapterSync) ->
 #      4: { id: '4', name: 'kenny' }
 #    , ++ver
 #    adapterSync.set 'users.1.friends', { $r: 'users', $k: 'users.1.friendIds' }, constVer = ++ver
-#    adapterSync.push 'users.1.friends', adapterSync.get('users.4').val, ++ver
+#    adapterSync.push 'users.1.friends', adapterSync.get('users.4'), ++ver
 #    {ver: refVer} = adapterSync.lookup 'users.1.friends', undefined, dontFollowLastRef: true
 #    refVer.should.equal constVer
 #

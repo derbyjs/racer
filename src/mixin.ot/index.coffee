@@ -16,7 +16,7 @@ ot = module.exports =
       # TODO DRY this unless block up. Also appears in mixin.stm
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
-        {val} = @_adapter.get path, @_specModel()[0]
+        val = @_adapter.get path, @_specModel()[0]
         snapshot = field.snapshot = val?.$ot || str
         # TODO field.remoteSnapshot snapshot
       pos ?= 0
@@ -28,7 +28,7 @@ ot = module.exports =
       path = @_refHelper.dereferencedPath path, @_specModel()[0]
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
-        {val} = @_adapter.get path, @_specModel()[0]
+        val = @_adapter.get path, @_specModel()[0]
         snapshot = field.snapshot = val?.$ot || str
         # TODO field.remoteSnapshot snapshot
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
@@ -40,8 +40,7 @@ ot = module.exports =
     ot: (initVal) -> $ot: initVal
 
     isOtPath: (path) ->
-      {val} = @_adapter.get path, @_specModel()[0]
-      return val.$ot isnt undefined
+      @_adapter.get(path, @_specModel()[0]).$ot isnt undefined
 
     isOtVal: (val) -> return !! (val && val.$ot)
 
@@ -64,7 +63,7 @@ ot = module.exports =
       unless field = otFields[path]
         field = otFields[path] = new Field model, path
         field.specTrigger().on ->
-          {val} = adapter.get path, model._specModel()[0]
+          val = adapter.get path, model._specModel()[0]
           field.snapshot = val?.$ot || ''
           field.onRemoteOp op, v
       else
