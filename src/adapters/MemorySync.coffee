@@ -21,8 +21,13 @@ Memory:: =
     else
       return [data || @_data, @_vers.ver]
 
+  # Used by RefHelper
   getRef: (path, data) ->
     lookup(path, data || @_data, @_vers, dontFollowLastRef: true).obj
+
+  # Used by RefHelper
+  getAddPath: (path, data, speculative, pathType) ->
+    lookup(path, data || @_data, @_vers, {speculative, pathType}).obj
 
   set: (path, value, ver, data, options = {}) ->
     options.pathType = 'object'
@@ -71,84 +76,6 @@ Memory:: =
     delete parent[prop]
     return obj
 
-  lookup: lookup = (path, data, vers, options = {}) ->
-    {pathType, setVer, speculative, dontFollowLastRef} = options
-    curr = data
-    currVer = vers
-    currVer.ver = setVer if setVer
-
-    props = path.split '.'
-    path = ''
-    data.$remainder = ''
-    i = 0
-    len = props.length
-
-    while i < len
-      prop = props[i++]
-      parent = curr
-      curr = curr[prop]
-
-      parentVer = currVer
-      unless currVer = currVer[prop]
-        if setVer && pathType
-          currVer = parentVer[prop] = {}
-        else
-          currVer = parentVer
-
-      # Store the absolute path we are about to traverse
-      path = if path then path + '.' + prop else prop
-
-      if curr?
-        if speculative && typeof curr is 'object' && !isSpeculative(curr)
-          curr = parent[prop] = create curr
-      else
-        unless pathType
-          data.$remainder = props.slice(i).join '.'
-          break
-
-        # If pathType is truthy, create empty parent objects implied by path
-        curr = parent[prop] = if speculative
-            if pathType is 'array' && i == len then createArray() else createObject()
-          else
-            if pathType is 'array' && i == len then [] else {}
-
-      # Check for model references
-      if ref = curr.$r
-        break if i == len && dontFollowLastRef
-        
-        {currVer, obj: rObj} = lookup ref, data, vers, options
-        dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
-        currVer.ver = setVer if setVer
-
-        if key = curr.$k
-          # keyVer reflects the version set via an array op
-          # memVer reflects the version set via an op on a member
-          #  or member subpath
-          if Array.isArray keyObj = lookup(key, data, vers).obj
-            if i < len
-              prop = keyObj[props[i++]]
-              path = dereffedPath + '.' + prop
-              {currVer, obj: curr} = curr = lookup path, data, vers, {setVer}
-            else
-              curr = (lookup(dereffedPath + '.' + index, data, vers).obj for index in keyObj)
-          else
-            dereffedPath += '.' + keyObj
-            curr = lookup(dereffedPath, data, vers, options).obj
-            path = dereffedPath unless i == len
-        else
-          curr = rObj
-          path = dereffedPath unless i == len
-        
-        if `curr == null` && !pathType
-          # Return undefined if the reference points to nothing
-          data.$remainder = props.slice(i).join '.'
-          break
-      else
-        currVer.ver = setVer  if setVer
-    
-    data.$path = path
-    return {currVer, parent, prop, obj: curr}
-
 xtraArrMutConf =
   insertAfter:
     outOfBounds: (arr, [afterIndex, _]) ->
@@ -194,3 +121,81 @@ Memory::move = (path, from, to, ver, data, options = {}) ->
   else
     @insertAfter path, to, value, ver, data, options
   @remove path, from, 1, ver, data, options
+
+lookup = (path, data, vers, options = {}) ->
+  {pathType, setVer, speculative, dontFollowLastRef} = options
+  curr = data
+  currVer = vers
+  currVer.ver = setVer if setVer
+
+  props = path.split '.'
+  path = ''
+  data.$remainder = ''
+  i = 0
+  len = props.length
+
+  while i < len
+    prop = props[i++]
+    parent = curr
+    curr = curr[prop]
+
+    parentVer = currVer
+    unless currVer = currVer[prop]
+      if setVer && pathType
+        currVer = parentVer[prop] = {}
+      else
+        currVer = parentVer
+
+    # Store the absolute path we are about to traverse
+    path = if path then path + '.' + prop else prop
+
+    if curr?
+      if speculative && typeof curr is 'object' && !isSpeculative(curr)
+        curr = parent[prop] = create curr
+    else
+      unless pathType
+        data.$remainder = props.slice(i).join '.'
+        break
+
+      # If pathType is truthy, create empty parent objects implied by path
+      curr = parent[prop] = if speculative
+          if pathType is 'array' && i == len then createArray() else createObject()
+        else
+          if pathType is 'array' && i == len then [] else {}
+
+    # Check for model references
+    if ref = curr.$r
+      break if i == len && dontFollowLastRef
+      
+      {currVer, obj: rObj} = lookup ref, data, vers, options
+      dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
+      currVer.ver = setVer if setVer
+
+      if key = curr.$k
+        # keyVer reflects the version set via an array op
+        # memVer reflects the version set via an op on a member
+        #  or member subpath
+        if Array.isArray keyObj = lookup(key, data, vers).obj
+          if i < len
+            prop = keyObj[props[i++]]
+            path = dereffedPath + '.' + prop
+            {currVer, obj: curr} = curr = lookup path, data, vers, {setVer}
+          else
+            curr = (lookup(dereffedPath + '.' + index, data, vers).obj for index in keyObj)
+        else
+          dereffedPath += '.' + keyObj
+          curr = lookup(dereffedPath, data, vers, options).obj
+          path = dereffedPath unless i == len
+      else
+        curr = rObj
+        path = dereffedPath unless i == len
+      
+      if `curr == null` && !pathType
+        # Return undefined if the reference points to nothing
+        data.$remainder = props.slice(i).join '.'
+        break
+    else
+      currVer.ver = setVer  if setVer
+  
+  data.$path = path
+  return {currVer, parent, prop, obj: curr}

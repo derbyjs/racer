@@ -95,13 +95,13 @@ module.exports = (AdapterSync) ->
       didErr = true
     didErr.should.be.false
 
-  'lookup of a speculative ref with dontFollowLastRef option should not err': ->
+  'lookup of a speculative ref should not err': ->
     # TODO: Don't use internal adapter details
     adapterSync = new AdapterSync
-    adapterSync.set 'color', {$r: 'colors.green'}, undefined, obj = specHelper.create(adapterSync._data), speculative: true
+    adapterSync.set 'color', {$r: 'colors.green'}, undefined, data = specHelper.create(adapterSync._data), speculative: true
     didErr = false
     try
-      adapterSync.lookup 'color', obj, {dontFollowLastRef: true}
+      adapterSync.getRef 'color', data
     catch e
       didErr = true
     didErr.should.be.false
@@ -850,9 +850,8 @@ module.exports = (AdapterSync) ->
     adapterSync.set 'accounts.1', { name: 'ogilvy' }, ++ver
     adapterSync.set 'users.1.account', {$r: 'accounts.1'}, constVer = ++ver
     adapterSync.set 'users.1.account.name', 'bbdo', ++ver
-    # TODO: Don't use internal adapter details
-    {currVer} = adapterSync.lookup 'users.1.account', adapterSync._data, adapterSync._vers, dontFollowLastRef: true
-    currVer.ver.should.equal constVer
+    adapterSync._vers.users[1].account.ver.should.eql constVer
+
 
   # TODO Move the following commented out tests to Model layer. Doesn't belong in Adapter layer, since Model normalizes array ref ops args before passing the transaction op to the Adapter.
   # Array Ref Path Versioning

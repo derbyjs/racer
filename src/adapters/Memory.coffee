@@ -14,9 +14,10 @@ Memory:: =
   _prefillVersion: MemorySync::_prefillVersion
   _storeVer: MemorySync::_storeVer
   
-  _get: MemorySync::getWithVersion
+  _get: MemorySync::get
+  _getWithVersion: MemorySync::getWithVersion
   get: (path, callback) ->
-    [val, ver] = @_get path
+    [val, ver] = @_getWithVersion path
     callback null, val, ver
   
   _set: MemorySync::set
@@ -103,8 +104,8 @@ Memory:: =
     options.setVer = ver
     data ||= @_data
     vers = @_vers
-    value = @lookup("#{path}.#{from}", data, vers, options).obj
-    to += @lookup(path, data, vers, options).obj.length if to < 0
+    value = @_get "#{path}.#{from}", data
+    to += @_get(path, data).length if to < 0
     if from > to
       @_insertBefore path, to, value, ver, data, options
       from++
@@ -117,5 +118,3 @@ Memory:: =
     catch err
       return callback err
     callback null, from, to
- 
-  lookup: MemorySync::lookup
