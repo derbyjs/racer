@@ -225,7 +225,6 @@ stm = module.exports =
         # Then generate a speculative model
         unless data
           # TODO adapter implementation details leaking in here
-          # TODO Do not need Object.create here?
           data = cache.data = specHelper.create adapter._data
 
         appendArgs = [undefined, data, {speculative: true}]

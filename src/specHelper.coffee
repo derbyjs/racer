@@ -1,13 +1,6 @@
-SpecObject = -> return
-SpecObject:: =
-  $spec: true
-
 module.exports =
 
-  SpecObject: SpecObject
-
-  createObject: ->
-    new SpecObject
+  createObject: -> $spec: true
 
   createArray: ->
     arr = []
@@ -28,6 +21,6 @@ module.exports =
     obj.$spec = true
     return obj
 
-  isSpeculative: (obj) -> '$spec' of obj
+  isSpeculative: (obj) -> obj && '$spec' of obj
 
   identifier: '$spec'

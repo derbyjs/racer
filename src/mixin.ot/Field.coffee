@@ -110,12 +110,9 @@ Field:: =
 
   # Sends ops to the server
   flush: ->
-    # Used to flush the OT ops to the server when the OT flag on
-    # the path transforms from speculative to permanent.
+    # Used to flush the OT ops to the server when there are no pending STM transactions
     unless @_specTrigger
-      # TODO See commented out line. This caused a bug because isSpeculative made a mistake by returning false when it should be true. This happens because the { text: { $ot:... }} object literal does not have _proto: true in the @model._specModel()[0] object (remember, _proto i set lazily)
-#      shouldFulfill = !specHelper.isSpeculative @model._adapter.get(@path, @model._specModel()[0])
-      shouldFulfill = !specHelper.isSpeculative @model._adapter.lookup(@path, @model._specModel()[0], @model._adapter._vers, speculative: true).obj
+      shouldFulfill = !specHelper.isSpeculative @model._specModel()[0]
       @specTrigger shouldFulfill
       return
 
