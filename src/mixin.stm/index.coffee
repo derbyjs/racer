@@ -20,7 +20,6 @@ stm = module.exports =
       invalidateSpecModelCache: ->
         delete @data
         delete @lastReplayedTxnId
-        delete @path
 
     # The startId is the ID of the last Redis restart. This is sent along with
     # each versioned message from the Model so that the Store can map the model's
@@ -172,7 +171,7 @@ stm = module.exports =
         for op in ops
           @_applyMutation transaction.op, op, ver, null, forceEmit, local
       else
-        {args} = @_applyMutation transaction, txn, ver, null, forceEmit, local
+        args = @_applyMutation transaction, txn, ver, null, forceEmit, local
 
       @_removeTxn transaction.id txn
 
@@ -186,12 +185,13 @@ stm = module.exports =
       method = extractor.method mutation
       return if method is 'get'
       args = extractor.args(mutation).concat ver, data
-      meta = @_adapter[method] args...
+      @_adapter[method] args...
       # For converting array ref index api back to id api
       # TODO: Can this somehow be performed by the refs mixin?
-      args[1] = _meta  if _meta = extractor.meta mutation
+      args[1] = meta  if meta = extractor.meta mutation
 
-      # This marks an OT field as being non-speculative, so that OT ops can begin to be sent to the server
+      # This marks an OT field as being non-speculative, so that OT ops
+      # can begin to be sent to the server
       # TODO Make this more comprehensive - if @involvesOtVal val
       # TODO Make sure this is not called during specModel, only on remote txns received
       # TODO See if we can move this into mixin.ot
@@ -199,33 +199,28 @@ stm = module.exports =
         path = args[0]
         # TODO DRY this up. Appears, too, in mixin.ot/index
         unless field = @otFields[path]
-          field = @otFields[path] = new Field @, path
-          val = @_adapter.get path, @_specModel()[0]
+          field = @otFields[path] = new Field this, path
+          val = @_adapter.get path, @_specModel()
           snapshot = field.snapshot = val?.$ot || str
         field.specTrigger true
 
       @emit method, args, local  if forceEmit
-      return {args, meta}
+      return args
 
-    # TODO Will re-calculation of speculative model every time result
-    #      in assignemnts to vars becoming stale?
     _specModel: ->
       cache = @_cache
       len = @_txnQueue.length
       if lastReplayedTxnId = cache.lastReplayedTxnId
-        if cache.lastReplayedTxnId == @_txnQueue[len-1]
-          return [cache.data, cache.path]
+        return cache.data  if cache.lastReplayedTxnId == @_txnQueue[len-1]
         data = cache.data
         replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
       else
         replayFrom = 0
 
-      adapter = @_adapter
       if len
         # Then generate a speculative model
         unless data
-          # TODO adapter implementation details leaking in here
-          data = cache.data = specHelper.create adapter._data
+          data = cache.data = specHelper.create @_adapter.get()
 
         i = replayFrom
         while i < len
@@ -239,9 +234,8 @@ stm = module.exports =
             @_applyMutation transaction, txn, null, data
         
         cache.data = data
-        cache.path = path = data.$path
         cache.lastReplayedTxnId = transaction.id txn
-      return [data, path]
+      return data
 
     # TODO
     snapshot: ->
@@ -274,7 +268,7 @@ stm = module.exports =
   ## Data accessor and mutator methods ##
   accessors:
     get: (path) ->
-      val = @_adapter.get path, @_specModel()[0]
+      val = @_adapter.get path, @_specModel()
       if @isOtVal val
         return @getOT path, val.$ot
       return val

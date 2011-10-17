@@ -112,7 +112,7 @@ Field:: =
   flush: ->
     # Used to flush the OT ops to the server when there are no pending STM transactions
     unless @_specTrigger
-      shouldFulfill = !specHelper.isSpeculative @model._specModel()[0]
+      shouldFulfill = !specHelper.isSpeculative @model._specModel()
       @specTrigger shouldFulfill
       return
 

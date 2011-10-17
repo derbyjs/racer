@@ -34,7 +34,7 @@ module.exports =
         # Transform args if path represents an array ref
         # argsNormalizer = new ArgsNormalizer refHelper
         # args = argsNormalizer.transform(method, path, args)
-        if {$r, $k} = refHelper.isArrayRef path, @_specModel()[0]
+        if {$r, $k} = refHelper.isArrayRef path, @_specModel()
           [firstArgs, members] =
             (mutators.basic[method] || mutators.array[method]).splitArgs args
           members = members.map (member) ->
@@ -47,7 +47,7 @@ module.exports =
         # Convert id args to index args if we happen to be
         # using array ref mutator id api
         if mutators.array[method]?.indexesInArgs
-          idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()[0]
+          idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()
       
       # Create a new transaction and add it to a local queue
       ver = @_getVer()
@@ -55,7 +55,7 @@ module.exports =
       txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
       # NOTE: This converts the transaction
       unless nullPath
-        txn = refHelper.dereferenceTxn txn, @_specModel()[0]
+        txn = refHelper.dereferenceTxn txn, @_specModel()
 
       @_queueTxn txn, callback
 

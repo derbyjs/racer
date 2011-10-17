@@ -84,7 +84,7 @@ proto =
     @parentModel._commit txn
 
   get: (path) ->
-    [val, ver] = @_adapter.getWithVersion path, @_specModel()[0]
+    [val, ver] = @_adapter.getWithVersion path, @_specModel()
     if ver <= @ver
       @_addOpAsTxn 'get', path ? null, null
     return val

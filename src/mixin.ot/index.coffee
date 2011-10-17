@@ -12,11 +12,11 @@ ot = module.exports =
   accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
-      path = @_refHelper.dereference path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()
       # TODO DRY this unless block up. Also appears in mixin.stm
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
-        val = @_adapter.get path, @_specModel()[0]
+        val = @_adapter.get path, @_specModel()
         snapshot = field.snapshot = val?.$ot || str
         # TODO field.remoteSnapshot snapshot
       pos ?= 0
@@ -25,10 +25,10 @@ ot = module.exports =
 
     # OT text del
     delOT: (path, len, pos, callback) ->
-      path = @_refHelper.dereference path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
-        val = @_adapter.get path, @_specModel()[0]
+        val = @_adapter.get path, @_specModel()
         snapshot = field.snapshot = val?.$ot || str
         # TODO field.remoteSnapshot snapshot
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
@@ -40,12 +40,12 @@ ot = module.exports =
     ot: (initVal) -> $ot: initVal
 
     isOtPath: (path) ->
-      @_adapter.get(path, @_specModel()[0]).$ot isnt undefined
+      @_adapter.get(path, @_specModel()).$ot isnt undefined
 
     isOtVal: (val) -> !! (val && val.$ot)
 
     getOT: (path, initVal) ->
-      path = @_refHelper.dereference path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()
       return field.snapshot if field = @otFields[path]
       field = @otFields[path] = new Field @, path
       return field.snapshot = initVal
@@ -63,7 +63,7 @@ ot = module.exports =
       unless field = otFields[path]
         field = otFields[path] = new Field model, path
         field.specTrigger().on ->
-          val = adapter.get path, model._specModel()[0]
+          val = adapter.get path, model._specModel()
           field.snapshot = val?.$ot || ''
           field.onRemoteOp op, v
       else
