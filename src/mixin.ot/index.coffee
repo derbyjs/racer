@@ -12,7 +12,7 @@ ot = module.exports =
   accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
-      path = @_refHelper.dereferencedPath path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()[0]
       # TODO DRY this unless block up. Also appears in mixin.stm
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
@@ -25,7 +25,7 @@ ot = module.exports =
 
     # OT text del
     delOT: (path, len, pos, callback) ->
-      path = @_refHelper.dereferencedPath path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()[0]
       unless field = @otFields[path]
         field = @otFields[path] = new Field @, path
         val = @_adapter.get path, @_specModel()[0]
@@ -45,7 +45,7 @@ ot = module.exports =
     isOtVal: (val) -> return !! (val && val.$ot)
 
     getOT: (path, initVal) ->
-      path = @_refHelper.dereferencedPath path, @_specModel()[0]
+      path = @_refHelper.dereference path, @_specModel()[0]
       return field.snapshot if field = @otFields[path]
       field = @otFields[path] = new Field @, path
       return field.snapshot = initVal

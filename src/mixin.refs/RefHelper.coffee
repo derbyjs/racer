@@ -374,7 +374,7 @@ RefHelper:: =
       return txn
 
     # Update the transaction's path with a dereferenced path.
-    args[0] = @denormalizePath path, data
+    args[0] = @dereference path, data
     return txn
 
   isArrayRef: (path, data) ->
@@ -382,19 +382,12 @@ RefHelper:: =
     return false unless refObj?
     {$r, $k, $t} = refObj
     return false if $t != 'array'
-    $k && $k = @dereferencedPath $k, data
+    $k && $k = @dereference $k, data
     return {$r, $k}
   
   isRef: (obj) -> '$r' of obj
 
-  dereferencedPath: (path, data) ->
-    # TODO: This is an odd interface, should replace with a getPath method
-    data ||= @_adapter._data
-    @_adapter.get path, data
-    return data.$path
-
-  denormalizePath: (path, data) ->
-    # TODO: This is an odd interface, should replace with a getPath method
+  dereference: (path, data) ->
     data ||= @_adapter._data
     obj = @_adapter.get path, data
     path = data.$path
