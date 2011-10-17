@@ -1,4 +1,4 @@
-merge = require('../util').merge
+specHelper = require '../specHelper'
 {create, createObject, createArray} = require '../specHelper'
 arrMutators = require '../mutators/array'
 
@@ -68,7 +68,7 @@ Memory:: =
         for key, value of parentProto
           unless key is prop
             curr[key] = if typeof value is 'object'
-              create value
+              specHelper.create value
             else
               value
         # TODO Replace this with cross browser code
