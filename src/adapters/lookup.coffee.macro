@@ -1,19 +1,14 @@
 #if LOOKUP
 # Returns value
-# Used generally
-lookup = (path, data) ->
+# Used by getters & reference indexer
+# Does not dereference the final item if getRef is truthy
+lookup = (path, data, getRef) ->
 #end
 
 #if WITH_VERSION
 # Returns [value, {ver}]
+# Used by getters
 lookupWithVersion = (path, data, vers) ->
-#end
-
-#if REF
-# Returns value
-# Used by reference indexer
-# Does not dereference the final item
-lookupRef = (path, data) ->
 #end
 
 #if ADD_PATH
@@ -51,14 +46,8 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
 
     #if WITH_VERSION
     currVer = currVer[prop] || currVer
-    #end
-
-    #if SET_VERSION
-    parentVer = currVer
-    unless currVer = currVer[prop]
-      currVer = if setVer && pathType
-          parentVer[prop] = {}
-        else currVer = parentVer
+    #elseif SET_VERSION
+    currVer = currVer[prop] || if pathType && setVer then currVer[prop] = {} else currVer
     #end
 
     # The absolute path traversed so far
@@ -84,13 +73,14 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
     #end
 
     if curr.$r
-      #if REF
-      break if i == len
+      #if LOOKUP
+      break if getRef && i == len
       #end
 
-      #if WITH_VERSION or SET_VERSION
+      #if WITH_VERSION
       [refObj, currVer] = lookupWithVersion curr.$r, data, vers
-      currVer.ver = setVer if setVer
+      #elseif SET_VERSION
+      [refObj, currVer] = lookupSetVersion curr.$r, data, vers, setVer, pathType
       #else
       refObj = lookup curr.$r, data
       #end
@@ -100,14 +90,16 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
         if Array.isArray keyObj = lookup key, data
           if i < len
             prop = keyObj[props[i++]]
-            dereffedPath += '.' + prop
+            path = dereffedPath + '.' + prop
             #if WITH_VERSION
-            [curr, currVer] = lookupWithVersion dereffedPath, data
+            [curr, currVer] = lookupWithVersion path, data, vers
+            #elseif SET_VERSION
+            [curr, currVer] = lookupSetVersion path, data, vers, setVer, pathType
             #else
             curr = lookup dereffedPath, data
             #end
           else
-            curr = (lookup dereffedPath + '.' + prop for prop in keyVal)
+            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data
@@ -115,11 +107,15 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
       else
         curr = refObj
         path = dereffedPath unless i == len
-        #if SET_VERSION
-        currVer.ver = setVer  if setVer
-        #end
     
-      break unless curr?
+      #if ADD_PATH or SET_VERSION
+      if `curr == null` && !pathType
+      #else
+      if `curr == null`
+      #end
+        # Return if the reference points to nothing
+        data.$remainder = props.slice(i).join '.'
+        break
 
     else
       currVer.ver = setVer  if setVer

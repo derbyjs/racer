@@ -23,7 +23,7 @@ Memory:: =
 
   # Used by RefHelper
   getRef: (path, data) ->
-    lookup(path, data || @_data, @_vers, dontFollowLastRef: true)[0]
+    lookup(path, data || @_data, @_vers, getRef: true)[0]
 
   # Used by RefHelper
   getAddPath: (path, data, speculative, pathType) ->
@@ -123,7 +123,7 @@ Memory::move = (path, from, to, ver, data, options = {}) ->
   @remove path, from, 1, ver, data, options
 
 lookup = (path, data, vers, options = {}) ->
-  {pathType, setVer, speculative, dontFollowLastRef} = options
+  {pathType, setVer, speculative, getRef} = options
   curr = data
   currVer = vers
   currVer.ver = setVer if setVer
@@ -139,11 +139,7 @@ lookup = (path, data, vers, options = {}) ->
     parent = curr
     curr = curr[prop]
 
-    parentVer = currVer
-    unless currVer = currVer[prop]
-      currVer = if setVer && pathType
-          parentVer[prop] = {}
-        else currVer = parentVer
+    currVer = currVer[prop] || if pathType && setVer then currVer[prop] = {} else currVer
 
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
@@ -164,26 +160,22 @@ lookup = (path, data, vers, options = {}) ->
 
     # Check for model references
     if curr.$r
-      break if dontFollowLastRef && i == len
+      break if getRef && i == len
       
       [refObj, currVer] = lookup curr.$r, data, vers, options
       dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
-      currVer.ver = setVer if setVer
 
       if key = curr.$k
-        # keyVer reflects the version set via an array op
-        # memVer reflects the version set via an op on a member
-        #  or member subpath
         if Array.isArray keyObj = lookup(key, data, vers)[0]
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            [curr, currVer] = lookup path, data, vers, {setVer}
+            [curr, currVer] = lookup path, data, vers, options
           else
             curr = (lookup(dereffedPath + '.' + index, data, vers)[0] for index in keyObj)
         else
           dereffedPath += '.' + keyObj
-          curr = lookup(dereffedPath, data, vers, options)[0]
+          curr = lookup(dereffedPath, data, vers)[0]
           path = dereffedPath unless i == len
       else
         curr = refObj
