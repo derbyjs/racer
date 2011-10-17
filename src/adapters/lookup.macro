@@ -67,7 +67,9 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
         else
           if pathType is 'array' && i == len then [] else {}
     #else
-    break unless curr?
+    unless curr?
+      data.$remainder = props.slice(i).join '.'
+      break
     #end
 
     if curr.$r
@@ -79,6 +81,8 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
       [refObj, currVer] = lookupWithVersion curr.$r, data, vers
       #elseif SET_VERSION
       [refObj, currVer] = lookupSetVersion curr.$r, data, vers, setVer, pathType
+      #elseif ADD_PATH
+      refObj = lookupAddPath curr.$r, data, speculative, pathType
       #else
       refObj = lookup curr.$r, data
       #end
@@ -93,11 +97,13 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
             [curr, currVer] = lookupWithVersion path, data, vers
             #elseif SET_VERSION
             [curr, currVer] = lookupSetVersion path, data, vers, setVer, pathType
+            #elseif ADD_PATH
+            curr = lookupAddPath path, data, speculative, pathType
             #else
-            curr = lookup dereffedPath, data
+            curr = lookup path, data
             #end
           else
-            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data

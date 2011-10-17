@@ -25,7 +25,9 @@ lookup = (path, data, getRef) ->
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
 
-    break unless curr?
+    unless curr?
+      data.$remainder = props.slice(i).join '.'
+      break
 
     if curr.$r
       break if getRef && i == len
@@ -38,9 +40,9 @@ lookup = (path, data, getRef) ->
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            curr = lookup dereffedPath, data
+            curr = lookup path, data
           else
-            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data
@@ -79,7 +81,9 @@ lookupWithVersion = (path, data, vers) ->
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
 
-    break unless curr?
+    unless curr?
+      data.$remainder = props.slice(i).join '.'
+      break
 
     if curr.$r
 
@@ -93,7 +97,7 @@ lookupWithVersion = (path, data, vers) ->
             path = dereffedPath + '.' + prop
             [curr, currVer] = lookupWithVersion path, data, vers
           else
-            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data
@@ -146,7 +150,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
 
     if curr.$r
 
-      refObj = lookup curr.$r, data
+      refObj = lookupAddPath curr.$r, data, speculative, pathType
       dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
 
       if key = curr.$k
@@ -154,9 +158,9 @@ lookupAddPath = (path, data, speculative, pathType) ->
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            curr = lookup dereffedPath, data
+            curr = lookupAddPath path, data, speculative, pathType
           else
-            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data
@@ -223,7 +227,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
             path = dereffedPath + '.' + prop
             [curr, currVer] = lookupSetVersion path, data, vers, setVer, pathType
           else
-            curr = (lookup dereffedPath + '.' + index, data for index in keyObj)
+            curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
           dereffedPath += '.' + keyObj
           curr = lookup dereffedPath, data

@@ -7,7 +7,7 @@ wrapTest = util.wrapTest
 {mockSocketModels} = require './util/model'
 
 module.exports =
-  'Model::atomic should log gets @single': wrapTest (done) ->
+  'Model::atomic should log gets': wrapTest (done) ->
     model = new Model
     model.atomic (model) ->
       model.get 'color'
@@ -17,7 +17,7 @@ module.exports =
       done()
 
   '''AtomicModel::oplog should only contain the ops that
-  *it* has done @single''': wrapTest (done) ->
+  *it* has done''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (model) ->
@@ -30,7 +30,7 @@ module.exports =
       done()
 
   '''AtomicModel should keep around the transactions of
-  its parent's model @single''': wrapTest (done) ->
+  its parent's model''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (model) ->
@@ -41,7 +41,7 @@ module.exports =
       done()
 
   '''AtomicModel sets should be reflected in the atomic
-  model but not the parent model @single''': wrapTest (done) ->
+  model but not the parent model''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel) ->
@@ -52,7 +52,7 @@ module.exports =
 
   '''AtomicModel sets should be reflected in the parent
   speculative model after an implicit commit -- i.e., if no
-  commit param was passed to model.atomic @single''': wrapTest (done) ->
+  commit param was passed to model.atomic''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel) ->
@@ -63,7 +63,7 @@ module.exports =
   '''if passed an explicit commit callback, AtomicModel
   should not reflect any of its ops in the parent speculative
   model until the commit callback is invoked inside the
-  atomic block @single''': wrapTest (done) ->
+  atomic block''': wrapTest (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel, commit) ->
@@ -77,7 +77,7 @@ module.exports =
 
   '''Model::atomic(lambda, callback) should invoke its
   callback once it receives a successful response for
-  the txn from the upstream repo @single''': wrapTest (done) ->
+  the txn from the upstream repo''': wrapTest (done) ->
     # stub out appropriate methods/callbacks in model
     # to fake a successful response without going through
     # additional Store + Socket.IO + STM + Redis stack
@@ -91,7 +91,7 @@ module.exports =
 
   '''Model::atomic(lambda, callback) should callback
   with an error if the commit failed at some point
-  in an upstream repo @single''': wrapTest (done) ->
+  in an upstream repo''': wrapTest (done) ->
     [sockets, model] = mockSocketModels 'model', txnErr: 'conflict'
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
@@ -101,7 +101,7 @@ module.exports =
       done()
 
   '''AtomicModel commits should not callback if it has not
-  yet received the status of that commit @single''': wrapTest (done) ->
+  yet received the status of that commit''': wrapTest (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: false
     counter = 1
     model.atomic (atomicModel) ->
@@ -116,7 +116,7 @@ module.exports =
 
   '''AtomicModel should commit *all* its ops to the parent
   model's permanent, non-speculative data upon a successful
-  transaction response from the parent repo @single''': wrapTest (done) ->
+  transaction response from the parent repo''': wrapTest (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     model.atomic (atomicModel) ->
       atomicModel.set 'color', 'green'
@@ -130,7 +130,7 @@ module.exports =
       done()
 
   '''a model should clean up its atomic model upon a
-  successful commit of that atomic model's transaction @single''': wrapTest (done) ->
+  successful commit of that atomic model's transaction''': wrapTest (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     atomicModelId = null
     model.atomic (atomicModel) ->
@@ -143,7 +143,7 @@ module.exports =
       done()
 
   '''a model should not clean up its atomic model before the
-  result of a commit (success or err) is known @single''': wrapTest (done) ->
+  result of a commit (success or err) is known''': wrapTest (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     atomicModelId = null
     model.atomic (atomicModel, commit) ->
