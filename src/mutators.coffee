@@ -1,13 +1,18 @@
-module.exports =
+{merge} = require './util'
+
+mutators = module.exports =
 
   basic:
     set:
+      numArgs: 1
       splitArgs: splitArgsDefault = (args) -> [args, []]
     del:
+      numArgs: 0
       splitArgs: splitArgsDefault
 
   array:
     push:
+      numArgs: 'variable'
       splitArgs: (args) -> [[], args]
       sliceFrom: 1
       argsToForeignKeys: argsToFKeys = (args, path, $r) ->
@@ -22,9 +27,11 @@ module.exports =
         return args
 
     pop:
+      numArgs: 0
       splitArgs: splitArgsDefault = (args) -> [args, []]
 
     insertAfter:
+      numArgs: 2
       # Extracts or sets the arguments in args that represent indexes
       indexesInArgs: indexInArgs = indexesInArgsForInsert = (args, newVals) ->
         if newVals
@@ -38,6 +45,7 @@ module.exports =
       fn: (arr, [afterIndex, value]) -> arr.splice afterIndex + 1, 0, value
 
     insertBefore:
+      numArgs: 2
       indexesInArgs: indexInArgs
       splitArgs: splitArgsForInsert
       sliceFrom: 2
@@ -46,6 +54,7 @@ module.exports =
       fn: (arr, [beforeIndex, value]) -> arr.splice beforeIndex, 0, value
 
     remove:
+      numArgs: 2
       indexesInArgs: indexInArgs
       splitArgs: splitArgsDefault
       outOfBounds: (arr, [startIndex]) ->
@@ -53,20 +62,24 @@ module.exports =
       fn: (arr, [startIndex, howMany]) -> arr.splice startIndex, howMany
 
     splice:
+      numArgs: 'variable'
       indexesInArgs: indexInArgs
       splitArgs: (args) -> [args[0..1], args.slice 2]
       sliceFrom: 3
       argsToForeignKeys: argsToFKeys
 
     unshift:
+      numArgs: 'variable'
       splitArgs: splitArgsDefault
       sliceFrom: 1
       argsToForeignKeys: argsToFKeys
 
     shift:
+      numArgs: 0
       splitArgs: splitArgsDefault
 
     move:
+      numArgs: 2
       indexesInArgs: (args, newVals) ->
         if newVals
           args[0..1] = newVals[0..1]
@@ -84,3 +97,8 @@ module.exports =
         [value] = arr.splice from, 1
         # Insert in new location
         arr.splice to, 0, value
+
+all = {}
+for name, category of mutators
+  all = merge all, category
+mutators.all = all

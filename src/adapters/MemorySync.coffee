@@ -48,7 +48,7 @@ Memory:: =
     currVer[prop] = if Array.isArray val then [] else {}
     currVer[prop].ver = ver
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
-  
+
   del: (path, ver, data) ->
     [obj, currVer, parent, prop] =
       lookupSetVersion path, data || @_data, @_vers, ver

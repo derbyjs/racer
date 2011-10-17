@@ -1,8 +1,3 @@
-##  WARNING:
-##  ========
-##  This file was compiled from a macro.
-##  Do not edit it directly.
-
 MemorySync = require './MemorySync'
 {all: mutators} = require '../mutators'
 
@@ -33,28 +28,35 @@ for method, {numArgs} of mutators
     alias = '_' + method
     Memory::[alias] = MemorySync::[method]
     Memory::[method] = switch numArgs
+      #for 0 1 2 ELSE
+      #if 0
       when 0 then (path, ver, callback) ->
-        try
-          @[alias] path, ver, null
-        catch err
-          return callback err
-        callback null
+      #elseif 1
       when 1 then (path, arg0, ver, callback) ->
-        try
-          @[alias] path, arg0, ver, null
-        catch err
-          return callback err
-        callback null, arg0
+      #elseif 2
       when 2 then (path, arg0, arg1, ver, callback) ->
-        try
-          @[alias] path, arg0, arg1, ver, null
-        catch err
-          return callback err
-        callback null, arg0, arg1
+      #else
       else (path, args..., ver, callback) ->
+      #end
         try
+          #if 0
+          @[alias] path, ver, null
+          #elseif 1
+          @[alias] path, arg0, ver, null
+          #elseif 2
+          @[alias] path, arg0, arg1, ver, null
+          #else
           @[alias] path, args..., ver, null
+          #end
         catch err
           return callback err
+        #if 0
+        callback null
+        #elseif 1
+        callback null, arg0
+        #elseif 2
+        callback null, arg0, arg1
+        #else
         callback null, args...
-
+        #end
+      #end
