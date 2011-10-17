@@ -116,9 +116,11 @@ module.exports =
           # Return if the reference points to nothing
           data.$remainder = props.slice(i).join '.'
           break
-
+      
+      #if WITH_VERSION or SET_VERSION
       else
         currVer.ver = setVer  if setVer
+      #end
 
     data.$path = path
     #if SET_VERSION
