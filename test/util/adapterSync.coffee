@@ -407,6 +407,7 @@ module.exports = (AdapterSync) ->
     adapterSync.shift 'colors.favs', ++ver, null
     adapterSync.version('colors.blacklist').should.equal ver-1
 
+
   'insertAfter -1 on an undefined path should result in a new array': ->
     adapterSync = new AdapterSync
     ver = 0
@@ -626,6 +627,163 @@ module.exports = (AdapterSync) ->
     adapterSync.insertBefore 'colors.favs', 0, 'yellow', ++ver, null
     adapterSync.version('colors.favs').should.equal ver
     adapterSync.version('colors.best').should.equal ver-1
+
+
+  'test move of an array item to the same index': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 1, 1, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'green', 'blue'], ver]
+  
+  'test move of an array item from a negative index to the equivalent positive index': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', -1, 2, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'green', 'blue'], ver]
+
+  'test move of an array item from a positive index to the equivalent negative index': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 0, -3, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'green', 'blue'], ver]
+
+  'test move of an array item to a later index': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 0, 2, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['green', 'blue', 'red'], ver]
+
+  'test move of an array item to a later index, from negative': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', -3, 2, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['green', 'blue', 'red'], ver]
+
+  'test move of an array item to a later index, to negative': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 0, -1, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['green', 'blue', 'red'], ver]
+
+  'test move of an array item to an earlier index': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 2, 1, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'blue', 'green'], ver]
+
+  'test move of an array item to an earlier index, from negative': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', -1, 1, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'blue', 'green'], ver]
+  
+  'test move of an array item to an earlier index, to negative': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['red', 'green', 'blue'], ++ver, null
+    adapterSync.move 'colors', 2, -2, ++ver, null
+    adapterSync.getWithVersion('colors').should.specEql [['red', 'blue', 'green'], ver]
+
+  'move from > max index should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    didThrowOutOfBounds = false
+    try
+      adapterSync.move 'colors', 2, 0, ++ver, null
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+  
+  'move from <= -len should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    didThrowOutOfBounds = false
+    try
+      adapterSync.move 'colors', -3, 0, ++ver, null
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+  
+  'move to > max index should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    didThrowOutOfBounds = false
+    try
+      adapterSync.move 'colors', 0, 2, ++ver, null
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+  
+  'move to <= -len should throw an "Out of Bounds" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    didThrowOutOfBounds = false
+    try
+      adapterSync.move 'colors', 0, -3, ++ver, null
+    catch e
+      e.message.should.equal 'Out of Bounds'
+      didThrowOutOfBounds = true
+    didThrowOutOfBounds.should.be.true
+
+  'move on a non-array should throw a "Not an Array" error': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'nonArray', '9', ++ver, null
+    didThrowNotAnArray = false
+    try
+      adapterSync.move 'nonArray', 0, 0, ++ver, null
+    catch e
+      e.message.should.equal 'Not an Array'
+      didThrowNotAnArray = true
+    didThrowNotAnArray.should.be.true
+
+  'move on a path + specifying a version should update the path ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    adapterSync.move 'colors', 0, 1, ++ver, null
+    adapterSync.version('colors').should.equal ver
+
+  'move on a path + specifying a version should update the root ver': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors', ['yellow', 'purple'], ++ver, null
+    adapterSync.move 'colors', 0, 1, ++ver, null
+    adapterSync.version().should.equal ver
+
+  'move on a path + specifying a version should update all subpath vers': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors.favs', ['yellow', 'purple'], ++ver, null
+    adapterSync.move 'colors.favs', 0, 1, ++ver, null
+    adapterSync.version('colors.favs').should.equal ver
+    adapterSync.version('colors').should.equal ver
+
+  '''move on a path + specifying a version should not update
+  sibling path vers''': ->
+    adapterSync = new AdapterSync
+    ver = 0
+    adapterSync.set 'colors.best', ['yellow', 'purple'], bestVer = ++ver, null
+    adapterSync.set 'colors.favs', ['orange', 'cyan'], ++ver, null
+    adapterSync.move 'colors.favs', 0, 1, ++ver, null
+    adapterSync.version('colors.favs').should.equal ver
+    adapterSync.version('colors.best').should.equal bestVer
+
 
   'test remove (from array)': ->
     adapterSync = new AdapterSync
@@ -981,5 +1139,3 @@ module.exports = (AdapterSync) ->
     ver = 0
     adapterSync.set 'color', 'red', ++ver, null
     adapterSync.version('direction').should.equal ver
-
-  # TODO Add move tests

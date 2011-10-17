@@ -72,45 +72,11 @@ Memory:: =
     delete parent[prop]
     return obj
 
-xtraArrMutConf =
-  insertAfter:
-    outOfBounds: (arr, [afterIndex, _]) ->
-      return ! (-1 <= afterIndex <= arr.length-1)
-    fn: (arr, [afterIndex, value]) ->
-      return arr.splice afterIndex+1, 0, value
-  insertBefore:
-    outOfBounds: (arr, [beforeIndex, _]) ->
-      return ! (0 <= beforeIndex <= arr.length)
-    fn: (arr, [beforeIndex, value]) ->
-      return arr.splice beforeIndex, 0, value
-  remove:
-    outOfBounds: (arr, [startIndex, _]) ->
-      upperBound = if arr.length then arr.length-1 else 0
-      return ! (0 <= startIndex <= upperBound)
-    fn: (arr, [startIndex, howMany]) ->
-      return arr.splice startIndex, howMany
-
-for method, {compound} of arrayMutators
-  continue if compound
-  Memory::[method] = do (method) ->
-    if xtraConf = xtraArrMutConf[method]
-      outOfBounds = xtraConf.outOfBounds
-      fn = xtraConf.fn
-    return (path, methodArgs..., ver, data) ->
+for method, {outOfBounds, fn} of arrayMutators
+  Memory::[method] = do (method, outOfBounds, fn) ->
+    (path, methodArgs..., ver, data) ->
       [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
       return if fn then fn arr, methodArgs else arr[method] methodArgs...
-
-Memory::move = (path, from, to, ver, data) ->
-  data ||= @_data
-  vers = @_vers
-  value = lookup "#{path}.#{from}", data
-  to += lookup(path, data).length if to < 0
-  if from > to
-    @insertBefore path, to, value, ver, data
-    from++
-  else
-    @insertAfter path, to, value, ver, data
-  @remove path, from, 1, ver, data

@@ -102,22 +102,11 @@ Memory:: =
     catch err
       return callback err
     callback null, args...
-  
-  _move: (path, from, to, ver, data) ->
-    data ||= @_data
-    vers = @_vers
-    value = @_get "#{path}.#{from}", data
-    to += @_get(path, data).length if to < 0
-    if from > to
-      @_insertBefore path, to, value, ver, data
-      from++
-    else
-      @_insertAfter path, to, value, ver, data
-    @_remove path, from, 1, ver, data
+
+  _move: MemorySync::move
   move: (path, from, to, ver, callback) ->
     try
       @_move path, from, to, ver, null
     catch err
       return callback err
     callback null, from, to
-
