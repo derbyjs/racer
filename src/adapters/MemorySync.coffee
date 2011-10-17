@@ -1,5 +1,5 @@
+{lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
 specHelper = require '../specHelper'
-{create, createObject, createArray} = require '../specHelper'
 arrMutators = require '../mutators/array'
 
 Memory = module.exports = ->
@@ -121,73 +121,3 @@ Memory::move = (path, from, to, ver, data, options = {}) ->
   else
     @insertAfter path, to, value, ver, data, options
   @remove path, from, 1, ver, data, options
-
-lookup = (path, data, vers, options = {}) ->
-  {pathType, setVer, speculative, getRef} = options
-  curr = data
-  currVer = vers
-  currVer.ver = setVer if setVer
-
-  props = path.split '.'
-  path = ''
-  data.$remainder = ''
-  i = 0
-  len = props.length
-
-  while i < len
-    prop = props[i++]
-    parent = curr
-    curr = curr[prop]
-
-    currVer = currVer[prop] || if pathType && setVer then currVer[prop] = {} else currVer
-
-    # The absolute path traversed so far
-    path = if path then path + '.' + prop else prop
-
-    # Create empty objects implied by the path
-    if curr?
-      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
-    else
-      unless pathType
-        data.$remainder = props.slice(i).join '.'
-        break
-
-      # If pathType is truthy, create empty parent objects implied by path
-      curr = parent[prop] = if speculative
-          if pathType is 'array' && i == len then createArray() else createObject()
-        else
-          if pathType is 'array' && i == len then [] else {}
-
-    # Check for model references
-    if curr.$r
-      break if getRef && i == len
-      
-      [refObj, currVer] = lookup curr.$r, data, vers, options
-      dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
-
-      if key = curr.$k
-        if Array.isArray keyObj = lookup(key, data, vers)[0]
-          if i < len
-            prop = keyObj[props[i++]]
-            path = dereffedPath + '.' + prop
-            [curr, currVer] = lookup path, data, vers, options
-          else
-            curr = (lookup(dereffedPath + '.' + index, data, vers)[0] for index in keyObj)
-        else
-          dereffedPath += '.' + keyObj
-          curr = lookup(dereffedPath, data, vers)[0]
-          path = dereffedPath unless i == len
-      else
-        curr = refObj
-        path = dereffedPath unless i == len
-      
-      if `curr == null` && !pathType
-        # Return if the reference points to nothing
-        data.$remainder = props.slice(i).join '.'
-        break
-
-    else
-      currVer.ver = setVer  if setVer
-  
-  data.$path = path
-  return [curr, currVer, parent, prop]

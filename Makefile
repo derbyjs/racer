@@ -58,3 +58,6 @@ compile:
 	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
+
+macro:
+	node ./lib/util/macro.js
