@@ -9,31 +9,31 @@ Memory = module.exports = ->
 
 Memory:: =
   version: (path, data) ->
-    if path then lookup(path, data || @_data, @_vers)[1].ver else @_vers.ver
+    if path then lookupWithVersion(path, data || @_data, @_vers)[1].ver else @_vers.ver
 
   get: (path, data) ->
-    if path then lookup(path, data || @_data, @_vers)[0] else data || @_data
+    if path then lookup path, data || @_data else data || @_data
 
   getWithVersion: (path, data) ->
     if path
-      [obj, currVer] = lookup path, data || @_data, @_vers
+      [obj, currVer] = lookupWithVersion path, data || @_data, @_vers
       return [obj, currVer.ver]
     else
       return [data || @_data, @_vers.ver]
 
   # Used by RefHelper
   getRef: (path, data) ->
-    lookup(path, data || @_data, @_vers, getRef: true)[0]
+    lookup path, data || @_data, true
 
   # Used by RefHelper
   getAddPath: (path, data, speculative, pathType) ->
-    lookup(path, data || @_data, @_vers, {speculative, pathType})[0]
+    lookupAddPath path, data || @_data, speculative, pathType
 
   set: (path, value, ver, data, options = {}) ->
-    options.pathType = 'object'
-    options.setVer = ver unless options.speculative
-    [obj, currVer, parent, prop] = lookup path, data || @_data, @_vers, options
-    if !options.speculative && typeof value is 'object'
+    setVer = ver unless speculative = options.speculative
+    [obj, currVer, parent, prop] =
+      lookupSetVersion path, data || @_data, @_vers, setVer, 'object'
+    if !speculative && typeof value is 'object'
       @_prefillVersion currVer, value, ver
     return parent[prop] = value
 
@@ -51,11 +51,9 @@ Memory:: =
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
   
   del: (path, ver, data, options = {}) ->
-    speculative = options.speculative
-    options = Object.create options
-    options.pathType = false
-    options.setVer = ver unless speculative
-    [obj, currVer, parent, prop] = lookup path, data || @_data, @_vers, options
+    setVer = ver unless speculative = options.speculative
+    [obj, currVer, parent, prop] =
+      lookupSetVersion path, data || @_data, @_vers, setVer
     unless parent
       return obj
     if speculative
@@ -102,9 +100,8 @@ for method, {compound, normalizeArgs} of arrMutators
       fn = xtraConf.fn
     return ->
       {path, methodArgs, ver, data, options} = normalizeArgs arguments...
-      options.pathType = 'array'
-      options.setVer = ver unless options.speculative
-      arr = lookup(path, data || @_data, @_vers, options)[0]
+      setVer = ver unless options.speculative
+      [arr] = lookupSetVersion path, data || @_data, @_vers, setVer, 'array'
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
       # TODO Array of references handling
@@ -113,8 +110,8 @@ for method, {compound, normalizeArgs} of arrMutators
 Memory::move = (path, from, to, ver, data, options = {}) ->
   data ||= @_data
   vers = @_vers
-  value = lookup("#{path}.#{from}", data, vers)[0]
-  to += lookup(path, data, vers)[0].length if to < 0
+  value = lookup "#{path}.#{from}", data
+  to += lookup(path, data).length if to < 0
   if from > to
     @insertBefore path, to, value, ver, data, options
     from++
