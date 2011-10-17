@@ -1,6 +1,6 @@
 {lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
 specHelper = require '../specHelper'
-arrayMutators = require '../mutators/array'
+{array: arrayMutators} = require '../mutators'
 
 Memory = module.exports = ->
   @_data = {}  # maps path -> val
