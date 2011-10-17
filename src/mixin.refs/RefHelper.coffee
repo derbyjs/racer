@@ -79,11 +79,10 @@ RefHelper:: =
       return out
 
     # Wrap all array mutators at adapter layer to add ref logic
-    for method, {normalizeArgs, indexesInArgs} of arrayMutators
+    for method, {indexesInArgs} of arrayMutators
       adapter['__' + method] = adapter[method]
-      adapter[method] = do (method, normalizeArgs, indexesInArgs) ->
-        return ->
-          {path, methodArgs, ver, data} = normalizeArgs arguments...
+      adapter[method] = do (method, indexesInArgs) ->
+        return (path, methodArgs..., ver, data) ->
           data ||= @_data
           #if refHelper.isArrayRef path, data
           if indexesInArgs

@@ -17,9 +17,12 @@ Memory:: =
   _get: MemorySync::get
   _getWithVersion: MemorySync::getWithVersion
   get: (path, callback) ->
-    [val, ver] = @_getWithVersion path
+    try
+      [val, ver] = @_getWithVersion path
+    catch err
+      return callback err
     callback null, val, ver
-  
+
   _set: MemorySync::set
   set: (path, value, ver, callback) ->
     try
@@ -39,7 +42,7 @@ Memory:: =
   _push: MemorySync::push
   push: (path, values..., ver, callback) ->
     try
-      @_push path, values..., ver
+      @_push path, values..., ver, null
     catch err
       return callback err
     callback null, values...
@@ -47,7 +50,7 @@ Memory:: =
   _pop: MemorySync::pop
   pop: (path, ver, callback) ->
     try
-      @_pop path, ver
+      @_pop path, ver, null
     catch err
       return callback err
     callback null
@@ -55,7 +58,7 @@ Memory:: =
   _unshift: MemorySync::unshift
   unshift: (path, values..., ver, callback) ->
     try
-      @_unshift path, values..., ver
+      @_unshift path, values..., ver, null
     catch err
       return callback err
     callback null, values...
@@ -63,7 +66,7 @@ Memory:: =
   _shift: MemorySync::shift
   shift: (path, ver, callback) ->
     try
-      @_shift path, ver
+      @_shift path, ver, null
     catch err
       return callback err
     callback null
@@ -71,7 +74,7 @@ Memory:: =
   _insertAfter: MemorySync::insertAfter
   insertAfter: (path, afterIndex, value, ver, callback) ->
     try
-      @_insertAfter path, afterIndex, value, ver
+      @_insertAfter path, afterIndex, value, ver, null
     catch err
       return callback err
     callback null, afterIndex, value
@@ -79,7 +82,7 @@ Memory:: =
   _insertBefore: MemorySync::insertBefore
   insertBefore: (path, beforeIndex, value, ver, callback) ->
     try
-      @_insertBefore path, beforeIndex, value, ver
+      @_insertBefore path, beforeIndex, value, ver, null
     catch err
       return callback err
     callback null, beforeIndex, value
@@ -87,34 +90,34 @@ Memory:: =
   _remove: MemorySync::remove
   remove: (path, startIndex, howMany, ver, callback) ->
     try
-      @_remove path, startIndex, howMany, ver
+      @_remove path, startIndex, howMany, ver, null
     catch err
       return callback err
     callback null, startIndex, howMany
 
   _splice: MemorySync::splice
-  splice: (path, startIndex, removeCount, newMembers..., ver, callback) ->
+  splice: (path, args..., ver, callback) ->
     try
-      @_splice path, startIndex, removeCount, newMembers...
+      @_splice path, args..., ver, null
     catch err
       return callback err
-    callback null, startIndex, removeCount, newMembers...
+    callback null, args...
   
-  _move: (path, from, to, ver, data, options = {}) ->
-    options.setVer = ver
+  _move: (path, from, to, ver, data) ->
     data ||= @_data
     vers = @_vers
     value = @_get "#{path}.#{from}", data
     to += @_get(path, data).length if to < 0
     if from > to
-      @_insertBefore path, to, value, ver, data, options
+      @_insertBefore path, to, value, ver, data
       from++
     else
-      @_insertAfter path, to, value, ver, data, options
-    @_remove path, from, 1, ver, data, options
+      @_insertAfter path, to, value, ver, data
+    @_remove path, from, 1, ver, data
   move: (path, from, to, ver, callback) ->
     try
-      @_move path, from, to, ver
+      @_move path, from, to, ver, null
     catch err
       return callback err
     callback null, from, to
+

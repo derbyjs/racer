@@ -79,7 +79,7 @@ xtraArrMutConf =
     fn: (arr, [afterIndex, value]) ->
       return arr.splice afterIndex+1, 0, value
   insertBefore:
-    outOfBounds: (arr, [beforeIndex,_]) ->
+    outOfBounds: (arr, [beforeIndex, _]) ->
       return ! (0 <= beforeIndex <= arr.length)
     fn: (arr, [beforeIndex, value]) ->
       return arr.splice beforeIndex, 0, value
@@ -90,14 +90,13 @@ xtraArrMutConf =
     fn: (arr, [startIndex, howMany]) ->
       return arr.splice startIndex, howMany
 
-for method, {compound, normalizeArgs} of arrayMutators
+for method, {compound} of arrayMutators
   continue if compound
-  Memory::[method] = do (method, normalizeArgs) ->
+  Memory::[method] = do (method) ->
     if xtraConf = xtraArrMutConf[method]
       outOfBounds = xtraConf.outOfBounds
       fn = xtraConf.fn
-    return ->
-      {path, methodArgs, ver, data} = normalizeArgs arguments...
+    return (path, methodArgs..., ver, data) ->
       [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
       throw new Error 'Not an Array' unless Array.isArray arr
       throw new Error 'Out of Bounds' if outOfBounds? arr, methodArgs
