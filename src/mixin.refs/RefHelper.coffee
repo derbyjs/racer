@@ -41,19 +41,19 @@ RefHelper:: =
     adapter = @_adapter
 
     adapter.__set = adapter.set
-    adapter.set = (path, value, ver, data = @_data, options = {}) ->
+    adapter.set = (path, value, ver, data = @_data) ->
       out = null
       # Save a record of any references being set
 
       maybeIndexRefs = (_path, _value) =>
         if refHelper.isPointer _value
-          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, data, options
+          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, data
         if _path == path
-          out = @__set path, value, ver, data, options
+          out = @__set path, value, ver, data
 
         # TODO Move all instances of updateRefsForKey to an event listener?
         # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey _path, ver, data, options
+        refHelper.updateRefsForKey _path, ver, data
 
       unless Object == value?.constructor
         maybeIndexRefs path, value
@@ -72,10 +72,10 @@ RefHelper:: =
       return out
 
     adapter.__del = adapter.del
-    adapter.del = (path, ver, data = @_data, options = {}) ->
-      out = @__del path, ver, data, options
+    adapter.del = (path, ver, data = @_data) ->
+      out = @__del path, ver, data
       if refHelper.isPathPointedTo path, data
-        refHelper.cleanupPointersTo path, data, options
+        refHelper.cleanupPointersTo path, data
       return out
 
     # Wrap all array mutators at adapter layer to add ref logic
@@ -83,7 +83,7 @@ RefHelper:: =
       adapter['__' + method] = adapter[method]
       adapter[method] = do (method, normalizeArgs, indexesInArgs) ->
         return ->
-          {path, methodArgs, ver, data, options} = normalizeArgs arguments...
+          {path, methodArgs, ver, data} = normalizeArgs arguments...
           data ||= @_data
           #if refHelper.isArrayRef path, data
           if indexesInArgs
@@ -91,9 +91,9 @@ RefHelper:: =
               return refHelper.arrRefIndex index, path, data
             indexesInArgs methodArgs, newIndexes
 
-          out = @['__' + method] path, methodArgs..., ver, data, options
+          out = @['__' + method] path, methodArgs..., ver, data
           # Check to see if mutating a reference's key. If so, update references
-          refHelper.updateRefsForKey path, ver, data, options
+          refHelper.updateRefsForKey path, ver, data
           return out
 
   # This function returns the index of an array ref member, given a member
@@ -158,41 +158,36 @@ RefHelper:: =
   #                 as another lookup chain on the dereferenced `ref`
   # @param {String} type can be undefined or 'array'
   # @param {Number} ver
-  # @param {Object} options
-  $indexRefs: (path, ref, key, type, ver, data, options) ->
+  $indexRefs: (path, ref, key, type, ver, data) ->
     adapter = @_adapter
     self = @
     oldRefObj = adapter.getRef path, data
     if key
       entry = [ref, key]
       entry.push type if type
-#      # We denormalize the path here. Why? e.g.,
-#      # If path = _group.todoIds, but lookup(path) does not exist at this point,
-#      # then the dereferenced path resolves to undefined, which is flawed.
-#      path = @denormalizePath path, options.obj
-      adapter.getAddPath("$keys.#{key}.$", data, options.speculative, 'object')[path] = entry
+      adapter.getAddPath("$keys.#{key}.$", data, ver, 'object')[path] = entry
       keyVal = adapter.get key, data
       # keyVal is only valid if it can be a valid path segment
       return if type is undefined and keyVal is undefined
       if type == 'array'
-        keyVal = adapter.getAddPath key, data, options.speculative, 'array'
+        keyVal = adapter.getAddPath key, data, ver, 'array'
         refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
-        @_removeOld$refs oldRefObj, path, ver, data, options
+        @_removeOld$refs oldRefObj, path, ver, data
         return refsKeys.forEach (refsKey) ->
-          self._update$refs refsKey, path, ref, key, type, ver, data, options
+          self._update$refs refsKey, path, ref, key, type, ver, data
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
         refs = adapter.get "$keys.#{oldKey}.$", data
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, data, options unless hasKeys refs, ignore: [specHelper.identifier]
+          adapter.del "$keys.#{oldKey}", ver, data unless hasKeys refs, ignore: [specHelper.identifier]
       refsKey = ref
-    @_removeOld$refs oldRefObj, path, ver, data, options
-    @_update$refs refsKey, path, ref, key, type, ver, data, options
+    @_removeOld$refs oldRefObj, path, ver, data
+    @_update$refs refsKey, path, ref, key, type, ver, data
 
   # Private helper function for $indexRefs
-  _removeOld$refs: (oldRefObj, path, ver, data, options) ->
+  _removeOld$refs: (oldRefObj, path, ver, data) ->
     if oldRefObj && oldRef = oldRefObj.$r
       if oldKey = oldRefObj.$k
         oldKeyVal = @_adapter.get oldKey, data
@@ -200,26 +195,26 @@ RefHelper:: =
         # If this key was used in an array ref: {$r: path, $k: [...]}
         refHelper = @
         oldKeyVal.forEach (oldKeyMem) ->
-          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, data, options
-        @_removeFrom$refs oldRef, undefined, path, ver, data, options
+          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, data
+        @_removeFrom$refs oldRef, undefined, path, ver, data
       else
-        @_removeFrom$refs oldRef, oldKeyVal, path, ver, data, options
+        @_removeFrom$refs oldRef, oldKeyVal, path, ver, data
 
   # Private helper function for $indexRefs
-  _removeFrom$refs: (ref, key, path, ver, data, options) ->
+  _removeFrom$refs: (ref, key, path, ver, data) ->
     refWithKey = ref + '.' + key if key
     refEntries = @_adapter.get "$refs.#{refWithKey}.$", data
     return unless refEntries
     delete refEntries[path]
     unless hasKeys(refEntries, ignore: [specHelper.identifier])
-      @_adapter.del "$refs.#{ref}", ver, data, options
+      @_adapter.del "$refs.#{ref}", ver, data
     
   # Private helper function for $indexRefs
-  _update$refs: (refsKey, path, ref, key, type, ver, data, options) ->
+  _update$refs: (refsKey, path, ref, key, type, ver, data) ->
     entry = [ref, key]
     entry.push type if type
     # TODO DRY - Above 2 lines are duplicated below
-    @_adapter.getAddPath("$refs.#{refsKey}.$", data, options.speculative, 'object')[path] = entry
+    @_adapter.getAddPath("$refs.#{refsKey}.$", data, ver, 'object')[path] = entry
 
   # If path is a reference's key ($k), then update all entries in the
   # $refs index that use this key. i.e., update the following
@@ -228,12 +223,12 @@ RefHelper:: =
   #                         *
   #                         |
   #                       Update <keyVal> = <lookup(key)>
-  updateRefsForKey: (path, ver, data, options) ->
+  updateRefsForKey: (path, ver, data) ->
     if refs = @_adapter.get "$keys.#{path}.$", data
       @_eachValidRef refs, data, (path, ref, key, type) =>
-        @$indexRefs path, ref, key, type, ver, data, options
+        @$indexRefs path, ref, key, type, ver, data
     @eachValidRefPointingTo path, data, (pointingPath, targetPathRemainder, ref, key, type) =>
-      @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, data, options
+      @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, data
 
   ## Iterators ##
   _eachValidRef: (refs, data = @_adapter._data, callback) ->
@@ -333,7 +328,7 @@ RefHelper:: =
     ignoreRoots.push ref
     return false
 
-  cleanupPointersTo: (path, data, options) ->
+  cleanupPointersTo: (path, data) ->
     adapter = @_adapter
     refs = adapter.get "$refs.#{path}.$", data
     return if refs is undefined
@@ -343,10 +338,10 @@ RefHelper:: =
       if keyVal && Array.isArray keyVal
         keyMem = path.substr(ref.length + 1, pointingPath.length)
         # TODO Use model.remove here instead?
-        adapter.remove key, keyVal.indexOf(keyMem), 1, null, data, options
+        adapter.remove key, keyVal.indexOf(keyMem), 1, null, data
 #      else
 #        # TODO Use model.del here instead?
-#        adapter.del pointingPath, null, options
+#        adapter.del pointingPath, null
   
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue

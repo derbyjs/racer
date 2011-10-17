@@ -170,9 +170,9 @@ stm = module.exports =
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops
-          @_applyMutation transaction.op, op, ver, forceEmit, local
+          @_applyMutation transaction.op, op, ver, null, forceEmit, local
       else
-        {args} = @_applyMutation transaction, txn, ver, forceEmit, local
+        {args} = @_applyMutation transaction, txn, ver, null, forceEmit, local
 
       @_removeTxn transaction.id txn
 
@@ -182,10 +182,10 @@ stm = module.exports =
         else
           callback null, args...
     
-    _applyMutation: (extractor, mutation, appendArgs, forceEmit, local) ->
+    _applyMutation: (extractor, mutation, ver, data, forceEmit, local) ->
       method = extractor.method mutation
       return if method is 'get'
-      args = extractor.args(mutation).concat appendArgs
+      args = extractor.args(mutation).concat ver, data
       meta = @_adapter[method] args...
       # For converting array ref index api back to id api
       # TODO: Can this somehow be performed by the refs mixin?
@@ -195,7 +195,7 @@ stm = module.exports =
       # TODO Make this more comprehensive - if @involvesOtVal val
       # TODO Make sure this is not called during specModel, only on remote txns received
       # TODO See if we can move this into mixin.ot
-      if method == 'set' && (!appendArgs[2] || !appendArgs[2].speculative) && @isOtVal(args[1])
+      if method == 'set' && ver && @isOtVal(args[1])
         path = args[0]
         # TODO DRY this up. Appears, too, in mixin.ot/index
         unless field = @otFields[path]
@@ -227,7 +227,6 @@ stm = module.exports =
           # TODO adapter implementation details leaking in here
           data = cache.data = specHelper.create adapter._data
 
-        appendArgs = [undefined, data, {speculative: true}]
         i = replayFrom
         while i < len
           # Apply each pending operation to the speculative model
@@ -235,9 +234,9 @@ stm = module.exports =
           if transaction.isCompound txn
             ops = transaction.ops txn
             for op in ops
-              @_applyMutation transaction.op, op, appendArgs
+              @_applyMutation transaction.op, op, null, data
           else
-            @_applyMutation transaction, txn, appendArgs
+            @_applyMutation transaction, txn, null, data
         
         cache.data = data
         cache.path = path = data.$path

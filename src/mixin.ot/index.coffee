@@ -42,7 +42,7 @@ ot = module.exports =
     isOtPath: (path) ->
       @_adapter.get(path, @_specModel()[0]).$ot isnt undefined
 
-    isOtVal: (val) -> return !! (val && val.$ot)
+    isOtVal: (val) -> !! (val && val.$ot)
 
     getOT: (path, initVal) ->
       path = @_refHelper.dereference path, @_specModel()[0]
