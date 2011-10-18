@@ -181,7 +181,7 @@ RefHelper:: =
         refs = adapter.get "$keys.#{oldKey}.$", data
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, data unless hasKeys refs, ignore: [specHelper.identifier]
+          adapter.del "$keys.#{oldKey}", ver, data unless hasKeys refs, specHelper.identifier
       refsKey = ref
     @_removeOld$refs oldRefObj, path, ver, data
     @_update$refs refsKey, path, ref, key, type, ver, data
@@ -206,7 +206,7 @@ RefHelper:: =
     refEntries = @_adapter.get "$refs.#{refWithKey}.$", data
     return unless refEntries
     delete refEntries[path]
-    unless hasKeys(refEntries, ignore: [specHelper.identifier])
+    unless hasKeys(refEntries, specHelper.identifier)
       @_adapter.del "$refs.#{ref}", ver, data
     
   # Private helper function for $indexRefs

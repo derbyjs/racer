@@ -1,13 +1,16 @@
 module.exports =
 
-  merge: (a, froms...) ->
-    for b in froms
-      a[k] = v for k, v of b
-    return a
+  mergeAll: (to, froms...) ->
+    for from in froms
+      to[key] = value for key, value of from
+    return to
 
-  hasKeys: (o, options = {}) ->
-    ignore = options.ignore
-    for k of o
-      continue if ignore && -1 != ignore.indexOf k
+  merge: (to, from) ->
+    to[key] = value for key, value of from
+    return to
+
+  hasKeys: (obj, ignore) ->
+    for key of obj
+      continue if key is ignore
       return true
     return false

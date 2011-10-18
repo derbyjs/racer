@@ -18,7 +18,7 @@ lookupWithVersion = (path, data, vers) ->
 lookupAddPath = (path, data, speculative, pathType) ->
 #end
 #if SET_VERSION
-# Returns [value, {ver}, parent, prop]
+# Returns [value, parent, prop, {ver}]
 # Used by setters & delete
 lookupSetVersion = (path, data, vers, setVer, pathType) ->
   speculative = !setVer
@@ -84,7 +84,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
       #if WITH_VERSION
       [refObj, currVer] = lookupWithVersion curr.$r, data, vers
       #elseif SET_VERSION
-      [refObj, currVer] = lookupSetVersion curr.$r, data, vers, setVer, pathType
+      {0: refObj, 3: currVer} = lookupSetVersion curr.$r, data, vers, setVer, pathType
       #elseif ADD_PATH
       refObj = lookupAddPath curr.$r, data, speculative, pathType
       #else
@@ -100,7 +100,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
             #if WITH_VERSION
             [curr, currVer] = lookupWithVersion path, data, vers
             #elseif SET_VERSION
-            [curr, currVer] = lookupSetVersion path, data, vers, setVer, pathType
+            {0: curr, 3: currVer} = lookupSetVersion path, data, vers, setVer, pathType
             #elseif ADD_PATH
             curr = lookupAddPath path, data, speculative, pathType
             #else
@@ -132,7 +132,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
 
   data.$path = path
   #if SET_VERSION
-  return [curr, currVer, parent, prop]
+  return [curr, parent, prop, currVer]
   #elseif WITH_VERSION
   return [curr, currVer]
   #else

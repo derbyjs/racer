@@ -30,7 +30,7 @@ MemorySync:: =
     lookupAddPath path, data || @_data, !ver, pathType
 
   set: (path, value, ver, data) ->
-    [obj, currVer, parent, prop] =
+    [obj, parent, prop, currVer] =
       lookupSetVersion path, data || @_data, @_vers, ver, 'object'
     if ver && typeof value is 'object'
       @_prefillVersion currVer, value, ver
@@ -51,7 +51,7 @@ MemorySync:: =
 
   del: (path, ver, data) ->
     data ||= @_data
-    [obj, currVer, parent, prop] = lookupSetVersion path, data, @_vers, ver
+    [obj, parent, prop] = lookupSetVersion path, data, @_vers, ver
     if ver
       delete parent[prop]
       return obj
@@ -60,7 +60,7 @@ MemorySync:: =
       return obj unless parent
       if ~(index = path.lastIndexOf '.')
         path = path.substr 0, index
-        [parent, currVer, grandparent, parentProp] = lookupSetVersion path, data, @_vers, ver
+        [parent, grandparent, parentProp] = lookupSetVersion path, data, @_vers, ver
       else
         parent = data.world
         grandparent = data

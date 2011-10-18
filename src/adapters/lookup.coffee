@@ -178,7 +178,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
   data.$path = path
   return curr
 
-# Returns [value, {ver}, parent, prop]
+# Returns [value, parent, prop, {ver}]
 # Used by setters & delete
 lookupSetVersion = (path, data, vers, setVer, pathType) ->
   speculative = !setVer
@@ -217,7 +217,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
 
     if curr.$r
 
-      [refObj, currVer] = lookupSetVersion curr.$r, data, vers, setVer, pathType
+      {0: refObj, 3: currVer} = lookupSetVersion curr.$r, data, vers, setVer, pathType
       dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
 
       if key = curr.$k
@@ -225,7 +225,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            [curr, currVer] = lookupSetVersion path, data, vers, setVer, pathType
+            {0: curr, 3: currVer} = lookupSetVersion path, data, vers, setVer, pathType
           else
             curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
@@ -245,7 +245,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
       currVer.ver = setVer  if setVer
 
   data.$path = path
-  return [curr, currVer, parent, prop]
+  return [curr, parent, prop, currVer]
 
 
 module.exports = {lookup, lookupWithVersion, lookupAddPath, lookupSetVersion}

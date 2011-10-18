@@ -29,3 +29,8 @@ module.exports =
     util.hasKeys({}).should.be.false
     util.hasKeys({a: undefined}).should.be.true
     util.hasKeys({a: 1, b: {}}).should.be.true
+
+  'test hasKeys with ignore': ->
+    util.hasKeys({a: 2}).should.be.true
+    util.hasKeys({a: 2}, 'a').should.be.false
+    util.hasKeys({a: 2, b: 3}, 'a').should.be.true
