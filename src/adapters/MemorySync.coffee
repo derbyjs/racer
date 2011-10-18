@@ -30,24 +30,8 @@ MemorySync:: =
     lookupAddPath path, data || @_data, !ver, pathType
 
   set: (path, value, ver, data) ->
-    [obj, parent, prop, currVer] =
-      lookupSetVersion path, data || @_data, @_vers, ver, 'object'
-    if ver && typeof value is 'object'
-      @_prefillVersion currVer, value, ver
+    {1: parent, 2: prop} = lookupSetVersion path, data || @_data, @_vers, ver, 'object'
     return parent[prop] = value
-
-  _prefillVersion: (currVer, obj, ver) ->
-    if Array.isArray obj
-      for v, i in obj
-        @_storeVer currVer, i, v, ver
-    else
-      for k, v of obj
-        @_storeVer currVer, k, v, ver
-
-  _storeVer: (currVer, prop, val, ver) ->
-    currVer[prop] = if Array.isArray val then [] else {}
-    currVer[prop].ver = ver
-    @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
 
   del: (path, ver, data) ->
     data ||= @_data
@@ -56,7 +40,8 @@ MemorySync:: =
       delete parent[prop]
       return obj
     else
-      # If speculatiave
+      # If speculatiave, replace the parent object with a clone that
+      # has the desired item deleted
       return obj unless parent
       if ~(index = path.lastIndexOf '.')
         path = path.substr 0, index
