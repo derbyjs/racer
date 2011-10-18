@@ -1,5 +1,5 @@
 {lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
-{create, createArray} = require '../specHelper'
+{clone: specClone} = require '../specHelper'
 {array: arrayMutators} = require '../mutators'
 
 MemorySync = module.exports = ->
@@ -50,26 +50,25 @@ MemorySync:: =
     @_prefillVersion currVer[prop], val, ver if typeof val is 'object'
 
   del: (path, ver, data) ->
-    [obj, currVer, parent, prop] =
-      lookupSetVersion path, data || @_data, @_vers, ver
-    return obj unless parent
-    if !ver
-      # In speculative models, deletion of something in the model data is
-      # acheived by making a copy of the parent prototype's properties that
-      # does not include the deleted property
-      parentProto = Object.getPrototypeOf parent
-      if prop of parentProto
-        curr = {}
-        for key, value of parentProto
-          unless key is prop
-            curr[key] = if typeof value is 'object'
-              create value
-            else
-              value
-        # TODO Replace this with cross browser code
-        parent.__proto__ = curr
-    delete parent[prop]
-    return obj
+    data ||= @_data
+    [obj, currVer, parent, prop] = lookupSetVersion path, data, @_vers, ver
+    if ver
+      delete parent[prop]
+      return obj
+    else
+      # If speculatiave
+      return obj unless parent
+      if ~(index = path.lastIndexOf '.')
+        path = path.substr 0, index
+        [parent, currVer, grandparent, parentProp] = lookupSetVersion path, data, @_vers, ver
+      else
+        parent = data.world
+        grandparent = data
+        parentProp = 'world'
+      parentClone = specClone parent
+      delete parentClone[prop]
+      grandparent[parentProp] = parentClone
+      return obj
 
 for method, {outOfBounds, fn} of arrayMutators
   MemorySync::[method] = do (method, outOfBounds, fn) ->

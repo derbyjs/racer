@@ -1,11 +1,13 @@
+{merge} = require './util'
+
 module.exports =
 
   createObject: -> $spec: true
 
   createArray: ->
-    arr = []
-    arr.$spec = true
-    return arr
+    obj = []
+    obj.$spec = true
+    return obj
 
   create: (proto) ->
     return proto  if proto.$spec
@@ -15,13 +17,21 @@ module.exports =
       # inheriting from arrays is very problematic. Eventually it would be good
       # to implement something faster in browsers that could support it. See:
       # http://perfectionkills.com/how-ecmascript-5-still-does-not-allow-to-subclass-an-array/#wrappers_prototype_chain_injection
-      arr = proto.slice()
-      arr.$spec = true
-      return arr
+      obj = proto.slice()
+      obj.$spec = true
+      return obj
 
     obj = Object.create proto
     obj.$spec = true
     return obj
+
+  clone: (proto) ->
+    if Array.isArray proto
+      obj = proto.slice()
+      obj.$spec = true
+      return obj
+
+    return merge {}, proto
 
   isSpeculative: (obj) -> obj && obj.$spec
 
