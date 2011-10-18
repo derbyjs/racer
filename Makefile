@@ -30,6 +30,14 @@ test-async-slow:
 		$(TESTFLAGS) \
 		$(ASYNC_TESTS_SLOW)
 
+test-single-serial:
+	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
+		-I src \
+		--serial \
+		--tags single \
+		$(TESTFLAGS) \
+		$(SERIAL_TESTS_FAST)
+
 test-serial-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
 		-I src \

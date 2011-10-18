@@ -211,7 +211,7 @@ stm = module.exports =
       cache = @_cache
       len = @_txnQueue.length
       if lastReplayedTxnId = cache.lastReplayedTxnId
-        return cache.data  if cache.lastReplayedTxnId == @_txnQueue[len-1]
+        return cache.data  if cache.lastReplayedTxnId == @_txnQueue[len - 1]
         data = cache.data
         replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
       else
@@ -220,7 +220,7 @@ stm = module.exports =
       if len
         # Then generate a speculative model
         unless data
-          data = cache.data = specHelper.create @_adapter.get()
+          data = cache.data = specHelper.create @_adapter._data
 
         i = replayFrom
         while i < len
@@ -235,7 +235,7 @@ stm = module.exports =
         
         cache.data = data
         cache.lastReplayedTxnId = transaction.id txn
-      return data
+      return data || @_adapter._data
 
     # TODO
     snapshot: ->

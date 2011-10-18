@@ -11,9 +11,9 @@ module.exports =
     return proto  if proto.$spec
 
     if Array.isArray proto
-      # TODO: Slicing is obviously going to be inefficient on large arrays, but inheriting
-      # from arrays is very problematic. Eventually it would be good to implement something
-      # faster in browsers that could support it, such as:
+      # TODO: Slicing is obviously going to be inefficient on large arrays, but
+      # inheriting from arrays is very problematic. Eventually it would be good
+      # to implement something faster in browsers that could support it. See:
       # http://perfectionkills.com/how-ecmascript-5-still-does-not-allow-to-subclass-an-array/#wrappers_prototype_chain_injection
       arr = proto.slice()
       arr.$spec = true

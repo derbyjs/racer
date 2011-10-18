@@ -7,13 +7,13 @@ MemorySync = require './MemorySync'
 {all: mutators} = require '../mutators'
 
 Memory = module.exports = ->
-  @_data = {}
+  @_data = world: {}
   @_vers = ver: 0
   return
 
 Memory:: =
   flush: (callback) ->
-    @_data = {}
+    @_data = world: {}
     @_vers = ver: 0
     callback null
 

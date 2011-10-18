@@ -11,8 +11,8 @@ module.exports =
 
   'get should return the adapter data when there are no pending transactions': ->
     model = new Model
-    model._adapter._data = { a: 1 }
-    model.get().should.specEql { a: 1 }
+    model._adapter._data = world: {a: 1}
+    model.get().should.specEql {a: 1}
   
   'test internal creation of client transactions on set': ->
     model = new Model '0'
@@ -54,13 +54,13 @@ module.exports =
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
-      model._adapter._data.should.specEql {}
+      model._adapter._data.should.specEql world: {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
       done()
   
-    model._adapter._data = color: 'green'
+    model._adapter._data = world: {color: 'green'}
     model.del 'color'
     model._txnQueue.should.eql ['0.0']
 
@@ -160,7 +160,7 @@ module.exports =
         numbers:
           first: 2
           second: 10
-    model._adapter._data.should.specEql {}
+    model._adapter._data.should.specEql world: {}
     
     model.set 'info.numbers.third', 13
     model.get().should.specEql
@@ -170,7 +170,7 @@ module.exports =
           first: 2
           second: 10
           third: 13
-    model._adapter._data.should.specEql {}
+    model._adapter._data.should.specEql world: {}
     
     model._removeTxn '0.1'
     model._removeTxn '0.2'
@@ -179,23 +179,24 @@ module.exports =
       info:
         numbers:
           third: 13
-    model._adapter._data.should.specEql {}
+    model._adapter._data.should.specEql world: {}
 
   "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
     model = new Model '0'
-    model._adapter._data = obj: {}
-    model._adapter._data.should.specEql obj: {}
+    model._adapter._data = world: {obj: {}}
+    model._adapter._data.should.specEql world: {obj: {}}
     model.set 'obj.a', 'b'
-    model._adapter._data.should.specEql obj: {}
+    model._adapter._data.should.specEql world: {obj: {}}
 
   'test speculative value of del': ->
     model = new Model '0'
     model._adapter._data =
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+      world:
+        color: 'green'
+        info:
+          numbers:
+            first: 2
+            second: 10
   
     model.del 'color'
     model.get().should.specEql
@@ -205,11 +206,12 @@ module.exports =
           second: 10
 
     model._adapter._data.should.specEql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+      world:
+        color: 'green'
+        info:
+          numbers:
+            first: 2
+            second: 10
     
     model.set 'color', 'red'
     model.get().should.specEql
@@ -231,11 +233,12 @@ module.exports =
       info: {}
     
     model._adapter._data.should.specEql
-      color: 'green'
-      info:
-        numbers:
-          first: 2
-          second: 10
+      world:
+        color: 'green'
+        info:
+          numbers:
+            first: 2
+            second: 10
     
     # Make sure deleting something that doesn't exist isn't a problem
     model.del 'a.b.c'
@@ -281,7 +284,7 @@ module.exports =
     
     model.push 'colors', 'green'
     model.get('colors').should.specEql ['green']
-    model._adapter._data.should.specEql {}
+    model._adapter._data.should.specEql world: {}
 
   'model events should get emitted properly': wrapTest (done) ->
     ver = 0
@@ -294,10 +297,10 @@ module.exports =
       value.should.equal 'green'
       if count is 0
         model._txnQueue.length.should.eql 1
-        model._adapter._data.should.specEql {}
+        model._adapter._data.should.specEql world: {}
       else
         model._txnQueue.length.should.eql 0
-        model._adapter._data.should.specEql color: 'green'
+        model._adapter._data.should.specEql world: {color: 'green'}
       model.get('color').should.equal 'green'
       count++
       sockets._disconnect()

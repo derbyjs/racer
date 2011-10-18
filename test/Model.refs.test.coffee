@@ -10,13 +10,14 @@ module.exports =
   'test getting model references': ->
     model = new Model
     model._adapter._data =
-      info:
-        numbers:
-          first: 2
-          second: 10
-      numbers: model.ref 'info.numbers'
-      numKey: 'first'
-      number: model.ref 'numbers', 'numKey'
+      world:
+        info:
+          numbers:
+            first: 2
+            second: 10
+        numbers: model.ref 'info.numbers'
+        numKey: 'first'
+        number: model.ref 'numbers', 'numKey'
     
     # Test non-keyed object reference
     model.get('numbers').should.specEql first: 2, second: 10
@@ -202,7 +203,7 @@ module.exports =
     serverModel = new Model
     serverModel.set '_room', serverModel.ref 'rooms.lobby'
     model = new Model
-    model._adapter._data = JSON.parse JSON.stringify serverModel.get()
+    model._adapter._data.world = JSON.parse JSON.stringify serverModel.get()
     model.on 'set', '_room.letters.*.position', (id, value) ->
       id.should.equal 'A'
       value.should.equal 5

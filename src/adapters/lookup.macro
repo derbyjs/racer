@@ -24,7 +24,11 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
   speculative = !setVer
 #end
 
-  curr = data
+  #if ADD_PATH or SET_VERSION
+  curr = data.world = if speculative then create data.world else data.world
+  #else
+  curr = data.world
+  #end
   #if WITH_VERSION or SET_VERSION
   currVer = vers
   #end

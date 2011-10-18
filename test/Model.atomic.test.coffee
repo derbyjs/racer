@@ -124,8 +124,9 @@ module.exports =
     , (err) ->
       should.equal null, err
       model._adapter._data.should.specEql
-        color: 'green'
-        volume: 'high'
+        world:
+          color: 'green'
+          volume: 'high'
       sockets._disconnect()
       done()
 

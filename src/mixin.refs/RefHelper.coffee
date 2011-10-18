@@ -1,7 +1,6 @@
 # TODO: Rewrite refs. This file is a mess
 
 transaction = require '../transaction'
-pathParser = require '../pathParser'
 specHelper = require '../specHelper'
 {merge, hasKeys} = require '../util'
 mutators = require '../mutators'
@@ -41,7 +40,8 @@ RefHelper:: =
     adapter = @_adapter
 
     adapter.__set = adapter.set
-    adapter.set = (path, value, ver, data = @_data) ->
+    adapter.set = (path, value, ver, data) ->
+      data ||= @_data
       out = null
       # Save a record of any references being set
 
@@ -72,7 +72,8 @@ RefHelper:: =
       return out
 
     adapter.__del = adapter.del
-    adapter.del = (path, ver, data = @_data) ->
+    adapter.del = (path, ver, data) ->
+      data ||= @_data
       out = @__del path, ver, data
       if refHelper.isPathPointedTo path, data
         refHelper.cleanupPointersTo path, data
@@ -230,14 +231,12 @@ RefHelper:: =
       @updateRefsForKey pointingPath + '.' + targetPathRemainder, ver, data
 
   ## Iterators ##
-  _eachValidRef: (refs, data = @_adapter._data, callback) ->
-    fastLookup = pathParser.fastLookup
+  _eachValidRef: (refs, data, callback) ->
     for path, [ref, key, type] of refs
 
       continue if path == specHelper.identifier
 
       # Check to see if the reference is still the same
-      # o = fastLookup path, obj
       o = @_adapter.getRef path, data
       if o && o.$r == ref && `o.$k == key`
         # test `o.$k == key` not via ===
@@ -282,7 +281,9 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (targetPath, data, method, args, isLocal, ignoreRoots = []) ->
+  notifyPointersTo: (targetPath, method, args, isLocal) ->
+    data = @_model._specModel()
+    ignoreRoots = []
     # Takes care of regular refs
     @eachValidRefPointingTo targetPath, data, (pointingPath, targetPathRemainder, ref, key, type) =>
       unless type == 'array'
@@ -345,7 +346,7 @@ RefHelper:: =
   # Used to normalize a transaction to its de-referenced parts before
   # adding it to the model's txnQueue
   dereferenceTxn: (txn, data) ->
-    data ||= @_adapter._data
+    data ||= @_model._specModel()
     method = transaction.method txn
     args = transaction.args txn
     path = transaction.path txn
@@ -360,16 +361,14 @@ RefHelper:: =
           args = arrayMutators[method].argsToForeignKeys args, path, $r
       else
         # Update the transaction's path with a dereferenced path if not undefined.
-        # TODO: This path assembling should be done in the path getter function
-        obj = @_adapter.get path, data
-        args[0] = if obj is undefined && data.$remainder
-            data.$path + '.' + data.$remainder
-          else data.$path
+        args[0] = @dereference path, data
       return txn
 
     # Update the transaction's path with a dereferenced path.
     args[0] = @dereference path, data
     return txn
+
+  isRef: (obj) -> '$r' of obj
 
   isArrayRef: (path, data) ->
     refObj = @_adapter.getRef path, data
@@ -378,11 +377,9 @@ RefHelper:: =
     return false if $t != 'array'
     $k && $k = @dereference $k, data
     return {$r, $k}
-  
-  isRef: (obj) -> '$r' of obj
 
   dereference: (path, data) ->
-    data ||= @_adapter._data
+    data ||= @_model._specModel()
     obj = @_adapter.get path, data
     path = data.$path
     if obj is undefined && data.$remainder

@@ -7,13 +7,13 @@ module.exports =
 
   withAccessors: (Model, accessors) ->
     Model.mixin init: ->
-      refHelper = @_refHelper = new RefHelper self = @
+      refHelper = @_refHelper = new RefHelper self = this
       accessors.forEach (method) ->
         return if method is 'get'
         self.on method, ([path, args...], isLocal) ->
           # Emit events on any references that point to the path or any of its
           # ancestor paths
-          refHelper.notifyPointersTo path, self.get(), method, args, isLocal
+          refHelper.notifyPointersTo path, method, args, isLocal
 
   proto:
     ref: (ref, key) ->

@@ -10,7 +10,7 @@
 # Does not dereference the final item if getRef is truthy
 lookup = (path, data, getRef) ->
 
-  curr = data
+  curr = data.world
   props = path.split '.'
   path = ''
   data.$remainder = ''
@@ -64,7 +64,7 @@ lookup = (path, data, getRef) ->
 # Used by getters
 lookupWithVersion = (path, data, vers) ->
 
-  curr = data
+  curr = data.world
   currVer = vers
   props = path.split '.'
   path = ''
@@ -119,7 +119,7 @@ lookupWithVersion = (path, data, vers) ->
 # Used by reference indexer
 lookupAddPath = (path, data, speculative, pathType) ->
 
-  curr = data
+  curr = data.world = if speculative then create data.world else data.world
   props = path.split '.'
   path = ''
   data.$remainder = ''
@@ -183,7 +183,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
 lookupSetVersion = (path, data, vers, setVer, pathType) ->
   speculative = !setVer
 
-  curr = data
+  curr = data.world = if speculative then create data.world else data.world
   currVer = vers
   currVer.ver = setVer  if setVer
   props = path.split '.'

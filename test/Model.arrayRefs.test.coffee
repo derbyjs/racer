@@ -10,12 +10,13 @@ module.exports =
   'test getting array of references': ->
     model = new Model
     model._adapter._data =
-      todos:
-        1: { text: 'finish racer', status: 'ongoing' }
-        2: { text: 'run several miles', status: 'complete' }
-        3: { text: 'meet with obama', status: 'complete' }
-      _mine: ['1', '3']
-      mine: model.arrayRef 'todos', '_mine'
+      world:
+        todos:
+          1: { text: 'finish racer', status: 'ongoing' }
+          2: { text: 'run several miles', status: 'complete' }
+          3: { text: 'meet with obama', status: 'complete' }
+        _mine: ['1', '3']
+        mine: model.arrayRef 'todos', '_mine'
 
     # Test non-keyed array of references
     model.get('mine').should.eql [
@@ -51,9 +52,9 @@ module.exports =
 
     # Setting a reference before a key should make a record of the key but
     # not the reference
-    model.set 'mine', model.arrayRef('todos', '_mine')
+    model.set 'mine', model.arrayRef 'todos', '_mine'
     model.get().should.specEql
-      mine: model.arrayRef('todos', '_mine')
+      mine: model.arrayRef 'todos', '_mine'
       _mine: []
       $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
 
@@ -67,6 +68,7 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
+      # todos: {} ## TODO ##
 
   'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
     model = new Model

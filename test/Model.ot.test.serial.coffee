@@ -98,7 +98,7 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows @ot''': (done) ->
+  text in sibling windows @single @ot''': (done) ->
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelA.set '_test.text', modelA.ot('abcdef')
@@ -178,7 +178,7 @@ module.exports =
 
       createModelB = ->
         modelB = store.createModel()
-        ref = modelC._adapter._data._test.$r
+        ref = modelC._adapter._data.world._test.$r
         modelB.subscribe _test: ref, ->
           modelB.get('_test.text').should.equal 'axyzbcdefg'
           sockets._disconnect()
@@ -203,7 +203,7 @@ module.exports =
 
       createModelB = ->
         serverModelB = store.createModel()
-        ref = modelC._adapter._data._test.$r
+        ref = modelC._adapter._data.world._test.$r
         serverModelB.subscribe _test: ref, ->
           serverModelB.bundle (bundle) ->
             bundle = JSON.parse bundle

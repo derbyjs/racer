@@ -25,7 +25,7 @@ racer = module.exports =
       field = Field.fromJSON json, model
       model.otFields[path] = field
 
-    model._adapter._data = options.data
+    model._adapter._data = world: options.data
     model._adapter._vers = ver: options.base
     model._clientId = options.clientId
     model._storeSubs = options.storeSubs
