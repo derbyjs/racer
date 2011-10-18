@@ -68,7 +68,7 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
-      # todos: {} ## TODO ##
+      todos: {}
 
   'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
     model = new Model
