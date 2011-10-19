@@ -30,9 +30,11 @@ Memory:: =
 
 for method, {numArgs} of mutators
   do (method, numArgs) ->
-    event = 'on' + method
+    pre = method + 'Pre'
+    post = method + 'Post'
     alias = '_' + method
-    Memory::[event] = MemorySync::[event]
+    Memory::[pre] = MemorySync::[pre]
+    Memory::[post] = MemorySync::[post]
     Memory::[alias] = MemorySync::[method]
     Memory::[method] = switch numArgs
       when 0 then (path, ver, callback) ->

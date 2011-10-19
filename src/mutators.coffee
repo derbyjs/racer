@@ -28,12 +28,12 @@ mutators = module.exports =
 
     pop:
       numArgs: 0
-      splitArgs: splitArgsDefault = (args) -> [args, []]
+      splitArgs: splitArgsDefault
 
     insertAfter:
       numArgs: 2
       # Extracts or sets the arguments in args that represent indexes
-      indexesInArgs: indexInArgs = indexesInArgsForInsert = (args, newVals) ->
+      indexesInArgs: indexInArgs = (args, newVals) ->
         if newVals
           args[0] = newVals[0]
           return args

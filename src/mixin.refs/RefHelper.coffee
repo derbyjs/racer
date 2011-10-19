@@ -20,11 +20,6 @@ module.exports = RefHelper = (model, doSetup = true) ->
 #    mutated path.
 RefHelper:: =
 
-  ## Taxonomy Methods ##
-
-  isPointer: (val) ->
-    return !! (val && val.$r)
-
   isKeyPath: (path, data) ->
     throw new Error 'Missing data' unless data
     found = @_adapter.get "$keys.#{path}.$", data
@@ -39,45 +34,30 @@ RefHelper:: =
     refHelper = @
     adapter = @_adapter
 
-    adapter.__set = adapter.set
-    adapter.set = (path, value, ver, data) ->
-      data ||= @_data
-      out = null
-      # Save a record of any references being set
+    eachNode = (path, value, callback) ->
+      callback path, value
+      for prop, val of value
+        nodePath = "#{path}.#{prop}"
+        if Object == val?.constructor
+          eachNode nodePath, val, callback
+        else
+          callback nodePath, val
 
-      maybeIndexRefs = (_path, _value) =>
-        if refHelper.isPointer _value
-          refHelper.$indexRefs _path, _value.$r, _value.$k, _value.$t, ver, data
-        if _path == path
-          out = @__set path, value, ver, data
+    checkForRefs = (path, value, ver, data) ->
+      eachNode path, value, (path, value) ->
+        if value && value.$r
+          refHelper.$indexRefs path, value.$r, value.$k, value.$t, ver, data
+    
+    updateRefs = (path, value, ver, data) ->
+      eachNode path, value, (path, value) ->
+        refHelper.updateRefsForKey path, ver, data
 
-        # TODO Move all instances of updateRefsForKey to an event listener?
-        # Check to see if setting to a reference's key. If so, update references
-        refHelper.updateRefsForKey _path, ver, data
+    adapter.setPre = checkForRefs
+    adapter.setPost = updateRefs
 
-      unless Object == value?.constructor
-        maybeIndexRefs path, value
-      else
-        # TODO Need to traverse an object value, too, for del
-        eachNode = (path, value, callback) ->
-          callback path, value
-          for prop, val of value
-            nodePath = "#{path}.#{prop}"
-            if Object == val?.constructor
-              eachNode nodePath, val, callback
-            else
-              callback nodePath, val
-        eachNode path, value, (nodePath, nodeValue) ->
-          maybeIndexRefs nodePath, nodeValue
-      return out
-
-    adapter.__del = adapter.del
-    adapter.del = (path, ver, data) ->
-      data ||= @_data
-      out = @__del path, ver, data
+    adapter.delPost = (path, ver, data) ->
       if refHelper.isPathPointedTo path, data
         refHelper.cleanupPointersTo path, data
-      return out
 
     # Wrap all array mutators at adapter layer to add ref logic
     for method, {indexesInArgs} of arrayMutators
@@ -85,10 +65,9 @@ RefHelper:: =
       adapter[method] = do (method, indexesInArgs) ->
         return (path, methodArgs..., ver, data) ->
           data ||= @_data
-          #if refHelper.isArrayRef path, data
           if indexesInArgs
-            newIndexes = indexesInArgs(methodArgs).map (index) ->
-              return refHelper.arrRefIndex index, path, data
+            newIndexes = for index in indexesInArgs methodArgs
+              refHelper.arrRefIndex index, path, data
             indexesInArgs methodArgs, newIndexes
 
           out = @['__' + method] path, methodArgs..., ver, data

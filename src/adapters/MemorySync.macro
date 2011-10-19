@@ -14,14 +14,16 @@ MemorySync:: =
     if path then lookupWithVersion(path, data || @_data, @_vers)[1].ver else @_vers.ver
 
   get: (path, data) ->
-    if path then lookup(path, data || @_data) else (data && data.world) || @_data.world
+    data ||= @_data
+    if path then lookup(path, data) else data.world
 
   getWithVersion: (path, data) ->
+    data ||= @_data
     if path
-      [obj, currVer] = lookupWithVersion path, data || @_data, @_vers
+      [obj, currVer] = lookupWithVersion path, data, @_vers
       return [obj, currVer.ver]
     else
-      return [(data && data.world) || @_data.world, @_vers.ver]
+      return [data.world, @_vers.ver]
 
   # Used by RefHelper
   getRef: (path, data) ->
@@ -31,27 +33,32 @@ MemorySync:: =
   getAddPath: (path, data, ver, pathType) ->
     lookupAddPath path, data || @_data, !ver, pathType
 
-  onset: empty
+  setPre: empty
+  setPost: empty
   set: (path, value, ver, data) ->
-    @onset path, value, ver, data
-    {1: parent, 2: prop} = lookupSetVersion path, data || @_data, @_vers, ver, 'object'
-    return parent[prop] = value
-
-  ondel: empty
-  del: (path, ver, data) ->
-    @ondel path, ver, data
     data ||= @_data
+    @setPre path, value, ver, data
+    {1: parent, 2: prop} = lookupSetVersion path, data, @_vers, ver, 'object'
+    parent[prop] = value
+    @setPost path, value, ver, data
+    return value
+
+  delPre: empty
+  delPost: empty
+  del: (path, ver, data) ->
+    data ||= @_data
+    @delPre path, ver, data
     [obj, parent, prop] = lookupSetVersion path, data, @_vers, ver
     if ver
       delete parent[prop]
-      return obj
     else
       # If speculatiave, replace the parent object with a clone that
       # has the desired item deleted
       return obj unless parent
       if ~(index = path.lastIndexOf '.')
-        path = path.substr 0, index
-        [parent, grandparent, parentProp] = lookupSetVersion path, data, @_vers, ver
+        parentPath = path.substr 0, index
+        [parent, grandparent, parentProp] =
+          lookupSetVersion parentPath, data, @_vers, ver
       else
         parent = data.world
         grandparent = data
@@ -59,12 +66,15 @@ MemorySync:: =
       parentClone = specClone parent
       delete parentClone[prop]
       grandparent[parentProp] = parentClone
-      return obj
+    @delPost path, ver, data
+    return obj
 
 for method, {numArgs, outOfBounds, fn} of arrayMutators
   do (method, numArgs, outOfBounds, fn) ->
-    event = 'on' + method
-    MemorySync::[event] = empty
+    pre = method + 'Pre'
+    post = method + 'Post'
+    MemorySync::[pre] = empty
+    MemorySync::[post] = empty
     MemorySync::[method] = switch numArgs
       #for 0 1 2 ELSE
       #if 0
@@ -76,14 +86,15 @@ for method, {numArgs, outOfBounds, fn} of arrayMutators
       #else
       else (path, args..., ver, data) ->
       #end
+        data ||= @_data
         #if 0
-        @[event] path
+        @[pre] path, ver, data
         #elseif 1
-        @[event] path, arg0
+        @[pre] path, arg0, ver, data
         #elseif 2
-        @[event] path, arg0, arg1
+        @[pre] path, arg0, arg1, ver, data
         #else
-        @[event] path, args...
+        @[pre] path, args..., ver, data
         #end
         [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
         throw new Error 'Not an Array' unless Array.isArray arr
@@ -97,12 +108,22 @@ for method, {numArgs, outOfBounds, fn} of arrayMutators
         throw new Error 'Out of Bounds' if outOfBounds? arr, args...
         #end
         #if 0
-        return if fn then fn arr else arr[method]()
+        out = if fn then fn arr else arr[method]()
         #elseif 1
-        return if fn then fn arr, arg0 else arr[method] arg0
+        out = if fn then fn arr, arg0 else arr[method] arg0
         #elseif 2
-        return if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
+        out = if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
         #else
-        return if fn then fn arr, args... else arr[method] args...
+        out = if fn then fn arr, args... else arr[method] args...
         #end
+        #if 0
+        @[post] path, ver, data
+        #elseif 1
+        @[post] path, arg0, ver, data
+        #elseif 2
+        @[post] path, arg0, arg1, ver, data
+        #else
+        @[post] path, args..., ver, data
+        #end
+        return out
       #end
