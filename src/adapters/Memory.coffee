@@ -16,9 +16,6 @@ Memory:: =
     @_vers = ver: 0
     callback null
 
-  _prefillVersion: MemorySync::_prefillVersion
-  _storeVer: MemorySync::_storeVer
-  
   _get: MemorySync::getWithVersion
   get: (path, callback) ->
     try
