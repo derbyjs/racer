@@ -5,7 +5,6 @@
 
 {lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
 {clone: specClone} = require '../specHelper'
-{array: arrayMutators} = require '../mutators'
 
 MemorySync = module.exports = ->
   @_data = world: {}  # maps path -> val
