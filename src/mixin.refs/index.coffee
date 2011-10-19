@@ -5,15 +5,8 @@ RefHelper = require './RefHelper'
 
 module.exports =
 
-  withAccessors: (Model, accessors) ->
-    Model.mixin init: ->
-      refHelper = @_refHelper = new RefHelper self = this
-      accessors.forEach (method) ->
-        return if method is 'get'
-        self.on method, ([path, args...], isLocal) ->
-          # Emit events on any references that point to the path or any of its
-          # ancestor paths
-          refHelper.notifyPointersTo path, method, args, isLocal
+  init: ->
+    @_refHelper = new RefHelper this
 
   proto:
     ref: (ref, key) ->
@@ -21,17 +14,6 @@ module.exports =
 
     arrayRef: (ref, key) ->
       $r: ref, $k: key, $t: 'array'
-
-    # Override method created by mixin.stm
-    _mutate: (method, args, data) ->
-      # Convert array ref id into index
-      if indexArgs = mutators[method]?.indexArgs
-        for index in indexArgs
-          index++
-          args[index] = @_refHelper.arrRefIndex args[index], args[0], data
-
-      @_adapter[method] args...
-
 
     # This overrides a method created by mixin.stm
     # TODO: This is super messy right now. Clean this up!

@@ -9,6 +9,10 @@ mutators = module.exports =
     del:
       numArgs: 0
       splitArgs: splitArgsDefault
+  
+  ot:
+    insertOT: {}
+    delOT: {}
 
   array:
     push:
@@ -37,8 +41,6 @@ mutators = module.exports =
       splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
-      outOfBounds: (arr, afterIndex) -> !(-1 <= afterIndex <= arr.length - 1)
-      fn: (arr, afterIndex, value) -> arr.splice afterIndex + 1, 0, value
 
     insertBefore:
       numArgs: 2
@@ -46,16 +48,11 @@ mutators = module.exports =
       splitArgs: splitArgsForInsert
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
-      outOfBounds: (arr, beforeIndex) -> !(0 <= beforeIndex <= arr.length)
-      fn: (arr, beforeIndex, value) -> arr.splice beforeIndex, 0, value
 
     remove:
       numArgs: 2
       indexArgs: [0]
       splitArgs: splitArgsDefault
-      outOfBounds: (arr, startIndex) ->
-        !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
-      fn: (arr, startIndex, howMany) -> arr.splice startIndex, howMany
 
     splice:
       numArgs: 'variable'
@@ -78,17 +75,6 @@ mutators = module.exports =
       numArgs: 2
       indexArgs: [0, 1]
       splitArgs: splitArgsDefault
-      outOfBounds: (arr, from, to) ->
-        len = arr.length
-        from += len if from < 0
-        to += len if to < 0
-        return !((0 <= from < len) && (0 <= to < len))
-      fn: (arr, from, to) ->
-        to += arr.length if to < 0
-        # Remove from old location
-        [value] = arr.splice from, 1
-        # Insert in new location
-        arr.splice to, 0, value
 
 all = {}
 for name, category of mutators

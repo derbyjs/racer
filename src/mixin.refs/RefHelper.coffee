@@ -3,8 +3,7 @@
 transaction = require '../transaction'
 specHelper = require '../specHelper'
 {merge, hasKeys} = require '../util'
-mutators = require '../mutators'
-arrayMutators = mutators.array
+{all: mutators, array: arrayMutators} = require '../mutators'
 
 module.exports = RefHelper = (model, doSetup = true) ->
   @_model = model
@@ -20,20 +19,20 @@ module.exports = RefHelper = (model, doSetup = true) ->
 #    mutated path.
 RefHelper:: =
 
-  isKeyPath: (path, data) ->
-    throw new Error 'Missing data' unless data
-    found = @_adapter.get "$keys.#{path}.$", data
-    return found isnt undefined
-
   isPathPointedTo: (path, data) ->
-    throw 'Missing data' unless data
     found = @_adapter.get "$refs.#{path}.$", data
     return found isnt undefined
 
   _setup: ->
     refHelper = @
-    adapter = @_adapter
     model = @_model
+
+    for method of mutators
+      do (method) ->
+        model.on method, ([path, args...], isLocal) ->
+          # Emit events on any references that point to the path or
+          # any of its ancestor paths
+          refHelper.notifyPointersTo path, method, args, isLocal
 
     eachNode = (path, value, callback) ->
       callback path, value
@@ -56,8 +55,15 @@ RefHelper:: =
     model.on 'delPost', ([path, ver, data]) ->
       if refHelper.isPathPointedTo path, data
         refHelper.cleanupPointersTo path, ver, data
-    
-    for method of arrayMutators
+
+    for method, {indexArgs} of arrayMutators
+      if indexArgs then indexArgs.forEach (index) ->
+        index++
+        model.on method + 'Pre', (args) ->
+          path = args[0]
+          data = args[args.length - 1]
+          args[index] = refHelper.arrRefIndex args[index], path, data
+
       model.on method + 'Post', (args) ->
         len = args.length
         path = args[0]
@@ -270,7 +276,7 @@ RefHelper:: =
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, data, (pointingPath, ref, key) =>
       # return if @_alreadySeen pointingPath, ref, ignoreRoots
-      [firstArgs, arrayMemberArgs] = (mutators.basic[method] || mutators.array[method]).splitArgs args
+      [firstArgs, arrayMemberArgs] = mutators[method].splitArgs args
       if arrayMemberArgs
         ns = @_adapter.get ref, data
         arrayMemberArgs = arrayMemberArgs.map (arg) ->

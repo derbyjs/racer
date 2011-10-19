@@ -188,18 +188,14 @@ stm = module.exports =
       args = extractor.args(mutation).concat ver, data
       @emit method + 'Pre', args
 
-      @_mutate method, args, data
+      @_adapter[method] args...
       # For converting array ref index api back to id api
-      # TODO: This seems brittle and hacky
+      # TODO: This seems brittle and hacky. Should be part of refs?
       args[1] = meta  if meta = extractor.meta mutation
 
       @emit method + 'Post', args
       @emit method, args, local  if doEmit
       return args
-
-    # This is separated out so that it can be wrapped by the refs mixin
-    _mutate: (method, args) ->
-      @_adapter[method] args...
 
     _specModel: ->
       cache = @_cache

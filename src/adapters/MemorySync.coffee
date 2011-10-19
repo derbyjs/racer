@@ -62,27 +62,55 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
-for method, {numArgs, outOfBounds, fn} of arrayMutators
-  do (method, numArgs, outOfBounds, fn) ->
-    MemorySync::[method] = switch numArgs
-      when 0 then (path, ver, data) ->
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr
-        return if fn then fn arr else arr[method]()
-      when 1 then (path, arg0, ver, data) ->
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0
-        return if fn then fn arr, arg0 else arr[method] arg0
-      when 2 then (path, arg0, arg1, ver, data) ->
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0, arg1
-        return if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
-      else (path, args..., ver, data) ->
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr, args...
-        return if fn then fn arr, args... else arr[method] args...
+  push: (path, args..., ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    return arr.push args...
+  unshift: (path, args..., ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    return arr.unshift args...
+  splice: (path, args..., ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    return arr.splice args...
+  pop: (path, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    return arr.pop()
+  shift: (path, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    return arr.shift()
+  insertAfter: (path, afterIndex, value, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    outOfBounds = !(-1 <= afterIndex <= arr.length - 1)
+    throw new Error 'Out of Bounds' if outOfBounds
+    arr.splice afterIndex + 1, 0, value
+    return arr.length
+  insertBefore: (path, beforeIndex, value, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    outOfBounds = !(0 <= beforeIndex <= arr.length)
+    throw new Error 'Out of Bounds' if outOfBounds
+    arr.splice beforeIndex, 0, value
+    return arr.length
+  remove: (path, startIndex, howMany, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    outOfBounds = !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
+    throw new Error 'Out of Bounds' if outOfBounds
+    return arr.splice startIndex, howMany
+  move: (path, from, to, ver, data) ->
+    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    len = arr.length
+    from += len if from < 0
+    to += len if to < 0
+    outOfBounds = !((0 <= from < len) && (0 <= to < len))
+    throw new Error 'Out of Bounds' if outOfBounds
+    [value] = arr.splice from, 1  # Remove from old location
+    arr.splice to, 0, value  # Insert in new location
+    return value
 
