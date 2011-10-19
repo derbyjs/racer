@@ -4,10 +4,8 @@ mutators = module.exports =
 
   basic:
     set:
-      numArgs: 1
       splitArgs: splitArgsDefault = (args) -> [args, []]
     del:
-      numArgs: 0
       splitArgs: splitArgsDefault
   
   ot:
@@ -16,7 +14,6 @@ mutators = module.exports =
 
   array:
     push:
-      numArgs: 'variable'
       splitArgs: (args) -> [[], args]
       sliceFrom: 1
       argsToForeignKeys: argsToFKeys = (args, path, $r) ->
@@ -31,11 +28,9 @@ mutators = module.exports =
         return args
 
     pop:
-      numArgs: 0
       splitArgs: splitArgsDefault
 
     insertAfter:
-      numArgs: 2
       # Extracts or sets the arguments in args that represent indexes
       indexArgs: [0]
       splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
@@ -43,36 +38,30 @@ mutators = module.exports =
       argsToForeignKeys: argsToFKeys
 
     insertBefore:
-      numArgs: 2
       indexArgs: [0]
       splitArgs: splitArgsForInsert
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
 
     remove:
-      numArgs: 2
       indexArgs: [0]
       splitArgs: splitArgsDefault
 
     splice:
-      numArgs: 'variable'
       indexArgs: [0]
       splitArgs: (args) -> [args[0..1], args.slice 2]
       sliceFrom: 3
       argsToForeignKeys: argsToFKeys
 
     unshift:
-      numArgs: 'variable'
       splitArgs: splitArgsDefault
       sliceFrom: 1
       argsToForeignKeys: argsToFKeys
 
     shift:
-      numArgs: 0
       splitArgs: splitArgsDefault
 
     move:
-      numArgs: 2
       indexArgs: [0, 1]
       splitArgs: splitArgsDefault
 

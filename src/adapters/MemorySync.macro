@@ -58,6 +58,7 @@ MemorySync:: =
     return obj
 
   #for PUSH UNSHIFT SPLICE POP SHIFT INSERT_AFTER INSERT_BEFORE REMOVE MOVE
+  
   #if PUSH
   push: (path, args..., ver, data) ->
   #elseif UNSHIFT

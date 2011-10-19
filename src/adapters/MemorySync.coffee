@@ -62,26 +62,32 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
+  
   push: (path, args..., ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.push args...
+  
   unshift: (path, args..., ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.unshift args...
+  
   splice: (path, args..., ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.splice args...
+  
   pop: (path, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.pop()
+  
   shift: (path, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.shift()
+  
   insertAfter: (path, afterIndex, value, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
@@ -89,6 +95,7 @@ MemorySync:: =
     throw new Error 'Out of Bounds' if outOfBounds
     arr.splice afterIndex + 1, 0, value
     return arr.length
+  
   insertBefore: (path, beforeIndex, value, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
@@ -96,12 +103,14 @@ MemorySync:: =
     throw new Error 'Out of Bounds' if outOfBounds
     arr.splice beforeIndex, 0, value
     return arr.length
+  
   remove: (path, startIndex, howMany, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     outOfBounds = !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
     throw new Error 'Out of Bounds' if outOfBounds
     return arr.splice startIndex, howMany
+  
   move: (path, from, to, ver, data) ->
     [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
