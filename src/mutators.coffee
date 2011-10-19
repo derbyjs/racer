@@ -41,8 +41,8 @@ mutators = module.exports =
       splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
-      outOfBounds: (arr, [afterIndex]) -> !(-1 <= afterIndex <= arr.length - 1)
-      fn: (arr, [afterIndex, value]) -> arr.splice afterIndex + 1, 0, value
+      outOfBounds: (arr, afterIndex) -> !(-1 <= afterIndex <= arr.length - 1)
+      fn: (arr, afterIndex, value) -> arr.splice afterIndex + 1, 0, value
 
     insertBefore:
       numArgs: 2
@@ -50,16 +50,16 @@ mutators = module.exports =
       splitArgs: splitArgsForInsert
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
-      outOfBounds: (arr, [beforeIndex]) -> !(0 <= beforeIndex <= arr.length)
-      fn: (arr, [beforeIndex, value]) -> arr.splice beforeIndex, 0, value
+      outOfBounds: (arr, beforeIndex) -> !(0 <= beforeIndex <= arr.length)
+      fn: (arr, beforeIndex, value) -> arr.splice beforeIndex, 0, value
 
     remove:
       numArgs: 2
       indexesInArgs: indexInArgs
       splitArgs: splitArgsDefault
-      outOfBounds: (arr, [startIndex]) ->
+      outOfBounds: (arr, startIndex) ->
         !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
-      fn: (arr, [startIndex, howMany]) -> arr.splice startIndex, howMany
+      fn: (arr, startIndex, howMany) -> arr.splice startIndex, howMany
 
     splice:
       numArgs: 'variable'
@@ -86,12 +86,12 @@ mutators = module.exports =
           return args
         return args[0..1]
       splitArgs: splitArgsDefault
-      outOfBounds: (arr, [from, to]) ->
+      outOfBounds: (arr, from, to) ->
         len = arr.length
         from += len if from < 0
         to += len if to < 0
         return !((0 <= from < len) && (0 <= to < len))
-      fn: (arr, [from, to]) ->
+      fn: (arr, from, to) ->
         to += arr.length if to < 0
         # Remove from old location
         [value] = arr.splice from, 1

@@ -1,8 +1,3 @@
-##  WARNING:
-##  ========
-##  This file was compiled from a macro.
-##  Do not edit it directly.
-
 {lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
 {clone: specClone} = require '../specHelper'
 {array: arrayMutators} = require '../mutators'
@@ -71,28 +66,43 @@ for method, {numArgs, outOfBounds, fn} of arrayMutators
     event = 'on' + method
     MemorySync::[event] = empty
     MemorySync::[method] = switch numArgs
+      #for 0 1 2 ELSE
+      #if 0
       when 0 then (path, ver, data) ->
-        @[event] path
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr
-        return if fn then fn arr else arr[method]()
+      #elseif 1
       when 1 then (path, arg0, ver, data) ->
-        @[event] path, arg0
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0
-        return if fn then fn arr, arg0 else arr[method] arg0
+      #elseif 2
       when 2 then (path, arg0, arg1, ver, data) ->
-        @[event] path, arg0, arg1
-        [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
-        throw new Error 'Not an Array' unless Array.isArray arr
-        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0, arg1
-        return if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
+      #else
       else (path, args..., ver, data) ->
+      #end
+        #if 0
+        @[event] path
+        #elseif 1
+        @[event] path, arg0
+        #elseif 2
+        @[event] path, arg0, arg1
+        #else
         @[event] path, args...
+        #end
         [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
         throw new Error 'Not an Array' unless Array.isArray arr
+        #if 0
+        throw new Error 'Out of Bounds' if outOfBounds? arr
+        #elseif 1
+        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0
+        #elseif 2
+        throw new Error 'Out of Bounds' if outOfBounds? arr, arg0, arg1
+        #else
         throw new Error 'Out of Bounds' if outOfBounds? arr, args...
+        #end
+        #if 0
+        return if fn then fn arr else arr[method]()
+        #elseif 1
+        return if fn then fn arr, arg0 else arr[method] arg0
+        #elseif 2
+        return if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
+        #else
         return if fn then fn arr, args... else arr[method] args...
-
+        #end
+      #end
