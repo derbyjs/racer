@@ -543,7 +543,7 @@ module.exports =
       { name: 'banana' }
     ]
 
-  "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list": ->
+  "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list @single": ->
     model = new Model
     model.set 'mine', model.arrayRef 'todos', 'myTodoIds'
     model.set 'todos',

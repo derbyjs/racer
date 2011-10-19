@@ -33,6 +33,7 @@ RefHelper:: =
   _setup: ->
     refHelper = @
     adapter = @_adapter
+    model = @_model
 
     eachNode = (path, value, callback) ->
       callback path, value
@@ -43,25 +44,25 @@ RefHelper:: =
         else
           callback nodePath, val
 
-    checkForRefs = (path, ver, data, value) ->
+    model.on 'setPre', ([path, value, ver, data]) ->
       eachNode path, value, (path, value) ->
         if value && value.$r
           refHelper.$indexRefs path, value.$r, value.$k, value.$t, ver, data
     
-    updateRefs = (path, ver, data, value) ->
+    model.on 'setPost', ([path, value, ver, data]) ->
       eachNode path, value, (path, value) ->
         refHelper.updateRefsForKey path, ver, data
 
-    adapter.setPre = checkForRefs
-    adapter.setPost = updateRefs
-
-    adapter.delPost = (path, ver, data) ->
+    model.on 'delPost', ([path, ver, data]) ->
       if refHelper.isPathPointedTo path, data
-        refHelper.cleanupPointersTo path, data
-
-    # Wrap all array mutators at adapter layer to add ref logic
+        refHelper.cleanupPointersTo path, ver, data
+    
     for method of arrayMutators
-      adapter[method + 'Post'] = (path, ver, data) ->
+      model.on method + 'Post', (args) ->
+        len = args.length
+        path = args[0]
+        ver = args[len - 2]
+        data = args[len - 1]
         refHelper.updateRefsForKey path, ver, data
 
   # This function returns the index of an array ref member, given a member
@@ -295,17 +296,17 @@ RefHelper:: =
     ignoreRoots.push ref
     return false
 
-  cleanupPointersTo: (path, data) ->
+  cleanupPointersTo: (path, ver, data) ->
     adapter = @_adapter
     refs = adapter.get "$refs.#{path}.$", data
     return if refs is undefined
-    model = @_model
     for pointingPath, [ref, key] of refs
       keyVal = key && adapter.get key, data
       if keyVal && Array.isArray keyVal
         keyMem = path.substr(ref.length + 1, pointingPath.length)
-        # TODO Use model.remove here instead?
+        # Adapter method is used directly to avoid an infinite loop
         adapter.remove key, keyVal.indexOf(keyMem), 1, null, data
+        @updateRefsForKey key, ver, data
 #      else
 #        # TODO Use model.del here instead?
 #        adapter.del pointingPath, null

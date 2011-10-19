@@ -163,15 +163,16 @@ stm = module.exports =
       @_commit txn
 
     _applyTxn: (txn) ->
+      data = @_adapter._data
       doEmit = !(txn.emitted || @_silent)
       local = 'callback' of txn
       ver = transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops
-          @_applyMutation transaction.op, op, ver, null, doEmit, local
+          @_applyMutation transaction.op, op, ver, data, doEmit, local
       else
-        args = @_applyMutation transaction, txn, ver, null, doEmit, local
+        args = @_applyMutation transaction, txn, ver, data, doEmit, local
 
       @_removeTxn transaction.id txn
 
