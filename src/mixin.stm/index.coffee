@@ -5,7 +5,6 @@ specHelper = require '../specHelper'
 mutators = require '../mutators'
 AtomicModel = require './AtomicModel'
 Async = require './Async'
-Field = require '../mixin.ot/Field'
 
 stm = module.exports =
   static:
@@ -38,7 +37,7 @@ stm = module.exports =
     txnApplier = new Serializer
       withEach: (txn) ->
         if transaction.base(txn) > adapter.version()
-          self._applyTxn txn, !txn.emitted || self._clientId != transaction.clientId txn
+          self._applyTxn txn
       onTimeout: -> self._reqNewTxns()
 
     @_onTxn = (txn, num) =>
@@ -150,28 +149,29 @@ stm = module.exports =
       unless path is null
         txnArgs = transaction.args txn
         path = txnArgs[0]
+
         # Apply a private transaction immediately and don't send it to the store
         if pathParser.isPrivate path
           @_cache.invalidateSpecModelCache()
-          return @_applyTxn txn, !txn.emitted && !@_silent
+          return @_applyTxn txn
 
         # Emit an event on creation of the transaction
-        unless @_silent
-          @emit method, txnArgs, true
-          txn.emitted = true
+        @emit method, txnArgs, true  unless @_silent
+        txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
       @_commit txn
 
-    _applyTxn: (txn, forceEmit) ->
-      ver = transaction.base txn
+    _applyTxn: (txn) ->
+      doEmit = !(txn.emitted || @_silent)
       local = 'callback' of txn
+      ver = transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops
-          @_applyMutation transaction.op, op, ver, null, forceEmit, local
+          @_applyMutation transaction.op, op, ver, null, doEmit, local
       else
-        args = @_applyMutation transaction, txn, ver, null, forceEmit, local
+        args = @_applyMutation transaction, txn, ver, null, doEmit, local
 
       @_removeTxn transaction.id txn
 
@@ -181,31 +181,24 @@ stm = module.exports =
         else
           callback null, args...
     
-    _applyMutation: (extractor, mutation, ver, data, forceEmit, local) ->
+    _applyMutation: (extractor, mutation, ver, data, doEmit, local) ->
       method = extractor.method mutation
       return if method is 'get'
       args = extractor.args(mutation).concat ver, data
-      @_adapter[method] args...
+      @emit method + 'Pre', args
+
+      @_mutate method, args, data
       # For converting array ref index api back to id api
-      # TODO: Can this somehow be performed by the refs mixin?
+      # TODO: This seems brittle and hacky
       args[1] = meta  if meta = extractor.meta mutation
 
-      # This marks an OT field as being non-speculative, so that OT ops
-      # can begin to be sent to the server
-      # TODO Make this more comprehensive - if @involvesOtVal val
-      # TODO Make sure this is not called during specModel, only on remote txns received
-      # TODO See if we can move this into mixin.ot
-      if method == 'set' && ver && @isOtVal(args[1])
-        path = args[0]
-        # TODO DRY this up. Appears, too, in mixin.ot/index
-        unless field = @otFields[path]
-          field = @otFields[path] = new Field this, path
-          val = @_adapter.get path, @_specModel()
-          snapshot = field.snapshot = val?.$ot || str
-        field.specTrigger true
-
-      @emit method, args, local  if forceEmit
+      @emit method + 'Post', args
+      @emit method, args, local  if doEmit
       return args
+
+    # This is separated out so that it can be wrapped by the refs mixin
+    _mutate: (method, args) ->
+      @_adapter[method] args...
 
     _specModel: ->
       cache = @_cache
@@ -268,10 +261,7 @@ stm = module.exports =
   ## Data accessor and mutator methods ##
   accessors:
     get: (path) ->
-      val = @_adapter.get path, @_specModel()
-      if @isOtVal val
-        return @getOT path, val.$ot
-      return val
+      return @_adapter.get path, @_specModel()
 
     set: (path, val, callback) ->
       @_addOpAsTxn 'set', path, val, callback

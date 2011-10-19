@@ -42,10 +42,10 @@ MemorySync:: =
   setPost: empty
   set: (path, value, ver, data) ->
     data ||= @_data
-    @setPre path, value, ver, data
+    @setPre path, ver, data, value
     {1: parent, 2: prop} = lookupSetVersion path, data, @_vers, ver, 'object'
     parent[prop] = value
-    @setPost path, value, ver, data
+    @setPost path, ver, data, value
     return value
 
   delPre: empty
@@ -92,29 +92,29 @@ for method, {numArgs, outOfBounds, fn} of arrayMutators
         return out
       when 1 then (path, arg0, ver, data) ->
         data ||= @_data
-        @[pre] path, arg0, ver, data
+        @[pre] path, ver, data, arg0
         [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
         throw new Error 'Not an Array' unless Array.isArray arr
         throw new Error 'Out of Bounds' if outOfBounds? arr, arg0
         out = if fn then fn arr, arg0 else arr[method] arg0
-        @[post] path, arg0, ver, data
+        @[post] path, ver, data, arg0
         return out
       when 2 then (path, arg0, arg1, ver, data) ->
         data ||= @_data
-        @[pre] path, arg0, arg1, ver, data
+        @[pre] path, ver, data, arg0, arg1
         [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
         throw new Error 'Not an Array' unless Array.isArray arr
         throw new Error 'Out of Bounds' if outOfBounds? arr, arg0, arg1
         out = if fn then fn arr, arg0, arg1 else arr[method] arg0, arg1
-        @[post] path, arg0, arg1, ver, data
+        @[post] path, ver, data, arg0, arg1
         return out
       else (path, args..., ver, data) ->
         data ||= @_data
-        @[pre] path, args..., ver, data
+        @[pre] path, ver, data, args...
         [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
         throw new Error 'Not an Array' unless Array.isArray arr
         throw new Error 'Out of Bounds' if outOfBounds? arr, args...
         out = if fn then fn arr, args... else arr[method] args...
-        @[post] path, args..., ver, data
+        @[post] path, ver, data, args...
         return out
 

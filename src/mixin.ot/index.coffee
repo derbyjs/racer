@@ -9,28 +9,22 @@ ot = module.exports =
   init: ->
     @otFields = {}
 
+    @on 'setPost', ([path, value, ver]) ->
+      # ver will be null for speculative values, so this detects
+      # when the OT path has been created on the server
+      if ver && value && value.$ot
+        @_otField(path).specTrigger true
+
   accessors:
     # OT text insert
     insertOT: (path, str, pos, callback) ->
-      path = @_refHelper.dereference path, @_specModel()
-      # TODO DRY this unless block up. Also appears in mixin.stm
-      unless field = @otFields[path]
-        field = @otFields[path] = new Field @, path
-        val = @_adapter.get path, @_specModel()
-        snapshot = field.snapshot = val?.$ot || str
-        # TODO field.remoteSnapshot snapshot
-      pos ?= 0
-      op = [ { p: pos, i: str } ]
-      field.submitOp op, callback
+      # TODO: Cleanup refs dependency
+      op = [ { p: pos || 0, i: str } ]
+      @_otField(path).submitOp op, callback
 
     # OT text del
     delOT: (path, len, pos, callback) ->
-      path = @_refHelper.dereference path, @_specModel()
-      unless field = @otFields[path]
-        field = @otFields[path] = new Field @, path
-        val = @_adapter.get path, @_specModel()
-        snapshot = field.snapshot = val?.$ot || str
-        # TODO field.remoteSnapshot snapshot
+      field = @_otField path
       op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
       field.submitOp op, callback
 
@@ -42,15 +36,24 @@ ot = module.exports =
     isOtPath: (path) ->
       @_adapter.get(path, @_specModel()).$ot isnt undefined
 
-    isOtVal: (val) -> !! (val && val.$ot)
+    isOtVal: (val) -> !!(val && val.$ot)
 
-    getOT: (path, initVal) ->
-      path = @_refHelper.dereference path, @_specModel()
-      return field.snapshot if field = @otFields[path]
-      field = @otFields[path] = new Field @, path
-      return field.snapshot = initVal
+    get: (path) ->
+      val = @_adapter.get path, @_specModel()
+      if val && val.$ot
+        return @_otField(path, val).snapshot
+      return val
 
     version: (path) -> @otFields[path].version
+
+    _otField: (path, val) ->
+      path = @_refHelper.dereference path, @_specModel()
+      return field if field = @otFields[path]
+      field = @otFields[path] = new Field this, path
+      val ||= @_adapter.get path, @_specModel()
+      field.snapshot = val && val.$ot || ''
+      # TODO field.remoteSnapshot snapshot
+      return field
   
 
   # Socket setup

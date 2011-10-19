@@ -1,6 +1,6 @@
 transaction = require '../transaction'
 pathParser = require '../pathParser'
-mutators = require '../mutators'
+{all: mutators} = require '../mutators'
 RefHelper = require './RefHelper'
 
 module.exports =
@@ -22,6 +22,17 @@ module.exports =
     arrayRef: (ref, key) ->
       $r: ref, $k: key, $t: 'array'
 
+    # Override method created by mixin.stm
+    _mutate: (method, args, data) ->
+      # Convert array ref id into index
+      if indexArgs = mutators[method]?.indexArgs
+        for index in indexArgs
+          index++
+          args[index] = @_refHelper.arrRefIndex args[index], args[0], data
+
+      @_adapter[method] args...
+
+
     # This overrides a method created by mixin.stm
     # TODO: This is super messy right now. Clean this up!
     _addOpAsTxn: (method, path, args..., callback) ->
@@ -35,8 +46,7 @@ module.exports =
         # argsNormalizer = new ArgsNormalizer refHelper
         # args = argsNormalizer.transform(method, path, args)
         if {$r, $k} = refHelper.isArrayRef path, @_specModel()
-          [firstArgs, members] =
-            (mutators.basic[method] || mutators.array[method]).splitArgs args
+          [firstArgs, members] = mutators[method].splitArgs args
           members = members.map (member) ->
             return member if refHelper.isRef member
             # MUTATION
@@ -46,7 +56,7 @@ module.exports =
 
         # Convert id args to index args if we happen to be
         # using array ref mutator id api
-        if mutators.array[method]?.indexArgs
+        if mutators[method]?.indexArgs
           idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()
       
       # Create a new transaction and add it to a local queue

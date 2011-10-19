@@ -22,6 +22,7 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
     ver = 0
     txnNum = 1
     socket.on 'txn', (txn) ->
+      txn = JSON.parse JSON.stringify txn
       transaction.base txn, ++ver
       if options.txnOk
         socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum

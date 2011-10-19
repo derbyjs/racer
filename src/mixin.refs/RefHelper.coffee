@@ -43,12 +43,12 @@ RefHelper:: =
         else
           callback nodePath, val
 
-    checkForRefs = (path, value, ver, data) ->
+    checkForRefs = (path, ver, data, value) ->
       eachNode path, value, (path, value) ->
         if value && value.$r
           refHelper.$indexRefs path, value.$r, value.$k, value.$t, ver, data
     
-    updateRefs = (path, value, ver, data) ->
+    updateRefs = (path, ver, data, value) ->
       eachNode path, value, (path, value) ->
         refHelper.updateRefsForKey path, ver, data
 
@@ -60,26 +60,16 @@ RefHelper:: =
         refHelper.cleanupPointersTo path, data
 
     # Wrap all array mutators at adapter layer to add ref logic
-    for method, {indexArgs} of arrayMutators
-      adapter['__' + method] = adapter[method]
-      adapter[method] = do (method, indexArgs) ->
-        return (path, args..., ver, data) ->
-          data ||= @_data
-          if indexArgs then for index in indexArgs
-            args[index] = refHelper.arrRefIndex args[index], path, data
-
-          out = @['__' + method] path, args..., ver, data
-          # Check to see if mutating a reference's key. If so, update references
-          refHelper.updateRefsForKey path, ver, data
-          return out
+    for method of arrayMutators
+      adapter[method + 'Post'] = (path, ver, data) ->
+        refHelper.updateRefsForKey path, ver, data
 
   # This function returns the index of an array ref member, given a member
   # id or index (as start) of an array ref (represented by path) in the
   # context of the object, data.
   arrRefIndex: (start, path, data) ->
-    if 'number' == typeof start
-      # index api
-      return start
+    # index api
+    return start if typeof start is 'number'
 
     arr = @_adapter.get path, data
     if @isArrayRef path, data

@@ -98,7 +98,7 @@ module.exports =
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
   '''local client model insertOT's should result in the same
-  text in sibling windows @single @ot''': (done) ->
+  text in sibling windows @ot''': (done) ->
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelA.set '_test.text', modelA.ot('abcdef')
