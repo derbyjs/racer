@@ -33,11 +33,7 @@ mutators = module.exports =
     insertAfter:
       numArgs: 2
       # Extracts or sets the arguments in args that represent indexes
-      indexesInArgs: indexInArgs = (args, newVals) ->
-        if newVals
-          args[0] = newVals[0]
-          return args
-        return [args[0]]
+      indexArgs: [0]
       splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
@@ -46,7 +42,7 @@ mutators = module.exports =
 
     insertBefore:
       numArgs: 2
-      indexesInArgs: indexInArgs
+      indexArgs: [0]
       splitArgs: splitArgsForInsert
       sliceFrom: 2
       argsToForeignKeys: argsToFKeys
@@ -55,7 +51,7 @@ mutators = module.exports =
 
     remove:
       numArgs: 2
-      indexesInArgs: indexInArgs
+      indexArgs: [0]
       splitArgs: splitArgsDefault
       outOfBounds: (arr, startIndex) ->
         !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
@@ -63,7 +59,7 @@ mutators = module.exports =
 
     splice:
       numArgs: 'variable'
-      indexesInArgs: indexInArgs
+      indexArgs: [0]
       splitArgs: (args) -> [args[0..1], args.slice 2]
       sliceFrom: 3
       argsToForeignKeys: argsToFKeys
@@ -80,11 +76,7 @@ mutators = module.exports =
 
     move:
       numArgs: 2
-      indexesInArgs: (args, newVals) ->
-        if newVals
-          args[0..1] = newVals[0..1]
-          return args
-        return args[0..1]
+      indexArgs: [0, 1]
       splitArgs: splitArgsDefault
       outOfBounds: (arr, from, to) ->
         len = arr.length

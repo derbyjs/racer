@@ -60,17 +60,15 @@ RefHelper:: =
         refHelper.cleanupPointersTo path, data
 
     # Wrap all array mutators at adapter layer to add ref logic
-    for method, {indexesInArgs} of arrayMutators
+    for method, {indexArgs} of arrayMutators
       adapter['__' + method] = adapter[method]
-      adapter[method] = do (method, indexesInArgs) ->
-        return (path, methodArgs..., ver, data) ->
+      adapter[method] = do (method, indexArgs) ->
+        return (path, args..., ver, data) ->
           data ||= @_data
-          if indexesInArgs
-            newIndexes = for index in indexesInArgs methodArgs
-              refHelper.arrRefIndex index, path, data
-            indexesInArgs methodArgs, newIndexes
+          if indexArgs then for index in indexArgs
+            args[index] = refHelper.arrRefIndex args[index], path, data
 
-          out = @['__' + method] path, methodArgs..., ver, data
+          out = @['__' + method] path, args..., ver, data
           # Check to see if mutating a reference's key. If so, update references
           refHelper.updateRefsForKey path, ver, data
           return out

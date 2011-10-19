@@ -46,7 +46,7 @@ module.exports =
 
         # Convert id args to index args if we happen to be
         # using array ref mutator id api
-        if mutators.array[method]?.indexesInArgs
+        if mutators.array[method]?.indexArgs
           idAsIndex = refHelper.arrRefIndex args[0], path, @_specModel()
       
       # Create a new transaction and add it to a local queue
