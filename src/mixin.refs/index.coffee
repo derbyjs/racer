@@ -79,11 +79,12 @@ RefHelper = (model) ->
     
   for method of mutators
     do (method) ->
-      model.on method, ([path, args...], isLocal, meta) ->
+      model.on method, (args, isLocal, meta) ->
         # Emit events on any references that point to the path or
         # any of its ancestor paths
-        refHelper.notifyPointersTo path, method, args, isLocal, meta
+        refHelper.notifyPointersTo method, args, isLocal, meta
 
+  # TODO: Similar deep traversal on array mutators that push objects
   eachNode = (path, value, callback) ->
     callback path, value
     for prop, val of value
@@ -111,16 +112,12 @@ RefHelper = (model) ->
       path = args[0]
       data ||= model._specModel()
       if (obj = adapter.get path, data) && obj.$t is 'array'
-        # If arrayRef
+        # If arrayRef, convert array ref index api back to id api
+        # before emitting events
         indiciesToIds args, meta
       refHelper.updateRefsForKey path, ver, data
 
   return
-
-# Convert array ref index api back to id api before emitting events
-indiciesToIds = (args, meta) ->
-  if ids = meta?.ids then for index, id of ids
-    args[index] = {id}
 
 
 # TODO: Rewrite all of this ref indexing code. It's pretty scary right now.
@@ -300,11 +297,12 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (targetPath, method, args, isLocal, meta) ->
+  notifyPointersTo: (method, [targetPath, args...], isLocal, meta) ->
     model = @_model
     adapter = @_adapter
     data = model._specModel()
     ignoreRoots = []
+
     # Takes care of regular refs
     @eachValidRefPointingTo targetPath, data, (pointingPath, targetPathRemainder, ref, key, type) ->
       if type isnt 'array'
@@ -325,9 +323,6 @@ RefHelper:: =
 
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, data, (pointingPath, ref, key) ->
-      # Don't mutate the actual arguments
-      # args = args.slice()
-      # TODO: Pass around args including the path so that the index is correct
       args = [pointingPath, args...]
       # Turn keys into their values
       if i = mutators[method].insertArgs
@@ -355,8 +350,12 @@ RefHelper:: =
 # For avoiding infinite event emission
 alreadySeen = (pointingPath, ref, ignoreRoots) ->
   # TODO More proper way to detect cycles? Or is this sufficient?
-  seen = ignoreRoots.some (root) ->
-    root == pointingPath.substr(0, root.length)
-  return true if seen
+  for root of ignoreRoots
+    return true if root == pointingPath.substr 0, root.length
   ignoreRoots.push ref
   return false
+
+# Replace index arg with id specified in meta
+indiciesToIds = (args, meta) ->
+  if ids = meta?.ids then for index, id of ids
+    args[index] = {id}
