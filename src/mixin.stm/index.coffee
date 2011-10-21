@@ -252,72 +252,111 @@ stm = module.exports =
   ## Data accessor and mutator methods ##
 
   accessors:
-    get: (path) ->
-      return @_adapter.get path, @_specModel()
 
-    set: (path, val, callback) ->
-      @_addOpAsTxn 'set', [path, val], callback
-      return val
-    
-    setNull: (path, value, callback) ->
-      obj = @get path
-      return obj  if obj?
-      @set path, value, callback
+    get:
+      type: 'basic'
+      fn: (path) ->
+        return @_adapter.get path, @_specModel()
 
-    del: (path, callback) ->
-      @_addOpAsTxn 'del', [path], callback
+  mutators:
 
-    incr: (path, byNum, callback) ->
-      # incr(path, callback)
-      if typeof byNum is 'function'
-        callback = byNum
-        byNum = 1
-      # incr(path)
-      else if typeof byNum isnt 'number'
-        byNum = 1
-      @set path, (@get(path) || 0) + byNum, callback
+    set:
+      type: 'basic'
+      fn: (path, val, callback) ->
+        @_addOpAsTxn 'set', [path, val], callback
+        return val
 
-    ## Array methods ##
+    del:
+      type: 'basic'
+      fn: (path, callback) ->
+        @_addOpAsTxn 'del', [path], callback
 
-    push: (args..., callback) ->
-      if typeof callback isnt 'function'
-        args.push callback
-        callback = null
-      @_addOpAsTxn 'push', args, callback
+    setNull:
+      type: 'compound'
+      fn: (path, value, callback) ->
+        obj = @get path
+        return obj  if obj?
+        @set path, value, callback
 
-    unshift: (args..., callback) ->
-      if typeof callback isnt 'function'
-        args.push callback
-        callback = null
-      @_addOpAsTxn 'unshift', args, callback
+    incr:
+      type: 'compound'
+      fn: (path, byNum, callback) ->
+        # incr(path, callback)
+        if typeof byNum is 'function'
+          callback = byNum
+          byNum = 1
+        # incr(path)
+        else if typeof byNum isnt 'number'
+          byNum = 1
+        @set path, (@get(path) || 0) + byNum, callback
 
-    splice: (args..., callback) ->
-      if typeof callback isnt 'function'
-        args.push callback
-        callback = null
-      @_addOpAsTxn 'splice', args, callback
+    push:
+      type: 'array'
+      insertArgs: 1
+      fn: (args..., callback) ->
+        if typeof callback isnt 'function'
+          args.push callback
+          callback = null
+        @_addOpAsTxn 'push', args, callback
 
-    pop: (path, callback) ->
-      @_addOpAsTxn 'pop', [path], callback
+    unshift:
+      type: 'array'
+      insertArgs: 1
+      fn: (args..., callback) ->
+        if typeof callback isnt 'function'
+          args.push callback
+          callback = null
+        @_addOpAsTxn 'unshift', args, callback
 
-    shift: (path, callback) ->
-      @_addOpAsTxn 'shift', [path], callback
+    splice:
+      type: 'array'
+      indexArgs: [1]
+      insertArgs: 3
+      fn: (args..., callback) ->
+        if typeof callback isnt 'function'
+          args.push callback
+          callback = null
+        @_addOpAsTxn 'splice', args, callback
 
-    insertAfter: (path, afterIndex, value, callback) ->
-      @_addOpAsTxn 'insertAfter', [path, afterIndex, value], callback
+    pop:
+      type: 'array'
+      fn: (path, callback) ->
+        @_addOpAsTxn 'pop', [path], callback
 
-    insertBefore: (path, beforeIndex, value, callback) ->
-      @_addOpAsTxn 'insertBefore', [path, beforeIndex, value], callback
+    shift:
+      type: 'array'
+      fn: (path, callback) ->
+        @_addOpAsTxn 'shift', [path], callback
 
-    remove: (path, start, howMany, callback) ->
-      # remove(path, start, callback)
-      if typeof howMany is 'function'
-        callback = howMany
-        howMany = 1
-      # remove(path, start)
-      else if typeof howMany isnt 'number'
-        howMany = 1
-      @_addOpAsTxn 'remove', [path, start, howMany], callback
+    insertBefore:
+      type: 'array'
+      indexArgs: [1]
+      insertArgs: 2
+      fn: (path, beforeIndex, value, callback) ->
+        @_addOpAsTxn 'insertBefore', [path, beforeIndex, value], callback
 
-    move: (path, from, to, callback) ->
-      @_addOpAsTxn 'move', [path, from, to], callback
+    insertAfter:
+      type: 'array'
+      indexArgs: [1]
+      insertArgs: 2
+      fn: (path, afterIndex, value, callback) ->
+        @_addOpAsTxn 'insertAfter', [path, afterIndex, value], callback
+
+    remove:
+      type: 'array'
+      indexArgs: [1]
+      fn: (path, start, howMany, callback) ->
+        # remove(path, start, callback)
+        if typeof howMany is 'function'
+          callback = howMany
+          howMany = 1
+        # remove(path, start)
+        else if typeof howMany isnt 'number'
+          howMany = 1
+        @_addOpAsTxn 'remove', [path, start, howMany], callback
+
+    move:
+      type: 'array'
+      indexArgs: [1, 2]
+      fn: (path, from, to, callback) ->
+        @_addOpAsTxn 'move', [path, from, to], callback

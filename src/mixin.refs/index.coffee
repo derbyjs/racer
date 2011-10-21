@@ -1,6 +1,8 @@
-specHelper = require '../specHelper'
-{merge, hasKeys} = require '../util'
-{all: mutators, array: arrayMutators} = require '../mutators'
+{identifier: specIdentifier} = require '../specHelper'
+{hasKeys} = require '../util'
+
+mutators = {}
+arrayMutators = {}
 
 module.exports =
 
@@ -17,9 +19,11 @@ module.exports =
     _dereference: (path, data) ->
       @_adapter.get path, data ||= @_specModel()
       if data.$remainder then data.$path + '.' + data.$remainder else data.$path
-  
-  RefHelper: RefHelper
 
+  onMixin: (_mutators) ->
+    mutators = _mutators
+    for mutator, fn of _mutators
+      arrayMutators[mutator] = fn  if fn.type is 'array'
 
 # TODO: Make arrayRefs return the proper values from mutations
 
@@ -104,7 +108,7 @@ RefHelper = (model) ->
     if refHelper.isPathPointedTo path, data
       refHelper.cleanupPointersTo path, ver, data
 
-  for method, {indexArgs} of arrayMutators
+  for method of arrayMutators
     model.on method + 'Post', (args, ver, data, meta) ->
       path = args[0]
       data ||= model._specModel()
@@ -197,7 +201,7 @@ RefHelper:: =
         refs = adapter.get "$keys.#{oldKey}.$", data
         if refs && refs[path]
           delete refs[path]
-          adapter.del "$keys.#{oldKey}", ver, data unless hasKeys refs, specHelper.identifier
+          adapter.del "$keys.#{oldKey}", ver, data unless hasKeys refs, specIdentifier
       refsKey = ref
     @_removeOld$refs oldRefObj, path, ver, data
     @_update$refs refsKey, path, ref, key, type, ver, data
@@ -222,7 +226,7 @@ RefHelper:: =
     refEntries = @_adapter.get "$refs.#{refWithKey}.$", data
     return unless refEntries
     delete refEntries[path]
-    unless hasKeys(refEntries, specHelper.identifier)
+    unless hasKeys refEntries, specIdentifier
       @_adapter.del "$refs.#{ref}", ver, data
     
   # Private helper function for $indexRefs
@@ -251,7 +255,7 @@ RefHelper:: =
   _eachValidRef: (refs, data, callback) ->
     for path, [ref, key, type] of refs
 
-      continue if path == specHelper.identifier
+      continue if path == specIdentifier
 
       # Check to see if the reference is still the same
       o = @_adapter.getRef path, data

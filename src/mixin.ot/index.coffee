@@ -16,17 +16,30 @@ ot = module.exports =
         @_otField(path).specTrigger true
 
   accessors:
-    # OT text insert
-    insertOT: (path, str, pos, callback) ->
-      # TODO: Cleanup refs dependency
-      op = [ { p: pos || 0, i: str } ]
-      @_otField(path).submitOp op, callback
 
-    # OT text del
-    delOT: (path, len, pos, callback) ->
-      field = @_otField path
-      op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
-      field.submitOp op, callback
+    # Overrides STM get
+    get:
+      type: 'basic'
+      fn: (path) ->
+        val = @_adapter.get path, @_specModel()
+        if val && val.$ot
+          return @_otField(path, val).snapshot
+        return val
+
+  mutators:
+
+    insertOT:
+      type: 'ot'
+      fn: (path, str, pos, callback) ->
+        op = [ { p: pos || 0, i: str } ]
+        @_otField(path).submitOp op, callback
+
+    delOT:
+      type: 'ot'
+      fn: (path, len, pos, callback) ->
+        field = @_otField path
+        op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
+        field.submitOp op, callback
 
   proto:
     ## OT field functions ##
@@ -38,12 +51,7 @@ ot = module.exports =
 
     isOtVal: (val) -> !!(val && val.$ot)
 
-    get: (path) ->
-      val = @_adapter.get path, @_specModel()
-      if val && val.$ot
-        return @_otField(path, val).snapshot
-      return val
-
+    # TODO: This shouldn't be on model's prototype
     version: (path) -> @otFields[path].version
 
     _otField: (path, val) ->

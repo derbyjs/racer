@@ -7,7 +7,7 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   self = this
   self._adapter = adapter = new AdapterClass
 
-  for {init} in Model._mixins
+  for {init} in Model.mixins
     init.call self if init
 
   # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
@@ -47,8 +47,7 @@ Model::_setSocket = (socket) ->
   # Needed in case page is loaded from cache while offline
   socket.on 'connect_failed', onConnected
 
-  mixins = Model._mixins
-  for {setupSocket} in mixins
+  for {setupSocket} in Model.mixins
     setupSocket.call @, socket if setupSocket
 
 
@@ -94,22 +93,31 @@ Model::addListener = Model::on
 # static:      class/static methods to add to Model
 # init:        called from the Model constructor
 # setupSocket: invoked inside Model::_setSocket with fn signature (socket) -> ...
-# accessors:   get, set, etc.
+# accessors:   getters
+# mutators:    setters
+# onMixin:     called with mutators and accessors after every mixin 
 
 # NOTE: Order of mixins may be important because of dependencies.
-Model._mixins = []
-Model._accessors = {}
+Model.mixins = []
+Model.accessors = {}
+Model.mutators = {}
+onMixins = []
 Model.mixin = (mixin) ->
-  @_mixins.push mixin
+  Model.mixins.push mixin
   merge Model::, proto if proto = mixin.proto
   merge Model, static if static = mixin.static
 
-  if accessors = mixin.accessors
-    merge Model::, accessors
-    merge Model._accessors, accessors
+  for category in ['accessors', 'mutators']
+    cache = Model[category]
+    if objs = mixin[category] then for name, obj of objs
+      Model::[name] = cache[name] = fn = obj.fn
+      for key, value of obj
+        continue if key is 'fn'
+        fn[key] = value
 
-  if withAccessors = mixin.withAccessors
-    withAccessors Model, Object.keys Model._accessors
+  onMixins.push onMixin  if onMixin = mixin.onMixin
+  for onMixin in onMixins
+    onMixin Model.mutators, Model.accessors
 
   return Model
 
