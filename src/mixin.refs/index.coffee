@@ -58,8 +58,6 @@ RefHelper = (model) ->
               args[i] = index
               break
 
-      # TODO Instead of invalidating, roll back the spec model cache by 1 txn
-      # model._cache.invalidateSpecModelCache()
       # TODO Add test to make sure that we assign the de-referenced $k to path
       args[0] = path = $k
       if i = mutators[method].insertArgs

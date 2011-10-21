@@ -14,10 +14,10 @@ stm = module.exports =
 
   init: ->
     # Context (i.e., this) is Model instance
-    @_cache =
-      invalidateSpecModelCache: ->
+    @_specCache =
+      invalidate: ->
         delete @data
-        delete @lastReplayedTxnId
+        delete @lastTxnId
 
     # The startId is the ID of the last Redis restart. This is sent along with
     # each versioned message from the Model so that the Store can map the model's
@@ -54,7 +54,7 @@ stm = module.exports =
     @_removeTxn = (txnId) ->
       delete txns[txnId]
       if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
-      self._cache.invalidateSpecModelCache()
+      self._specCache.invalidate()
 
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
     # transaction without conflict detection, such as model.force.set
@@ -145,17 +145,21 @@ stm = module.exports =
       txn = transaction.create {base, id, method, args, meta}
       @_queueTxn txn, callback
 
-      if (path = args[0])?
-        # Apply a private transaction immediately and don't send it to the store
-        if pathParser.isPrivate path
-          # @_cache.invalidateSpecModelCache()
-          return @_applyTxn txn
+      return unless (path = args[0])?
+      # Apply a private transaction immediately and don't send it to the store
+      if pathParser.isPrivate path
+        @_specCache.invalidate()
+        return @_applyTxn txn
 
+      unless @_silent
+        # Clone the args, so that they can be modified before being emitted
+        # without affecting the txn args
+        args = args.slice()
         # Version must be null, since this is speculative
         @emit method + 'Post', args, null, null, meta
-        # Emit an event on creation of the transaction
-        @emit method, args, true  unless @_silent
-        txn.emitted = true
+        # Emit an event immediately on creation of the transaction
+        @emit method, args, true
+      txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
       @_commit txn
@@ -192,12 +196,12 @@ stm = module.exports =
       return args
 
     _specModel: ->
-      cache = @_cache
+      cache = @_specCache
       len = @_txnQueue.length
-      if lastReplayedTxnId = cache.lastReplayedTxnId
-        return cache.data  if cache.lastReplayedTxnId == @_txnQueue[len - 1]
+      if lastTxnId = cache.lastTxnId
+        return cache.data  if cache.lastTxnId == @_txnQueue[len - 1]
         data = cache.data
-        replayFrom = 1 + @_txnQueue.indexOf cache.lastReplayedTxnId
+        replayFrom = 1 + @_txnQueue.indexOf cache.lastTxnId
       else
         replayFrom = 0
 
@@ -218,7 +222,7 @@ stm = module.exports =
             @_applyMutation transaction, txn, null, data
         
         cache.data = data
-        cache.lastReplayedTxnId = transaction.id txn
+        cache.lastTxnId = transaction.id txn
       return data || @_adapter._data
 
     # TODO

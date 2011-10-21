@@ -14,11 +14,10 @@ AtomicModel = module.exports = (id, parentModel) ->
     adapter = self._adapter = parentModel._adapter
     self.ver = adapter.version() # Take a snapshot of the version
 
-    self._cache =
-      invalidateSpecModelCache: ->
+    self._specCache =
+      invalidate: ->
         delete @data
-        delete @lastReplayedTxnId
-        delete @path
+        delete @lastTxnId
 
     self._opCount = 0
     self._txns = parentModel._txns
