@@ -9,7 +9,7 @@ ot = module.exports =
   init: ->
     @otFields = {}
 
-    @on 'setPost', ([path, value, ver]) ->
+    @on 'setPost', ([path, value], ver) ->
       # ver will be null for speculative values, so this detects
       # when the OT path has been created on the server
       if ver && value && value.$ot
@@ -47,7 +47,7 @@ ot = module.exports =
     version: (path) -> @otFields[path].version
 
     _otField: (path, val) ->
-      path = @_refHelper.dereference path, @_specModel()
+      path = @_dereference path
       return field if field = @otFields[path]
       field = @otFields[path] = new Field this, path
       val ||= @_adapter.get path, @_specModel()

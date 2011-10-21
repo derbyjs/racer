@@ -153,7 +153,7 @@ module.exports =
         sockets._disconnect()
         store.disconnect()
         done()
-      , 200
+      , 50
 
   '''1 delOT by window A and 1 delOT by window B on the
   same path should result in the same 'valid' text in both windows
@@ -170,7 +170,7 @@ module.exports =
         sockets._disconnect()
         store.disconnect()
         done()
-      , 200
+      , 50
 
   '''an OT op in window A should be reflected in the data of
   a window B's server model that loads after window A and its OT op @ot''': (done) ->

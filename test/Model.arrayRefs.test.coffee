@@ -68,12 +68,11 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
-      todos: {}
 
   'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
     model = new Model
     model.set '_group', model.ref 'groups.racer'
-    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
     model.get().should.specEql
       _group: model.ref 'groups.racer'
       groups:
@@ -189,9 +188,9 @@ module.exports =
       1: { name: 'banana' }
       2: { name: 'squeak' }
       3: { name: 'pogo' }
+      4: { name: 'boo boo' }
 
-    model.set 'dogs.4', name: 'boo boo'
-    model.push 'mine', model.arrayRef('dogs', '4')
+    model.push 'mine', id: '4'
     model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       mine: model.arrayRef 'dogs', 'myDogIds'
@@ -217,21 +216,20 @@ module.exports =
   'pushing onto an empty array reference should instantiate and update the key array': ->
     model = new Model
     model.set 'mine', model.arrayRef 'dogs', 'myDogIds'
-    model.set 'dogs', 1: name: 'banana'
 
-    model.push 'mine', model.ref('dogs', '1')
+    model.push 'mine', id: '1', name: 'banana'
     model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       myDogIds: ['1'] # new array
       mine: model.arrayRef 'dogs', 'myDogIds'
       dogs:
-        1: { name: 'banana' } # new data
+        1: { id: '1', name: 'banana' } # new data
       $refs:
         dogs:
           1: { $: mine: ['dogs', 'myDogIds', 'array'] } # new data
     # ... and should result in a model that can dereference the
     # new references properly
-    model.get('mine').should.specEql [ name: 'banana' ]
+    model.get('mine').should.specEql [ id: '1', name: 'banana' ]
 
   '''pushing an object  -- that is not a reference but that has an id attribute
   -- onto a path pointing to an array ref should add the object to the array refs
@@ -243,7 +241,7 @@ module.exports =
     model.get().should.specEql
       $keys: { myDogIds: $: mine: ['dogs', 'myDogIds', 'array'] }
       mine: model.arrayRef 'dogs', 'myDogIds'
-      myDogIds: ['1']
+      myDogIds: [1]
       $refs:
         dogs:
           1: { $: mine: ['dogs', 'myDogIds', 'array'] }
@@ -255,7 +253,7 @@ module.exports =
       { id: 1, name: 'banana' }
     ]
 
-  '''pushing an non-ref object onto a path pointing to an array ref
+  '''pushing a non-ref object onto a path pointing to an array ref
   should place the transaction setting the new object before the
   transaction pushing the ref of that object''': ->
     model = new Model
@@ -264,7 +262,7 @@ module.exports =
     expected = [
         transaction.create(base: 0, id: '.0', method: 'set', args: ['mine', { '$r': 'dogs', '$k': 'myDogIds', '$t': 'array' } ])
       , transaction.create(base: 0, id: '.1', method: 'set', args: ['dogs.1', { id: 1, name: 'banana' } ])
-      , transaction.create(base: 0, id: '.2', method: 'push', args: ['myDogIds', '1']),
+      , transaction.create(base: 0, id: '.2', method: 'push', args: ['myDogIds', 1]),
     ]
     expected.forEach (txn) -> txn.emitted = true
     model._txnQueue.map((id) ->
@@ -325,9 +323,9 @@ module.exports =
       1: { name: 'banana' }
       2: { name: 'squeak' }
       3: { name: 'pogo' }
-      4: { name: 'boo boo'}
+      4: { name: 'boo boo' }
 
-    model.unshift 'mine', model.arrayRef 'dogs', '4'
+    model.unshift 'mine', id: '4'
     model.get().should.specEql
       dogs:
         1: { name: 'banana' }
@@ -392,7 +390,7 @@ module.exports =
       3: { name: 'pogo' }
       4: { name: 'boo boo'}
 
-    model.insertAfter 'mine', 0, model.arrayRef 'dogs', '4'
+    model.insertAfter 'mine', 0, id: '4'
     model.get().should.specEql
       dogs:
         1: { name: 'banana' }
@@ -457,7 +455,7 @@ module.exports =
       3: { name: 'pogo' }
       4: { name: 'boo boo'}
 
-    model.insertBefore 'mine', 1, model.ref('dogs', '4')
+    model.insertBefore 'mine', 1, id: '4'
     model.get().should.specEql
       dogs:
         1: { name: 'banana' }
@@ -521,7 +519,7 @@ module.exports =
       3: { name: 'pogo' }
       4: { name: 'boo boo'}
 
-    model.splice 'mine', 0, 1, model.ref('dogs', '4'), model.ref('dogs', '1')
+    model.splice 'mine', 0, 1, {id: '4'}, {id: '1'}
     model.get().should.specEql
       dogs:
         1: { name: 'banana' }
@@ -543,7 +541,7 @@ module.exports =
       { name: 'banana' }
     ]
 
-  "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list @single": ->
+  "deleting a path that is pointed to by an array ref's key list should remove the reference to it from the key list": ->
     model = new Model
     model.set 'mine', model.arrayRef 'todos', 'myTodoIds'
     model.set 'todos',
@@ -636,7 +634,7 @@ module.exports =
     model.on 'push', 'myTodoIds', (val) ->
       val.should.equal '1'
       done()
-    model.push 'myTodos', model.ref('todos', '1')
+    model.push 'myTodos', id: '1'
   , 2
 
   "popping an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
@@ -696,7 +694,7 @@ module.exports =
       index.should.equal -1
       val.should.equal '1'
       done()
-    model.insertAfter 'myTodos', -1, model.ref('todos', '1')
+    model.insertAfter 'myTodos', -1, id: '1'
   , 2
 
   "insertBefore on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
@@ -730,7 +728,7 @@ module.exports =
       index.should.equal 0
       val.should.equal '1'
       done()
-    model.insertBefore 'myTodos', 0, model.ref('todos', '1')
+    model.insertBefore 'myTodos', 0, id: '1'
   , 2
 
   "remove on an array ref's key array should emit model events on the ref and on its pointers": wrapTest (done) ->
@@ -812,13 +810,13 @@ module.exports =
       removeCount.should.equal 1
       value.should.equal '3'
       done()
-    model.splice 'myTodos', 0, 1, model.ref('todos', '3')
+    model.splice 'myTodos', 0, 1, id: '3'
   , 2
 
   'pushing onto an array ref that involves a regular pointer as part of its path, should update the $refs index with the newest array member': ->
     model = new Model
     model.set '_group', model.ref 'groups.racer'
-    model.set '_group.todoList', model.arrayRef('_group.todos', '_group.todoIds')
+    model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
     model.push '_group.todoList',
       id: 5
       text: 'fix this'
@@ -830,7 +828,7 @@ module.exports =
         racer:
           todos:
             5: { id: 5, text: 'fix this', completed: false }
-          todoIds: ['5']
+          todoIds: [5]
           todoList: model.arrayRef '_group.todos', '_group.todoIds'
       $keys:
         _group:
@@ -880,11 +878,11 @@ module.exports =
       1: { id: 1, text: 'first', complete: false }
       2: { id: 2, text: 'second', complete: false }
       3: { id: 3, text: 'third', complete: false }
-    modelA.set 'todoIds', [3,1,2]
+    modelA.set 'todoIds', [3, 1, 2]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelB.on 'remove', 'todoList', ({id, index}, howMany) ->
+    modelB.on 'remove', 'todoList', ({id}, howMany) ->
       id.should.equal 3
-      index.should.equal 0
+      howMany.should.equal 1
       sockets._disconnect()
       done()
     modelA.remove 'todoList', {id: 3}
@@ -914,7 +912,7 @@ module.exports =
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.insertAfter 'todoList', 1, id: 3, text: 'third', complete: false
+    modelA.insertAfter 'todoList', 1, {id: 3, text: 'third', complete: false}
   , 1
 
   'insertAfter on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
@@ -924,13 +922,12 @@ module.exports =
       2: { id: 2, text: 'second', complete: false }
     modelA.set 'todoIds', [2,1]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelB.on 'insertAfter', 'todoList', ({id, index}, todo) ->
+    modelB.on 'insertAfter', 'todoList', ({id}, todo) ->
       id.should.equal 2
-      index.should.equal 0
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.insertAfter 'todoList', {id: 2}, id: 3, text: 'third', complete: false
+    modelA.insertAfter 'todoList', {id: 2}, {id: 3, text: 'third', complete: false}
   , 1
 
   'insertBefore an array ref member by id should insert the member before the id in the ref key array': ->
@@ -957,7 +954,7 @@ module.exports =
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.insertBefore 'todoList', 1, id: 3, text: 'third', complete: false
+    modelA.insertBefore 'todoList', 1, {id: 3, text: 'third', complete: false}
   , 1
 
   'insertBefore on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
@@ -967,13 +964,12 @@ module.exports =
       2: { id: 2, text: 'second', complete: false }
     modelA.set 'todoIds', [2,1]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelB.on 'insertBefore', 'todoList', ({id, index}, todo) ->
+    modelB.on 'insertBefore', 'todoList', ({id}, todo) ->
       id.should.equal 2
-      index.should.equal 0
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.insertBefore 'todoList', {id: 2}, id: 3, text: 'third', complete: false
+    modelA.insertBefore 'todoList', {id: 2}, {id: 3, text: 'third', complete: false}
   , 1
 
   'splice of an array ref member by id should do the splice relative to the index of the id in the ref key array': ->
@@ -1001,7 +997,7 @@ module.exports =
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.splice 'todoList', 0, 1, id: 3, text: 'third', complete: false
+    modelA.splice 'todoList', 0, 1, {id: 3, text: 'third', complete: false}
   , 1
 
   'splice on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
@@ -1011,14 +1007,13 @@ module.exports =
       2: { id: 2, text: 'second', complete: false }
     modelA.set 'todoIds', [2,1]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelB.on 'splice', 'todoList', ({id, index}, howMany, todo) ->
+    modelB.on 'splice', 'todoList', ({id}, howMany, todo) ->
       id.should.equal 2
-      index.should.equal 0
       howMany.should.equal 1
       todo.should.specEql id: 3, text: 'third', complete: false
       sockets._disconnect()
       done()
-    modelA.splice 'todoList', {id: 2}, 1, id: 3, text: 'third', complete: false
+    modelA.splice 'todoList', {id: 2}, 1, {id: 3, text: 'third', complete: false}
   , 1
 
   'move of an array ref member by id should do the move relative to the index of the id in the ref key array': ->
@@ -1059,9 +1054,8 @@ module.exports =
       2: { id: 2, text: 'second', complete: false }
     modelA.set 'todoIds', [2,1]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelB.on 'move', 'todoList', ({id, index}, to) ->
+    modelB.on 'move', 'todoList', ({id}, to) ->
       id.should.equal 2
-      index.should.equal 0
       to.should.equal 1
       sockets._disconnect()
       done()

@@ -1,6 +1,5 @@
 Serializer = require '../Serializer'
 transaction = require '../transaction'
-{RefHelper} = require '../mixin.refs'
 
 # When parent model tries to write changes to atomic model,
 # then make sure to abort atomic model if any of the changes
@@ -39,7 +38,8 @@ AtomicModel = module.exports = (id, parentModel) ->
 
     # parentChannel.on 'txn', onTxn
 
-    self._refHelper = new RefHelper self, false
+    # TODO: Make sure this isn't needed anymore:
+    # self._refHelper = new RefHelper self, false
 
     # Proxy events to the parent model
     ['emit', 'on', 'once'].forEach (method) ->
@@ -48,11 +48,12 @@ AtomicModel = module.exports = (id, parentModel) ->
 
     return
 
+  # TODO: This prototype copying should be based on the mixins
   AtomicModel:: = proto
   parentProto = Object.getPrototypeOf parentModel
-  ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation', '_mutate',
-   'set', 'setNull', 'del', 'incr', 'push', 'pop', 'unshift', 'shift',
-   'insertAfter', 'insertBefore', 'remove', 'splice', 'move'].forEach (method) ->
+  for method in ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation',
+  '_dereference', 'set', 'setNull', 'del', 'incr', 'push', 'pop', 'unshift',
+  'shift', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
     proto[method] = parentProto[method]
 
   return new AtomicModel id, parentModel
@@ -86,7 +87,7 @@ proto =
   get: (path) ->
     [val, ver] = @_adapter.getWithVersion path, @_specModel()
     if ver <= @ver
-      @_addOpAsTxn 'get', path ? null, null
+      @_addOpAsTxn 'get', [path]
     return val
 
   _nextTxnId: -> @id + '.' + ++@_opCount

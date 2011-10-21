@@ -1,8 +1,7 @@
 transaction = require '../transaction'
 pathParser = require '../pathParser'
 Serializer = require '../Serializer'
-specHelper = require '../specHelper'
-mutators = require '../mutators'
+{create: specCreate} = require '../specHelper'
 AtomicModel = require './AtomicModel'
 Async = require './Async'
 
@@ -40,29 +39,28 @@ stm = module.exports =
           self._applyTxn txn
       onTimeout: -> self._reqNewTxns()
 
-    @_onTxn = (txn, num) =>
+    @_onTxn = (txn, num) ->
       # Copy meta properties onto this transaction if it matches one in the queue
       if queuedTxn = txns[transaction.id txn]
         txn.callback = queuedTxn.callback
         txn.emitted = queuedTxn.emitted
       txnApplier.add txn, num
 
-    @_onTxnNum = (num) =>
+    @_onTxnNum = (num) ->
       # Reset the number used to keep track of pending transactions
       txnApplier.setIndex (+num || 0) + 1
       txnApplier.clearPending()
 
-    @_removeTxn = (txnId) =>
+    @_removeTxn = (txnId) ->
       delete txns[txnId]
       if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
-      @_cache.invalidateSpecModelCache()
+      self._cache.invalidateSpecModelCache()
 
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
     # transaction without conflict detection, such as model.force.set
     @force = Object.create this, _force: value: true
 
     @async = new Async this
-
 
   setupSocket: (socket) ->
     {_adapter, _txns, _txnQueue, _onTxn, _removeTxn} = self = this
@@ -136,27 +134,27 @@ stm = module.exports =
 
     # This method is overwritten by the refs mixin
     # TODO: All of this code is duplicated in refs right now. DRY
-    _addOpAsTxn: (method, path, args..., callback) ->
-      # TODO: There is a lot of mutation of txn going on here. Clean this up.
-      
-      # Create a new transaction and add it to a local queue
-      ver = @_getVer()
-      id = @_nextTxnId()
-      txn = transaction.create base: ver, id: id, method: method, args: [path, args...]
+    _addOpAsTxn: (method, args, callback) ->
+      # Refs may mutate the args in its 'beforeTxn' handler
+      @emit 'beforeTxn', method, args
 
+      # Create a new transaction and add it to a local queue
+      base = @_getVer()
+      id = @_nextTxnId()
+      meta = args.meta
+      txn = transaction.create {base, id, method, args, meta}
       @_queueTxn txn, callback
 
-      unless path is null
-        txnArgs = transaction.args txn
-        path = txnArgs[0]
-
+      if (path = args[0])?
         # Apply a private transaction immediately and don't send it to the store
         if pathParser.isPrivate path
-          @_cache.invalidateSpecModelCache()
+          # @_cache.invalidateSpecModelCache()
           return @_applyTxn txn
 
+        # Version must be null, since this is speculative
+        @emit method + 'Post', args, null, null, meta
         # Emit an event on creation of the transaction
-        @emit method, txnArgs, true  unless @_silent
+        @emit method, args, true  unless @_silent
         txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
@@ -165,14 +163,14 @@ stm = module.exports =
     _applyTxn: (txn) ->
       data = @_adapter._data
       doEmit = !(txn.emitted || @_silent)
-      local = 'callback' of txn
+      isLocal = 'callback' of txn
       ver = transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops
-          @_applyMutation transaction.op, op, ver, data, doEmit, local
+          @_applyMutation transaction.op, op, ver, data, doEmit, isLocal
       else
-        args = @_applyMutation transaction, txn, ver, data, doEmit, local
+        args = @_applyMutation transaction, txn, ver, data, doEmit, isLocal
 
       @_removeTxn transaction.id txn
 
@@ -182,19 +180,15 @@ stm = module.exports =
         else
           callback null, args...
     
-    _applyMutation: (extractor, mutation, ver, data, doEmit, local) ->
+    _applyMutation: (extractor, mutation, ver, data, doEmit, isLocal) ->
       method = extractor.method mutation
       return if method is 'get'
-      args = extractor.args(mutation).concat ver, data
-      @emit method + 'Pre', args
-
-      @_adapter[method] args...
-      # For converting array ref index api back to id api
-      # TODO: This seems brittle and hacky. Should be part of refs?
-      args[1] = meta  if meta = extractor.meta mutation
-
-      @emit method + 'Post', args
-      @emit method, args, local  if doEmit
+      args = extractor.args mutation
+      meta = extractor.meta mutation
+      @emit method + 'Pre', args, ver, data, meta
+      @_adapter[method] args..., ver, data
+      @emit method + 'Post', args, ver, data, meta
+      @emit method, args, isLocal, meta  if doEmit
       return args
 
     _specModel: ->
@@ -210,7 +204,7 @@ stm = module.exports =
       if len
         # Then generate a speculative model
         unless data
-          data = cache.data = specHelper.create @_adapter._data
+          data = cache.data = specCreate @_adapter._data
 
         i = replayFrom
         while i < len
@@ -256,12 +250,13 @@ stm = module.exports =
 
 
   ## Data accessor and mutator methods ##
+
   accessors:
     get: (path) ->
       return @_adapter.get path, @_specModel()
 
     set: (path, val, callback) ->
-      @_addOpAsTxn 'set', path, val, callback
+      @_addOpAsTxn 'set', [path, val], callback
       return val
     
     setNull: (path, value, callback) ->
@@ -269,9 +264,8 @@ stm = module.exports =
       return obj  if obj?
       @set path, value, callback
 
-    # STM del
     del: (path, callback) ->
-      @_addOpAsTxn 'del', path, callback
+      @_addOpAsTxn 'del', [path], callback
 
     incr: (path, byNum, callback) ->
       # incr(path, callback)
@@ -284,43 +278,46 @@ stm = module.exports =
       @set path, (@get(path) || 0) + byNum, callback
 
     ## Array methods ##
-    
-    push: (path, values..., callback) ->
-      if 'function' != typeof callback && callback isnt undefined
-        values.push callback
+
+    push: (args..., callback) ->
+      if typeof callback isnt 'function'
+        args.push callback
         callback = null
-      @_addOpAsTxn 'push', path, values..., callback
+      @_addOpAsTxn 'push', args, callback
+
+    unshift: (args..., callback) ->
+      if typeof callback isnt 'function'
+        args.push callback
+        callback = null
+      @_addOpAsTxn 'unshift', args, callback
+
+    splice: (args..., callback) ->
+      if typeof callback isnt 'function'
+        args.push callback
+        callback = null
+      @_addOpAsTxn 'splice', args, callback
 
     pop: (path, callback) ->
-      @_addOpAsTxn 'pop', path, callback
-
-    unshift: (path, values..., callback) ->
-      if 'function' != typeof callback && callback isnt undefined
-        values.push callback
-        callback = null
-      @_addOpAsTxn 'unshift', path, values..., callback
+      @_addOpAsTxn 'pop', [path], callback
 
     shift: (path, callback) ->
-      @_addOpAsTxn 'shift', path, callback
+      @_addOpAsTxn 'shift', [path], callback
 
     insertAfter: (path, afterIndex, value, callback) ->
-      @_addOpAsTxn 'insertAfter', path, afterIndex, value, callback
+      @_addOpAsTxn 'insertAfter', [path, afterIndex, value], callback
 
     insertBefore: (path, beforeIndex, value, callback) ->
-      @_addOpAsTxn 'insertBefore', path, beforeIndex, value, callback
+      @_addOpAsTxn 'insertBefore', [path, beforeIndex, value], callback
 
-    remove: (path, start, howMany = 1, callback) ->
+    remove: (path, start, howMany, callback) ->
       # remove(path, start, callback)
       if typeof howMany is 'function'
         callback = howMany
         howMany = 1
-      @_addOpAsTxn 'remove', path, start, howMany, callback
-
-    splice: (path, startIndex, removeCount, newMembers..., callback) ->
-      if 'function' != typeof callback && callback isnt undefined
-        newMembers.push callback
-        callback = null
-      @_addOpAsTxn 'splice', path, startIndex, removeCount, newMembers..., callback
+      # remove(path, start)
+      else if typeof howMany isnt 'number'
+        howMany = 1
+      @_addOpAsTxn 'remove', [path, start, howMany], callback
 
     move: (path, from, to, callback) ->
-      @_addOpAsTxn 'move', path, from, to, callback
+      @_addOpAsTxn 'move', [path, from, to], callback

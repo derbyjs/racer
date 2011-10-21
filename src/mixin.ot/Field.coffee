@@ -66,7 +66,7 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
       throw new Error "Did not receive a prior op in time. Invalid version would result by applying buffered received ops unless prior op was applied first."
 
   self = this
-  model._on 'change', ([path, op, oldSnapshot], isLocal) ->
+  model.on 'change', ([path, op, oldSnapshot], isLocal) ->
     return unless path == self.path
     for {p, i, d} in op
       if i

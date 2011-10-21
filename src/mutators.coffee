@@ -3,10 +3,8 @@
 mutators = module.exports =
 
   basic:
-    set:
-      splitArgs: splitArgsDefault = (args) -> [args, []]
-    del:
-      splitArgs: splitArgsDefault
+    set: {}
+    del: {}
   
   ot:
     insertOT: {}
@@ -14,56 +12,33 @@ mutators = module.exports =
 
   array:
     push:
-      splitArgs: (args) -> [[], args]
-      sliceFrom: 1
-      argsToForeignKeys: argsToFKeys = (args, path, $r) ->
-        oldArgs = args.slice @sliceFrom
-        newArgs = oldArgs.map (refObjToAdd) ->
-          if refObjToAdd.$r is undefined
-            throw new Error 'Trying to push a non-ref onto an array ref'
-          if $r != refObjToAdd.$r
-            throw new Error "Trying to use elements of type #{refToObj.$r} with path #{path} that is an array ref of type #{$r}"
-          return refObjToAdd.$k
-        args.splice @sliceFrom, oldArgs.length, newArgs...
-        return args
+      insertArgs: 1
 
-    pop:
-      splitArgs: splitArgsDefault
+    pop: {}
 
     insertAfter:
       # Extracts or sets the arguments in args that represent indexes
-      indexArgs: [0]
-      splitArgs: splitArgsForInsert = (args) -> [[args[0]], args.slice 1]
-      sliceFrom: 2
-      argsToForeignKeys: argsToFKeys
+      indexArgs: [1]
+      insertArgs: 2
 
     insertBefore:
-      indexArgs: [0]
-      splitArgs: splitArgsForInsert
-      sliceFrom: 2
-      argsToForeignKeys: argsToFKeys
+      indexArgs: [1]
+      insertArgs: 2
 
     remove:
-      indexArgs: [0]
-      splitArgs: splitArgsDefault
+      indexArgs: [1]
 
     splice:
-      indexArgs: [0]
-      splitArgs: (args) -> [args[0..1], args.slice 2]
-      sliceFrom: 3
-      argsToForeignKeys: argsToFKeys
+      indexArgs: [1]
+      insertArgs: 3
 
     unshift:
-      splitArgs: splitArgsDefault
-      sliceFrom: 1
-      argsToForeignKeys: argsToFKeys
+      insertArgs: 1
 
-    shift:
-      splitArgs: splitArgsDefault
+    shift: {}
 
     move:
-      indexArgs: [0, 1]
-      splitArgs: splitArgsDefault
+      indexArgs: [1, 2]
 
 all = {}
 for name, category of mutators
