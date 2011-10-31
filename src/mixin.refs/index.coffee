@@ -319,7 +319,7 @@ RefHelper:: =
         unless index == -1
           pointingPath += '.' + index
           pointingPath += '.' + rest.join('.') if rest.length
-      model.emit method, [pointingPath, args...], isLocal
+      model.emit method, [pointingPath, args...], isLocal, meta
 
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, data, (pointingPath, ref, key) ->
@@ -330,7 +330,7 @@ RefHelper:: =
         while (key = args[i])?
           args[i++] = obj[key]
       indiciesToIds args, meta
-      model.emit method, args, isLocal
+      model.emit method, args, isLocal, meta
 
   cleanupPointersTo: (path, ver, data) ->
     adapter = @_adapter
