@@ -883,12 +883,14 @@ module.exports =
       3: { id: 3, text: 'third', complete: false }
     modelA.set 'todoIds', [3, 1, 2]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
-    modelA.on 'remove', 'todoList', ({id}, howMany) ->
+    modelA.on 'remove', 'todoList', ({id, index}, howMany) ->
       id.should.equal 3
+      index.should.equal 0
       howMany.should.equal 1
       done()
-    modelB.on 'remove', 'todoList', ({id}, howMany) ->
+    modelB.on 'remove', 'todoList', ({id, index}, howMany) ->
       id.should.equal 3
+      index.should.equal 0
       howMany.should.equal 1
       sockets._disconnect()
       done()

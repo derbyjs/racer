@@ -357,5 +357,5 @@ alreadySeen = (pointingPath, ref, ignoreRoots) ->
 
 # Replace index arg with id specified in meta
 indiciesToIds = (args, meta) ->
-  if ids = meta?.ids then for index, id of ids
-    args[index] = {id}
+  if ids = meta?.ids then for i, id of ids
+    args[i] = {id, index: args[i]}
