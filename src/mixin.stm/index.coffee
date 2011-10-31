@@ -132,8 +132,6 @@ stm = module.exports =
 
     _getVer: -> if @_force then null else @_adapter.version()
 
-    # This method is overwritten by the refs mixin
-    # TODO: All of this code is duplicated in refs right now. DRY
     _addOpAsTxn: (method, args, callback) ->
       # Refs may mutate the args in its 'beforeTxn' handler
       @emit 'beforeTxn', method, args
@@ -196,8 +194,9 @@ stm = module.exports =
       return args
 
     _specModel: ->
+      return @_adapter._data  unless len = @_txnQueue.length
+
       cache = @_specCache
-      len = @_txnQueue.length
       if lastTxnId = cache.lastTxnId
         return cache.data  if cache.lastTxnId == @_txnQueue[len - 1]
         data = cache.data
@@ -205,25 +204,25 @@ stm = module.exports =
       else
         replayFrom = 0
 
-      if len
-        # Then generate a speculative model
-        unless data
-          data = cache.data = specCreate @_adapter._data
+      unless data
+        # Generate a speculative model
+        data = cache.data = specCreate @_adapter._data
 
-        i = replayFrom
-        while i < len
-          # Apply each pending operation to the speculative model
-          txn = @_txns[@_txnQueue[i++]]
-          if transaction.isCompound txn
-            ops = transaction.ops txn
-            for op in ops
-              @_applyMutation transaction.op, op, null, data
-          else
-            @_applyMutation transaction, txn, null, data
-        
-        cache.data = data
-        cache.lastTxnId = transaction.id txn
-      return data || @_adapter._data
+      i = replayFrom
+      while i < len
+        # Apply each pending operation to the speculative model
+        txn = @_txns[@_txnQueue[i++]]
+        if transaction.isCompound txn
+          ops = transaction.ops txn
+          for op in ops
+            @_applyMutation transaction.op, op, null, data
+        else
+          @_applyMutation transaction, txn, null, data
+
+      cache.data = data
+      cache.lastTxnId = transaction.id txn
+
+      return data
 
     # TODO
     snapshot: ->

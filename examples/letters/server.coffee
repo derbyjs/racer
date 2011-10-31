@@ -9,7 +9,7 @@ app = express.createServer()
 
 # Listen specifies a port or http server
 # Namespace specifies the Socket.IO namespace
-store = racer.createStore redis: {db: 1}, listen: app, namespace: 'letters'
+store = racer.createStore redis: {db: 10}, listen: app, namespace: 'letters'
 # Clear all existing data on restart
 store.flush()
 
@@ -79,6 +79,6 @@ store.sockets.on 'connection', (socket) ->
     store.incr playersPath
     socket.on 'disconnect', -> store.incr playersPath, -1
 
-app.listen 3001
-console.log 'Go to http://localhost:3001/lobby'
-console.log 'Go to http://localhost:3001/powder-room'
+app.listen 3010
+console.log 'Go to http://localhost:3010/lobby'
+console.log 'Go to http://localhost:3010/powder-room'

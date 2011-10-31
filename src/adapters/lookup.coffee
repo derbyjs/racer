@@ -117,7 +117,8 @@ lookupWithVersion = (path, data, vers) ->
 
 # Returns value
 # Used by reference indexer
-lookupAddPath = (path, data, speculative, pathType) ->
+lookupAddPath = (path, data, setVer, pathType) ->
+  speculative = `setVer == null`
 
   curr = data.world = if speculative then create data.world else data.world
   props = path.split '.'
@@ -150,7 +151,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
 
     if curr.$r
 
-      refObj = lookupAddPath curr.$r, data, speculative, pathType
+      refObj = lookupAddPath curr.$r, data, setVer, pathType
       dereffedPath = if data.$remainder then "#{data.$path}.#{data.$remainder}" else data.$path
 
       if key = curr.$k
@@ -158,7 +159,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
           if i < len
             prop = keyObj[props[i++]]
             path = dereffedPath + '.' + prop
-            curr = lookupAddPath path, data, speculative, pathType
+            curr = lookupAddPath path, data, setVer, pathType
           else
             curr = (lookup(dereffedPath + '.' + index, data) for index in keyObj)
         else
@@ -181,7 +182,7 @@ lookupAddPath = (path, data, speculative, pathType) ->
 # Returns [value, parent, prop, {ver}]
 # Used by setters & delete
 lookupSetVersion = (path, data, vers, setVer, pathType) ->
-  speculative = !setVer
+  speculative = `setVer == null`
 
   curr = data.world = if speculative then create data.world else data.world
   currVer = vers

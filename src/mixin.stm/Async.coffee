@@ -41,9 +41,9 @@ AsyncAtomic:: =
       callback() if callback
       cb() unless --self.count
 
+empty = ->
 
 module.exports = Async = (@model) -> return
-
 Async:: =
 
   # Note that async operation clientIds MUST begin with '#', as this is used to
@@ -69,6 +69,7 @@ Async:: =
     else
       # For incr(path)
       byNum ?= 1
+      callback ||= empty
     
     tryVal = null
     @retry (atomic) ->

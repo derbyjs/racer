@@ -33,7 +33,7 @@ MemorySync:: =
 
   # Used by RefHelper
   getAddPath: (path, data, ver, pathType) ->
-    lookupAddPath path, data || @_data, !ver, pathType
+    lookupAddPath path, data || @_data, ver, pathType
 
   set: (path, value, ver, data) ->
     {1: parent, 2: prop} = lookupSetVersion path, data || @_data, @_vers, ver, 'object'
@@ -42,7 +42,7 @@ MemorySync:: =
   del: (path, ver, data) ->
     data ||= @_data
     [obj, parent, prop] = lookupSetVersion path, data, @_vers, ver
-    if ver
+    if ver?
       delete parent[prop]
       return obj
     # If speculatiave, replace the parent object with a clone that

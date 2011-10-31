@@ -3,15 +3,19 @@ util = require './util'
 Model = require './Model'
 Field = require './mixin.ot/Field'
 
-if 'undefined' != typeof io # io will be undefined in tests - see test/util/model fullyWiredModels
+# io will be undefined in tests. See test/util/model fullyWiredModels
+if 'undefined' != typeof io
   # Patch Socket.io-client to publish the close event and disconnet immediately
   io.Socket::onClose = ->
     @open = false
     @publish 'close'
     @onDisconnect()
 
-
+# isReady and model are used by the ready function, so that it can be called
+# anonymously. This assumes that only one instace of Racer is running, which
+# should be the case in the browser.
 isReady = false
+model = null
 
 racer = module.exports =
 
@@ -19,7 +23,7 @@ racer = module.exports =
 
   init: (options) ->
     model = @model
-    
+
     incomingOtFields = options.otFields
     for path, json of incomingOtFields
       field = Field.fromJSON json, model
@@ -44,7 +48,6 @@ racer = module.exports =
   ready: (onready) -> ->
     racer.onready = onready
     if isReady
-      model = @model
       connected = model.socket.socket.connected
       onready()
       # Republish the Socket.IO connect event after the onready callback

@@ -64,7 +64,7 @@ $ racer.ready ->
       reconnect.style.display = 'none'
       # Hide the reconnect link for a second so it looks like something is going on
       setTimeout (-> reconnect.style.display = 'inline'), 1000
-      model.socket.socket.connect()
+      model.socket.connect()
       return false
 
     addTodo: ->

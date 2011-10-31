@@ -10,23 +10,15 @@ app = express.createServer()
 
 # Listen specifies a port or http server
 # Namespace specifies the Socket.IO namespace
-store = racer.createStore redis: {db: 2}, listen: app, namespace: 'todos'
+store = racer.createStore redis: {db: 12}, listen: app, namespace: 'todos'
 # Clear all existing data on restart
 store.flush()
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code as well as any additional browserify options
-racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) ->
+racer.js minify: false, require: __dirname + '/shared', entry: __dirname + '/client.js', (js) ->
   fs.writeFileSync __dirname + '/script.js', js
 
-defaultGroup =
-  todos:
-    0: {id: 0, completed: true, text: 'This one is done already'}
-    1: {id: 1, completed: false, text: 'Example todo'}
-    2: {id: 2, completed: false, text: 'Another example'}
-  todoIds: [1, 2, 0]
-  nextId: 3
-    
 app.get '/', (req, res) ->
   res.redirect '/racer'
 
@@ -34,7 +26,13 @@ app.get '/:group', (req, res) ->
   group = req.params.group
   model = store.createModel()
   model.subscribe _group: "groups.#{group}", ->
-    model.setNull "groups.#{group}", defaultGroup
+    model.setNull "groups.#{group}",
+      todos:
+        0: {id: 0, completed: true, text: 'This one is done already'}
+        1: {id: 1, completed: false, text: 'Example todo'}
+        2: {id: 2, completed: false, text: 'Another example'}
+      todoIds: [1, 2, 0]
+      nextId: 3
     # Currently, refs must be explicitly declared per model; otherwise the ref
     # is not added the model's internal reference indices
     model.set '_group.todoList', model.arrayRef '_group.todos', '_group.todoIds'
@@ -61,5 +59,5 @@ app.get '/:group', (req, res) ->
       <script src=script.js></script>
       """
 
-app.listen 3002
-console.log 'Go to http://localhost:3002/racer'
+app.listen 3012
+console.log 'Go to http://localhost:3012/racer'

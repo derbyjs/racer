@@ -68,7 +68,6 @@ module.exports =
         todos:
           1: { $: mine: ['todos', '_mine', 'array'] }
           3: { $: mine: ['todos', '_mine', 'array'] }
-      todos: {}
 
   'pointer paths that include another pointer as a substring, should be stored for lookup by their fully de-referenced paths': ->
     model = new Model
@@ -79,7 +78,7 @@ module.exports =
       groups:
         racer:
           todoIds: []
-          todoList: model.arrayRef('_group.todos', '_group.todoIds')
+          todoList: model.arrayRef '_group.todos', '_group.todoIds'
       $keys:
         _group:
           todoIds:
