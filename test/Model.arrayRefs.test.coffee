@@ -865,14 +865,17 @@ module.exports =
       3: { id: 3, text: 'third', complete: false }
     modelA.set 'todoIds', [3,1,2]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelA.on 'remove', 'todoList', (startIndex, howMany) ->
+      startIndex.should.equal 1
+      done()
     modelB.on 'remove', 'todoList', (startIndex, howMany) ->
       startIndex.should.equal 1
       sockets._disconnect()
       done()
     modelA.remove 'todoList', 1
-  , 1
+  , 2
 
-  'removing on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
+  'removing on an array ref by id api in one browser should pass id semantics to the callback in another browser @single': wrapTest (done) ->
     [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
     modelA.set 'todos',
       1: { id: 1, text: 'first', complete: false }
@@ -880,13 +883,17 @@ module.exports =
       3: { id: 3, text: 'third', complete: false }
     modelA.set 'todoIds', [3, 1, 2]
     modelA.set 'todoList', modelA.arrayRef 'todos', 'todoIds'
+    modelA.on 'remove', 'todoList', ({id}, howMany) ->
+      id.should.equal 3
+      howMany.should.equal 1
+      done()
     modelB.on 'remove', 'todoList', ({id}, howMany) ->
       id.should.equal 3
       howMany.should.equal 1
       sockets._disconnect()
       done()
     modelA.remove 'todoList', {id: 3}
-  , 1
+  , 2
 
   'insertAfter an array ref member by id should insert the member after the id in the ref key array': ->
     model = new Model
