@@ -186,7 +186,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
 
   curr = data.world = if speculative then create data.world else data.world
   currVer = vers
-  currVer.ver = setVer  if setVer
+  currVer.ver = setVer = Math.max setVer, currVer.ver  if setVer
   props = path.split '.'
   path = ''
   data.$remainder = ''

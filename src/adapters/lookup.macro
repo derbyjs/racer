@@ -34,7 +34,7 @@ lookupSetVersion = (path, data, vers, setVer, pathType) ->
   currVer = vers
   #end
   #if SET_VERSION
-  currVer.ver = setVer  if setVer
+  currVer.ver = setVer = Math.max setVer, currVer.ver  if setVer
   #end
   props = path.split '.'
   path = ''
