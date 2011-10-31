@@ -156,7 +156,7 @@ stm = module.exports =
         # Version must be null, since this is speculative
         @emit method + 'Post', args, null, null, meta
         # Emit an event immediately on creation of the transaction
-        @emit method, args, true
+        @emit method, args, true, meta
       txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server

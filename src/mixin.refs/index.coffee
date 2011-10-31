@@ -111,7 +111,7 @@ RefHelper = (model) ->
     model.on method + 'Post', (args, ver, data, meta) ->
       path = args[0]
       data ||= model._specModel()
-      if (obj = adapter.get path, data) && obj.$t is 'array'
+      if (refObj = adapter.getRef path, data) && refObj.$t is 'array'
         # If arrayRef, convert array ref index api back to id api
         # before emitting events
         indiciesToIds args, meta
