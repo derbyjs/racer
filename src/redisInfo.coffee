@@ -55,9 +55,11 @@ module.exports =
   # to the Redis server. It will call the callback with the value of starts
   # immediately and whenever the '$redisInfo', 'starts' event is published
   subscribeToStarts: (subClient, client, callback) ->
-    subClient.on 'message', (channel, message) ->
-      return unless channel is '$redisInfo' && message is 'starts'
-      getStarts client, callback
+    unless subClient.__startsListener
+      subClient.__startsListener = true
+      subClient.on 'message', (channel, message) ->
+        return unless channel is '$redisInfo' && message is 'starts'
+        getStarts client, callback
     subClient.subscribe '$redisInfo'
     getStarts client, callback
   
