@@ -3,14 +3,6 @@ util = require './util'
 Model = require './Model'
 Field = require './mixin.ot/Field'
 
-# io will be undefined in tests. See test/util/model fullyWiredModels
-if 'undefined' != typeof io
-  # Patch Socket.io-client to publish the close event and disconnet immediately
-  io.Socket::onClose = ->
-    @open = false
-    @publish 'close'
-    @onDisconnect()
-
 # isReady and model are used by the ready function, so that it can be called
 # anonymously. This assumes that only one instace of Racer is running, which
 # should be the case in the browser.
