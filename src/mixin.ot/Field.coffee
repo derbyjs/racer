@@ -70,9 +70,9 @@ Field = module.exports = (model, @path, @version = 0, @type = text) ->
     return unless path == self.path
     for {p, i, d} in op
       if i
-        model.emit 'insertOT', [path, i, p], isLocal
+        model.emit 'insertOT', [path, p, i], isLocal
       else
-        model.emit 'delOT', [path, d, p], isLocal
+        model.emit 'delOT', [path, p, d], isLocal
     return
 
   return

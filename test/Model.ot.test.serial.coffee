@@ -39,9 +39,9 @@ module.exports =
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot()
-    model.insertOT 'some.ot.path', 'abcdef'
+    model.insertOT 'some.ot.path', 0, 'abcdef'
     model.get('some.ot.path').should.equal 'abcdef'
-    out = model.insertOT 'some.ot.path', 'xyz', 1
+    out = model.insertOT 'some.ot.path', 1, 'xyz'
     should.eql undefined, out
     model.get('some.ot.path').should.equal 'axyzbcdef'
     done()
@@ -51,7 +51,7 @@ module.exports =
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
-    out = model.delOT 'some.ot.path', 3, 1
+    out = model.delOT 'some.ot.path', 1, 3
     out.should.eql 'bcd'
     model.get('some.ot.path').should.equal 'aef'
     done()
@@ -61,29 +61,29 @@ module.exports =
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
-    model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
+    model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
       insertedStr.should.equal 'xyz'
       pos.should.equal 1
       done()
-    model.insertOT 'some.ot.path', 'xyz', 1
+    model.insertOT 'some.ot.path', 1, 'xyz'
 
   '''model should emit a delOT event when it calls model.delOT
   locally @ot''': (done) ->
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
-    model.on 'delOT', 'some.ot.path', (deletedStr, pos) ->
+    model.on 'delOT', 'some.ot.path', (pos, deletedStr) ->
       deletedStr.should.equal 'bcd'
       pos.should.equal 1
       done()
-    model.delOT 'some.ot.path', 3, 1
+    model.delOT 'some.ot.path', 1, 3
 
   ## Client-server OT communication ##
   '''client model should emit an insertOT event when it receives
   an OT message from the server with an insertOT op @ot''': (done) ->
     [sockets, model] = mockSocketModels 'model'
     model.set 'some.ot.path', model.ot('abcdef')
-    model.on 'insertOT', 'some.ot.path', (insertedStr, pos) ->
+    model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
       insertedStr.should.equal 'try'
       pos.should.equal 1
       sockets._disconnect()
@@ -94,7 +94,7 @@ module.exports =
   an OT message from the server with an delOT op @ot''': (done) ->
     [sockets, model] = mockSocketModels 'model'
     model.set 'some.ot.path', model.ot('abcdef')
-    model.on 'delOT', 'some.ot.path', (strToDel, pos) ->
+    model.on 'delOT', 'some.ot.path', (pos, strToDel) ->
       strToDel.should.equal 'bcd'
       pos.should.equal 1
       sockets._disconnect()
@@ -106,14 +106,14 @@ module.exports =
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelA.set '_test.text', modelA.ot('abcdef')
-      modelB.on 'insertOT', '_test.text', (insertedStr, pos) ->
+      modelB.on 'insertOT', '_test.text', (pos, insertedStr) ->
         insertedStr.should.equal 'xyz'
         pos.should.equal 1
         modelB.get('_test.text').should.equal 'axyzbcdef'
         sockets._disconnect()
         store.disconnect()
         done()
-      modelA.insertOT '_test.text', 'xyz', 1
+      modelA.insertOT '_test.text', 1, 'xyz'
 
   ## Validity ##
   '''1 insertOT by window A and 1 insertOT by window B on the
@@ -123,14 +123,14 @@ module.exports =
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelB.on 'set', '_test.text', ->
-        modelB.insertOT '_test.text', 'tuv', 2
+        modelB.insertOT '_test.text', 2, 'tuv'
       modelA.set '_test.text', modelA.ot('abcdef')
 
       models = [modelA, modelB]
       models.forEach (model, i) ->
         otherModel = models[i+1] || models[i-1]
         model.__events__ = 0
-        model._on 'insertOT', ([path, insertedStr, pos], isRemote) ->
+        model._on 'insertOT', ([path, pos, insertedStr], isRemote) ->
           return unless path == '_test.text'
           return if ++model.__events__ < 2
           model.__final__ = model.get '_test.text'
@@ -139,7 +139,7 @@ module.exports =
             sockets._disconnect()
             store.disconnect()
             done()
-      modelA.insertOT '_test.text', 'xyz', 1
+      modelA.insertOT '_test.text', 1, 'xyz'
 
   '''1 insertOT by window A and 1 delOT by window B on the
   same path should result in the same 'valid' text in both windows
@@ -148,10 +148,10 @@ module.exports =
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelB.on 'set', '_test.text', ->
-        modelB.insertOT '_test.text', 'tuv', 2
+        modelB.insertOT '_test.text', 2, 'tuv'
       modelA.set '_test.text', modelA.ot('abcdef')
 
-      modelA.delOT '_test.text', 3, 1
+      modelA.delOT '_test.text', 1, 3
       setTimeout ->
         modelB.get('_test.text').should.equal modelA.get('_test.text')
         sockets._disconnect()
@@ -166,9 +166,9 @@ module.exports =
     numModels = 2
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelB.on 'set', '_test.text', ->
-        modelB.delOT '_test.text', 3, 2
+        modelB.delOT '_test.text', 2, 3
       modelA.set '_test.text', modelA.ot('abcdefghijk')
-      modelA.delOT '_test.text', 3, 1
+      modelA.delOT '_test.text', 1, 3
       setTimeout ->
         modelB.get('_test.text').should.equal modelA.get('_test.text')
         sockets._disconnect()
@@ -198,7 +198,7 @@ module.exports =
         didInsert = true
         createModelB() if didSet
       modelA.set '_test.text', modelA.ot 'abcdefg'
-      modelA.insertOT '_test.text', 'xyz', 1
+      modelA.insertOT '_test.text', 1, 'xyz'
 
   '''an OT op in window A should be reflected in the data of
   a window B's browser model that loads after window A and its OT op @ot''': (done) ->
@@ -229,7 +229,7 @@ module.exports =
         didInsert = true
         createModelB() if didSet
       modelA.set '_test.text', modelA.ot 'abcdefg'
-      modelA.insertOT '_test.text', 'xyz', 1
+      modelA.insertOT '_test.text', 1, 'xyz'
 
 
 #  # TODO ## Realtime mode conflicts (w/STM) ##

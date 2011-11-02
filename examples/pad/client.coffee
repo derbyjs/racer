@@ -23,8 +23,13 @@ racer.onready = ->
     commonEnd++ while oldval.charAt(oldval.length - 1 - commonEnd) == newval.charAt(newval.length - 1 - commonEnd) and
       commonEnd + commonStart < oldval.length and commonEnd + commonStart < newval.length
 
-    model.delOT '_room.text', oldval.length - commonStart - commonEnd, commonStart unless oldval.length == commonStart + commonEnd
-    model.insertOT '_room.text', newval[commonStart ... newval.length - commonEnd], commonStart unless newval.length == commonStart + commonEnd
+    unless oldval.length == commonStart + commonEnd
+      model.delOT '_room.text', commonStart,
+        oldval.length - commonStart - commonEnd
+
+    unless newval.length == commonStart + commonEnd
+      model.insertOT '_room.text', commonStart,
+        newval.substr commonStart, newval.length - commonEnd
 
   editor.disabled = false
   prevvalue = editor.value = model.get '_room.text'
@@ -39,15 +44,15 @@ racer.onready = ->
     editor.scrollTop = scrollTop if editor.scrollTop != scrollTop
     [editor.selectionStart, editor.selectionEnd] = newSelection
 
-  model.on 'insertOT', '_room.text', (text, pos, isLocal) ->
-    unless isLocal
-      replaceText editor.value[...pos] + text + editor.value[pos..], (cursor) ->
-        if pos <= cursor then cursor + text.length else cursor
+  model.on 'insertOT', '_room.text', (pos, text, isLocal) ->
+    return if isLocal
+    replaceText editor.value[...pos] + text + editor.value[pos..], (cursor) ->
+      if pos <= cursor then cursor + text.length else cursor
 
-  model.on 'delOT', '_room.text', (text, pos, isLocal) ->
-    unless isLocal
-      replaceText editor.value[...pos] + editor.value[pos + text.length..], (cursor) ->
-        if pos < cursor then cursor - Math.min(text.length, cursor - pos) else cursor
+  model.on 'delOT', '_room.text', (pos, text, isLocal) ->
+    return if isLocal
+    replaceText editor.value[...pos] + editor.value[pos + text.length..], (cursor) ->
+      if pos < cursor then cursor - Math.min(text.length, cursor - pos) else cursor
 
   genOp = (e) ->
     setTimeout ->
