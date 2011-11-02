@@ -38,7 +38,9 @@ module.exports =
   string with str inserted at pos @ot''': (done) ->
     model = new Model
     model.socket = emit: -> # Stub
-    model.set 'some.ot.path', model.ot('abcdef')
+    model.set 'some.ot.path', model.ot()
+    model.insertOT 'some.ot.path', 'abcdef'
+    model.get('some.ot.path').should.equal 'abcdef'
     out = model.insertOT 'some.ot.path', 'xyz', 1
     should.eql undefined, out
     model.get('some.ot.path').should.equal 'axyzbcdef'

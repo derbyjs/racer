@@ -22,7 +22,7 @@ ot = module.exports =
       type: 'basic'
       fn: (path) ->
         val = @_adapter.get path, @_specModel()
-        if val && val.$ot
+        if val && val.$ot?
           return @_otField(path, val).snapshot
         return val
 
@@ -50,7 +50,7 @@ ot = module.exports =
   proto:
     ## OT field functions ##
     # model.ot initStr
-    ot: (initVal) -> $ot: initVal
+    ot: (initVal) -> $ot: initVal || ''
 
     isOtPath: (path) ->
       @_adapter.get(path, @_specModel()).$ot isnt undefined
