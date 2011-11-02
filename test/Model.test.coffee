@@ -12,7 +12,7 @@ module.exports =
   'get should return the adapter data when there are no pending transactions': ->
     model = new Model
     model._adapter._data = world: {a: 1}
-    model.get().should.specEql {a: 1}
+    model.get().should.eql {a: 1}
   
   'test internal creation of client transactions on set': ->
     model = new Model '0'
@@ -147,7 +147,8 @@ module.exports =
   'test speculative value of set': ->
     model = new Model '0'
     
-    model.set 'color', 'green'
+    out = model.set 'color', 'green'
+    out.should.eql 'green'
     model.get('color').should.eql 'green'
     
     model.set 'color', 'red'
@@ -198,7 +199,8 @@ module.exports =
             first: 2
             second: 10
   
-    model.del 'color'
+    out = model.del 'color'
+    out.should.eql 'green'
     model.get().should.specEql
       info:
         numbers:
@@ -414,14 +416,10 @@ module.exports =
     model = new Model '0'
     init = model.get 'colors'
     should.equal undefined, init
-    model.push 'colors', 'green'
+    out = model.push 'colors', 'green'
+    out.should.eql 1
     final = model.get 'colors'
     final.should.specEql ['green']
-
-#  'model push should return the length of the speculative array': ->
-#    model = new Model '0'
-#    len = model.push 'color', 'green'
-#    len.should.equal 1
 
   'model pop should remove a member from an array': ->
     model = new Model '0'
@@ -430,37 +428,34 @@ module.exports =
     model.push 'colors', 'green'
     interim = model.get 'colors'
     interim.should.specEql ['green']
-    model.pop 'colors'
+    out = model.pop 'colors'
+    out.should.eql 'green'
     final = model.get 'colors'
     final.should.specEql []
-
-#  'model pop should return the member it removed': ->
-#    model = new Model '0'
-#    model.push 'colors', 'green'
-#    rem = model.pop()
-#    rem.should.equal 'green'
 
   'model unshift should instantiate an undefined path to a new array and insert new members at the beginning': ->
     model = new Model '0'
     init = model.get 'colors'
     should.equal undefined, init
-    model.unshift 'colors', 'green'
+    out = model.unshift 'colors', 'green'
+    out.should.eql 1
     interim = model.get 'colors'
     interim.should.specEql ['green']
-    model.unshift 'colors', 'red', 'orange'
+    out = model.unshift 'colors', 'red', 'orange'
+    out.should.eql 3
     final = model.get 'colors'
     final.should.specEql ['red', 'orange', 'green']
-
-  # TODO Test return value of unshift
 
   'model shift should remove the first member from an array': ->
     model = new Model '0'
     init = model.get 'colors'
     should.equal undefined, init
-    model.unshift 'colors', 'green', 'blue'
+    out = model.unshift 'colors', 'green', 'blue'
+    out.should.eql 2
     interim = model.get 'colors'
     interim.should.specEql ['green', 'blue']
-    model.shift 'colors'
+    out = model.shift 'colors'
+    out.should.eql 'green'
     final = model.get 'colors'
     final.should.specEql ['blue']
 
@@ -471,11 +466,10 @@ module.exports =
     model.push 'colors', 'green'
     interim = model.get 'colors'
     interim.should.specEql ['green']
-    model.insertAfter 'colors', 0, 'red'
+    out = model.insertAfter 'colors', 0, 'red'
+    out.should.eql 2
     final = model.get 'colors'
     final.should.specEql ['green', 'red']
-
-  # TODO Test return value of insertAfter
 
   'model insertBefore should work on an array, with a valid index': ->
     model = new Model '0'
@@ -484,11 +478,10 @@ module.exports =
     model.push 'colors', 'green'
     interim = model.get 'colors'
     interim.should.specEql ['green']
-    model.insertBefore 'colors', 0, 'red'
+    out = model.insertBefore 'colors', 0, 'red'
+    out.should.eql 2
     final = model.get 'colors'
     final.should.specEql ['red', 'green']
-
-  # TODO Test return value of insertBefore
 
   'model remove should work on an array, with a valid index': ->
     model = new Model '0'
@@ -497,11 +490,10 @@ module.exports =
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     interim = model.get 'colors'
     interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    model.remove 'colors', 1, 4
+    out = model.remove 'colors', 1, 4
+    out.should.eql ['orange', 'yellow', 'green', 'blue']
     final = model.get 'colors'
     final.should.specEql ['red', 'violet']
-
-  # TODO Test return value of remove
 
   'model splice should work on an array, just like JS Array::splice': ->
     model = new Model '0'
@@ -510,8 +502,20 @@ module.exports =
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     interim = model.get 'colors'
     interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    model.splice 'colors', 1, 4, 'oak'
+    out = model.splice 'colors', 1, 4, 'oak'
+    out.should.eql ['orange', 'yellow', 'green', 'blue']
     final = model.get 'colors'
     final.should.specEql ['red', 'oak', 'violet']
 
-  # TODO Test return value of splice
+  'model move should work on an array, with a valid index': ->
+    model = new Model '0'
+    model.push 'colors', 'red', 'orange', 'yellow', 'green'
+    out = model.move 'colors', 1, 2
+    out.should.eql 'orange'
+    model.get('colors').should.specEql ['red', 'yellow', 'orange', 'green']
+    out = model.move 'colors', 0, 3
+    out.should.eql 'red'
+    model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
+    out = model.move 'colors', 0, 0
+    out.should.eql 'yellow'
+    model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']

@@ -147,7 +147,8 @@ stm = module.exports =
       # Apply a private transaction immediately and don't send it to the store
       if pathParser.isPrivate path
         @_specCache.invalidate()
-        return @_applyTxn txn
+        @_applyTxn txn
+        return @_specModel().$out
 
       unless @_silent
         # Clone the args, so that they can be modified before being emitted
@@ -161,6 +162,7 @@ stm = module.exports =
 
       # Send it over Socket.IO or to the store on the server
       @_commit txn
+      return @_specModel().$out
 
     _applyTxn: (txn) ->
       data = @_adapter._data
@@ -172,7 +174,7 @@ stm = module.exports =
         for op in ops
           @_applyMutation transaction.op, op, ver, data, doEmit, isLocal
       else
-        args = @_applyMutation transaction, txn, ver, data, doEmit, isLocal
+        @_applyMutation transaction, txn, ver, data, doEmit, isLocal
 
       @_removeTxn transaction.id txn
 
@@ -180,18 +182,18 @@ stm = module.exports =
         if isCompound
           callback null, transaction.ops(txn)...
         else
-          callback null, args...
-    
+          callback null, transaction.args(txn)...
+
     _applyMutation: (extractor, mutation, ver, data, doEmit, isLocal) ->
       method = extractor.method mutation
       return if method is 'get'
       args = extractor.args mutation
       meta = extractor.meta mutation
       @emit method + 'Pre', args, ver, data, meta
-      @_adapter[method] args..., ver, data
+      obj = @_adapter[method] args..., ver, data
       @emit method + 'Post', args, ver, data, meta
       @emit method, args, isLocal, meta  if doEmit
-      return args
+      return obj
 
     _specModel: ->
       return @_adapter._data  unless len = @_txnQueue.length
@@ -217,11 +219,12 @@ stm = module.exports =
           for op in ops
             @_applyMutation transaction.op, op, null, data
         else
-          @_applyMutation transaction, txn, null, data
+          out = @_applyMutation transaction, txn, null, data
 
       cache.data = data
       cache.lastTxnId = transaction.id txn
 
+      data.$out = out
       return data
 
     # TODO
@@ -267,7 +270,6 @@ stm = module.exports =
       type: 'basic'
       fn: (path, val, callback) ->
         @_addOpAsTxn 'set', [path, val], callback
-        return val
 
     del:
       type: 'basic'
