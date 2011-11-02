@@ -31,15 +31,21 @@ ot = module.exports =
     insertOT:
       type: 'ot'
       fn: (path, str, pos, callback) ->
+        if typeof pos is 'function'
+          callback = pos
+          pos = 0
         op = [ { p: pos || 0, i: str } ]
         @_otField(path).submitOp op, callback
+        return
 
     delOT:
       type: 'ot'
       fn: (path, len, pos, callback) ->
         field = @_otField path
-        op = [ { p: pos, d: field.snapshot[pos...pos+len] } ]
+        del = field.snapshot.substr pos, len
+        op = [ { p: pos, d: del } ]
         field.submitOp op, callback
+        return del
 
   proto:
     ## OT field functions ##

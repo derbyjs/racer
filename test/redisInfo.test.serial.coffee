@@ -11,8 +11,8 @@ checkFirstStart = (starts) ->
   ver = starts[0][1]
   [startTime, startsLength] = startId.split '.'
   (new Date - startTime).should.be.within 0, 100
-  startsLength.should.eql 0
-  ver.should.eql 0
+  startsLength.should.eql '0'
+  ver.should.eql '0'
 
 client = null
 subClient = null
@@ -60,7 +60,7 @@ module.exports =
         client.set 'ver', 13, ->
           redisInfo._getStarts client, (starts) ->
             ver = starts[0][1]
-            ver.should.eql 7
+            ver.should.eql '7'
             done()
   
   'subscribeToStarts should return a list of starts immediately': (done) ->
@@ -77,6 +77,6 @@ module.exports =
         starts.length.should.eql 2
         startId = starts[0][0]
         [startTime, startsLength] = startId.split '.'
-        startsLength.should.eql 1
+        startsLength.should.eql '1'
         done()
       redisInfo.onStart client

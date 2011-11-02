@@ -62,5 +62,6 @@ racer.onready = ->
     else
       editor.attachEvent 'on' + event, genOp
 
-racer.init @init
-delete @init
+do ->
+  racer.init @init
+  delete @init

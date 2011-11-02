@@ -143,6 +143,6 @@ $ racer.ready ->
   document.execCommand 'useCSS', false, true
   document.execCommand 'styleWithCSS', false, false
 
-racer.init @init
-delete @init
-
+do ->
+  racer.init @init
+  delete @init

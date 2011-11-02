@@ -39,7 +39,8 @@ module.exports =
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
-    model.insertOT 'some.ot.path', 'xyz', 1
+    out = model.insertOT 'some.ot.path', 'xyz', 1
+    should.eql undefined, out
     model.get('some.ot.path').should.equal 'axyzbcdef'
     done()
 
@@ -48,7 +49,8 @@ module.exports =
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
-    model.delOT 'some.ot.path', 3, 1
+    out = model.delOT 'some.ot.path', 3, 1
+    out.should.eql 'bcd'
     model.get('some.ot.path').should.equal 'aef'
     done()
 

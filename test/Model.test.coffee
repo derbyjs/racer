@@ -24,7 +24,7 @@ module.exports =
     model.set 'count', 0
     model._txnQueue.should.eql ['0.0', '0.1']
     model._txns['0.0'].slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-    model._txns['0.1'].slice().should.eql transaction.create base: 0, id: '0.1', method: 'set', args: ['count', '0']
+    model._txns['0.1'].slice().should.eql transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 0]
   
   'test client performs set on receipt of message': ->
     [sockets, model] = mockSocketModel()

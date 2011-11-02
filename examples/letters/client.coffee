@@ -1,7 +1,8 @@
 racer = require 'racer'
 
-racer.init window.init
-delete window.init
+do ->
+  racer.init @init
+  delete @init
 
 model = racer.model
 info = document.getElementById 'info'

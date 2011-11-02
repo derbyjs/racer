@@ -83,7 +83,7 @@ module.exports =
             should.equal ver, 2
             adapter.get 'users.3', (err, val, ver) ->
               should.equal null, err
-              val.should.eql {_id: 3, realname: 'Brian'}
+              val.should.eql {_id: '3', realname: 'Brian'}
               should.equal ver, 2
               done()
 

@@ -65,6 +65,7 @@ module.exports =
       should.equal null, err
       values.should.equal 0
       done()
+
   'Lua unlock script should remove locking conflict': (done) ->
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
@@ -93,7 +94,7 @@ module.exports =
           val.should.eql [JSON.stringify txnOne]
         client.get 'ver', (err, val) ->
           should.equal null, err
-          val.should.eql 1
+          val.should.eql '1'
         luaLock 'color', 0, (err, values) ->
           should.equal null, err
           values[0].should.be.above 0
