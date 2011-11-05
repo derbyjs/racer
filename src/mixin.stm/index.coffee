@@ -147,8 +147,7 @@ stm = module.exports =
       # Apply a private transaction immediately and don't send it to the store
       if pathParser.isPrivate path
         @_specCache.invalidate()
-        @_applyTxn txn
-        return @_specModel().$out
+        return @_applyTxn txn
 
       unless @_silent
         # Clone the args, so that they can be modified before being emitted
@@ -183,6 +182,7 @@ stm = module.exports =
           callback null, transaction.ops(txn)...
         else
           callback null, transaction.args(txn)...
+      return data.$out
 
     _applyMutation: (extractor, mutation, ver, data, doEmit, isLocal) ->
       method = extractor.method mutation
