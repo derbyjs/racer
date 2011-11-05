@@ -173,7 +173,7 @@ stm = module.exports =
         for op in ops
           @_applyMutation transaction.op, op, ver, data, doEmit, isLocal
       else
-        @_applyMutation transaction, txn, ver, data, doEmit, isLocal
+        out = @_applyMutation transaction, txn, ver, data, doEmit, isLocal
 
       @_removeTxn transaction.id txn
 
@@ -181,8 +181,8 @@ stm = module.exports =
         if isCompound
           callback null, transaction.ops(txn)...
         else
-          callback null, transaction.args(txn)...
-      return data.$out
+          callback null, transaction.args(txn)..., out
+      return out
 
     _applyMutation: (extractor, mutation, ver, data, doEmit, isLocal) ->
       method = extractor.method mutation
@@ -262,7 +262,7 @@ stm = module.exports =
     get:
       type: 'basic'
       fn: (path) ->
-        return @_adapter.get path, @_specModel()
+        @_adapter.get path, @_specModel()
 
   mutators:
 
