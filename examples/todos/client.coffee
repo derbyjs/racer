@@ -1,6 +1,10 @@
 racer = require 'racer'
 todoHtml = require('./shared').todoHtml
 
+htmlEscape = (s) ->
+  unless s? then '' else s.toString().replace /&(?!\s)|</g, (s) ->
+    if s is '&' then '&amp;' else '&lt;'
+
 # racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
 # it is passed to occurs.
@@ -69,7 +73,7 @@ $ racer.ready ->
 
     addTodo: ->
       # Don't add a blank todo
-      return unless text = newTodo.val()
+      return unless text = htmlEscape newTodo.val()
       newTodo.val ''
       # Insert the new todo before the first completed item in the list
       for todo, i in list = model.get listPath
