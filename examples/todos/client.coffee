@@ -126,11 +126,13 @@ $ racer.ready ->
   checkShortcuts = (e) ->
     return unless e.metaKey || e.ctrlKey
     code = e.which
-    return unless command = `
-      code === 66 ? 'bold' :
-      code === 73 ? 'italic' :
-      code === 32 ? 'removeFormat' :
-      code === 220 ? 'removeFormat' : null`
+    return unless command = (switch code
+      when 66 then 'bold'
+      when 73 then 'italic'
+      when 32 then 'removeFormat'
+      when 220 then 'removeFormat'
+      else null
+    )
     document.execCommand command, false, null
     e.preventDefault() if e.preventDefault
     return false
