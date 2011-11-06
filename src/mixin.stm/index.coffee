@@ -156,6 +156,7 @@ stm = module.exports =
         # Version must be null, since this is speculative
         @emit method + 'Post', args, null, null, meta
         # Emit an event immediately on creation of the transaction
+        args = args.concat @_with  if '_with' of this
         @emit method, args, true, meta
       txn.emitted = true
 

@@ -53,6 +53,11 @@ Model::_setSocket = (socket) ->
 
 ## Model events ##
 
+# Used to pass an additional argument to local events. This value is
+# added to the event arguments in mixin.stm
+# Example: model.with(ignore: domId).move 'arr', 0, 2
+Model::with = (options) -> Object.create this, _with: value: options
+
 merge Model::, EventEmitter::,
   _eventListener: (method, pattern, callback) ->
     # on(type, listener)
