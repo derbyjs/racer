@@ -1,6 +1,6 @@
 {
   "name": "racer",
-  "description": "Experimental realtime model synchronization",
+  "description": "Realtime model synchronization engine for Node.js",
   "version": "0.0.14",
   "main": "./lib/racer.js",
   "browserify": {
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "redis": ">=0.5.11",
-    "socket.io": ">=0.7",
-    "socket.io-client": ">=0.7",
+    "socket.io": ">=0.8",
+    "socket.io-client": ">=0.8",
     "es5-shim": ">=1.2.3",
     "browserify": ">=1.4.2",
     "uglify-js": ">=1.0.6",
@@ -19,10 +19,10 @@
     "expresso": "https://github.com/bnoguchi/expresso/tarball/0c457fcbbc513b39f743873dffce0d0ffb454384",
     "should": ">=0.2.1",
     "coffee-script": ">=1.1.1",
-    "express": ">=2.4.2",
+    "express": ">=2.4.2 < 3.0.0",
     "mongodb": ">=0.9.6-7"
   },
   "engines": {
-    "node": ">=0.4.0"
+    "node": ">=0.3.0 < 0.5.0"
   }
 }
