@@ -1,7 +1,7 @@
 {
   "name": "racer",
   "description": "Realtime model synchronization engine for Node.js",
-  "version": "0.0.14",
+  "version": "0.1.0",
   "main": "./lib/racer.js",
   "browserify": {
     "main": "./lib/racer.browser.js"
