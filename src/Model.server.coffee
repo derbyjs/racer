@@ -3,8 +3,10 @@ BrowserModel = require './Model'
 Promise = require './Promise'
 
 module.exports = ServerModel = ->
-  BrowserModel.apply @, arguments
-  @clientIdPromise = new Promise()
+  self = this
+  BrowserModel.apply self, arguments
+  self.clientIdPromise = (new Promise).on (clientId) ->
+    self._clientId = clientId
   return
 
 ServerModel:: = Object.create BrowserModel::
@@ -35,7 +37,7 @@ ServerModel::bundle = (callback) ->
 ServerModel::_bundle = (callback) ->
   # Unsubscribe the model from PubSub events. It will be resubscribed again
   # when the model connects over socket.io
-  clientId = @clientId
+  clientId = @_clientId
   @store._pubSub.unsubscribe clientId
   delete @store._localModels[clientId]
 
@@ -63,7 +65,6 @@ ServerModel::_addSub = (paths, callback) ->
   store = @store
   self = this
   @clientIdPromise.on (clientId) ->
-    self.clientId = clientId
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
     store._pubSub.subscribe clientId, paths

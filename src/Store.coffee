@@ -236,7 +236,6 @@ Store = module.exports = (options = {}) ->
         # Use @get to retreive the value for path containing a reference
         finish.remainingGets++
         self.get nextRoot, (err, value, ver) ->
-          console.log nextRoot, remainder, value
           addSubDatum self, data, nextRoot, remainder, value, ver, finish
           finish()
       
@@ -251,7 +250,7 @@ Store = module.exports = (options = {}) ->
     self = this
     for path in paths
       [root, remainder] = pathParser.split path
-
+    
       @get root, (err, value, ver) ->
         return callback err  if err
         # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
@@ -291,9 +290,17 @@ Store = module.exports = (options = {}) ->
     model.store = self
     model._ioUri = self._ioUri
     model.startIdPromise = startIdPromise
-    startIdPromise.on (startId) -> model._startId = startId
-    nextClientId (clientId) -> model.clientIdPromise.fulfill clientId
+    startIdPromise.on (startId) ->
+      model._startId = startId
+    nextClientId (clientId) ->
+      model.clientIdPromise.fulfill clientId
     return model
+
+  @createStoreModel = ->
+    @model = @createModel()
+    for key, val of @model.async
+      @[key] = val
+  @createStoreModel()
 
   @flush = (callback) ->
     done = false
@@ -303,15 +310,14 @@ Store = module.exports = (options = {}) ->
         callback = null
       done = true
     adapter.flush cb
+    self = this
     redisClient.flushdb (err) ->
       if err && callback
         callback err
         return callback = null
       redisInfo.onStart redisClient, cb
+      self.createStoreModel()
 
-  @model = @createModel()
-  for key, val of @model.async
-    @[key] = val
 
   ## Upstream Transaction Interface ##
 
