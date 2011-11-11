@@ -28,6 +28,8 @@ for row in [0..4]
       position:
         left: col * 24 + 72
         top: row * 32 + 8
+# Use JSON serialization to create a deep clone
+defaultLetters = JSON.stringify defaultLetters
 
 app.get '/:room?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
@@ -38,7 +40,8 @@ app.get '/:room?', (req, res) ->
   
   model = store.createModel()
   model.subscribe _room: "rooms.#{room}", 'rooms.*.players', ->
-    model.setNull '_room.letters', defaultLetters
+    unless model.get '_room.letters'
+      model.set '_room.letters', JSON.parse defaultLetters
     model.set '_roomName', room
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
