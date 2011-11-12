@@ -25,15 +25,17 @@ module.exports =
           store._redisClient.keys '*', (err, value) ->
             # Note that flush calls redisInfo.onStart immediately after
             # flushing, so the key 'starts' should exist
-            value.should.eql ['color', 'starts']
+            # Also note that the store will create a new model for use in store
+            # operations, so 'clientClock' will be set
+            value.should.eql ['color', 'clientClock', 'starts']
             store.flush (err) ->
               should.equal null, err
               (++callbackCount).should.eql 1
               store._adapter.get null, (err, value) ->
                 value.should.eql {}
                 store._redisClient.keys '*', (err, value) ->
-                  # Once again, the key starts should exist after the flush
-                  value.should.eql ['starts']
+                  # Once again, 'clientClock' and 'starts' should exist after the flush
+                  value.should.eql ['clientClock', 'starts']
                   done()
   
   'flush should return an error if the adapter fails to flush': (done) ->
