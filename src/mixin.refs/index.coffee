@@ -175,7 +175,6 @@ RefHelper:: =
   # @param {Number} ver
   $indexRefs: (path, ref, key, type, ver, data) ->
     adapter = @_adapter
-    self = @
     oldRefObj = adapter.getRef path, data
     if key
       entry = [ref, key]
@@ -186,10 +185,11 @@ RefHelper:: =
       return if type is undefined and keyVal is undefined
       if type == 'array'
         keyVal = adapter.getAddPath key, data, ver, 'array'
-        refsKeys = keyVal.map (keyValMem) -> ref + '.' + keyValMem
         @_removeOld$refs oldRefObj, path, ver, data
-        return refsKeys.forEach (refsKey) ->
-          self._update$refs refsKey, path, ref, key, type, ver, data
+        for i in keyVal
+          refsKey = ref + '.' + i
+          @_update$refs refsKey, path, ref, key, type, ver, data
+        return
       refsKey = ref + '.' + keyVal
     else
       if oldRefObj && oldKey = oldRefObj.$k
@@ -208,9 +208,8 @@ RefHelper:: =
         oldKeyVal = @_adapter.get oldKey, data
       if oldKey && (oldRefObj.$t == 'array')
         # If this key was used in an array ref: {$r: path, $k: [...]}
-        refHelper = @
-        oldKeyVal.forEach (oldKeyMem) ->
-          refHelper._removeFrom$refs oldRef, oldKeyMem, path, ver, data
+        for oldKeyMem in oldKeyVal
+          @_removeFrom$refs oldRef, oldKeyMem, path, ver, data
         @_removeFrom$refs oldRef, undefined, path, ver, data
       else
         @_removeFrom$refs oldRef, oldKeyVal, path, ver, data

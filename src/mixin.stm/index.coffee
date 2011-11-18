@@ -136,18 +136,20 @@ stm = module.exports =
       # Refs may mutate the args in its 'beforeTxn' handler
       @emit 'beforeTxn', method, args
 
-      # Create a new transaction and add it to a local queue
+      return unless (path = args[0])?
+
+      # Create a new transaction
       base = @_getVer()
       id = @_nextTxnId()
       meta = args.meta
       txn = transaction.create {base, id, method, args, meta}
-      @_queueTxn txn, callback
 
-      return unless (path = args[0])?
       # Apply a private transaction immediately and don't send it to the store
       if pathParser.isPrivate path
         @_specCache.invalidate()
         return @_applyTxn txn
+
+      @_queueTxn txn, callback
 
       unless @_silent
         # Clone the args, so that they can be modified before being emitted
