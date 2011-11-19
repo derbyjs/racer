@@ -36,7 +36,8 @@ stm = module.exports =
     txnApplier = new Serializer
       withEach: (txn) ->
         if transaction.base(txn) > adapter.version()
-          self._applyTxn txn
+          isLocal = 'callback' of txn
+          self._applyTxn txn, isLocal
       onTimeout: -> self._reqNewTxns()
 
     @_onTxn = (txn, num) ->
@@ -147,7 +148,7 @@ stm = module.exports =
       # Apply a private transaction immediately and don't send it to the store
       if pathParser.isPrivate path
         @_specCache.invalidate()
-        return @_applyTxn txn
+        return @_applyTxn txn, true
 
       @_queueTxn txn, callback
 
@@ -166,10 +167,9 @@ stm = module.exports =
       @_commit txn
       return @_specModel().$out
 
-    _applyTxn: (txn) ->
+    _applyTxn: (txn, isLocal) ->
       data = @_adapter._data
       doEmit = !(txn.emitted || @_silent)
-      isLocal = 'callback' of txn
       ver = transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
