@@ -58,9 +58,6 @@ ServerModel::_bundle = (callback) ->
     txnNum: @_txnNum
     ioUri: @_ioUri
 
-ServerModel::connected = true
-ServerModel::canConnect = true
-
 ServerModel::_addSub = (paths, callback) ->
   store = @store
   self = this

@@ -20,7 +20,10 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
 
 ## Socket.io communication ##
- 
+
+Model::connected = true
+Model::canConnect = true
+
 Model::_setSocket = (socket) ->
   self = this
   self.socket = socket

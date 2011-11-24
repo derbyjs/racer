@@ -28,6 +28,7 @@ racer = module.exports =
     model._startId = options.startId
     model._txnCount = options.txnCount
     model._onTxnNum options.txnNum
+    model.emit 'initialized'
     # options.socket makes it easier to test - see text/util/model fullyWiredModels
     model._setSocket options.socket || io.connect options.ioUri,
       'reconnection delay': 50
