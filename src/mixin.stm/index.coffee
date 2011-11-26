@@ -159,8 +159,7 @@ stm = module.exports =
         # Version must be null, since this is speculative
         @emit method + 'Post', args, null, null, meta
         # Emit an event immediately on creation of the transaction
-        args = args.concat @_with  if '_with' of this
-        @emit method, args, true, meta
+        @emit method, args, @_with, true, meta
       txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
@@ -195,7 +194,7 @@ stm = module.exports =
       @emit method + 'Pre', args, ver, data, meta
       obj = @_adapter[method] args..., ver, data
       @emit method + 'Post', args, ver, data, meta
-      @emit method, args, isLocal, meta  if doEmit
+      @emit method, args, null, isLocal, meta  if doEmit
       return obj
 
     _specModel: ->
