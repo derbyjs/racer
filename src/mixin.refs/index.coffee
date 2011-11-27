@@ -82,7 +82,7 @@ RefHelper = (model) ->
       model.on method, (args, isLocal, _with, meta) ->
         # Emit events on any references that point to the path or
         # any of its ancestor paths
-        refHelper.notifyPointersTo method, args, isLocal, meta
+        refHelper.notifyPointersTo method, args, isLocal, _with, meta
 
   # TODO: Similar deep traversal on array mutators that push objects
   eachNode = (path, value, callback) ->
@@ -296,7 +296,7 @@ RefHelper:: =
   # Notify any path that referenced the `path`. And
   # notify any path that referenced the path that referenced the path.
   # And notify ... etc...
-  notifyPointersTo: (method, [targetPath, args...], isLocal, meta) ->
+  notifyPointersTo: (method, [targetPath, args...], isLocal, _with, meta) ->
     model = @_model
     adapter = @_adapter
     data = model._specModel()
@@ -318,7 +318,7 @@ RefHelper:: =
         unless index == -1
           pointingPath += '.' + index
           pointingPath += '.' + rest.join('.') if rest.length
-      model.emit method, [pointingPath, args...], isLocal, meta
+      model.emit method, [pointingPath, args...], isLocal, _with, meta
 
     # Takes care of array refs
     @eachArrayRefKeyedBy targetPath, data, (pointingPath, ref, key) ->
@@ -329,7 +329,7 @@ RefHelper:: =
         while (key = args[i])?
           args[i++] = obj[key]
       indiciesToIds args, meta
-      model.emit method, args, isLocal, meta
+      model.emit method, args, isLocal, _with, meta
 
   cleanupPointersTo: (path, ver, data) ->
     adapter = @_adapter
