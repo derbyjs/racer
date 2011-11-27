@@ -70,9 +70,9 @@ merge Model::, EventEmitter::,
     
     # on(method, pattern, callback)
     re = pathParser.eventRegExp pattern
-    return ([path, args...], with, isLocal) ->
+    return ([path, args...], _with, isLocal) ->
       if re.test path
-        callback re.exec(path).slice(1).concat(args, with, isLocal)...
+        callback re.exec(path).slice(1).concat(args, _with, isLocal)...
         return true
 
   # EventEmitter::on/addListener and once return this. The Model equivalents
