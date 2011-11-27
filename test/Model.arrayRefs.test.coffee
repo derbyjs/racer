@@ -875,7 +875,7 @@ module.exports =
     modelA.remove 'todoList', 1
   , 2
 
-  'removing on an array ref by id api in one browser should pass id semantics to the callback in another browser @single': wrapTest (done) ->
+  'removing on an array ref by id api in one browser should pass id semantics to the callback in another browser': wrapTest (done) ->
     [sockets, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
     modelA.set 'todos',
       1: { id: 1, text: 'first', complete: false }

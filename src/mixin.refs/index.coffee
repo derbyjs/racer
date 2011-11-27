@@ -79,7 +79,7 @@ RefHelper = (model) ->
     
   for method of mutators
     do (method) ->
-      model.on method, (args, isLocal, meta) ->
+      model.on method, (args, isLocal, _with, meta) ->
         # Emit events on any references that point to the path or
         # any of its ancestor paths
         refHelper.notifyPointersTo method, args, isLocal, meta
