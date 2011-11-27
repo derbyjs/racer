@@ -2,7 +2,8 @@
 
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
-  return setTimeout callEmit, 0, target, name, args if async
+  if async then return process.nextTick ->
+    callEmit target, name, args
   EventEmitter::emit.call target, name, args...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
