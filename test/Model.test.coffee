@@ -1,8 +1,8 @@
 require('../src/util/debug')('notifyPointers')
-Model = require 'Model'
+Model = require '../src/Model'
 should = require 'should'
 util = require './util'
-transaction = require 'transaction'
+transaction = require '../src/transaction'
 wrapTest = util.wrapTest
 
 {mockSocketModel} = require './util/model'

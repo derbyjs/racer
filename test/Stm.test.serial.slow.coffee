@@ -1,5 +1,5 @@
 should = require 'should'
-Stm = require 'Stm'
+Stm = require '../Stm'
 redis = require 'redis'
 client = null
 stm = null

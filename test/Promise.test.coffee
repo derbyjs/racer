@@ -1,4 +1,4 @@
-Promise = require 'Promise'
+Promise = require '../src/Promise'
 should = require 'should'
 {wrapTest} = require './util'
 

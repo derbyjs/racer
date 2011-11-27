@@ -1,4 +1,4 @@
-Model = require 'Model'
+Model = require '../src/Model'
 should = require 'should'
 util = require './util'
 wrapTest = util.wrapTest

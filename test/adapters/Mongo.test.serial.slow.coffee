@@ -1,6 +1,6 @@
 should = require 'should'
-Store = require 'Store'
-MongoAdapter = require 'adapters/Mongo'
+Store = require '../../src/Store'
+MongoAdapter = require '../../src/adapters/Mongo'
 adapter = null
 
 module.exports =

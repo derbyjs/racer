@@ -1,4 +1,4 @@
-Model = require 'Model'
+Model = require '../../src/Model'
 mocks = require './mocks'
 transaction = require '../../src/transaction'
   

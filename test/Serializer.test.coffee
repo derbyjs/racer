@@ -1,4 +1,4 @@
-Serializer = require 'Serializer'
+Serializer = require '../src/Serializer'
 should = require 'should'
 
 module.exports =

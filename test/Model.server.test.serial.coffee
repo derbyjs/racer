@@ -1,5 +1,5 @@
 should = require 'should'
-Store = require 'Store'
+Store = require '../src/Store'
 
 store = null
 

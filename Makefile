@@ -5,7 +5,6 @@ SERIAL_TESTS_SLOW = $(shell find test/ -name '*.test.serial.slow.coffee')
 
 test-single:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		$(TESTFLAGS) \
 		--timeout 6000 \
 		--tags single \
@@ -13,26 +12,22 @@ test-single:
 
 test-adapter-sync:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		$(TESTFLAGS) \
 		./test/adapters/MemorySync.test.coffee
 
 test-async-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		$(TESTFLAGS) \
 		$(ASYNC_TESTS_FAST)
 
 test-async-slow:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		--timeout 6000 \
 		$(TESTFLAGS) \
 		$(ASYNC_TESTS_SLOW)
 
 test-single-serial:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		--serial \
 		--tags single \
 		$(TESTFLAGS) \
@@ -40,14 +35,12 @@ test-single-serial:
 
 test-serial-fast:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		--serial \
 		$(TESTFLAGS) \
 		$(SERIAL_TESTS_FAST)
 
 test-serial-slow:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
-		-I src \
 		--serial \
 		--timeout 6000 \
 		$(TESTFLAGS) \

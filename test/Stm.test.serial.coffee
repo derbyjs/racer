@@ -1,6 +1,6 @@
 should = require 'should'
-Stm = require 'Stm'
-transaction = require 'transaction'
+Stm = require '../src/Stm'
+transaction = require '../src/transaction'
 redis = require 'redis'
 client = null
 stm = null

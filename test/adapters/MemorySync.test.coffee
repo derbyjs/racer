@@ -1,1 +1,1 @@
-module.exports = require('../util/adapterSync') require('adapters/MemorySync')
+module.exports = require('../util/adapterSync') require('../../src/adapters/MemorySync')

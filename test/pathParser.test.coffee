@@ -1,5 +1,5 @@
 should = require 'should'
-{isPrivate, regExp, eventRegExp, split, expand} = require 'pathParser'
+{isPrivate, regExp, eventRegExp, split, expand} = require '../src/pathParser'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList

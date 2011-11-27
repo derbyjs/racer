@@ -1,6 +1,6 @@
 should = require 'should'
 redis = require 'redis'
-PubSub = require 'PubSub'
+PubSub = require '../src/PubSub'
 
 pubClient = null
 subClient = null

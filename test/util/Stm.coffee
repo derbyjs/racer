@@ -1,4 +1,4 @@
-Stm = require 'Stm'
+Stm = require '../../src/Stm'
 
 module.exports = (stm, client) ->
 

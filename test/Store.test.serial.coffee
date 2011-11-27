@@ -1,8 +1,8 @@
 should = require 'should'
 util = require './util'
-Store = require 'Store'
+Store = require '../src/Store'
 redis = require 'redis'
-transaction = require 'transaction'
+transaction = require '../src/transaction'
 
 store = null
 module.exports =

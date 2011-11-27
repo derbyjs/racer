@@ -1,1 +1,1 @@
-module.exports = require('../util/adapter') require('adapters/Memory')
+module.exports = require('../util/adapter') require('../../src/adapters/Memory')

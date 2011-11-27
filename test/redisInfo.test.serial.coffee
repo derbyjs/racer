@@ -1,5 +1,5 @@
 should = require 'should'
-redisInfo = require 'redisInfo'
+redisInfo = require '../src/redisInfo'
 redis = require 'redis'
 
 # Silence console errors in testing

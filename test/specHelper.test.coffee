@@ -1,6 +1,6 @@
 should = require 'should'
 util = require './util'
-{createObject, createArray, create, isSpeculative} = require 'specHelper'
+{createObject, createArray, create, isSpeculative} = require '../src/specHelper'
 
 module.exports =
 

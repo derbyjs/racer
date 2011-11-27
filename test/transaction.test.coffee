@@ -1,8 +1,8 @@
 # Tests for Op(erations)
 should = require 'should'
-transaction = require 'transaction'
-pathParser = require 'pathParser'
-require 'transaction.server'
+transaction = require '../src/transaction'
+pathParser = require '../src/pathParser'
+require '../src/transaction.server'
 
 module.exports =
   # Property getters
