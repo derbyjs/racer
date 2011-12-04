@@ -27,7 +27,7 @@ Store::listen = (to, namespace) ->
     @setSockets io.sockets, socketUri
 
 
-module.exports =
+racer = module.exports =
 
   createStore: (options) ->
     # TODO: Provide full configuration for socket.io
@@ -52,3 +52,6 @@ module.exports =
 
   # Returns Middleware adapter for Connect sessions
   session: session
+
+Object.defineProperty racer, 'version',
+  get: -> JSON.parse(fs.readFileSync '../package.json', 'utf8').version
