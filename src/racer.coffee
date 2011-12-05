@@ -54,4 +54,4 @@ racer = module.exports =
   session: session
 
 Object.defineProperty racer, 'version',
-  get: -> JSON.parse(fs.readFileSync '../package.json', 'utf8').version
+  get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
