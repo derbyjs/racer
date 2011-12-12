@@ -22,6 +22,7 @@ ServerModel::_onTxn = (txn) ->
       self._baseOnTxn txn, num
 
 ServerModel::_commit = (txn) ->
+  return if txn.isPrivate
   self = this
   @store._commit txn, (err, txn) ->
     return self._removeTxn transaction.id txn if err

@@ -251,7 +251,9 @@ module.exports =
       , transaction.create(base: 0, id: '0.3', method: 'del', args: ['info.numbers'])
       , transaction.create(base: 0, id: '0.4', method: 'del', args: ['a.b.c'])
     ]
-    expected.forEach (txn) -> txn.emitted = true
+    expected.forEach (txn) ->
+      txn.emitted = true
+      txn.isPrivate = false
     model._txnQueue.map((id) ->
       txn = model._txns[id]
       delete txn.callback

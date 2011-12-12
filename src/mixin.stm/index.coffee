@@ -67,7 +67,7 @@ stm = module.exports =
     {_adapter, _txns, _txnQueue, _onTxn, _removeTxn} = self = this
     
     @_commit = commit = (txn) ->
-      return unless socket.socket.connected
+      return if txn.isPrivate || !socket.socket.connected
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn, self._startId
 
@@ -99,7 +99,7 @@ stm = module.exports =
       now = +new Date
       for id in _txnQueue
         txn = _txns[id]
-        return if txn.timeout > now
+        return if !txn || txn.timeout > now
         commit txn
 
     socket.on 'connect', ->
@@ -144,13 +144,10 @@ stm = module.exports =
       id = @_nextTxnId()
       meta = args.meta
       txn = transaction.create {base, id, method, args, meta}
-
-      # Apply a private transaction immediately and don't send it to the store
-      if pathParser.isPrivate path
-        @_specCache.invalidate()
-        return @_applyTxn txn, true
+      txn.isPrivate = pathParser.isPrivate path
 
       @_queueTxn txn, callback
+      out = @_specModel().$out
 
       unless @_silent
         # Clone the args, so that they can be modified before being emitted
@@ -164,9 +161,11 @@ stm = module.exports =
 
       # Send it over Socket.IO or to the store on the server
       @_commit txn
-      return @_specModel().$out
+      return out
 
     _applyTxn: (txn, isLocal) ->
+      @_removeTxn transaction.id txn
+
       data = @_adapter._data
       doEmit = !(txn.emitted || @_silent)
       ver = transaction.base txn
@@ -176,8 +175,6 @@ stm = module.exports =
           @_applyMutation transaction.op, op, ver, data, doEmit, isLocal
       else
         out = @_applyMutation transaction, txn, ver, data, doEmit, isLocal
-
-      @_removeTxn transaction.id txn
 
       if callback = txn.callback
         if isCompound
@@ -198,13 +195,21 @@ stm = module.exports =
       return obj
 
     _specModel: ->
-      return @_adapter._data  unless len = @_txnQueue.length
+      txns = @_txns
+      txnQueue = @_txnQueue
+      while (txn = txns[txnQueue[0]]) && txn.isPrivate
+        out = @_applyTxn txn, true
+
+      unless len = txnQueue.length
+        data = @_adapter._data
+        data.$out = out
+        return data
 
       cache = @_specCache
       if lastTxnId = cache.lastTxnId
-        return cache.data  if cache.lastTxnId == @_txnQueue[len - 1]
+        return cache.data  if cache.lastTxnId == txnQueue[len - 1]
         data = cache.data
-        replayFrom = 1 + @_txnQueue.indexOf cache.lastTxnId
+        replayFrom = 1 + txnQueue.indexOf cache.lastTxnId
       else
         replayFrom = 0
 
@@ -215,7 +220,7 @@ stm = module.exports =
       i = replayFrom
       while i < len
         # Apply each pending operation to the speculative model
-        txn = @_txns[@_txnQueue[i++]]
+        txn = txns[txnQueue[i++]]
         if transaction.isCompound txn
           ops = transaction.ops txn
           for op in ops

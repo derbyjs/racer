@@ -264,7 +264,9 @@ module.exports =
       , transaction.create(base: 0, id: '.1', method: 'set', args: ['dogs.1', { id: 1, name: 'banana' } ])
       , transaction.create(base: 0, id: '.2', method: 'push', args: ['myDogIds', 1]),
     ]
-    expected.forEach (txn) -> txn.emitted = true
+    expected.forEach (txn) ->
+      txn.emitted = true
+      txn.isPrivate = false
     model._txnQueue.map((id) ->
       txn = model._txns[id]
       delete txn.callback
