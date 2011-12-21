@@ -12,6 +12,7 @@ module.exports = ServerModel = ->
 ServerModel:: = Object.create BrowserModel::
 
 # Update Model's prototype to provide server-side functionality
+# TODO: This file contains STM-specific code. This should be moved to the STM mixin
 
 ServerModel::_baseOnTxn = ServerModel::_onTxn
 ServerModel::_onTxn = (txn) ->
@@ -30,6 +31,9 @@ ServerModel::_commit = (txn) ->
 
 ServerModel::bundle = (callback) ->
   self = this
+  # Get the speculative model, which will apply any pending private path
+  # transactions that may get stuck in the first position of the queue
+  @_specModel()
   # Wait for all pending transactions to complete before returning
   return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
   Promise.parallel(@clientIdPromise, @startIdPromise).on ->
