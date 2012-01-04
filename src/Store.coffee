@@ -22,13 +22,18 @@ Store = module.exports = (options = {}) ->
   Adapter = options.Adapter || MemoryAdapter
   @_adapter = adapter = new Adapter
 
-  {port, host, db} = redisOptions = options.redis || {}
+  {port, host, db, password} = redisOptions = options.redis || {}
   # Client for data access and event publishing
   @_redisClient = redisClient = redis.createClient(port, host, redisOptions)
   # Client for internal Racer event subscriptions
   @_subClient = subClient = redis.createClient(port, host, redisOptions)
   # Client for event subscriptions of txns only
   @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+  if password
+    authCallback = (err) -> throw err if err
+    redisClient.auth password, authCallback
+    subClient.auth password, authCallback
+    txnSubClient.auth password, authCallback
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
