@@ -2,6 +2,14 @@ ASYNC_TESTS_FAST = $(shell find test/ -name '*.test.coffee')
 ASYNC_TESTS_SLOW = $(shell find test/ -name '*.test.slow.coffee')
 SERIAL_TESTS_FAST = $(shell find test/ -name '*.test.serial.coffee')
 SERIAL_TESTS_SLOW = $(shell find test/ -name '*.test.serial.slow.coffee')
+MOCHA_TESTS = $(shell find test/ -name '*.mocha.coffee')
+
+MOCHA = $(shell which mocha)
+
+test-mocha:
+	@NODE_ENV=test $(MOCHA) \
+		--reporter spec \
+		$(MOCHA_TESTS)
 
 test-single:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
