@@ -191,9 +191,9 @@ stm = module.exports =
       @emit method + 'Pre', args, ver, data, meta
       obj = @_adapter[method] args..., ver, data
       @emit method + 'Post', args, ver, data, meta
-      @emit method, args, isLocal, null, meta  if doEmit
+      @emit method, args, isLocal, @_with, meta  if doEmit
       return obj
-
+    
     _specModel: ->
       txns = @_txns
       txnQueue = @_txnQueue

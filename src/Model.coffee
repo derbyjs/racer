@@ -61,31 +61,31 @@ Model::_setSocket = (socket) ->
 # Example: model.with(ignore: domId).move 'arr', 0, 2
 Model::with = (options) -> Object.create this, _with: value: options
 
-merge Model::, EventEmitter::,
-  _eventListener: (method, pattern, callback) ->
-    # on(type, listener)
-    # Test for function by looking for call, since pattern can be a regex,
-    # which has a typeof == 'function' as well
-    return pattern if pattern.call
-    
-    # on(method, pattern, callback)
-    re = pathParser.eventRegExp pattern
-    return ([path, args...], isLocal, _with) ->
-      if re.test path
-        callback re.exec(path).slice(1).concat(args, isLocal, _with)...
-        return true
+eventListener = (method, pattern, callback) ->
+  # on(type, listener)
+  # Test for function by looking for call, since pattern can be a regex,
+  # which has a typeof == 'function' as well
+  return pattern if pattern.call
 
+  # on(method, pattern, callback)
+  re = pathParser.eventRegExp pattern
+  return ([path, args...], isLocal, _with) ->
+    if re.test path
+      callback re.exec(path).slice(1).concat(args, isLocal, _with)...
+      return true
+
+merge Model::, EventEmitter::,
   # EventEmitter::on/addListener and once return this. The Model equivalents
   # return the listener instead, since it is made internally for method
   # subscriptions and may need to be passed to removeListener
 
   _on: EventEmitter::on
   on: (type, pattern, callback) ->
-    @_on type, listener = @_eventListener type, pattern, callback
+    @_on type, listener = eventListener type, pattern, callback
     return listener
 
   once: (type, pattern, callback) ->
-    listener = @_eventListener type, pattern, callback
+    listener = eventListener type, pattern, callback
     self = this
     @_on type, g = ->
       matches = listener arguments...
