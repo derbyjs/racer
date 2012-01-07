@@ -1,13 +1,13 @@
 Model = require '../src/Model'
 should = require 'should'
-util = require './util'
-transaction = require '../src/transaction'
-wrapTest = util.wrapTest
+{calls} = require './util'
 
+transaction = require '../src/transaction'
 {mockSocketModel} = require './util/model'
 
-module.exports =
-  'test getting model references': ->
+describe 'Ref', ->
+
+  it 'should support getting', ->
     model = new Model
     model.set 'info',
       numbers:
@@ -31,7 +31,7 @@ module.exports =
     model.set 'info', numbers: {first: 3, second: 7}
     model.get('number').should.eql 7
   
-  'test setting to model references': ->
+  it 'should support setting', ->
     model = new Model
     
     ref = model.ref 'color', 'colors', 'selected'
@@ -73,7 +73,7 @@ module.exports =
       color: ref2
       selected: 'blue'
 
-  'test getting nested model references': ->
+  it 'should support getting nested references', ->
     model = new Model
     model.set 'users.1', 'brian'
     model.ref 'session.user', 'users.1'
@@ -87,7 +87,7 @@ module.exports =
     model.ref 'session.user', 'users', 'session.userId'
     model.get('session.user').should.equal 'brian'
 
-  'test getting and setting on a reference pointing to an undefined location': ->
+  it 'should support getting and setting a reference to an undefined path', ->
     model = new Model
     
     model.ref 'color', 'green'
@@ -105,13 +105,13 @@ module.exports =
     model.push 'color', 'item'
     model.get('green').should.specEql ['item']
   
-  'getRef should return the reference': ->
+  it 'adds a model.getRef method', ->
     model = new Model
     ref = model.ref 'firstNumber', 'numbers.first'
     should.equal model.get('firstNumber'), undefined
     should.equal model.getRef('firstNumber'), ref
   
-  'test deleting a reference': ->
+  it 'does not have an effect after being deleted', ->
     model = new Model
     ref = model.ref 'color', 'colors.green'
     model.set 'color.hex', '#0f0'
@@ -129,7 +129,7 @@ module.exports =
       color:
         hex: '#0f0'
 
-  'transactions should dereference paths': wrapTest (done) ->
+  it 'should dereference paths', calls 2, (done) ->
     count = 0
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.slice().should.eql expected[count++]
@@ -141,9 +141,8 @@ module.exports =
       transaction.create(base: 0, id: '0.1', method: 'set', args: ['colors.green.hex', '#0f0'])
     ]
     model.set 'color.hex', '#0f0'
-  , 2
 
-  'events should emit on both paths when setting under reference': wrapTest (done) ->
+  it 'should emit on both paths when setting under reference', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
@@ -153,9 +152,8 @@ module.exports =
       done()
     model.on 'set', 'color.*', cb
     model.set 'color.hex', '#0f0'
-  , 2
 
-  'events should emit on both paths when setting under referenced path': wrapTest (done) ->
+  it 'should emit on both paths when setting under referenced path', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
@@ -165,9 +163,8 @@ module.exports =
       done()
     model.on 'set', 'color.*', cb
     model.set 'colors.green.hex', '#0f0'
-  , 2
 
-  'events should emit on both paths when setting to referenced path': wrapTest (done) ->
+  it 'should emit on both paths when setting to referenced path', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.on 'set', 'colors.green', cb = (value, isLocal) ->
@@ -176,25 +173,22 @@ module.exports =
       done()
     model.on 'set', 'color', cb
     model.set 'colors.green', hex: '#0f0'
-  , 2
 
-  'events should not emit under referenced path after reference is deleted': wrapTest (done) ->
+  it 'should not emit under referenced path after reference is deleted', calls 0, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.del 'color'
     model.on 'set', 'colors.green.*', done
     model.set 'color.hex', '#0f0'
-  , 0
 
-  'events should not emit under reference after reference is deleted': wrapTest (done) ->
+  it 'should not emit under reference after reference is deleted', calls 0, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.del 'color'
     model.on 'set', 'color.*', done
     model.set 'colors.green.hex', '#0f0'
-  , 0
 
-  'model events should be emitted upstream on a reference to a reference': wrapTest (done) ->
+  it 'should emit upstream on a reference to a reference', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.ref 'colors.green', 'bestColor'
@@ -206,9 +200,8 @@ module.exports =
       value.should.eql '#0f0'
       done()
     model.set 'bestColor.hex', '#0f0'
-  , 2
 
-  'model events should be emitted upstream on a reference to a reference (private version)': wrapTest (done) ->
+  it 'should emit upstream on a reference to a reference (private)', calls 3, (done) ->
     model = new Model
     model.ref '_room', 'rooms.lobby'
     model.ref '_user', '_room.users.0'
@@ -218,18 +211,16 @@ module.exports =
     model.on 'set', '_user.name', cb
     model.on 'set', 'rooms.lobby.users.0.name', cb
     model.set '_user.name', '#0f0'
-  , 3
 
-  'multiple references to the same path should each raise events': wrapTest (done) ->
+  it 'should raise an event for each reference to the same path', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
     model.ref 'bestColor', 'colors.green'
     model.on 'set', 'color', done
     model.on 'set', 'bestColor', done
     model.set 'colors.green', {}
-  , 2
 
-  'references should work on different parts of a nested path': wrapTest (done) ->
+  it 'should work on different parts of a nested path', calls 2, (done) ->
     model = new Model
     model.ref 'a', 'w.x.y.z'
     model.ref 'b', 'w.x'
@@ -241,9 +232,8 @@ module.exports =
       value.should.eql 'green'
       done()
     model.set 'w.x.y.z', 'green'
-  , 2
 
-  'events should emit on both paths when setting under reference with key': wrapTest (done) ->
+  it 'should emit on both paths when setting under reference with key', calls 2, (done) ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
@@ -254,9 +244,8 @@ module.exports =
       done()
     model.on 'set', 'color.*', cb
     model.set 'color.hex', '#0f0'
-  , 2
 
-  'events should emit on both paths when setting under referenced path with key': wrapTest (done) ->
+  it 'should emit on both paths when setting under referenced path with key', calls 2, (done) ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
@@ -267,9 +256,8 @@ module.exports =
       done()
     model.on 'set', 'color.*', cb
     model.set 'colors.green.hex', '#0f0'
-  , 2
 
-  'events should emit on both paths when setting to referenced path with key': wrapTest (done) ->
+  it 'should emit on both paths when setting to referenced path with key', calls 2, (done) ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
@@ -279,25 +267,22 @@ module.exports =
       done()
     model.on 'set', 'color', cb
     model.set 'colors.green', hex: '#0f0'
-  , 2
 
-  'reference event should not emit when setting under non-matching key': wrapTest (done) ->
+  it 'should not emit when setting under non-matching key', calls 1, (done) ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
     model.on 'set', '*', done
     model.set 'colors.cream.hex', '#0f0'
-  , 1
 
-  'reference event should not emit when setting to non-matching key': wrapTest (done) ->
+  it 'should not emit when setting to non-matching key', calls 1, (done) ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
     model.on 'set', '*', done
     model.set 'colors.cream', hex: '#0f0'
-  , 1
 
-  'references with a key set in a nested way should emit events': wrapTest (done) ->
+  it 'should emit events with a nested key', calls 2, (done) ->
     model = new Model
     model.set 'users.1', name: 'brian'
     model.set 'userId', '1'
@@ -305,9 +290,8 @@ module.exports =
     model.on 'set', 'session.user.name', done
     model.on 'set', 'users.1.name', done
     model.set 'session.user.name', 'nate'
-  , 2
 
-  'references with a key set in a self-referencing way should emit events': wrapTest (done) ->
+  it 'should emit events with a self-referencing key', calls 3, (done) ->
     model = new Model
     model.ref '_room', 'rooms.1'
     model.set '_session.userId', 0
@@ -318,4 +302,3 @@ module.exports =
     model.on 'set', '_room.users.0.name', cb
     model.on 'set', '_session.user.name', cb
     model.set '_session.user.name', 'Bob'
-  , 3

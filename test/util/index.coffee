@@ -5,12 +5,19 @@ specHelper = require '../../src/specHelper'
 ignore = '$remainder': 1, '$path': 1
 ignore[specHelper.identifier] = 1
 
-exports.wrapTest = (fn, numCallbacks = 1) ->
+# For Expresso
+exports.wrapTest = (fn, num = 1) ->
   (beforeExit) ->
     n = 0
     fn -> n++
     beforeExit ->
-      n.should.equal numCallbacks
+      n.should.equal num
+
+# For Mocha
+exports.calls = (num, fn) ->
+  (done) ->
+    done() if num == n = 0
+    fn -> done() if ++n >= num
 
 flatten = (a) ->
   if typeof a is 'object'
