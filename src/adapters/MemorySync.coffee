@@ -3,45 +3,35 @@
 ##  This file was compiled from a macro.
 ##  Do not edit it directly.
 
-{lookup, lookupWithVersion, lookupAddPath, lookupSetVersion} = require './lookup'
-{clone: specClone} = require '../specHelper'
+{clone: specClone, create, createObject, createArray} = require '../specHelper'
 
 MemorySync = module.exports = ->
   @_data = world: {}  # maps path -> val
-  @_vers = ver: 0  # maps path -> ver
+  @version = 0
   return
 
 MemorySync:: =
-  version: (path, data) ->
-    if path then lookupWithVersion(path, data || @_data, @_vers)[1].ver else @_vers.ver
+
+  setVersion: (ver) ->
+    @version = Math.max @version, ver
 
   get: (path, data) ->
     data ||= @_data
     if path then lookup(path, data) else data.world
 
-  getWithVersion: (path, data) ->
-    data ||= @_data
-    if path
-      [obj, currVer] = lookupWithVersion path, data, @_vers
-      return [obj, currVer.ver]
-    else
-      return [data.world, @_vers.ver]
-
-  # Used by RefHelper
   getRef: (path, data) ->
     lookup path, data || @_data, true
 
-  # Used by RefHelper
-  getAddPath: (path, data, ver, pathType) ->
-    lookupAddPath path, data || @_data, ver, pathType
-
   set: (path, value, ver, data) ->
-    {1: parent, 2: prop} = lookupSetVersion path, data || @_data, @_vers, ver, 'object'
+    @setVersion ver
+    {1: parent, 2: prop} = lookupSet path, data || @_data, `ver == null`, 'object'
     return parent[prop] = value
 
   del: (path, ver, data) ->
+    @setVersion ver
     data ||= @_data
-    [obj, parent, prop] = lookupSetVersion path, data, @_vers, ver
+    speculative = `ver == null`
+    [obj, parent, prop] = lookupSet path, data, speculative
     if ver?
       delete parent[prop]
       return obj
@@ -51,7 +41,7 @@ MemorySync:: =
     if ~(index = path.lastIndexOf '.')
       parentPath = path.substr 0, index
       [parent, grandparent, parentProp] =
-        lookupSetVersion parentPath, data, @_vers, ver
+        lookupSet parentPath, data, speculative
     else
       parent = data.world
       grandparent = data
@@ -63,32 +53,38 @@ MemorySync:: =
 
   
   push: (path, args..., ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.push args...
   
   unshift: (path, args..., ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.unshift args...
   
   splice: (path, args..., ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.splice args...
   
   pop: (path, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.pop()
   
   shift: (path, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.shift()
   
   insertAfter: (path, afterIndex, value, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     outOfBounds = !(-1 <= afterIndex <= arr.length - 1)
     throw new Error 'Out of Bounds' if outOfBounds
@@ -96,7 +92,8 @@ MemorySync:: =
     return arr.length
   
   insertBefore: (path, beforeIndex, value, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     outOfBounds = !(0 <= beforeIndex <= arr.length)
     throw new Error 'Out of Bounds' if outOfBounds
@@ -104,14 +101,16 @@ MemorySync:: =
     return arr.length
   
   remove: (path, startIndex, howMany, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     outOfBounds = !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
     throw new Error 'Out of Bounds' if outOfBounds
     return arr.splice startIndex, howMany
   
   move: (path, from, to, ver, data) ->
-    [arr] = lookupSetVersion path, data || @_data, @_vers, ver, 'array'
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
     from += len if from < 0
@@ -122,3 +121,77 @@ MemorySync:: =
     arr.splice to, 0, value  # Insert in new location
     return value
 
+
+
+# Returns value
+# Used by getters & reference indexer
+# Does not dereference the final item if getRef is truthy
+lookup = (path, data, getRef) ->
+  curr = data.world
+  props = path.split '.'
+  path = ''
+  data.$remainder = ''
+  i = 0
+  len = props.length
+
+  while i < len
+    prop = props[i++]
+    curr = curr[prop]
+
+    # The absolute path traversed so far
+    path = if path then path + '.' + prop else prop
+
+    unless curr?
+      data.$remainder = props.slice(i).join '.'
+      break
+
+    if typeof curr is 'function'
+      break if getRef && i == len
+
+      [curr] = refOut = curr lookup, data
+      if i == len
+        data.$refPath = refOut[1]
+      else
+        path = refOut[1]
+
+      unless curr?
+        # Return if the reference points to nothing
+        data.$remainder = props.slice(i).join '.'
+        break
+
+  data.$path = path
+  return curr
+
+# Returns [value, parent, prop]
+# Used by setters & delete
+lookupSet = (path, data, speculative, pathType) ->
+  curr = data.world = if speculative then create data.world else data.world
+  props = path.split '.'
+  path = ''
+  data.$remainder = ''
+  i = 0
+  len = props.length
+
+  while i < len
+    prop = props[i++]
+    parent = curr
+    curr = curr[prop]
+
+    # The absolute path traversed so far
+    path = if path then path + '.' + prop else prop
+
+    # Create empty objects implied by the path
+    if curr?
+      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
+    else
+      unless pathType
+        data.$remainder = props.slice(i).join '.'
+        break
+      # If pathType is truthy, create empty parent objects implied by path
+      curr = parent[prop] = if speculative
+          if pathType is 'array' && i == len then createArray() else createObject()
+        else
+          if pathType is 'array' && i == len then [] else {}
+
+  data.$path = path
+  return [curr, parent, prop]

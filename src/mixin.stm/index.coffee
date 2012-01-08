@@ -35,7 +35,7 @@ stm = module.exports =
 
     txnApplier = new Serializer
       withEach: (txn) ->
-        if transaction.base(txn) > adapter.version()
+        if transaction.base(txn) > adapter.version
           isLocal = 'callback' of txn
           self._applyTxn txn, isLocal
       onTimeout: -> self._reqNewTxns()
@@ -92,7 +92,7 @@ stm = module.exports =
         callback callbackArgs...
       _removeTxn txnId
     # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.version() + 1, self._startId
+    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.version + 1, self._startId
 
     resendInterval = null
     resend = ->
@@ -131,7 +131,7 @@ stm = module.exports =
       @_txns[id] = txn
       @_txnQueue.push id
 
-    _getVer: -> if @_force then null else @_adapter.version()
+    _getVer: -> if @_force then null else @_adapter.version
 
     _addOpAsTxn: (method, args, callback) ->
       # Refs may mutate the args in its 'beforeTxn' handler

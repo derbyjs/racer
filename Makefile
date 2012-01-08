@@ -11,6 +11,12 @@ test-mocha:
 		--reporter spec \
 		$(MOCHA_TESTS)
 
+test-tag:
+	@NODE_ENV=test $(MOCHA) \
+		--reporter spec \
+		--grep ! \
+		$(MOCHA_TESTS)
+
 test-single:
 	@NODE_ENV=test ./node_modules/expresso/bin/expresso \
 		$(TESTFLAGS) \

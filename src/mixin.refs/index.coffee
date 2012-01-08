@@ -2,13 +2,15 @@
 pathParser = require '../pathParser'
 
 mutators = {}
+basicMutators = {}
 
 module.exports =
 
   onMixin: (_mutators) ->
       mutators = _mutators
-      # for mutator, fn of _mutators
-        # arrayMutators[mutator] = fn  if fn.type is 'array'
+      for mutator, fn of _mutators
+        switch fn.type
+          when 'basic' then basicMutators[mutator] = fn
 
   init: ->
     model = this
@@ -18,20 +20,23 @@ module.exports =
         model.on mutator, ->
           model.emit 'mutator', mutator, arguments
 
-    # TODO: Can this be removed somehow?
     @on 'beforeTxn', (method, args) ->
-      return unless (path = args[0])?
-      data = model._specModel()
-      # Update the transaction's path with a dereferenced path.
-      args[0] = model._dereference path, data
+      console.log args
+      return unless path = args[0]
+      args[0] = model._dereference path, (method of basicMutators)
+      console.log args
 
   proto:
     ref: (from, to, key) ->
-      return @set from, (new Ref this, from, to, key).modelObj
-    
-    _dereference: (path, data) ->
-      @_adapter.get path, data ||= @_specModel()
-      if data.$remainder then data.$path + '.' + data.$remainder else data.$path
+      return @set from, (new Ref this, from, to, key).get
+
+    refList: (from, to, key) ->
+      return @set from, (new RefList this, from, to, key).get
+
+    _dereference: (path, getPath) ->
+      @_adapter.get path, data = @_specModel()
+      path = if getPath then data.$path else data.$refPath
+      return if remainder = data.$remainder then path + '.' + remainder else path
 
   accessors:
     getRef:
@@ -42,13 +47,22 @@ module.exports =
 
 join = Array::join
 
+lookupPath = (data) ->
+  path = data.$path
+  return if remainder = data.$remainder then path + '.' + remainder else path
+
 Ref = (@model, @from, @to, @key) ->
   self = this
-  self.modelObj = modelObj = {$r: to}
   self.listeners = []
 
   if key
-    modelObj.$k = key
+    self.get = (lookup, data) ->
+      lookup to, data
+      path = lookupPath data
+      path += '.' + lookup key, data
+      curr = lookup path, data
+      return [curr, path]
+
     self.addListener "#{to}.*", (match) ->
       keyPath = model.get(self.key).toString()
       remainder = match[1]
@@ -60,7 +74,13 @@ Ref = (@model, @from, @to, @key) ->
         return self.path remainder
       # Don't emit another event if the keyPath is not matched
       return null
+
   else
+    self.get = (lookup, data) ->
+      curr = lookup to, data
+      path = lookupPath data
+      return [curr, path]
+
     self.addListener "#{to}.*", (match) -> self.path match[1]
     self.addListener to, -> self.path()
 
@@ -75,12 +95,12 @@ Ref:: =
       @from
   
   addListener: (pattern, callback) ->
-    {model, from, modelObj} = self = this
+    {model, from, get} = self = this
     re = pathParser.eventRegExp pattern
     self.listeners.push listener = (mutator, _arguments) ->
       args = _arguments[0]
       if re.test path = args[0]
-        return self.destroy() if model.getRef(from) != modelObj
+        return self.destroy() if model.getRef(from) != get
         args = args.slice()
         path = callback re.exec(path)
         return if path is null
@@ -96,11 +116,17 @@ Ref:: =
 
 RefList = (@model, @from, @to, @key) ->
   self = this
-  self.modelObj = modelObj = {$r: to, $k: key}
   self.listeners = []
 
-  return
+  self.get = (lookup, data) ->
+    obj = lookup to, data
+    path = lookupPath data
+    if map = lookup key, data
+      curr = (obj[prop] for prop in map)
+      return [curr, path]
+    return [undefined, path]
 
+  return
 
 merge RefList::, Ref::
 

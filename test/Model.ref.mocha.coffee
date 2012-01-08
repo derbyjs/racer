@@ -5,7 +5,7 @@ should = require 'should'
 transaction = require '../src/transaction'
 {mockSocketModel} = require './util/model'
 
-describe 'Ref', ->
+describe 'Model.ref', ->
 
   it 'should support getting', ->
     model = new Model
@@ -89,28 +89,32 @@ describe 'Ref', ->
 
   it 'should support getting and setting a reference to an undefined path', ->
     model = new Model
-    
+
     model.ref 'color', 'green'
     should.equal undefined, model.get 'color'
     should.equal undefined, model.get 'color.hex'
-    
+
     model.set 'color.hex', '#0f0'
     model.get('green').should.specEql hex: '#0f0'
-    
+
     model.del 'color.hex'
     model.get('green').should.specEql {}
-    
+
     model.del 'green'
     should.equal undefined, model.get 'green'
-    model.push 'color', 'item'
-    model.get('green').should.specEql ['item']
-  
+
+  it 'should support push', ->
+    model = new Model
+    model.ref 'items', 'arr'
+    model.push 'items', 'item'
+    model.get('arr').should.specEql ['item']
+
   it 'adds a model.getRef method', ->
     model = new Model
     ref = model.ref 'firstNumber', 'numbers.first'
     should.equal model.get('firstNumber'), undefined
     should.equal model.getRef('firstNumber'), ref
-  
+
   it 'does not have an effect after being deleted', ->
     model = new Model
     ref = model.ref 'color', 'colors.green'
