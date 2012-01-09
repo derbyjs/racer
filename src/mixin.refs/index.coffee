@@ -21,10 +21,14 @@ module.exports =
           model.emit 'mutator', mutator, arguments
 
     @on 'beforeTxn', (method, args) ->
-      console.log args
       return unless path = args[0]
-      args[0] = model._dereference path, (method of basicMutators)
-      console.log args
+
+      data = @_specModel()
+      delete data.$deref
+
+      obj = @_adapter.get path, data
+      if fn = data.$deref
+        args[0] = fn data, method, args, this, obj
 
   proto:
     ref: (from, to, key) ->
@@ -32,11 +36,6 @@ module.exports =
 
     refList: (from, to, key) ->
       return @set from, (new RefList this, from, to, key).get
-
-    _dereference: (path, getPath) ->
-      @_adapter.get path, data = @_specModel()
-      path = if getPath then data.$path else data.$refPath
-      return if remainder = data.$remainder then path + '.' + remainder else path
 
   accessors:
     getRef:
@@ -56,12 +55,17 @@ Ref = (@model, @from, @to, @key) ->
   self.listeners = []
 
   if key
-    self.get = (lookup, data) ->
+    self.get = (lookup, data, path, i, len) ->
       lookup to, data
-      path = lookupPath data
-      path += '.' + lookup key, data
-      curr = lookup path, data
-      return [curr, path]
+      currPath = lookupPath(data) + '.' + lookup(key, data)
+      curr = lookup currPath, data
+      
+      data.$deref = if i == len
+        (data, method) -> if method of basicMutators then path else currPath
+      else
+        (data) -> lookupPath data
+
+      return [curr, currPath, i]
 
     self.addListener "#{to}.*", (match) ->
       keyPath = model.get(self.key).toString()
@@ -76,10 +80,16 @@ Ref = (@model, @from, @to, @key) ->
       return null
 
   else
-    self.get = (lookup, data) ->
+    self.get = (lookup, data, path, i, len) ->
       curr = lookup to, data
-      path = lookupPath data
-      return [curr, path]
+      currPath = lookupPath data
+
+      data.$deref = if i == len
+        (data, method) -> if method of basicMutators then path else currPath
+      else
+        (data) -> lookupPath data
+
+      return [curr, currPath, i]
 
     self.addListener "#{to}.*", (match) -> self.path match[1]
     self.addListener to, -> self.path()
@@ -114,17 +124,57 @@ Ref:: =
       model.removeListener 'mutator', listener
 
 
+refListId = (obj) ->
+  unless (id = obj.id)?
+    throw new Error 'refList mutators require an id'
+  return id
+
 RefList = (@model, @from, @to, @key) ->
   self = this
   self.listeners = []
 
-  self.get = (lookup, data) ->
-    obj = lookup to, data
-    path = lookupPath data
-    if map = lookup key, data
-      curr = (obj[prop] for prop in map)
-      return [curr, path]
-    return [undefined, path]
+  self.get = (lookup, data, path, i, len, props) ->
+    obj = lookup(to, data) || {}
+    currPath = lookupPath data
+    map = lookup key, data
+    if i == len
+      # TODO: deref fn
+
+      if map
+        curr = (obj[prop] for prop in map)
+        return [curr, currPath, i]
+
+    else
+      index = props[i++]
+      data.$deref = if i == len
+        # Method is on an index of the refList
+        (data, method, args, model, obj) ->
+          # TODO: Additional model methods should be done atomically
+          # with the original txn instead of making an additional txn
+
+          if method is 'set'
+            id = refListId args[1]
+            if map
+              model.set key + '.' + index, id
+            else
+              model.set key, [id]
+            return currPath + '.' + id
+
+          if method is 'del'
+            id = refListId obj
+            model.del key + '.' + index
+            return currPath + '.' + id
+
+          throw new Error 'Unsupported method on refList member'
+
+      else
+        (data) -> lookupPath data
+
+      if map && (prop = map[index])?
+        curr = obj[prop]
+        return [curr, currPath + '.' + prop, i]
+
+    return [undefined, currPath, i]
 
   return
 

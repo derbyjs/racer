@@ -23,7 +23,7 @@ describe 'Model.ref', ->
     model.get('numbers.second').should.eql 10
     # Test keyed object reference
     model.get('number').should.eql 2
-    
+
     # Test changing key object reference with speculative set
     model.set 'numKey', 'second'
     model.get('number').should.eql 10

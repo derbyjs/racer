@@ -148,11 +148,7 @@ lookup = (path, data, getRef) ->
     if typeof curr is 'function'
       break if getRef && i == len
 
-      [curr] = refOut = curr lookup, data
-      if i == len
-        data.$refPath = refOut[1]
-      else
-        path = refOut[1]
+      [curr, path, i] = refOut = curr lookup, data, path, i, len, props
 
       unless curr?
         # Return if the reference points to nothing
