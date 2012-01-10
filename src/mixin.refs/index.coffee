@@ -7,10 +7,11 @@ basicMutators = {}
 module.exports =
 
   onMixin: (_mutators) ->
-      mutators = _mutators
-      for mutator, fn of _mutators
-        switch fn.type
-          when 'basic' then basicMutators[mutator] = fn
+    mutators = _mutators
+    for mutator, fn of _mutators
+      switch fn.type
+        when 'basic' then basicMutators[mutator] = fn
+    return
 
   init: ->
     model = this
@@ -23,12 +24,12 @@ module.exports =
     @on 'beforeTxn', (method, args) ->
       return unless path = args[0]
 
-      data = @_specModel()
-      delete data.$deref
-
-      obj = @_adapter.get path, data
+      obj = @_adapter.get path, data = @_specModel()
       if fn = data.$deref
-        args[0] = fn data, method, args, this, obj
+        args[0] = fn method, args, this, obj
+      return
+
+    return
 
   proto:
     ref: (from, to, key) ->
@@ -40,70 +41,61 @@ module.exports =
   accessors:
     getRef:
       type: 'basic'
-      fn: (path) ->
-        @_adapter.getRef path, @_specModel()
+      fn: (path) -> @_adapter.get path, @_specModel(), true
 
 
-join = Array::join
+lookupPath = (path, props, i) ->
+  arr = props.slice i
+  arr.unshift path
+  return arr.join '.'
 
-lookupPath = (data) ->
-  path = data.$path
-  return if remainder = data.$remainder then path + '.' + remainder else path
+derefPath = (data, to) ->
+  data.$deref?() || to
 
-Ref = (@model, @from, @to, @key) ->
-  self = this
-  self.listeners = []
+Ref = (@model, @from, to, key) ->
+  @listeners = []
 
   if key
-    self.get = (lookup, data, path, i, len) ->
+    @get = (lookup, data, path, props, len, i) ->
       lookup to, data
-      currPath = lookupPath(data) + '.' + lookup(key, data)
+      dereffed = derefPath data, to
+      keyPath = lookup key, data
+      currPath = lookupPath dereffed + '.' + keyPath, props, i
       curr = lookup currPath, data
-      
-      data.$deref = if i == len
-        (data, method) -> if method of basicMutators then path else currPath
-      else
-        (data) -> lookupPath data
 
+      data.$deref = (method) ->
+        if i == len && method of basicMutators then path else currPath
       return [curr, currPath, i]
 
-    self.addListener "#{to}.*", (match) ->
-      keyPath = model.get(self.key).toString()
+    @addListener "#{to}.*", (match) ->
+      keyPath = model.get(key).toString()
       remainder = match[1]
-      return self.path() if remainder == keyPath
+      return from if remainder == keyPath
       # Test to see if the remainder starts with the keyPath
       index = keyPath.length + 1
       if remainder.substr(0, index) == keyPath + '.'
         remainder = remainder.substr index
-        return self.path remainder
+        return from + '.' + remainder
       # Don't emit another event if the keyPath is not matched
       return null
 
   else
-    self.get = (lookup, data, path, i, len) ->
+    @get = (lookup, data, path, props, len, i) ->
       curr = lookup to, data
-      currPath = lookupPath data
+      dereffed = derefPath data, to
+      currPath = lookupPath dereffed, props, i
 
-      data.$deref = if i == len
-        (data, method) -> if method of basicMutators then path else currPath
-      else
-        (data) -> lookupPath data
-
+      data.$deref = (method) ->
+        if i == len && method of basicMutators then path else currPath
       return [curr, currPath, i]
 
-    self.addListener "#{to}.*", (match) -> self.path match[1]
-    self.addListener to, -> self.path()
+    @addListener "#{to}.*", (match) -> from + '.' + match[1]
+    @addListener to, -> from
 
   return
 
 Ref:: =
 
-  path: ->
-    if arguments.length
-      @from + '.' + join.call(arguments, '.')
-    else
-      @from
-  
   addListener: (pattern, callback) ->
     {model, from, get} = self = this
     re = pathParser.eventRegExp pattern
@@ -129,16 +121,18 @@ refListId = (obj) ->
     throw new Error 'refList mutators require an id'
   return id
 
-RefList = (@model, @from, @to, @key) ->
-  self = this
-  self.listeners = []
+RefList = (@model, @from, to, key) ->
+  @listeners = []
 
-  self.get = (lookup, data, path, i, len, props) ->
+  @get = (lookup, data, path, props, len, i) ->
     obj = lookup(to, data) || {}
-    currPath = lookupPath data
+    dereffed = derefPath data, to
     map = lookup key, data
     if i == len
-      # TODO: deref fn
+      currPath = lookupPath dereffed, props, i
+
+      data.$deref = (method) ->
+        if method of basicMutators then path else currPath
 
       if map
         curr = (obj[prop] for prop in map)
@@ -146,9 +140,15 @@ RefList = (@model, @from, @to, @key) ->
 
     else
       index = props[i++]
-      data.$deref = if i == len
+
+      if map && (prop = map[index])?
+        curr = obj[prop]
+
+      if i == len
         # Method is on an index of the refList
-        (data, method, args, model, obj) ->
+        currPath = lookupPath dereffed, props, i
+
+        data.$deref = (method, args, model, obj) ->
           # TODO: Additional model methods should be done atomically
           # with the original txn instead of making an additional txn
 
@@ -165,14 +165,17 @@ RefList = (@model, @from, @to, @key) ->
             model.del key + '.' + index
             return currPath + '.' + id
 
-          throw new Error 'Unsupported method on refList member'
+          throw new Error 'Unsupported method on refList index'
 
       else
-        (data) -> lookupPath data
+        # Method is on a child of the refList
+        throw new Error 'Method on undefined refList child' unless prop
+        currPath = lookupPath dereffed + '.' + prop, props, i
 
-      if map && (prop = map[index])?
-        curr = obj[prop]
-        return [curr, currPath + '.' + prop, i]
+        data.$deref = -> currPath
+
+      return [curr, currPath, i]
+      
 
     return [undefined, currPath, i]
 

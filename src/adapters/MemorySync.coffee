@@ -15,12 +15,10 @@ MemorySync:: =
   setVersion: (ver) ->
     @version = Math.max @version, ver
 
-  get: (path, data) ->
+  get: (path, data, getRef) ->
     data ||= @_data
-    if path then lookup(path, data) else data.world
-
-  getRef: (path, data) ->
-    lookup path, data || @_data, true
+    delete data.$deref
+    if path then lookup(path, data, getRef) else data.world
 
   set: (path, value, ver, data) ->
     @setVersion ver
@@ -124,15 +122,14 @@ MemorySync:: =
 
 
 # Returns value
-# Used by getters & reference indexer
+# Used by getters
 # Does not dereference the final item if getRef is truthy
 lookup = (path, data, getRef) ->
-  curr = data.world
   props = path.split '.'
-  path = ''
-  data.$remainder = ''
-  i = 0
   len = props.length
+  i = 0
+  curr = data.world
+  path = ''
 
   while i < len
     prop = props[i++]
@@ -141,53 +138,37 @@ lookup = (path, data, getRef) ->
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop
 
-    unless curr?
-      data.$remainder = props.slice(i).join '.'
-      break
-
     if typeof curr is 'function'
       break if getRef && i == len
 
-      [curr, path, i] = refOut = curr lookup, data, path, i, len, props
+      [curr, path, i] = refOut = curr lookup, data, path, props, len, i
+    
+    break unless curr?
 
-      unless curr?
-        # Return if the reference points to nothing
-        data.$remainder = props.slice(i).join '.'
-        break
-
-  data.$path = path
   return curr
 
 # Returns [value, parent, prop]
-# Used by setters & delete
+# Used by mutators
 lookupSet = (path, data, speculative, pathType) ->
-  curr = data.world = if speculative then create data.world else data.world
   props = path.split '.'
-  path = ''
-  data.$remainder = ''
-  i = 0
   len = props.length
+  i = 0
+  curr = data.world = if speculative then create data.world else data.world
 
   while i < len
     prop = props[i++]
     parent = curr
     curr = curr[prop]
 
-    # The absolute path traversed so far
-    path = if path then path + '.' + prop else prop
-
     # Create empty objects implied by the path
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      unless pathType
-        data.$remainder = props.slice(i).join '.'
-        break
+      break unless pathType
       # If pathType is truthy, create empty parent objects implied by path
       curr = parent[prop] = if speculative
           if pathType is 'array' && i == len then createArray() else createObject()
         else
           if pathType is 'array' && i == len then [] else {}
 
-  data.$path = path
   return [curr, parent, prop]

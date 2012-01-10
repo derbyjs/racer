@@ -10,12 +10,10 @@ MemorySync:: =
   setVersion: (ver) ->
     @version = Math.max @version, ver
 
-  get: (path, data) ->
+  get: (path, data, getRef) ->
     data ||= @_data
-    if path then lookup(path, data) else data.world
-
-  getRef: (path, data) ->
-    lookup path, data || @_data, true
+    delete data.$deref
+    if path then lookup(path, data, getRef) else data.world
 
   set: (path, value, ver, data) ->
     @setVersion ver
@@ -115,25 +113,24 @@ MemorySync:: =
 
 #if LOOKUP
 # Returns value
-# Used by getters & reference indexer
+# Used by getters
 # Does not dereference the final item if getRef is truthy
 lookup = (path, data, getRef) ->
 #end
 #if SET
 # Returns [value, parent, prop]
-# Used by setters & delete
+# Used by mutators
 lookupSet = (path, data, speculative, pathType) ->
 #end
+  props = path.split '.'
+  len = props.length
+  i = 0
   #if SET
   curr = data.world = if speculative then create data.world else data.world
   #else
   curr = data.world
-  #end
-  props = path.split '.'
   path = ''
-  data.$remainder = ''
-  i = 0
-  len = props.length
+  #end
 
   while i < len
     prop = props[i++]
@@ -142,39 +139,29 @@ lookupSet = (path, data, speculative, pathType) ->
     #end
     curr = curr[prop]
 
-    # The absolute path traversed so far
-    path = if path then path + '.' + prop else prop
-
     #if SET
     # Create empty objects implied by the path
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      unless pathType
-        data.$remainder = props.slice(i).join '.'
-        break
+      break unless pathType
       # If pathType is truthy, create empty parent objects implied by path
       curr = parent[prop] = if speculative
           if pathType is 'array' && i == len then createArray() else createObject()
         else
           if pathType is 'array' && i == len then [] else {}
     #else
-    unless curr?
-      data.$remainder = props.slice(i).join '.'
-      break
+    # The absolute path traversed so far
+    path = if path then path + '.' + prop else prop
 
     if typeof curr is 'function'
       break if getRef && i == len
 
-      [curr, path, i] = refOut = curr lookup, data, path, i, len, props
-
-      unless curr?
-        # Return if the reference points to nothing
-        data.$remainder = props.slice(i).join '.'
-        break
+      [curr, path, i] = refOut = curr lookup, data, path, props, len, i
+    
+    break unless curr?
     #end
 
-  data.$path = path
   #if SET
   return [curr, parent, prop]
   #else
