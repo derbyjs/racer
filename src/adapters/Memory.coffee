@@ -16,6 +16,8 @@ Memory:: =
     @version = 0
     callback null
 
+  setVersion: MemorySync::setVersion
+
   _get: MemorySync::get
   get: (path, callback) ->
     try

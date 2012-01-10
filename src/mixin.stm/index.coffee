@@ -142,8 +142,7 @@ stm = module.exports =
       # Create a new transaction
       base = @_getVer()
       id = @_nextTxnId()
-      meta = args.meta
-      txn = transaction.create {base, id, method, args, meta}
+      txn = transaction.create {base, id, method, args}
       txn.isPrivate = pathParser.isPrivate path
 
       @_queueTxn txn, callback
@@ -153,10 +152,8 @@ stm = module.exports =
         # Clone the args, so that they can be modified before being emitted
         # without affecting the txn args
         args = args.slice()
-        # Version must be null, since this is speculative
-        @emit method + 'Post', args, null, null, meta
         # Emit an event immediately on creation of the transaction
-        @emit method, args, true, @_with, meta
+        @emit method, args, true, @_pass
       txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
@@ -187,11 +184,9 @@ stm = module.exports =
       method = extractor.method mutation
       return if method is 'get'
       args = extractor.args mutation
-      meta = extractor.meta mutation
-      @emit method + 'Pre', args, ver, data, meta
       obj = @_adapter[method] args..., ver, data
-      @emit method + 'Post', args, ver, data, meta
-      @emit method, args, isLocal, @_with, meta  if doEmit
+      @emit method + 'Post', args, ver
+      @emit method, args, isLocal, @_pass  if doEmit
       return obj
     
     _specModel: ->

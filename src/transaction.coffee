@@ -2,15 +2,13 @@
 # [ base = version at the time of the transaction
 # , transaction id
 # , method
-# , arguments
-# , metadata]
+# , arguments]
 module.exports =
   create: (obj) ->
     if obj.ops
       txn = [obj.base, obj.id, obj.ops]
     else
       txn = [obj.base, obj.id, obj.method, obj.args]
-      txn.push obj.meta if obj.meta
     return txn
 
   base: (txn, val) ->
@@ -48,10 +46,6 @@ module.exports =
       return newClientId
     return clientId
 
-  meta: (txn, obj) ->
-    txn[4] = obj if obj isnt undefined
-    return txn[4]
-
 
   ops: (txn, ops) ->
     txn[2] = ops unless ops is undefined
@@ -63,7 +57,6 @@ module.exports =
   op:
     create: (obj) ->
       op = [obj.method, obj.args]
-      op.push meta if meta = obj.meta
       return op
 
     method: (op, name) ->
@@ -74,7 +67,3 @@ module.exports =
       if vals isnt undefined
         op[1] = vals
       return op[1]
-
-    meta: (op, obj) ->
-      op[2] = obj if obj isnt undefined
-      return op[2]

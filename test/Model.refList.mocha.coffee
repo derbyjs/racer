@@ -72,21 +72,3 @@ describe 'Model.refList', ->
     model.get('list.0').should.specEql expected
     model.get('items.3').should.specEql expected
 
-    # # Setting a reference before a key should make a record of the key but
-    # # not the reference
-    # model.set 'mine', model.arrayRef 'todos', '_mine'
-    # model.get().should.specEql
-    #   mine: model.arrayRef 'todos', '_mine'
-    #   _mine: []
-    #   $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
-
-    # # Setting a key value should update the reference
-    # model.set '_mine', ['1', '3']
-    # model.get().should.specEql
-    #   mine: model.arrayRef 'todos', '_mine'
-    #   _mine: ['1', '3']
-    #   $keys: { _mine: $: mine: ['todos', '_mine', 'array'] }
-    #   $refs:
-    #     todos:
-    #       1: { $: mine: ['todos', '_mine', 'array'] }
-    #       3: { $: mine: ['todos', '_mine', 'array'] }

@@ -39,7 +39,7 @@ module.exports =
         if typeof path is 'object'
           for key, value of path
             root = pathParser.split(value)[0]
-            @set key, @ref root
+            @ref key, root
             addPath value
         else addPath path
 

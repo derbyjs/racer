@@ -12,7 +12,7 @@ AtomicModel = module.exports = (id, parentModel) ->
     self.id = id
     self.parentModel = parentModel
     adapter = self._adapter = parentModel._adapter
-    self.ver = adapter.version() # Take a snapshot of the version
+    self.ver = adapter.version
 
     self._specCache =
       invalidate: ->
@@ -22,23 +22,6 @@ AtomicModel = module.exports = (id, parentModel) ->
     self._opCount = 0
     self._txns = parentModel._txns
     self._txnQueue = parentModel._txnQueue.slice 0
-#    # TODO Do we even need a txnApplier in this scenario?
-#    txnApplier = new Serializer
-#      withEach: (txn) ->
-#        if self._conflictsWithMe txn
-#          self.abort()
-#        self._applyTxn txn # TODO Needs the same conds as Model txnApplier?
-#  
-#    onTxn = self._onTxn = (txn, num) ->
-#      txnApplier.add txn, num
-
-    # parentRepo.on 'txn', onTxn
-    # childRepos.send 'txn', onTxn
-
-    # parentChannel.on 'txn', onTxn
-
-    # TODO: Make sure this isn't needed anymore:
-    # self._refHelper = new RefHelper self, false
 
     # Proxy events to the parent model
     ['emit', 'on', 'once'].forEach (method) ->
@@ -72,7 +55,6 @@ proto =
     ops = (transaction.op.create(
       method: transaction.method txn
       args: transaction.args txn
-      meta: transaction.meta txn
     ) for txn in @oplog())
     return transaction.create base: @ver, id: @id, ops: ops
 
@@ -84,7 +66,8 @@ proto =
     @parentModel._commit txn
 
   get: (path) ->
-    [val, ver] = @_adapter.getWithVersion path, @_specModel()
+    val = @_adapter.get path, @_specModel()
+    ver = @_adapter.version
     if ver <= @ver
       @_addOpAsTxn 'get', [path]
     return val

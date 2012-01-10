@@ -12,8 +12,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
   # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
   # operation without triggering an event locally, such as model.silent.set
-  # It only silences the first local event, so events on public paths that
-  # get synced to the server are still emitted
   self.silent = Object.create self, _silent: value: true
 
   return
@@ -58,8 +56,8 @@ Model::_setSocket = (socket) ->
 
 # Used to pass an additional argument to local events. This value is
 # added to the event arguments in mixin.stm
-# Example: model.with(ignore: domId).move 'arr', 0, 2
-Model::with = (options) -> Object.create this, _with: value: options
+# Example: model.pass(ignore: domId).move 'arr', 0, 2
+Model::pass = (arg) -> Object.create this, _pass: value: arg
 
 eventListener = (method, pattern, callback) ->
   # on(type, listener)
@@ -69,9 +67,9 @@ eventListener = (method, pattern, callback) ->
 
   # on(method, pattern, callback)
   re = pathParser.eventRegExp pattern
-  return ([path, args...], isLocal, _with) ->
+  return ([path, args...], isLocal, pass) ->
     if re.test path
-      callback re.exec(path).slice(1).concat(args, isLocal, _with)...
+      callback re.exec(path).slice(1).concat(args, isLocal, pass)...
       return true
 
 merge Model::, EventEmitter::,

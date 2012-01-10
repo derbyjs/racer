@@ -30,7 +30,7 @@ module.exports =
     [sockets, model] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
     model.get('color').should.eql 'green'
-    model._adapter.version().should.eql 1
+    model._adapter.version.should.eql 1
     sockets._disconnect()
   
   'test client set roundtrip with server echoing transaction': wrapTest (done) ->
@@ -378,8 +378,8 @@ module.exports =
     model = new Model '0'
     model.set 'color', 'green'
     model.force.set 'color', 'red'
-    model._adapter.version().should.not.be.null
-    model._adapter.version().should.not.be.undefined
+    model._adapter.version.should.not.be.null
+    model._adapter.version.should.not.be.undefined
   
   'model mutator methods should callback on completion': wrapTest (done) ->
     ver = 0

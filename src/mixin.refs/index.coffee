@@ -3,6 +3,7 @@ pathParser = require '../pathParser'
 
 mutators = {}
 basicMutators = {}
+arrayMutators = {}
 
 module.exports =
 
@@ -11,6 +12,7 @@ module.exports =
     for mutator, fn of _mutators
       switch fn.type
         when 'basic' then basicMutators[mutator] = fn
+        when 'array' then arrayMutators[mutator] = fn
     return
 
   init: ->
@@ -29,9 +31,11 @@ module.exports =
         args[0] = fn method, args, this, obj
       return
 
-    return
-
   proto:
+    _dereference: (path) ->
+      @_adapter.get path, data = @_specModel()
+      return derefPath data, path
+
     ref: (from, to, key) ->
       return @set from, (new Ref this, from, to, key).get
 
@@ -129,14 +133,19 @@ RefList = (@model, @from, to, key) ->
     dereffed = derefPath data, to
     map = lookup key, data
     if i == len
+      # Method is on the refList itself
       currPath = lookupPath dereffed, props, i
 
       data.$deref = (method) ->
-        if method of basicMutators then path else currPath
+        return path if method of basicMutators
+        
+        throw new Error 'Unsupported method on refList'
 
       if map
         curr = (obj[prop] for prop in map)
         return [curr, currPath, i]
+      
+      return [undefined, currPath, i]
 
     else
       index = props[i++]
@@ -175,44 +184,7 @@ RefList = (@model, @from, to, key) ->
         data.$deref = -> currPath
 
       return [curr, currPath, i]
-      
-
-    return [undefined, currPath, i]
 
   return
 
 merge RefList::, Ref::
-
-
-# ArrayRef = (@model, @obj, @ids) ->
-
-#   model.on '*', "#{obj}.*.?*", (method, id, remainder, args..., isLocal, _with) ->
-#     # TODO: Fix this when deleting / removing an item
-#     index = indexOf model.get "#{obj}.#{id}"
-#     path = @path(index, remainder)
-#     model.emit method, [path, args...], isLocal, _with
-
-#   model.on '*', "#{ids}.*.?*", (method, index, remainder, args..., isLocal, _with) ->
-#     model.emit method, [@path(index, remainder), args...], isLocal, _with
-
-#   model.on 'set', "(?:#{obj}|#{ids})", (value, isLocal, _with) ->
-#     emit 'set', model, @path(), isLocal, _with
-
-#   model.on 'push', 'ids', (item, isLocal, _with) ->
-#     emit 'push', model
-
-
-# ArrayRef:: = Ref::
-
-# ArrayRef::indexOf = (item) ->
-#     model = @model
-#     obj = model.get @obj
-#     ids = model.get @ids
-#     for id, i in ids
-#       return i if item == obj[id]
-
-# ArrayRef::get = ->
-#     model = @model
-#     obj = model.get @obj
-#     ids = model.get @ids
-#     return obj[id] for id in ids

@@ -39,10 +39,6 @@ module.exports =
     op = transaction.op.create method: 'set', args: ['count', 1]
     transaction.op.args(op).should.eql ['count', 1]
 
-  'test transaction.op.meta': ->
-    op = transaction.op.create method: 'set', args: ['count', 1], meta: { some: 'A' }
-    transaction.op.meta(op).should.eql { some: 'A' }
-
   # Property setters
 
   'test transaction.base setter': ->
@@ -94,12 +90,6 @@ module.exports =
     transaction.op.args(op).should.eql ['count', 1]
     transaction.op.args op, ['count', 2]
     transaction.op.args(op).should.eql ['count', 2]
-
-  'test transaction.op.meta setter': ->
-    op = transaction.op.create method: 'set', args: ['count', 1], meta: { some: 'A' }
-    transaction.op.meta(op).should.eql some: 'A'
-    transaction.op.meta op, some: 'B'
-    transaction.op.meta(op).should.eql some: 'B'
 
   '''transaction.compound should return true if the txn
   has several ops''': ->
