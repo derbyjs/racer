@@ -32,7 +32,7 @@ module.exports =
       return
 
   proto:
-    _dereference: (path) ->
+    dereference: (path) ->
       @_adapter.get path, data = @_specModel()
       return derefPath data, path
 

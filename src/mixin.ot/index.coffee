@@ -54,11 +54,8 @@ ot = module.exports =
 
     isOtVal: (val) -> !!(val && val.$ot)
 
-    # TODO: This shouldn't be on model's prototype
-    version: (path) -> @otFields[path].version
-
     _otField: (path, val) ->
-      path = @_dereference path
+      path = @dereference path
       return field if field = @otFields[path]
       field = @otFields[path] = new Field this, path
       val ||= @_adapter.get path, @_specModel()

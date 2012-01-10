@@ -27,7 +27,7 @@ module.exports =
     model.set 'some.ot.path', model.ot('hi')
     model.get('some.ot.path').should.equal 'hi'
     model.isOtPath('some.ot.path').should.be.true
-    model.version('some.ot.path').should.equal 0
+    model._otField('some.ot.path').version.should.equal 0
     done()
 
 #  'model.subscribe(OTpath) should get the latest OT version doc if
@@ -182,8 +182,8 @@ module.exports =
 
       createModelB = ->
         modelB = store.createModel()
-        ref = modelC._adapter._data.world._test.$r
-        modelB.subscribe _test: ref, ->
+        path = modelC.dereference('_test')
+        modelB.subscribe _test: path, ->
           modelB.get('_test.text').should.equal 'axyzbcdefg'
           sockets._disconnect()
           store.disconnect()
@@ -207,8 +207,8 @@ module.exports =
 
       createModelB = ->
         serverModelB = store.createModel()
-        ref = modelC._adapter._data.world._test.$r
-        serverModelB.subscribe _test: ref, ->
+        path = modelC.dereference('_test')
+        serverModelB.subscribe _test: path, ->
           serverModelB.bundle (bundle) ->
             bundle = JSON.parse bundle
             bundle.socket = new BrowserSocketMock sockets

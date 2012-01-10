@@ -17,7 +17,7 @@ $ racer.ready ->
   todoList = $ '#todos'
   content = $ '#content'
   overlay = $ '#overlay'
-  listPath = '_group.todoList'
+  listPath = '_todoList'
 
 
   ## Update the DOM when the model changes ##
