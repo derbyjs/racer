@@ -2,7 +2,7 @@ should = require 'should'
 inspect = require('util').inspect
 specHelper = require '../../src/specHelper'
 
-ignore = '$remainder': 1, '$path': 1
+ignore = '$out': 1, '$deref': 1
 ignore[specHelper.identifier] = 1
 
 # For Expresso
@@ -46,12 +46,12 @@ exports.specInspect = specInspect = (a) -> inspect removeReserved(flatten(a)), f
 
 protoSubset = (a, b, exception) ->
   checkProp = (i) ->
+    return if a[i] == b[i] || (exception && exception a, b, i)
     if typeof a[i] is 'object'
-      return false unless typeof b[i] is 'object'
-      return false unless protoSubset a[i], b[i], exception
-    else
-      return false unless exception && exception(a, b, i) || a[i] == b[i]
+      return if typeof b[i] is 'object' && protoSubset a[i], b[i], exception
+    return false
   if Array.isArray a
+    return false if !Array.isArray(b)
     for v, i in a
       return false if checkProp(i) == false
   else

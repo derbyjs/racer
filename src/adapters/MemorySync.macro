@@ -12,7 +12,9 @@ MemorySync:: =
 
   get: (path, data, getRef) ->
     data ||= @_data
-    delete data.$deref
+    # Note that $deref is set to null instead of being deleted; deleting a
+    # value in a speculative model would not override the underlying value
+    data.$deref = null
     if path then lookup(path, data, getRef) else data.world
 
   set: (path, value, ver, data) ->
