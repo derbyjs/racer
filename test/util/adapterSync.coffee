@@ -179,162 +179,85 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
-
-  'insertAfter -1 on an undefined path should result in a new array': ->
+  'insert 0 on an undefined path should result in a new array': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
-    adapterSync.insertAfter 'colors', -1, 'yellow', ver, null
+    adapterSync.insert 'colors', 0, 'yellow', ver, null
     adapterSync.get('colors').should.specEql ['yellow']
 
-  'insertAfter -1 on an empty array should fill the array with only those elements': ->
+  'insert 0 on an empty array should fill the array with only those elements': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', [], ver, null
-    adapterSync.insertAfter 'colors', -1, 'yellow', ver, null
+    adapterSync.insert 'colors', 0, 'yellow', ver, null
     adapterSync.get('colors').should.specEql ['yellow']
 
-  'insertAfter the length-1 of an array should act like a push on the array': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow'], ver, null
-    adapterSync.insertAfter 'colors', 0, 'black', ver, null
-    adapterSync.get('colors').should.specEql ['yellow', 'black']
-
-  'insertAfter should be able to insert in-between an array with length >= 2': ->
+  'insert 0 in an array should act like a shift': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    adapterSync.insertAfter 'colors', 0, 'violet', ver, null
-    adapterSync.get('colors').should.specEql ['yellow', 'violet', 'black']
-
-  'insertAfter == length should throw an "Out of Bounds" error': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insertAfter 'colors', 2, 'violet', ver, null
-    catch e
-      e.message.should.equal 'Out of Bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-  'insertAfter > length should throw an "Out of Bounds" error': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insertAfter 'colors', 100, 'violet', ver, null
-    catch e
-      e.message.should.equal 'Out of Bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-  'insertAfter < -1 should throw an "Out of Bounds" error': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insertAfter 'colors', -2, 'violet', ver, null
-    catch e
-      e.message.should.equal 'Out of Bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-  'insertAfter on a non-array should throw a "Not an Array" error': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    didThrowNotAnArray = false
-    adapterSync.set 'nonArray', '9', ver, null
-    try
-      adapterSync.insertAfter 'nonArray', -1, 'never added', ver, null
-    catch e
-      e.message.should.equal 'Not an Array'
-      didThrowNotAnArray = true
-    didThrowNotAnArray.should.be.true
-
-
-  'insertBefore 0 on an undefined path should result in a new array': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.get().should.specEql {}
-    adapterSync.insertBefore 'colors', 0, 'yellow', ver, null
-    adapterSync.get('colors').should.specEql ['yellow']
-
-  'insertBefore 0 on an empty array should fill the array with only those elements': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', [], ver, null
-    adapterSync.insertBefore 'colors', 0, 'yellow', ver, null
-    adapterSync.get('colors').should.specEql ['yellow']
-
-  'insertBefore 0 in an array should act like a shift': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    adapterSync.insertBefore 'colors', 0, 'violet', ver, null
+    adapterSync.insert 'colors', 0, 'violet', ver, null
     adapterSync.get('colors').should.specEql ['violet', 'yellow', 'black']
 
-  'insertBefore the length of an array should act like a push': ->
+  'insert the length of an array should act like a push': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ver, null
-    adapterSync.insertBefore 'colors', 2, 'violet', ver, null
+    adapterSync.insert 'colors', 2, 'violet', ver, null
     adapterSync.get('colors').should.specEql ['yellow', 'black', 'violet']
 
-  'insertBefore should be able to insert in-between an array with length >= 2': ->
+  'insert should be able to insert in-between an array with length >= 2': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['violet', 'yellow', 'black'], ver, null
-    adapterSync.insertBefore 'colors', 1, 'orange', ver, null
+    adapterSync.insert 'colors', 1, 'orange', ver, null
     adapterSync.get('colors').should.specEql ['violet', 'orange', 'yellow', 'black']
 
-  'insertBefore -1 should throw an "Out of Bounds" error': ->
+  'insert -1 should throw an "Out of Bounds" error': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
     didThrowOutOfBounds = false
     try
-      adapterSync.insertBefore 'colors', -1, 'violet', ver, null
+      adapterSync.insert 'colors', -1, 'violet', ver, null
     catch e
       e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'insertBefore == length+1 should throw an "Out of Bounds" error': ->
+  'insert == length + 1 should throw an "Out of Bounds" error': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
     didThrowOutOfBounds = false
     try
-      adapterSync.insertBefore 'colors', 2, 'violet', ver, null
+      adapterSync.insert 'colors', 2, 'violet', ver, null
     catch e
       e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'insertBefore > length+1 should throw an "Out of Bounds" error': ->
+  'insert > length + 1 should throw an "Out of Bounds" error': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
     didThrowOutOfBounds = false
     try
-      adapterSync.insertBefore 'colors', 3, 'violet', ver, null
+      adapterSync.insert 'colors', 3, 'violet', ver, null
     catch e
       e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'insertBefore on a non-array should throw a "Not an Array" error': ->
+
+  'insert on a non-array should throw a "Not an Array" error': ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
     didThrowNotAnArray = false
     try
-      adapterSync.insertBefore 'nonArray', 0, 'never added', ver, null
+      adapterSync.insert 'nonArray', 0, 'never added', ver, null
     catch e
       e.message.should.equal 'Not an Array'
       didThrowNotAnArray = true
@@ -511,52 +434,3 @@ module.exports = (AdapterSync) ->
       e.message.should.equal 'Out of Bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
-
-
-  'test splice': ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.get().should.specEql {}
-
-    # on undefined
-    adapterSync.splice 'undefined', 0, 3, 1, 2, ver, null
-    adapterSync.get('undefined').should.specEql [1, 2]
-
-    # on a defined non-array
-    didThrowNotAnArray = false
-    adapterSync.set 'nonArray', '9', ver, null
-    try
-      adapterSync.remove 'nonArray', 0, 3, ver, null
-    catch e
-      e.message.should.equal 'Not an Array'
-      didThrowNotAnArray = true
-    didThrowNotAnArray.should.be.true
-
-    # on an empty array
-    adapterSync.set 'colors', [], ver, null
-    adapterSync.splice 'colors', 0, 0, 'red', 'orange', 'yellow', 'green', 'blue', 'violet', ver, null
-    adapterSync.get('colors').should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    
-    # on a non-empty array
-    adapterSync.splice 'colors', 2, 3, 'pink', 'gray', ver, null
-    adapterSync.get('colors').should.specEql ['red', 'orange', 'pink', 'gray', 'violet']
-
-    # like push
-    adapterSync.splice 'colors', 5, 0, 'peach', ver, null
-    adapterSync.get('colors').should.specEql ['red', 'orange', 'pink', 'gray', 'violet', 'peach']
-
-    # like pop
-    adapterSync.splice 'colors', 5, 1, ver, null
-    adapterSync.get('colors').should.specEql ['red', 'orange', 'pink', 'gray', 'violet']
-
-    # like remove
-    adapterSync.splice 'colors', 1, 2, ver, null
-    adapterSync.get('colors').should.specEql ['red', 'gray', 'violet']
-
-    # like shift
-    adapterSync.splice 'colors', 0, 1, ver, null
-    adapterSync.get('colors').should.specEql ['gray', 'violet']
-
-    # with an out-of-bounds index
-    adapterSync.splice 'colors', 100, 50, 'blue', ver, null
-    adapterSync.get('colors').should.specEql ['gray', 'violet', 'blue']

@@ -64,11 +64,15 @@ MemorySync:: =
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.unshift args...
   
-  splice: (path, args..., ver, data) ->
+  insert: (path, index, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
-    return arr.splice args...
+    len = arr.length
+    unless 0 <= index <= len
+      throw new Error 'Out of Bounds'
+    arr.splice index, 0, args...
+    return arr.length
   
   pop: (path, ver, data) ->
     @setVersion ver
@@ -82,45 +86,28 @@ MemorySync:: =
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.shift()
   
-  insertAfter: (path, afterIndex, value, ver, data) ->
+  remove: (path, index, howMany, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
-    outOfBounds = !(-1 <= afterIndex <= arr.length - 1)
-    throw new Error 'Out of Bounds' if outOfBounds
-    arr.splice afterIndex + 1, 0, value
-    return arr.length
-  
-  insertBefore: (path, beforeIndex, value, ver, data) ->
-    @setVersion ver
-    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
-    throw new Error 'Not an Array' unless Array.isArray arr
-    outOfBounds = !(0 <= beforeIndex <= arr.length)
-    throw new Error 'Out of Bounds' if outOfBounds
-    arr.splice beforeIndex, 0, value
-    return arr.length
-  
-  remove: (path, startIndex, howMany, ver, data) ->
-    @setVersion ver
-    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
-    throw new Error 'Not an Array' unless Array.isArray arr
-    outOfBounds = !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
-    throw new Error 'Out of Bounds' if outOfBounds
-    return arr.splice startIndex, howMany
+    len = arr.length
+    unless 0 <= index < (len || 1)
+      throw new Error 'Out of Bounds'
+    return arr.splice index, howMany
   
   move: (path, from, to, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
+    len = arr.length
     from += len if from < 0
     to += len if to < 0
-    outOfBounds = !((0 <= from < len) && (0 <= to < len))
-    throw new Error 'Out of Bounds' if outOfBounds
+    unless (0 <= from < len) && (0 <= to < len)
+      throw new Error 'Out of Bounds'
     [value] = arr.splice from, 1  # Remove from old location
     arr.splice to, 0, value  # Insert in new location
     return value
-
 
 
 # Returns value

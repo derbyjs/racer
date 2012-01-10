@@ -46,24 +46,20 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
-  #for PUSH UNSHIFT SPLICE POP SHIFT INSERT_AFTER INSERT_BEFORE REMOVE MOVE
+  #for PUSH UNSHIFT INSERT POP SHIFT REMOVE MOVE
   
   #if PUSH
   push: (path, args..., ver, data) ->
   #elseif UNSHIFT
   unshift: (path, args..., ver, data) ->
-  #elseif SPLICE
-  splice: (path, args..., ver, data) ->
+  #elseif INSERT
+  insert: (path, index, args..., ver, data) ->
   #elseif POP
   pop: (path, ver, data) ->
   #elseif SHIFT
   shift: (path, ver, data) ->
-  #elseif INSERT_AFTER
-  insertAfter: (path, afterIndex, value, ver, data) ->
-  #elseif INSERT_BEFORE
-  insertBefore: (path, beforeIndex, value, ver, data) ->
   #elseif REMOVE
-  remove: (path, startIndex, howMany, ver, data) ->
+  remove: (path, index, howMany, ver, data) ->
   #elseif MOVE
   move: (path, from, to, ver, data) ->
   #end
@@ -74,34 +70,28 @@ MemorySync:: =
     return arr.push args...
     #elseif UNSHIFT
     return arr.unshift args...
-    #elseif SPLICE
-    return arr.splice args...
     #elseif POP
     return arr.pop()
     #elseif SHIFT
     return arr.shift()
     #else
-    #if INSERT_AFTER
-    outOfBounds = !(-1 <= afterIndex <= arr.length - 1)
-    #elseif INSERT_BEFORE
-    outOfBounds = !(0 <= beforeIndex <= arr.length)
+    len = arr.length
+    #if INSERT
+    unless 0 <= index <= len
     #elseif REMOVE
-    outOfBounds = !(0 <= startIndex <= (arr.length && arr.length - 1 || 0))
+    unless 0 <= index < (len || 1)
     #elseif MOVE
     len = arr.length
     from += len if from < 0
     to += len if to < 0
-    outOfBounds = !((0 <= from < len) && (0 <= to < len))
+    unless (0 <= from < len) && (0 <= to < len)
     #end
-    throw new Error 'Out of Bounds' if outOfBounds
-    #if INSERT_AFTER
-    arr.splice afterIndex + 1, 0, value
-    return arr.length
-    #elseif INSERT_BEFORE
-    arr.splice beforeIndex, 0, value
+      throw new Error 'Out of Bounds'
+    #if INSERT
+    arr.splice index, 0, args...
     return arr.length
     #elseif REMOVE
-    return arr.splice startIndex, howMany
+    return arr.splice index, howMany
     #elseif MOVE
     [value] = arr.splice from, 1  # Remove from old location
     arr.splice to, 0, value  # Insert in new location
@@ -109,7 +99,6 @@ MemorySync:: =
     #end
     #end
   #end
-
 
 #for LOOKUP SET
 

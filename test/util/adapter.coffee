@@ -218,10 +218,10 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Not an Array'
         done()
 
-  'insertAfter -1 on an undefined path should result in a new array': wrapTest (done) ->
+  'insert 0 on an undefined path should result in a new array': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
-    adapter.insertAfter 'colors', -1, 'yellow', ++_ver, (err) ->
+    adapter.insert 'colors', 0, 'yellow', ++_ver, (err) ->
       should.equal null, err
       adapter.get 'colors', (err, value, ver) ->
         should.equal null, err
@@ -229,106 +229,13 @@ module.exports = (Adapter) ->
         ver.should.equal _ver
         done()
 
-  '''insertAfter -1 on an empty array should fill the array with
-  only those elements''': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', [], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', -1, 'yellow', ++_ver, (err) ->
-        should.equal null, err
-        adapter.get 'colors', (err, value, ver) ->
-          should.equal null, err
-          value.should.specEql ['yellow']
-          ver.should.equal _ver
-          done()
-
-  '''insertAfter the length-1 of an array should act like a push
-  on the array''': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', 0, 'black', ++_ver, (err) ->
-        should.equal null, err
-        adapter.get 'colors', (err, value, ver) ->
-          should.equal null, err
-          value.should.specEql ['yellow', 'black']
-          ver.should.equal _ver
-          done()
-
-  '''insertAfter should be able to insert in-between an array
-  with length>=2''': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', 0, 'violet', ++_ver, (err) ->
-        should.equal null, err
-        adapter.get 'colors', (err, value, ver) ->
-          should.equal null, err
-          value.should.specEql ['yellow', 'violet', 'black']
-          ver.should.equal _ver
-          done()
-
-  'insertAfter == length should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', 2, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertAfter > length should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', 100, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertAfter < -1 should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'colors', -2, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertAfter on a non array should throw a "Not an Array" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'nonArray', '9', ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertAfter 'nonArray', -1, 'never added', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Not an Array'
-        done()
-
-  'insertBefore 0 on an undefined path should result in a new array': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.insertBefore 'colors', 0, 'yellow', ++_ver, (err) ->
-      should.equal null, err
-      adapter.get 'colors', (err, value, ver) ->
-        should.equal null, err
-        value.should.specEql ['yellow']
-        ver.should.equal _ver
-        done()
-
-  '''insertBefore 0 on an empty array should fill the array
+  '''insert 0 on an empty array should fill the array
   with only those elements''': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', [], ++_ver, (err) ->
       should.equal null, err
-      adapter.insertBefore 'colors', 0, 'yellow', ++_ver, (err) ->
+      adapter.insert 'colors', 0, 'yellow', ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
@@ -336,12 +243,12 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insertBefore 0 in an array should act like a shift': wrapTest (done) ->
+  'insert 0 in an array should act like a shift': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
       should.equal null, err
-      adapter.insertBefore 'colors', 0, 'violet', ++_ver, (err) ->
+      adapter.insert 'colors', 0, 'violet', ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
@@ -349,12 +256,12 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insertBefore the length of an array should act like a push': wrapTest (done) ->
+  'insert the length of an array should act like a push': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
       should.equal null, err
-      adapter.insertBefore 'colors', 2, 'violet', ++_ver, (err) ->
+      adapter.insert 'colors', 2, 'violet', ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
@@ -362,12 +269,12 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insertBefore should be able to insert in-between an array with length>=2': wrapTest (done) ->
+  'insert should be able to insert in-between an array with length>=2': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['violet', 'yellow', 'black'], ++_ver, (err) ->
       should.equal null, err
-      adapter.insertBefore 'colors', 1, 'orange', ++_ver, (err) ->
+      adapter.insert 'colors', 1, 'orange', ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err
@@ -375,48 +282,17 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insertBefore -1 should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertBefore 'colors', -1, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertBefore == length+1 should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertBefore 'colors', 2, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertBefore > length+1 should throw an "Out of Bounds" error': wrapTest (done) ->
-    adapter = new Adapter
-    _ver = 0
-    adapter.set 'colors', ['yellow'], ++_ver, (err) ->
-      should.equal null, err
-      adapter.insertBefore 'colors', 3, 'violet', ++_ver, (err) ->
-        err.should.not.be.null
-        err.message.should.equal 'Out of Bounds'
-        done()
-
-  'insertBefore on a non-array should throw a "Not an Array" error': wrapTest (done) ->
+  'insert on a non-array should throw a "Not an Array" error': wrapTest (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
       should.equal null, err
-      adapter.insertBefore 'nonArray', 0, 'never added', ++_ver, (err) ->
+      adapter.insert 'nonArray', 0, 'never added', ++_ver, (err) ->
         err.should.not.be.null
         err.message.should.equal 'Not an Array'
         done()
 
   # TODO Add remove tests
-  # TODO Add splice tests
 
   'moving from index A to index B should work': wrapTest (done) ->
     adapter = new Adapter

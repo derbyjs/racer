@@ -315,16 +315,6 @@ stm = module.exports =
           callback = null
         @_addOpAsTxn 'unshift', args, callback
 
-    splice:
-      type: 'array'
-      indexArgs: [1]
-      insertArgs: 3
-      fn: (args..., callback) ->
-        if typeof callback isnt 'function'
-          args.push callback
-          callback = null
-        @_addOpAsTxn 'splice', args, callback
-
     pop:
       type: 'array'
       fn: (path, callback) ->
@@ -335,19 +325,15 @@ stm = module.exports =
       fn: (path, callback) ->
         @_addOpAsTxn 'shift', [path], callback
 
-    insertBefore:
+    insert:
       type: 'array'
       indexArgs: [1]
       insertArgs: 2
-      fn: (path, beforeIndex, value, callback) ->
-        @_addOpAsTxn 'insertBefore', [path, beforeIndex, value], callback
-
-    insertAfter:
-      type: 'array'
-      indexArgs: [1]
-      insertArgs: 2
-      fn: (path, afterIndex, value, callback) ->
-        @_addOpAsTxn 'insertAfter', [path, afterIndex, value], callback
+      fn: (args..., callback) ->
+        if typeof callback isnt 'function'
+          args.push callback
+          callback = null
+        @_addOpAsTxn 'insert', args, callback
 
     remove:
       type: 'array'

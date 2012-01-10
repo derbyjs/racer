@@ -1,4 +1,4 @@
-{mergeAll: merge} = require '../util'
+{merge, hasKeys} = require '../util'
 pathParser = require '../pathParser'
 
 mutators = {}
@@ -139,6 +139,7 @@ Ref:: =
       model.removeListener 'mutator', listener
 
 
+# TODO: Allow a name other than 'id' for the key id property?
 refListId = (obj) ->
   unless (id = obj.id)?
     throw new Error 'refList mutators require an id'
@@ -155,9 +156,36 @@ RefList = (@model, @from, to, key) ->
       # Method is on the refList itself
       currPath = lookupPath dereffed, props, i
 
-      data.$deref = (method) ->
+      data.$deref = (method, args, model, obj) ->
         return path if method of basicMutators
-        
+
+        if method of arrayMutators
+          # Handle index args if they are specified by id
+          # if indexArgs = arrayMutators[method].indexArgs
+          #   ids = {}
+          #   keyObj = adapter.get $k, data
+          #   for i in indexArgs
+          #     continue unless (id = args[i]?.id)?
+          #     # Store the id index in the txn metadata
+          #     ids[i] = id
+          #     # Few operations have multiple indexArgs, so OK to do this in the loop
+          #     args.meta = {ids}
+          #     # Replace id arg with the current index for the given id
+          #     for keyId, index in keyObj
+          #       if `keyId == id`
+          #         args[i] = index
+          #         break
+
+          if j = mutators[method].insertArgs
+            while arg = args[j]
+              id = refListId arg
+              # Set the object being inserted if it contains any properties
+              # other than id
+              model.set to + '.' + id, arg  if hasKeys arg, 'id'
+              args[j] = id
+              j++
+          return key
+
         throw new Error 'Unsupported method on refList'
 
       if map

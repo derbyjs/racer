@@ -461,29 +461,17 @@ module.exports =
     final = model.get 'colors'
     final.should.specEql ['blue']
 
-  'model insertAfter should work on an array, with a valid index': ->
+  'model insert should work on an array, with a valid index': ->
     model = new Model '0'
     init = model.get 'colors'
     should.equal undefined, init
     model.push 'colors', 'green'
     interim = model.get 'colors'
     interim.should.specEql ['green']
-    out = model.insertAfter 'colors', 0, 'red'
-    out.should.eql 2
+    out = model.insert 'colors', 0, 'red', 'yellow'
+    out.should.eql 3
     final = model.get 'colors'
-    final.should.specEql ['green', 'red']
-
-  'model insertBefore should work on an array, with a valid index': ->
-    model = new Model '0'
-    init = model.get 'colors'
-    should.equal undefined, init
-    model.push 'colors', 'green'
-    interim = model.get 'colors'
-    interim.should.specEql ['green']
-    out = model.insertBefore 'colors', 0, 'red'
-    out.should.eql 2
-    final = model.get 'colors'
-    final.should.specEql ['red', 'green']
+    final.should.specEql ['red', 'yellow', 'green']
 
   'model remove should work on an array, with a valid index': ->
     model = new Model '0'
@@ -496,18 +484,6 @@ module.exports =
     out.should.eql ['orange', 'yellow', 'green', 'blue']
     final = model.get 'colors'
     final.should.specEql ['red', 'violet']
-
-  'model splice should work on an array, just like JS Array::splice': ->
-    model = new Model '0'
-    init = model.get 'colors'
-    should.equal undefined, init
-    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
-    interim = model.get 'colors'
-    interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    out = model.splice 'colors', 1, 4, 'oak'
-    out.should.eql ['orange', 'yellow', 'green', 'blue']
-    final = model.get 'colors'
-    final.should.specEql ['red', 'oak', 'violet']
 
   'model move should work on an array, with a valid index': ->
     model = new Model '0'

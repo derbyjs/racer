@@ -21,8 +21,8 @@ Memory:: =
       return callback err
     callback null, val, @version
 
-['set', 'del', 'push', 'unshift', 'splice', 'pop', 'shift', 'insertAfter',
-'insertBefore', 'remove', 'move'].forEach (method) ->
+['set', 'del', 'push', 'unshift', 'insert', 'pop',
+ 'shift', 'remove', 'move'].forEach (method) ->
   alias = '_' + method
   Memory::[alias] = fn = MemorySync::[method]
   Memory::[method] = switch fn.length
