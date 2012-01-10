@@ -5,6 +5,7 @@ Promise = require './Promise'
 module.exports = ServerModel = ->
   self = this
   BrowserModel.apply self, arguments
+  self._onLoad = []
   self.clientIdPromise = (new Promise).on (clientId) ->
     self._clientId = clientId
   return
@@ -40,6 +41,7 @@ ServerModel::bundle = (callback) ->
     self._bundle callback
 
 ServerModel::_bundle = (callback) ->
+  @emit 'bundle'
   # Unsubscribe the model from PubSub events. It will be resubscribed again
   # when the model connects over socket.io
   clientId = @_clientId
@@ -54,8 +56,9 @@ ServerModel::_bundle = (callback) ->
   
   callback JSON.stringify
     data: @get()
-    otFields: otFields
     base: @_adapter.version
+    otFields: otFields
+    onLoad: @_onLoad
     clientId: clientId
     storeSubs: @_storeSubs
     startId: @_startId

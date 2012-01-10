@@ -22,12 +22,14 @@ racer = module.exports =
       model.otFields[path] = field
 
     model._adapter._data = world: options.data
-    model._adapter._vers = ver: options.base
+    model._adapter.version = options.base
     model._clientId = options.clientId
     model._storeSubs = options.storeSubs
     model._startId = options.startId
     model._txnCount = options.txnCount
     model._onTxnNum options.txnNum
+    for [method, args] in options.onLoad
+      model[method] args...
     model.emit 'initialized'
     # options.socket makes it easier to test - see text/util/model fullyWiredModels
     model._setSocket options.socket || io.connect options.ioUri,

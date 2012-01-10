@@ -110,8 +110,9 @@ Model.mutators = {}
 onMixins = []
 Model.mixin = (mixin) ->
   Model.mixins.push mixin
-  merge Model::, proto if proto = mixin.proto
-  merge Model, static if static = mixin.static
+  merge Model::, mixin.static, mixin.proto
+  if typeof window is 'undefined'
+    merge Model::, mixin.serverProto
 
   for category in ['accessors', 'mutators']
     cache = Model[category]

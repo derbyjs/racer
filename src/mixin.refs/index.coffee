@@ -41,6 +41,25 @@ module.exports =
 
     refList: (from, to, key) ->
       return @set from, (new RefList this, from, to, key).get
+  
+  serverProto:
+    ref: (from, to, key) ->
+      model = this
+      get = (new Ref this, from, to, key).get
+      @on 'bundle', ->
+        if model.getRef(from) == get
+          args = if key then [from, to, key] else [from, to]
+          model._onLoad.push ['ref', args]
+      return @set from, get
+
+    refList: (from, to, key) ->
+      model = this
+      get = (new RefList this, from, to, key).get
+      @on 'bundle', ->
+        if model.getRef(from) == get
+          args = [from, to, key]
+          model._onLoad.push ['ref', args]
+      return @set from, get
 
   accessors:
     getRef:

@@ -2,7 +2,8 @@ module.exports =
 
   mergeAll: (to, froms...) ->
     for from in froms
-      to[key] = value for key, value of from
+      if from
+        to[key] = value for key, value of from
     return to
 
   merge: (to, from) ->
