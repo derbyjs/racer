@@ -27,6 +27,14 @@ describe 'Model.refList', ->
       3: {id: 3, val: 'z'}
     model.get('list').should.eql [{id: 1, val: 'x'}, {id: 2, val: 'y'}]
 
+  it 'should support getting undefined children', ->
+    model = new Model
+    model.refList 'list', 'items', 'map'
+
+    should.equal undefined, model.get('list')
+    should.equal undefined, model.get('list.0')
+    should.equal undefined, model.get('list.0.stuff')
+
   it 'should support set of children', ->
     model = new Model
     model.refList 'list', 'items', 'map'

@@ -182,7 +182,7 @@ RefList = (@model, @from, to, key) ->
               j++
           return dereffedKey
 
-        throw new Error 'Unsupported method on refList'
+        throw new Error method + ' unsupported on refList'
 
       if map
         curr = (obj[prop] for prop in map)
@@ -217,14 +217,16 @@ RefList = (@model, @from, to, key) ->
             model.del dereffedKey + '.' + index
             return currPath + '.' + id
 
-          throw new Error 'Unsupported method on refList index'
+          throw new Error method + ' unsupported on refList index'
 
       else
         # Method is on a child of the refList
-        throw new Error 'Method on undefined refList child' unless prop
         currPath = lookupPath dereffed + '.' + prop, props, i
 
-        data.$deref = -> currPath
+        data.$deref = (method) ->
+          if method && `prop == null`
+            throw new Error method + ' on undefined refList child ' + props.join('.')
+          currPath
 
       return [curr, currPath, i]
 
