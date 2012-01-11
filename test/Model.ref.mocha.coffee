@@ -149,9 +149,10 @@ describe 'Model.ref', ->
   it 'should emit on both paths when setting under reference', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
-    model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
+    model.on 'set', 'colors.green.*', cb = (prop, value, out, isLocal) ->
       prop.should.equal 'hex'
       value.should.equal '#0f0'
+      out.should.equal '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color.*', cb
@@ -160,9 +161,10 @@ describe 'Model.ref', ->
   it 'should emit on both paths when setting under referenced path', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
-    model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
+    model.on 'set', 'colors.green.*', cb = (prop, value, out, isLocal) ->
       prop.should.equal 'hex'
       value.should.equal '#0f0'
+      out.should.equal '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color.*', cb
@@ -171,8 +173,9 @@ describe 'Model.ref', ->
   it 'should emit on both paths when setting to referenced path', calls 2, (done) ->
     model = new Model
     model.ref 'color', 'colors.green'
-    model.on 'set', 'colors.green', cb = (value, isLocal) ->
+    model.on 'set', 'colors.green', cb = (value, out, isLocal) ->
       value.should.eql hex: '#0f0'
+      out.should.eql hex: '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color', cb
@@ -241,9 +244,10 @@ describe 'Model.ref', ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
-    model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
+    model.on 'set', 'colors.green.*', cb = (prop, value, out, isLocal) ->
       prop.should.equal 'hex'
       value.should.equal '#0f0'
+      out.should.equal '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color.*', cb
@@ -253,9 +257,10 @@ describe 'Model.ref', ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
-    model.on 'set', 'colors.green.*', cb = (prop, value, isLocal) ->
+    model.on 'set', 'colors.green.*', cb = (prop, value, out, isLocal) ->
       prop.should.equal 'hex'
       value.should.equal '#0f0'
+      out.should.equal '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color.*', cb
@@ -265,8 +270,9 @@ describe 'Model.ref', ->
     model = new Model
     model.set 'colorName', 'green'
     model.ref 'color', 'colors', 'colorName'
-    model.on 'set', 'colors.green', cb = (value, isLocal) ->
+    model.on 'set', 'colors.green', cb = (value, out, isLocal) ->
       value.should.eql hex: '#0f0'
+      out.should.eql hex: '#0f0'
       isLocal.should.equal true
       done()
     model.on 'set', 'color', cb
