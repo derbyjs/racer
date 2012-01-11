@@ -127,7 +127,7 @@ Ref:: =
       if re.test path = args[0]
         return self.destroy() if model.getRef(from) != get
         args = args.slice()
-        path = callback re.exec(path)
+        path = callback re.exec(path), mutator, args
         return if path is null
         args[0] = path
         model.emit mutator, args, _arguments[1], _arguments[2], _arguments[3]
@@ -228,7 +228,12 @@ RefList = (@model, @from, to, key) ->
 
       return [curr, currPath, i]
 
-  @addListener key, -> from
+  @addListener key, (match, method, args) ->
+    if i = mutators[method].insertArgs
+      while (id = args[i])?
+        args[i] = model.get(to + '.' + id)
+        i++
+    return from
   @addListener "#{to}.*", (match) ->
     id = match[1]
     if ~(i = id.indexOf '.')

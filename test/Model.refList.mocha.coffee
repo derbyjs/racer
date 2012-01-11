@@ -365,11 +365,14 @@ describe 'Model.refList', ->
     model = new Model
     model.refList 'list', 'items', 'map'
 
-    model.on 'push', 'list', cb = (id, len) ->
+    model.on 'push', 'list', (value, len) ->
+      value.should.eql {id: 3, val: 'c'}
+      len.should.eql 1
+      done()
+    model.on 'push', 'map', (id, len) ->
       id.should.eql 3
       len.should.eql 1
       done()
-    model.on 'push', 'map', cb
     model.push 'list', {id: 3, val: 'c'}
 
   it 'should emit on set of children', calls 2, (done) ->

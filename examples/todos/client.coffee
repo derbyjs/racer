@@ -44,8 +44,7 @@ $ racer.ready ->
   model.on 'remove', listPath, (index, howMany, [id]) ->
     $("##{id}").remove()
 
-  model.on 'move', listPath, (from, to) ->
-    id = model.get(to).id
+  model.on 'move', listPath, (from, to, id) ->
     target = todoList.children().get to
     # Don't move if the item is already in the right position
     return if id.toString() is target.id
