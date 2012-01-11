@@ -360,3 +360,43 @@ describe 'Model.refList', ->
       7: {id: 7, val: 'g'}
       8: {id: 8, val: 'h'}
     model.get('map').should.specEql [3, 8, 7]
+
+  it 'should emit on push', calls 2, (done) ->
+    model = new Model
+    model.refList 'list', 'items', 'map'
+
+    model.on 'push', 'list', cb = (id, len) ->
+      id.should.eql 3
+      len.should.eql 1
+      done()
+    model.on 'push', 'map', cb
+    model.push 'list', {id: 3, val: 'c'}
+
+  it 'should emit on set of children', calls 2, (done) ->
+    model = new Model
+    model.refList 'list', 'items', 'map'
+
+    model.on 'set', 'list.*', cb = (index, value) ->
+      index.should.eql '0'
+      value.should.eql {id: 3, val: 'c'}
+      done()
+    model.on 'set', 'items.*', cb = (id, value) ->
+      id.should.eql '3'
+      value.should.eql {id: 3, val: 'c'}
+      done()
+    model.set 'list.0', {id: 3, val: 'c'}
+
+  it 'should emit on set under child', calls 2, (done) ->
+    model = new Model
+    model.refList 'list', 'items', 'map'
+    model.set 'items',
+      3: {id: 3, val: 'c'}
+    model.set 'map', [3]
+
+    model.on 'set', 'list.0.name', cb = (value) ->
+      value.should.eql 'howdy'
+      done()
+    model.on 'set', 'items.3.name', cb = (value) ->
+      value.should.eql 'howdy'
+      done()
+    model.set 'list.0.name', 'howdy'

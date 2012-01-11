@@ -228,6 +228,20 @@ RefList = (@model, @from, to, key) ->
 
       return [curr, currPath, i]
 
+  @addListener key, -> from
+  @addListener "#{to}.*", (match) ->
+    id = match[1]
+    if ~(i = id.indexOf '.')
+      remainder = id.substr i + 1
+      id = id.substr 0, i
+    if map = model.get key
+      for value, i in map
+        if `value == id`
+          found = true
+          break
+    return null unless found
+    return if remainder then "#{from}.#{i}.#{remainder}" else "#{from}.#{i}"
+
   return
 
 merge RefList::, Ref::
