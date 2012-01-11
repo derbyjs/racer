@@ -153,7 +153,7 @@ stm = module.exports =
         # without affecting the txn args
         args = args.slice()
         # Emit an event immediately on creation of the transaction
-        @emit method, args, true, @_pass
+        @emit method, args, out, true, @_pass
       txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
@@ -184,10 +184,10 @@ stm = module.exports =
       method = extractor.method mutation
       return if method is 'get'
       args = extractor.args mutation
-      obj = @_adapter[method] args..., ver, data
+      out = @_adapter[method] args..., ver, data
       @emit method + 'Post', args, ver
-      @emit method, args, isLocal, @_pass  if doEmit
-      return obj
+      @emit method, args, out, isLocal, @_pass  if doEmit
+      return out
     
     _specModel: ->
       txns = @_txns

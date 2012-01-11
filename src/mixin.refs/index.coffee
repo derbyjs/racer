@@ -58,7 +58,7 @@ module.exports =
       @on 'bundle', ->
         if model.getRef(from) == get
           args = [from, to, key]
-          model._onLoad.push ['ref', args]
+          model._onLoad.push ['refList', args]
       return @set from, get
 
   accessors:
@@ -130,7 +130,7 @@ Ref:: =
         path = callback re.exec(path)
         return if path is null
         args[0] = path
-        model.emit mutator, args, _arguments[1], _arguments[2]
+        model.emit mutator, args, _arguments[1], _arguments[2], _arguments[3]
     model.on 'mutator', listener
 
   destroy: ->
@@ -151,40 +151,36 @@ RefList = (@model, @from, to, key) ->
   @get = (lookup, data, path, props, len, i) ->
     obj = lookup(to, data) || {}
     dereffed = derefPath data, to
+    data.$deref = null
     map = lookup key, data
+    dereffedKey = derefPath data, key
     if i == len
       # Method is on the refList itself
       currPath = lookupPath dereffed, props, i
 
-      data.$deref = (method, args, model, obj) ->
+      data.$deref = (method, args, model) ->
         return path if method of basicMutators
 
         if method of arrayMutators
           # Handle index args if they are specified by id
-          # if indexArgs = arrayMutators[method].indexArgs
-          #   ids = {}
-          #   keyObj = adapter.get $k, data
-          #   for i in indexArgs
-          #     continue unless (id = args[i]?.id)?
-          #     # Store the id index in the txn metadata
-          #     ids[i] = id
-          #     # Few operations have multiple indexArgs, so OK to do this in the loop
-          #     args.meta = {ids}
-          #     # Replace id arg with the current index for the given id
-          #     for keyId, index in keyObj
-          #       if `keyId == id`
-          #         args[i] = index
-          #         break
+          if indexArgs = arrayMutators[method].indexArgs
+            for j in indexArgs
+              continue unless (arg = args[j]) && (id = arg.id)?
+              # Replace id arg with the current index for the given id
+              for keyId, index in map
+                if `keyId == id`
+                  args[j] = index
+                  break
 
           if j = mutators[method].insertArgs
             while arg = args[j]
               id = refListId arg
               # Set the object being inserted if it contains any properties
               # other than id
-              model.set to + '.' + id, arg  if hasKeys arg, 'id'
+              model.set dereffed + '.' + id, arg  if hasKeys arg, 'id'
               args[j] = id
               j++
-          return key
+          return dereffedKey
 
         throw new Error 'Unsupported method on refList'
 
@@ -211,14 +207,14 @@ RefList = (@model, @from, to, key) ->
           if method is 'set'
             id = refListId args[1]
             if map
-              model.set key + '.' + index, id
+              model.set dereffedKey + '.' + index, id
             else
-              model.set key, [id]
+              model.set dereffedKey, [id]
             return currPath + '.' + id
 
           if method is 'del'
             id = refListId obj
-            model.del key + '.' + index
+            model.del dereffedKey + '.' + index
             return currPath + '.' + id
 
           throw new Error 'Unsupported method on refList index'

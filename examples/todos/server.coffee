@@ -53,8 +53,8 @@ app.get '/:group', (req, res) ->
       <div id=dragbox></div>
       <div id=content><ul id=todos>#{listHtml}</ul></div>
       <script>init=#{bundle}</script>
-      <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js></script>
-      <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js></script>
+      <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js></script>
+      <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js></script>
       <script src=script.js></script>
       """
 

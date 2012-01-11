@@ -314,9 +314,10 @@ module.exports =
 
   'model events should indicate when locally emitted': wrapTest (done) ->
     model = new Model
-    model.on 'set', ([path, value], local) ->
+    model.on 'set', '*', (path, value, out, local) ->
       path.should.eql 'color'
       value.should.eql 'green'
+      out.should.eql 'green'
       local.should.eql true
       done()
     model.set 'color', 'green'
@@ -324,9 +325,10 @@ module.exports =
 
   'model events should indicate when not locally emitted': wrapTest (done) ->
     [sockets, model] = mockSocketModel '0'
-    model.on 'set', ([path, value], local) ->
+    model.on 'set', '*', (path, value, out, local) ->
       path.should.eql 'color'
       value.should.eql 'green'
+      out.should.eql 'green'
       local.should.eql false
       sockets._disconnect()
       done()
@@ -346,6 +348,17 @@ module.exports =
     model.set 'other', 3
     model.set 'color', 'green'
     model.set 'color', 'red'
+  , 1
+
+  'model.pass should pass an object to an event listener': wrapTest (done) ->
+    model = new Model
+    model.on 'set', 'color', (value, out, isLocal, pass) ->
+      value.should.equal 'green'
+      out.should.equal 'green'
+      isLocal.should.equal true
+      pass.should.equal 'hi'
+      done()
+    model.pass('hi').set 'color', 'green'
   , 1
 
   'test client emits events on receipt of a transaction iff it did not create the transaction': wrapTest (done) ->

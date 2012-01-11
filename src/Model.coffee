@@ -67,9 +67,9 @@ eventListener = (method, pattern, callback) ->
 
   # on(method, pattern, callback)
   re = pathParser.eventRegExp pattern
-  return ([path, args...], isLocal, pass) ->
+  return ([path, args...], out, isLocal, pass) ->
     if re.test path
-      callback re.exec(path).slice(1).concat(args, isLocal, pass)...
+      callback re.exec(path).slice(1).concat(args, out, isLocal, pass)...
       return true
 
 merge Model::, EventEmitter::,

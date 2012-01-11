@@ -120,6 +120,34 @@ describe 'Model.refList', ->
       3: {id: 3, val: 'c'}
     model.get('map').should.specEql [1, 2, 3]
 
+  it 'should support insert', ->
+    model = new Model
+    model.refList 'list', 'items', 'map'
+
+    len = model.insert 'list', 0, {id: 1, val: 'a'}, {id: 2, val: 'b'}
+    len.should.eql 2
+    model.get('list').should.specEql [
+      {id: 1, val: 'a'}
+      {id: 2, val: 'b'}
+    ]
+    model.get('items').should.specEql
+      1: {id: 1, val: 'a'}
+      2: {id: 2, val: 'b'}
+    model.get('map').should.specEql [1, 2]
+
+    len = model.insert 'list', 1, {id: 3, val: 'c'}
+    len.should.eql 3
+    model.get('list').should.specEql [
+      {id: 1, val: 'a'}
+      {id: 3, val: 'c'}
+      {id: 2, val: 'b'}
+    ]
+    model.get('items').should.specEql
+      1: {id: 1, val: 'a'}
+      2: {id: 2, val: 'b'}
+      3: {id: 3, val: 'c'}
+    model.get('map').should.specEql [1, 3, 2]
+
   it 'should support pop', ->
     model = new Model
     model.set 'items',
@@ -161,5 +189,174 @@ describe 'Model.refList', ->
       3: {id: 3, val: 'c'}
       7: {id: 7, val: 'g'}
     model.get('map').should.specEql [7]
-  
-  it 'should support '
+
+  it 'should support remove', ->
+    model = new Model
+    model.set 'items',
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.set 'map', [3, 7, 8]
+    model.refList 'list', 'items', 'map'
+
+    removed = model.remove 'list', 1
+    # Remove returns the removed keys, not the
+    # referenced objects
+    removed.should.eql [7]
+    model.get('list').should.specEql [
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+    ]
+    # Remove does not delete the underlying objects
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [3, 8]
+
+    removed = model.remove 'list', 0, 2
+    # Remove returns the removed keys, not the
+    # referenced objects
+    removed.should.eql [3, 8]
+    model.get('list').should.specEql []
+    # Remove does not delete the underlying objects
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql []
+
+  it 'should support move', ->
+    model = new Model
+    model.set 'items',
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.set 'map', [3, 7, 8]
+    model.refList 'list', 'items', 'map'
+
+    moved = model.move 'list', 1, 0
+    # Move returns the moved key, not the
+    # referenced object
+    moved.should.eql 7
+    model.get('list').should.specEql [
+      {id: 7, val: 'g'}
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+    ]
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [7, 3, 8]
+
+    moved = model.move 'list', 0, 2
+    # Move returns the moved key, not the
+    # referenced object
+    moved.should.eql 7
+    model.get('list').should.specEql [
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+      {id: 7, val: 'g'}
+    ]
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [3, 8, 7]
+
+  it 'should support insert by id', ->
+    model = new Model
+    model.set 'items',
+      1: {id: 1, val: 'a'}
+      2: {id: 2, val: 'b'}
+    model.set 'map', [1, 2]
+    model.refList 'list', 'items', 'map'
+
+    len = model.insert 'list', {id: 2}, {id: 3, val: 'c'}
+    len.should.eql 3
+    model.get('list').should.specEql [
+      {id: 1, val: 'a'}
+      {id: 3, val: 'c'}
+      {id: 2, val: 'b'}
+    ]
+    model.get('items').should.specEql
+      1: {id: 1, val: 'a'}
+      2: {id: 2, val: 'b'}
+      3: {id: 3, val: 'c'}
+    model.get('map').should.specEql [1, 3, 2]
+
+  it 'should support remove by id', ->
+    model = new Model
+    model.set 'items',
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.set 'map', [3, 7, 8]
+    model.refList 'list', 'items', 'map'
+
+    removed = model.remove 'list', {id: 7}
+    # Remove returns the removed keys, not the
+    # referenced objects
+    removed.should.eql [7]
+    model.get('list').should.specEql [
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+    ]
+    # Remove does not delete the underlying objects
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [3, 8]
+
+    removed = model.remove 'list', {id: 3}, 2
+    # Remove returns the removed keys, not the
+    # referenced objects
+    removed.should.eql [3, 8]
+    model.get('list').should.specEql []
+    # Remove does not delete the underlying objects
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql []
+
+  it 'should support move by id', ->
+    model = new Model
+    model.set 'items',
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.set 'map', [3, 7, 8]
+    model.refList 'list', 'items', 'map'
+
+    moved = model.move 'list', {id: 7}, 0
+    # Move returns the moved key, not the
+    # referenced object
+    moved.should.eql 7
+    model.get('list').should.specEql [
+      {id: 7, val: 'g'}
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+    ]
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [7, 3, 8]
+
+    moved = model.move 'list', {id: 7}, {id: 8}
+    # Move returns the moved key, not the
+    # referenced object
+    moved.should.eql 7
+    model.get('list').should.specEql [
+      {id: 3, val: 'c'}
+      {id: 8, val: 'h'}
+      {id: 7, val: 'g'}
+    ]
+    model.get('items').should.specEql
+      3: {id: 3, val: 'c'}
+      7: {id: 7, val: 'g'}
+      8: {id: 8, val: 'h'}
+    model.get('map').should.specEql [3, 8, 7]
