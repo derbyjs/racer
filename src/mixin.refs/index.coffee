@@ -78,6 +78,9 @@ derefPath = (data, to) ->
 Ref = (@model, @from, to, key) ->
   @listeners = []
 
+  unless from && to
+    throw new Error 'invalid arguments for model.ref'
+
   if key
     @get = (lookup, data, path, props, len, i) ->
       lookup to, data
@@ -149,6 +152,9 @@ refListId = (obj) ->
 
 RefList = (@model, @from, to, key) ->
   @listeners = []
+
+  unless from && to && key
+    throw new Error 'invalid arguments for model.refList'
 
   @get = (lookup, data, path, props, len, i) ->
     obj = lookup(to, data) || {}
