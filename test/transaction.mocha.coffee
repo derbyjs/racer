@@ -4,74 +4,74 @@ transaction = require '../src/transaction'
 pathParser = require '../src/pathParser'
 require '../src/transaction.server'
 
-module.exports =
+describe 'transaction', ->
   # Property getters
 
-  'test transaction.base': ->
+  it 'test transaction.base', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.base(txn).should.eql 2
 
-  'test transaction.id': ->
+  it 'test transaction.id', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.id(txn).should.eql '4.0'
 
-  'test transaction.method': ->
+  it 'test transaction.method', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.method(txn).should.eql 'set'
 
-  'test transaction.args': ->
+  it 'test transaction.args', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.args(txn).should.eql ['count', 1]
 
-  'test transaction.path': ->
+  it 'test transaction.path', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.path(txn).should.eql 'count'
 
-  'test transaction.ops': ->
+  it 'test transaction.ops', ->
     compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
     transaction.ops(compoundTxn).should.eql [transaction.op.create(method: 'set', args: ['count', 1])]
 
-  'test transaction.op.method': ->
+  it 'test transaction.op.method', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
     transaction.op.method(op).should.equal 'set'
 
-  'test transaction.op.args': ->
+  it 'test transaction.op.args', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
     transaction.op.args(op).should.eql ['count', 1]
 
   # Property setters
 
-  'test transaction.base setter': ->
+  it 'test transaction.base setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.base(txn).should.equal 2
     transaction.base txn, 3
     transaction.base(txn).should.equal 3
 
-  'test transaction.id setter': ->
+  it 'test transaction.id setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.id(txn).should.equal '4.0'
     transaction.id txn, '4.1'
     transaction.id(txn).should.equal '4.1'
 
-  'test transaction.method setter': ->
+  it 'test transaction.method setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.method(txn).should.equal 'set'
     transaction.method txn, 'del'
     transaction.method(txn).should.equal 'del'
 
-  'test transaction.args setter': ->
+  it 'test transaction.args setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.args(txn).should.eql ['count', 1]
     transaction.args txn, ['count', 9]
     transaction.args(txn).should.eql ['count', 9]
 
-  'test transaction.path setter': ->
+  it 'test transaction.path setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.path(txn).should.equal 'count'
     transaction.path txn, 'age'
     transaction.path(txn).should.equal 'age'
 
-  'test transaction.ops setter': ->
+  it 'test transaction.ops setter', ->
     firstOps = [transaction.op.create(method: 'set', args: ['count', 1])]
     txn = transaction.create base: 3, id: '4.1', ops: firstOps
     transaction.ops(txn).should.eql firstOps
@@ -79,13 +79,13 @@ module.exports =
     transaction.ops txn, secondOps
     transaction.ops(txn).should.eql secondOps
 
-  'test transaction.op.method setter': ->
+  it 'test transaction.op.method setter', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.op.method(op).should.equal 'set'
     transaction.op.method op, 'del'
     transaction.op.method(op).should.equal 'del'
 
-  'test transaction.op.args setter': ->
+  it 'test transaction.op.args setter', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     transaction.op.args(op).should.eql ['count', 1]
     transaction.op.args op, ['count', 2]
@@ -107,20 +107,20 @@ module.exports =
 
   # Path Conflict Detection
 
-  'paths where neither is a sub-path of the other should not conflict': ->
+  it 'paths where neither is a sub-path of the other should not conflict', ->
     transaction.pathConflict('abc', 'def').should.be.false
     transaction.pathConflict('def', 'abc').should.be.false # symmetric
     transaction.pathConflict('abc.de', 'abc.def').should.be.false
     transaction.pathConflict('abc.def', 'abc.de').should.be.false # symmetric
 
-  'paths where one is a sub-path of the other should conflict': ->
+  it 'paths where one is a sub-path of the other should conflict', ->
     transaction.pathConflict('abc', 'abc.def').should.be.true
     transaction.pathConflict('abc.def', 'abc').should.be.true # symmetric
     transaction.pathConflict('abc', 'abc').should.be.true
 
   # Transaction Conflict Detection
   
-  'test conflict detection between transactions': ->
+  it 'test conflict detection between transactions', ->
     txn0 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
     txn1 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
     txn2 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 0]

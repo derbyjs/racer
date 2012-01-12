@@ -1,9 +1,8 @@
 should = require 'should'
-{wrapTest} = require '../util'
 
-module.exports = (Adapter) ->
+module.exports = (Adapter) -> describe 'Adapter', ->
 
-  'test get and set': wrapTest (done) ->
+  it 'test get and set', (done) ->
     adapter = new Adapter
     adapter.get null, (err, value, ver) ->
       should.equal null, err
@@ -43,7 +42,7 @@ module.exports = (Adapter) ->
                     ver.should.eql 3
                     done()
 
-  'test del': wrapTest (done) ->
+  it 'test del', (done) ->
     adapter = new Adapter
     adapter.set 'color', 'green', 1, ->
       adapter.set 'info.numbers', {first: 2, second: 10}, 2, ->
@@ -66,7 +65,7 @@ module.exports = (Adapter) ->
                 ver.should.eql 4
                 done()
 
-  'test flush': wrapTest (done) ->
+  it 'test flush', (done) ->
     adapter = new Adapter
     adapter.set 'color', 'green', 1, ->
       adapter.flush (err) ->
@@ -77,7 +76,7 @@ module.exports = (Adapter) ->
           ver.should.eql 0
           done()
 
-  'should be able to push a single value onto an undefined path': wrapTest (done) ->
+  it 'should be able to push a single value onto an undefined path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.push 'colors', 'green', ++_ver, (err) ->
@@ -88,7 +87,7 @@ module.exports = (Adapter) ->
         ver.should.eql _ver
         done()
 
-  'should be able to pop from a single member array path': wrapTest (done) ->
+  it 'should be able to pop from a single member array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.push 'colors', 'green', ++_ver, (err) ->
@@ -105,7 +104,7 @@ module.exports = (Adapter) ->
             ver.should.eql _ver
             done()
 
-  'should be able to push multiple members onto an array path': wrapTest (done) ->
+  it 'should be able to push multiple members onto an array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.push 'colors', 'green', ++_ver, (err) ->
@@ -118,7 +117,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'should be able to pop from a multiple member array path': wrapTest (done) ->
+  it 'should be able to pop from a multiple member array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.push 'colors', 'red', 'blue', 'purple', ++_ver, (err) ->
@@ -131,7 +130,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'pop on a non array should result in a "Not an Array" error': wrapTest (done) ->
+  it 'pop on a non array should result in a "Not an Array" error', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
@@ -141,7 +140,7 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Not an Array'
         done()
 
-  'push on a non array should result in a "Not an Array" error': wrapTest (done) ->
+  it 'push on a non array should result in a "Not an Array" error', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
@@ -151,7 +150,7 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Not an Array'
         done()
 
-  'should be able to unshift a single value onto an undefined path': wrapTest (done) ->
+  it 'should be able to unshift a single value onto an undefined path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.unshift 'colors', 'green', ++_ver, (err) ->
@@ -162,7 +161,7 @@ module.exports = (Adapter) ->
         ver.should.equal _ver
         done()
 
-  'should be able to shift from a single member array path': wrapTest (done) ->
+  it 'should be able to shift from a single member array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.unshift 'colors', 'green', ++_ver, (err) ->
@@ -175,7 +174,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'should be able to unshift multiple members onto an array path': wrapTest (done) ->
+  it 'should be able to unshift multiple members onto an array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.unshift 'colors', 'red', 'blue', 'purple', ++_ver, (err) ->
@@ -186,7 +185,7 @@ module.exports = (Adapter) ->
         ver.should.equal _ver
         done()
 
-  'should be able to shift from a multiple member array path': wrapTest (done) ->
+  it 'should be able to shift from a multiple member array path', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.unshift 'colors', 'red', 'blue', 'purple', ++_ver, (err) ->
@@ -198,7 +197,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'shift on a non array should result in a "Not an Array" error': wrapTest (done) ->
+  it 'shift on a non array should result in a "Not an Array" error', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
@@ -208,7 +207,7 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Not an Array'
         done()
 
-  'unshift on a non array should result in a "Not an Array" error': wrapTest (done) ->
+  it 'unshift on a non array should result in a "Not an Array" error', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
@@ -218,7 +217,7 @@ module.exports = (Adapter) ->
         err.message.should.equal 'Not an Array'
         done()
 
-  'insert 0 on an undefined path should result in a new array': wrapTest (done) ->
+  it 'insert 0 on an undefined path should result in a new array', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.insert 'colors', 0, 'yellow', ++_ver, (err) ->
@@ -229,8 +228,7 @@ module.exports = (Adapter) ->
         ver.should.equal _ver
         done()
 
-  '''insert 0 on an empty array should fill the array
-  with only those elements''': wrapTest (done) ->
+  it 'insert 0 on an empty array should fill the array with only those elements', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', [], ++_ver, (err) ->
@@ -243,7 +241,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insert 0 in an array should act like a shift': wrapTest (done) ->
+  it 'insert 0 in an array should act like a shift', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
@@ -256,7 +254,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insert the length of an array should act like a push': wrapTest (done) ->
+  it 'insert the length of an array should act like a push', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['yellow', 'black'], ++_ver, (err) ->
@@ -269,7 +267,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insert should be able to insert in-between an array with length>=2': wrapTest (done) ->
+  it 'insert should be able to insert in-between an array with length>=2', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['violet', 'yellow', 'black'], ++_ver, (err) ->
@@ -282,7 +280,7 @@ module.exports = (Adapter) ->
           ver.should.equal _ver
           done()
 
-  'insert on a non-array should throw a "Not an Array" error': wrapTest (done) ->
+  it 'insert on a non-array should throw a "Not an Array" error', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'nonArray', '9', ++_ver, (err) ->
@@ -294,7 +292,7 @@ module.exports = (Adapter) ->
 
   # TODO Add remove tests
 
-  'moving from index A to index B should work': wrapTest (done) ->
+  it 'moving from index A to index B should work', (done) ->
     adapter = new Adapter
     _ver = 0
     adapter.set 'colors', ['red', 'orange', 'yellow', 'green', 'blue'], ++_ver, (err) ->

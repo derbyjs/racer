@@ -2,44 +2,46 @@ should = require 'should'
 redisInfo = require '../src/redisInfo'
 redis = require 'redis'
 
-# Silence console errors in testing
-redisInfo._console.error = ->
+describe 'redisInfo', ->
+  # Silence console errors in testing
+  __consoleError = console.error
 
-checkFirstStart = (starts) ->
-  starts.length.should.eql 1
-  startId = starts[0][0]
-  ver = starts[0][1]
-  [startTime, startsLength] = startId.split '.'
-  (new Date - startTime).should.be.within 0, 100
-  startsLength.should.eql '0'
-  ver.should.eql '0'
+  checkFirstStart = (starts) ->
+    starts.length.should.eql 1
+    startId = starts[0][0]
+    ver = starts[0][1]
+    [startTime, startsLength] = startId.split '.'
+    (new Date - startTime).should.be.within 0, 100
+    startsLength.should.eql '0'
+    ver.should.eql '0'
 
-client = null
-subClient = null
-module.exports =
-  setup: (done) ->
+  client = null
+  subClient = null
+
+  beforeEach (done) ->
     client = redis.createClient()
     subClient = redis.createClient()
     client.flushdb done
-  teardown: (done) ->
+
+  afterEach (done) ->
     client.flushdb ->
       client.end()
       subClient.end()
       done()
   
-  'getStarts should work with an uninitialized Redis instance': (done) ->
+  it 'getStarts should work with an uninitialized Redis instance', (done) ->
     redisInfo._getStarts client, (starts) ->
       checkFirstStart starts
       done()
   
-  'getStarts should log an error on an uninitialized Redis instance': (done) ->
-    redisInfo._console.error = (message) ->
+  it 'getStarts should log an error on an uninitialized Redis instance', (done) ->
+    console.error = (message) ->
       message.should.be.a 'string'
-      redisInfo._console.error = ->
+      console.error = __consoleError
       done()
     redisInfo._getStarts client, ->
   
-  'calling getStarts multiple times should work after calling onStart': (done) ->
+  it 'calling getStarts multiple times should work after calling onStart', (done) ->
     redisInfo.onStart client, ->
       client.lrange 'starts', 0, -1, (err, starts) ->
         starts1 = (start.split ',' for start in starts)
@@ -54,7 +56,7 @@ module.exports =
             , 10
         , 10
   
-  'onStart should capture the current version when it is called': (done) ->
+  it 'onStart should capture the current version when it is called', (done) ->
     client.set 'ver', 7, ->
       redisInfo.onStart client, ->
         client.set 'ver', 13, ->
@@ -63,13 +65,13 @@ module.exports =
             ver.should.eql '7'
             done()
   
-  'subscribeToStarts should return a list of starts immediately': (done) ->
+  it 'subscribeToStarts should return a list of starts immediately', (done) ->
     redisInfo.onStart client, ->
       redisInfo.subscribeToStarts subClient, client, (starts) ->
         checkFirstStart starts
         done()
   
-  'subscribeToStarts should callback on set of starts': (done) ->
+  it 'subscribeToStarts should callback on set of starts', (done) ->
     redisInfo.onStart client, ->
       count = 0
       redisInfo.subscribeToStarts subClient, client, (starts) ->

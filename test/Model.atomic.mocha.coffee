@@ -1,13 +1,12 @@
 Model = require '../src/Model'
 should = require 'should'
-util = require './util'
 transaction = require '../src/transaction'
-wrapTest = util.wrapTest
 
 {mockSocketModels} = require './util/model'
 
-module.exports =
-  'Model::atomic should log gets': wrapTest (done) ->
+describe 'Model.atomic', ->
+
+  it 'Model::atomic should log gets', (done) ->
     model = new Model
     model.atomic (model) ->
       model.get 'color'
@@ -16,8 +15,7 @@ module.exports =
       transaction.method(op).should.equal 'get'
       done()
 
-  '''AtomicModel::oplog should only contain the ops that
-  *it* has done''': wrapTest (done) ->
+  it 'AtomicModel::oplog should only contain the ops that *it* has done', (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (model) ->
@@ -29,8 +27,7 @@ module.exports =
       model._txnQueue.length.should.equal 2
       done()
 
-  '''AtomicModel should keep around the transactions of
-  its parent's model''': wrapTest (done) ->
+  it 'AtomicModel should keep around the transactions of its parents model', (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (model) ->
@@ -40,8 +37,7 @@ module.exports =
       transaction.args(parentTxn).should.eql ['direction', 'west']
       done()
 
-  '''AtomicModel sets should be reflected in the atomic
-  model but not the parent model''': wrapTest (done) ->
+  it 'AtomicModel sets should be reflected in the atomic model but not the parent model', (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel) ->
@@ -50,9 +46,7 @@ module.exports =
       atomicModel.get().should.specEql direction: 'north'
       done()
 
-  '''AtomicModel sets should be reflected in the parent
-  speculative model after an implicit commit -- i.e., if no
-  commit param was passed to model.atomic''': wrapTest (done) ->
+  it 'AtomicModel sets should be reflected in the parent speculative model after an implicit commit -- i.e., if no commit param was passed to model.atomic', (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel) ->
@@ -60,10 +54,7 @@ module.exports =
     model.get().should.specEql direction: 'north'
     done()
 
-  '''if passed an explicit commit callback, AtomicModel
-  should not reflect any of its ops in the parent speculative
-  model until the commit callback is invoked inside the
-  atomic block''': wrapTest (done) ->
+  it 'if passed an explicit commit callback, AtomicModel should not reflect any of its ops in the parent speculative model until the commit callback is invoked inside the atomic block', (done) ->
     model = new Model
     model.set 'direction', 'west'
     model.atomic (atomicModel, commit) ->
@@ -71,13 +62,11 @@ module.exports =
       setTimeout ->
         commit()
         done()
-      , 200
+      , 50
     model.get().should.specEql direction: 'west'
 
 
-  '''Model::atomic(lambda, callback) should invoke its
-  callback once it receives a successful response for
-  the txn from the upstream repo''': wrapTest (done) ->
+  it 'Model::atomic(lambda, callback) should invoke its callback once it receives a successful response for the txn from the upstream repo', (done) ->
     # stub out appropriate methods/callbacks in model
     # to fake a successful response without going through
     # additional Store + Socket.IO + STM + Redis stack
@@ -89,9 +78,7 @@ module.exports =
       sockets._disconnect()
       done()
 
-  '''Model::atomic(lambda, callback) should callback
-  with an error if the commit failed at some point
-  in an upstream repo''': wrapTest (done) ->
+  it 'Model::atomic(lambda, callback) should callback with an error if the commit failed at some point in an upstream repo', (done) ->
     [sockets, model] = mockSocketModels 'model', txnErr: 'conflict'
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
@@ -100,8 +87,7 @@ module.exports =
       sockets._disconnect()
       done()
 
-  '''AtomicModel commits should not callback if it has not
-  yet received the status of that commit''': wrapTest (done) ->
+  it 'AtomicModel commits should not callback if it has not yet received the status of that commit', (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: false
     counter = 1
     model.atomic (atomicModel) ->
@@ -112,11 +98,9 @@ module.exports =
       counter.should.equal 1
       sockets._disconnect()
       done()
-    , 200
+    , 50
 
-  '''AtomicModel should commit *all* its ops to the parent
-  model's permanent, non-speculative data upon a successful
-  transaction response from the parent repo''': wrapTest (done) ->
+  it 'AtomicModel should commit *all* its ops to the parent models permanent, non-speculative data upon a successful transaction response from the parent repo', (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     model.atomic (atomicModel) ->
       atomicModel.set 'color', 'green'
@@ -130,8 +114,7 @@ module.exports =
       sockets._disconnect()
       done()
 
-  '''a model should clean up its atomic model upon a
-  successful commit of that atomic model's transaction''': wrapTest (done) ->
+  it 'a model should clean up its atomic model upon a successful commit of that atomic models transaction', (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     atomicModelId = null
     model.atomic (atomicModel) ->
@@ -143,14 +126,13 @@ module.exports =
       sockets._disconnect()
       done()
 
-  '''a model should not clean up its atomic model before the
-  result of a commit (success or err) is known''': wrapTest (done) ->
+  it 'a model should not clean up its atomic model before the result of a commit (success or err) is known', (done) ->
     [sockets, model] = mockSocketModels 'model', txnOk: true
     atomicModelId = null
     model.atomic (atomicModel, commit) ->
       atomicModelId = atomicModel.id
       atomicModel.set 'direction', 'north'
-      setTimeout commit, 200
+      setTimeout commit, 50
     , (err) ->
       should.equal null, err
       should.equal undefined, model._atomicModels[atomicModelId]
@@ -158,8 +140,8 @@ module.exports =
       done()
     model._atomicModels[atomicModelId].should.not.be.undefined
 
-  '''an atomic model should be able to retry itself when
-  handling a commit err via the model.atomic callback''': -> # TODO
+  # TODO an atomic model should be able to retry itself when
+  # handling a commit err via the model.atomic callback
 
   # TODO Pass the following tests
 
@@ -171,25 +153,15 @@ module.exports =
 
   # TODO How to handle private paths?
 
-  'AtomicModel commits should get passed to Store': -> # TODO
+  # TODO AtomicModel commits should get passed to Store
 
-  'AtomicModel commits should get passed to STM': -> # TODO
+  # TODO AtomicModel commits should get passed to STM
 
-  '''a parent model should pass any speculative ops
-  to its child atomic models''': -> # TODO
+  # TODO a parent model should pass any speculative ops
+  # to its child atomic models
 
-  '''a parent model should pass any accepted ops to
-  its child atomic models''': -> #TODO
+  # TODO a parent model should pass any accepted ops to
+  # its child atomic models
 
-  '''a parent model should pass any aborted ops to
-  its child atomic models''': -> #TODO
-
-#  'a failed atomic transaction should not have any of its ops persisted': wrapTest (done)->
-#    [socket, modelA, modelB] = mockSocketModels 'modelA', 'modelB'
-#    modelA.atomic (model) ->
-#      model.set 'color', 'green'
-#      model.set 'volume', 'high'
-#    , (err) ->
-#      err.should.equal 'conflict'
-#      done()
-#  , 1
+  # TODO a parent model should pass any aborted ops to
+  # its child atomic models

@@ -2,27 +2,30 @@ should = require 'should'
 Stm = require '../src/Stm'
 transaction = require '../src/transaction'
 redis = require 'redis'
-client = null
-stm = null
 mockSocketModel = require('./util/model').mockSocketModel
-luaLock = null
-luaUnlock = null
-luaCommit = null
 
-module.exports =
-  setup: (done) ->
+describe 'Stm', ->
+
+  client = null
+  stm = null
+  luaLock = null
+  luaUnlock = null
+  luaCommit = null
+
+  beforeEach (done) ->
     client = redis.createClient()
     stm = new Stm client
     {luaLock, luaUnlock, luaCommit} = require('./util/Stm')(stm, client)
     client.flushdb done
-  teardown: (done) ->
+
+  afterEach (done) ->
     client.flushdb ->
       client.end()
       done()
   
   # Redis Lua script tests:
   
-  'Lua lock script should return valid timeout and transaction count': (done) ->
+  it 'Lua lock script should return valid timeout and transaction count', (done) ->
     luaLock 'one', 0, (err, values, timeout, lockClock) ->
       should.equal null, err
       
@@ -37,14 +40,14 @@ module.exports =
       lockClock.should.be.equal 2
       done()
   
-  'Lua lock script should truncate transaction count to 12 bits': (done) ->
+  it 'Lua lock script should truncate transaction count to 12 bits', (done) ->
     client.set 'lockClock', 0xdffffe
     luaLock 'color', 0, (err, values, timeout, lockClock) ->
       should.equal null, err
       lockClock.should.be.equal 0xfffff
       done()
   
-  'Lua lock script should detect conflicts properly': (done) ->
+  it 'Lua lock script should detect conflicts properly', (done) ->
     luaLock 'colors.0', 0, (err, values) ->
       should.equal null, err
       values[0].should.be.above 0
@@ -66,7 +69,7 @@ module.exports =
       values.should.equal 0
       done()
 
-  'Lua unlock script should remove locking conflict': (done) ->
+  it 'Lua unlock script should remove locking conflict', (done) ->
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
       lockVal = values[0]
@@ -79,7 +82,7 @@ module.exports =
         values[0].should.be.above 0
         done()
   
-  'Lua commit script should add transaction to journal, increment version, and release locks': (done) ->
+  it 'Lua commit script should add transaction to journal, increment version, and release locks', (done) ->
     txnOne = [0, '1.0', 'set', 'color', 'green']
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
@@ -100,7 +103,7 @@ module.exports =
           values[0].should.be.above 0
           done()
   
-  'Lua commit script should abort if locks are no longer held': (done) ->
+  it 'Lua commit script should abort if locks are no longer held', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     luaLock 'color', 0, (err, values) ->
       should.equal null, err
@@ -119,8 +122,22 @@ module.exports =
           should.equal null, err
           should.equal null, val
           done()
-  
-  'Lua commit should work with maximum sized transaction value': (done) ->
+
+  it 'Lua lock script should replaced timed out locks @slow', (done) ->
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values[0].should.be.above 0
+    luaLock 'color', 0, (err, values) ->
+      should.equal null, err
+      values.should.equal 0
+    timeoutFn = ->
+      luaLock 'color', 0, (err, values) ->
+        should.equal null, err
+        values[0].should.be.above 0
+        done()
+    setTimeout timeoutFn, (Stm._LOCK_TIMEOUT + 1) * 1000
+
+  it 'Lua commit should work with maximum sized transaction value', (done) ->
     client.set 'lockClock', 0xffffe
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     luaLock 'color', 0, (err, values, timeout, lockClock) ->
@@ -148,7 +165,7 @@ module.exports =
   
   # STM commit function tests:
   
-  'different-client, different-path, simultaneous transaction should succeed': (done) ->
+  it 'different-client, different-path, simultaneous transaction should succeed', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['favorite-skittle', 'red']
     stm.commit txnOne, (err) ->
@@ -157,7 +174,7 @@ module.exports =
       should.equal null, err
       done()
   
-  'different-client, same-path, simultaneous transaction should fail': (done) ->
+  it 'different-client, same-path, simultaneous transaction should fail', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['color', 'red']
     stm.commit txnOne, (err) ->
@@ -166,7 +183,7 @@ module.exports =
       err.should.eql 'conflict'
       done()
   
-  'different-client, same-path, sequential transaction should succeed': (done) ->
+  it 'different-client, same-path, sequential transaction should succeed', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 1, id: '2.0', method: 'set', args: ['color', 'red']
     stm.commit txnOne, (err) ->
@@ -175,7 +192,7 @@ module.exports =
       should.equal null, err
       done()
   
-  'same-client, same-path transaction should succeed in order': (done) ->
+  it 'same-client, same-path transaction should succeed in order', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 0, id: '1.1', method: 'set', args: ['color', 'red']
     stm.commit txnOne, (err) ->
@@ -184,7 +201,7 @@ module.exports =
       should.equal null, err
       done()
   
-  'same-client, same-path store transaction should fail in order': (done) ->
+  it 'same-client, same-path store transaction should fail in order', (done) ->
     txnOne = transaction.create base: 0, id: '#1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 0, id: '#1.1', method: 'set', args: ['color', 'red']
     stm.commit txnOne, (err) ->
@@ -193,7 +210,7 @@ module.exports =
       err.should.eql 'conflict'
       done()
   
-  'same-client, same-path transaction should fail out of order': (done) ->
+  it 'same-client, same-path transaction should fail out of order', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: 0, id: '1.1', method: 'set', args: ['color', 'red']
     stm.commit txnTwo, (err) ->
@@ -202,7 +219,7 @@ module.exports =
       err.should.eql 'conflict'
       done()
   
-  'setting a child path should conflict': (done) ->
+  it 'setting a child path should conflict', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['colors', ['green']]
     txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['colors.0', 'red']
     stm.commit txnOne, (err) ->
@@ -211,7 +228,7 @@ module.exports =
       err.should.eql 'conflict'
       done()
   
-  'setting a parent path should conflict': (done) ->
+  it 'setting a parent path should conflict', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['colors', ['green']]
     txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['colors.0', 'red']
     stm.commit txnTwo, (err) ->
@@ -220,7 +237,7 @@ module.exports =
       err.should.eql 'conflict'
       done()
   
-  'sending a duplicate transaction should be detected': (done) ->
+  it 'sending a duplicate transaction should be detected', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = txnOne.slice()
     stm.commit txnOne, (err) ->
@@ -229,7 +246,7 @@ module.exports =
       err.should.eql 'duplicate'
       done()
   
-  'a conflicting transaction with base of null or undefined should succeed': (done) ->
+  it 'a conflicting transaction with base of null or undefined should succeed', (done) ->
     txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
     txnTwo = transaction.create base: null, id: '2.0', method: 'set', args: ['color', 'red']
     txnThree = transaction.create base: undefined, id: '3.0', method: 'set', args: ['color', 'blue']
@@ -241,7 +258,7 @@ module.exports =
       should.equal null, err
       done()
   
-  'test client set roundtrip with STM': (done) ->
+  it 'test client set roundtrip with STM', (done) ->
     [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
       stm.commit txn, (err, version) ->
         should.equal null, err

@@ -1,19 +1,21 @@
 should = require 'should'
 Store = require '../src/Store'
 
-store = null
-module.exports =
-  setup: (done) ->
+describe 'Model.async', ->
+  store = null
+
+  beforeEach (done) ->
     store = new Store
     store.flush done
-  teardown: (done) ->
+
+  afterEach (done) ->
     store.flush ->
       store._redisClient.end()
       store._subClient.end()
       store._txnSubClient.end()
       done()
 
-  'test model.async.retry': (done) ->
+  it 'test model.async.retry', (done) ->
     model = store.createModel()
     incr = (path, callback) ->
       model.async.retry (atomic) ->

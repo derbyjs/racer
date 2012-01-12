@@ -62,6 +62,3 @@ module.exports =
         getStarts client, callback
     subClient.subscribe '$redisInfo'
     getStarts client, callback
-  
-  # Export console for testing
-  _console: console

@@ -1,10 +1,9 @@
 should = require 'should'
-util = require './util'
 {createObject, createArray, create, isSpeculative} = require '../src/specHelper'
 
-module.exports =
+describe 'specHelper', ->
 
-  'test create with object': ->
+  it 'test create with object', ->
     proto = hey: 'Howdy!'
     obj = create proto
     isSpeculative(obj).should.eql true
@@ -16,7 +15,7 @@ module.exports =
     obj.should.specEql hey: 'Howdy!', more: 5
     proto.should.eql hey: 'Howdy!'
 
-  'test createObject': ->
+  it 'test createObject', ->
     obj = createObject()
     isSpeculative(obj).should.eql true
     obj.should.specEql {}
@@ -25,7 +24,7 @@ module.exports =
     isSpeculative(obj).should.eql true
     obj.should.specEql more: 5
 
-  'test create with array': ->
+  it 'test create with array', ->
     proto = [0, 'stuff']
     arr = create proto
     isSpeculative(arr).should.eql true
@@ -47,7 +46,7 @@ module.exports =
     arr.should.specEql [0]
     proto.should.eql [0, 'stuff']
 
-  'test createArray': ->
+  it 'test createArray', ->
     arr = createArray()
     isSpeculative(arr).should.eql true
     Array.isArray(arr).should.eql true

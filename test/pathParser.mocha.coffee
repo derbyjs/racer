@@ -9,8 +9,9 @@ testRegExps = (reList, sources, matches, nonMatches) ->
         re.exec(match).slice(1).should.eql captures
     re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
 
-module.exports =
-  'paths containing a segment starting with an underscore should be private': ->
+describe 'pathParser', ->
+
+  it 'paths containing a segment starting with an underscore should be private', ->
     isPrivate('_stuff').should.be.true
     isPrivate('item._stu_ff').should.be.true
     isPrivate('a.b.c.d._e.f.g').should.be.true
@@ -20,13 +21,13 @@ module.exports =
     isPrivate('item.stuff_').should.be.false
     isPrivate('item_sdf.s_tuff').should.be.false
 
-  'test split': ->
+  it 'test split', ->
     split('colors.green').should.eql ['colors.green']
     split('*.colors').should.eql ['', 'colors']
     split('colors.(green,red)').should.eql ['colors', 'green,red)']
     split('colors.*.hex').should.eql ['colors', 'hex']
   
-  'test expand': ->
+  it 'test expand', ->
     expand('colors.green').should.eql [
       'colors.green'
     ]
@@ -92,7 +93,7 @@ module.exports =
       'here.fun.stuff'
     ].sort()
 
-  'test compiling of path patterns into RegEx': ->
+  it 'test compiling of path patterns into RegEx', ->
     reList = (regExp pattern for pattern in [
       ''
       'color'
@@ -124,7 +125,7 @@ module.exports =
     ]
     testRegExps reList, sources, matches, nonMatches
 
-  'test compiling of event patterns into RegEx': ->
+  it 'test compiling of event patterns into RegEx', ->
     reList = (eventRegExp pattern for pattern in [
       'color'
       '*'

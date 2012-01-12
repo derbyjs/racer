@@ -5,14 +5,6 @@ specHelper = require '../../src/specHelper'
 ignore = '$out': 1, '$deref': 1
 ignore[specHelper.identifier] = 1
 
-# For Expresso
-exports.wrapTest = (fn, num = 1) ->
-  (beforeExit) ->
-    n = 0
-    fn -> n++
-    beforeExit ->
-      n.should.equal num
-
 # For Mocha
 exports.calls = (num, fn) ->
   (done) ->

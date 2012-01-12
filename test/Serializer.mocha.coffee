@@ -1,9 +1,9 @@
 Serializer = require '../src/Serializer'
 should = require 'should'
 
-module.exports =
+describe 'Serializer', ->
   
-  'should not apply a transaction greater than the next index': ->
+  it 'should not apply a transaction greater than the next index', ->
     applied = []
     txnApplier = new Serializer
       withEach: (txn) -> applied.push txn
@@ -11,7 +11,7 @@ module.exports =
     txnApplier.add [2, '0.1', 'set', 'foo', 'bar'], 2
     applied.should.eql []
   
-  'should immediately apply a transaction that matches the next index': ->
+  it 'should immediately apply a transaction that matches the next index', ->
     applied = []
     txnApplier = new Serializer
       withEach: (txn) -> applied.push txn
@@ -20,7 +20,7 @@ module.exports =
     txnApplier.add txn, 1
     applied.should.eql [txn]
   
-  'out of order transactions should be applied in the correct order': ->
+  it 'out of order transactions should be applied in the correct order', ->
     applied = []
     txnApplier = new Serializer
       withEach: (txn) -> applied.push txn

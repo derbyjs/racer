@@ -1,10 +1,8 @@
 should = require 'should'
-require '../util'
-specHelper = require '../../src/specHelper'
 
-module.exports = (AdapterSync) ->
+module.exports = (AdapterSync) -> describe 'AdapterSync', ->
 
-  'test get and set': ->
+  it 'test get and set', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
@@ -32,7 +30,7 @@ module.exports = (AdapterSync) ->
     adapterSync.get().should.specEql {color: 'green', info: 'new'}
     adapterSync.version.should.equal ver
 
-  'speculative setting a nested path should not throw an error': ->
+  it 'speculative setting a nested path should not throw an error', ->
     adapterSync = new AdapterSync
     didErr = false
     try
@@ -41,7 +39,7 @@ module.exports = (AdapterSync) ->
       didErr = true
     didErr.should.be.false
 
-  'getting an unset path should return undefined': ->
+  it 'getting an unset path should return undefined', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'info.numbers', {}, ver, null
@@ -50,7 +48,7 @@ module.exports = (AdapterSync) ->
     should.equal undefined, adapterSync.get('color.favorite')
     should.equal undefined, adapterSync.get('info.numbers.first')
 
-  'test del': ->
+  it 'test del', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'color', 'green', ver, null
@@ -70,14 +68,14 @@ module.exports = (AdapterSync) ->
 
     adapterSync.version.should.equal ver
 
-  'should be able to push a single value onto an undefined path': ->
+  it 'should be able to push a single value onto an undefined path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
     adapterSync.push 'colors', 'green', ver, null
     adapterSync.get('colors').should.specEql ['green']
 
-  'should be able to pop from a single member array path': ->
+  it 'should be able to pop from a single member array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
@@ -85,7 +83,7 @@ module.exports = (AdapterSync) ->
     adapterSync.pop 'colors', ver, null
     adapterSync.get('colors').should.specEql []
 
-  'should be able to push multiple members onto an array path': ->
+  it 'should be able to push multiple members onto an array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
@@ -93,14 +91,14 @@ module.exports = (AdapterSync) ->
     adapterSync.push 'colors', 'red', 'blue', 'purple', ver, null
     adapterSync.get('colors').should.specEql ['green', 'red', 'blue', 'purple']
 
-  'should be able to pop from a multiple member array path': ->
+  it 'should be able to pop from a multiple member array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.push 'colors', 'red', 'blue', 'purple', ver, null
     adapterSync.pop 'colors', ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue']
 
-  'pop on a non array should throw a "Not an Array" error': ->
+  it 'pop on a non array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -112,7 +110,7 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
-  'push on a non array should throw a "Not an Array" error': ->
+  it 'push on a non array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -125,14 +123,14 @@ module.exports = (AdapterSync) ->
     didThrowNotAnArray.should.be.true
 
 
-  'should be able to unshift a single value onto an undefined path': ->
+  it 'should be able to unshift a single value onto an undefined path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
     adapterSync.unshift 'colors', 'green', ver, null
     adapterSync.get('colors').should.specEql ['green']
 
-  'should be able to shift from a single member array path': ->
+  it 'should be able to shift from a single member array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
@@ -140,14 +138,14 @@ module.exports = (AdapterSync) ->
     adapterSync.shift 'colors', ver, null
     adapterSync.get('colors').should.specEql []
 
-  'should be able to unshift multiple members onto an array path': ->
+  it 'should be able to unshift multiple members onto an array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
     adapterSync.unshift 'colors', 'red', 'blue', 'purple', ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue', 'purple']
 
-  'should be able to shift from a multiple member array path': ->
+  it 'should be able to shift from a multiple member array path', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
@@ -155,7 +153,7 @@ module.exports = (AdapterSync) ->
     adapterSync.shift 'colors', ver, null
     adapterSync.get('colors').should.specEql ['blue', 'purple']
 
-  'shift on a non array should throw a "Not an Array" error': ->
+  it 'shift on a non array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -167,7 +165,7 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
-  'unshift on a non array should throw a "Not an Array" error': ->
+  it 'unshift on a non array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -179,42 +177,42 @@ module.exports = (AdapterSync) ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
-  'insert 0 on an undefined path should result in a new array': ->
+  it 'insert 0 on an undefined path should result in a new array', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}
     adapterSync.insert 'colors', 0, 'yellow', ver, null
     adapterSync.get('colors').should.specEql ['yellow']
 
-  'insert 0 on an empty array should fill the array with only those elements': ->
+  it 'insert 0 on an empty array should fill the array with only those elements', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', [], ver, null
     adapterSync.insert 'colors', 0, 'yellow', ver, null
     adapterSync.get('colors').should.specEql ['yellow']
 
-  'insert 0 in an array should act like a shift': ->
+  it 'insert 0 in an array should act like a shift', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ver, null
     adapterSync.insert 'colors', 0, 'violet', ver, null
     adapterSync.get('colors').should.specEql ['violet', 'yellow', 'black']
 
-  'insert the length of an array should act like a push': ->
+  it 'insert the length of an array should act like a push', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'black'], ver, null
     adapterSync.insert 'colors', 2, 'violet', ver, null
     adapterSync.get('colors').should.specEql ['yellow', 'black', 'violet']
 
-  'insert should be able to insert in-between an array with length >= 2': ->
+  it 'insert should be able to insert in-between an array with length >= 2', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['violet', 'yellow', 'black'], ver, null
     adapterSync.insert 'colors', 1, 'orange', ver, null
     adapterSync.get('colors').should.specEql ['violet', 'orange', 'yellow', 'black']
 
-  'insert -1 should throw an "Out of Bounds" error': ->
+  it 'insert -1 should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
@@ -226,7 +224,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'insert == length + 1 should throw an "Out of Bounds" error': ->
+  it 'insert == length + 1 should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
@@ -238,7 +236,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'insert > length + 1 should throw an "Out of Bounds" error': ->
+  it 'insert > length + 1 should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow'], ver, null
@@ -251,7 +249,7 @@ module.exports = (AdapterSync) ->
     didThrowOutOfBounds.should.be.true
 
 
-  'insert on a non-array should throw a "Not an Array" error': ->
+  it 'insert on a non-array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -264,70 +262,70 @@ module.exports = (AdapterSync) ->
     didThrowNotAnArray.should.be.true
 
 
-  'test move of an array item to the same index': ->
+  it 'test move of an array item to the same index', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 1, 1, ver, null
     adapterSync.get('colors').should.specEql ['red', 'green', 'blue']
   
-  'test move of an array item from a negative index to the equivalent positive index': ->
+  it 'test move of an array item from a negative index to the equivalent positive index', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', -1, 2, ver, null
     adapterSync.get('colors').should.specEql ['red', 'green', 'blue']
 
-  'test move of an array item from a positive index to the equivalent negative index': ->
+  it 'test move of an array item from a positive index to the equivalent negative index', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 0, -3, ver, null
     adapterSync.get('colors').should.specEql ['red', 'green', 'blue']
 
-  'test move of an array item to a later index': ->
+  it 'test move of an array item to a later index', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 0, 2, ver, null
     adapterSync.get('colors').should.specEql ['green', 'blue', 'red']
 
-  'test move of an array item to a later index, from negative': ->
+  it 'test move of an array item to a later index, from negative', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', -3, 2, ver, null
     adapterSync.get('colors').should.specEql ['green', 'blue', 'red']
 
-  'test move of an array item to a later index, to negative': ->
+  it 'test move of an array item to a later index, to negative', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 0, -1, ver, null
     adapterSync.get('colors').should.specEql ['green', 'blue', 'red']
 
-  'test move of an array item to an earlier index': ->
+  it 'test move of an array item to an earlier index', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 2, 1, ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue', 'green']
 
-  'test move of an array item to an earlier index, from negative': ->
+  it 'test move of an array item to an earlier index, from negative', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', -1, 1, ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue', 'green']
   
-  'test move of an array item to an earlier index, to negative': ->
+  it 'test move of an array item to an earlier index, to negative', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['red', 'green', 'blue'], ver, null
     adapterSync.move 'colors', 2, -2, ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue', 'green']
 
-  'move from > max index should throw an "Out of Bounds" error': ->
+  it 'move from > max index should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'purple'], ver, null
@@ -339,7 +337,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
-  'move from <= -len should throw an "Out of Bounds" error': ->
+  it 'move from <= -len should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'purple'], ver, null
@@ -351,7 +349,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
-  'move to > max index should throw an "Out of Bounds" error': ->
+  it 'move to > max index should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'purple'], ver, null
@@ -363,7 +361,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
-  'move to <= -len should throw an "Out of Bounds" error': ->
+  it 'move to <= -len should throw an "Out of Bounds" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'colors', ['yellow', 'purple'], ver, null
@@ -375,7 +373,7 @@ module.exports = (AdapterSync) ->
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
-  'move on a non-array should throw a "Not an Array" error': ->
+  it 'move on a non-array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.set 'nonArray', '9', ver, null
@@ -388,7 +386,7 @@ module.exports = (AdapterSync) ->
     didThrowNotAnArray.should.be.true
 
 
-  'test remove (from array)': ->
+  it 'test remove (from array)', ->
     adapterSync = new AdapterSync
     ver = 0
     adapterSync.get().should.specEql {}

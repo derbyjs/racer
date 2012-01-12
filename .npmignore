@@ -1,12 +1,5 @@
 *.swp
 *.gz
 *.rdb
+test-output.tmp
 node_modules/
-Model.md
-NOTES
-TODO
-STORE_VS_MODEL.md
-src/GRAMMAR.md
-src/tmp.coffee
-examples/*/*.gz
-.gitignore

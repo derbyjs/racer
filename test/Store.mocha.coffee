@@ -4,19 +4,22 @@ Store = require '../src/Store'
 redis = require 'redis'
 transaction = require '../src/transaction'
 
-store = null
-module.exports =
-  setup: (done) ->
+describe 'Store', ->
+
+  store = null
+
+  beforeEach (done) ->
     store = new Store
     store.flush done
-  teardown: (done) ->
+
+  afterEach (done) ->
     store.flush ->
       store._redisClient.end()
       store._subClient.end()
       store._txnSubClient.end()
       done()
   
-  'flush should delete everything in the adapter and redisClient': (done) ->
+  it 'flush should delete everything in the adapter and redisClient', (done) ->
     callbackCount = 0
     store._adapter.set 'color', 'green', 1, ->
       store._redisClient.set 'color', 'green', ->
@@ -38,7 +41,7 @@ module.exports =
                   value.should.eql ['clientClock', 'starts']
                   done()
   
-  'flush should return an error if the adapter fails to flush': (done) ->
+  it 'flush should return an error if the adapter fails to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
     store.flush (err) ->
@@ -46,7 +49,7 @@ module.exports =
       (++callbackCount).should.eql 1
       done()
   
-  'flush should return an error if the redisClient fails to flush': (done) ->
+  it 'flush should return an error if the redisClient fails to flush', (done) ->
     callbackCount = 0
     store._redisClient.flushdb = (callback) -> callback new Error
     store.flush (err) ->
@@ -54,7 +57,7 @@ module.exports =
       (++callbackCount).should.eql 1
       done()
   
-  'flush should return an error if the adapter and redisClient fail to flush': (done) ->
+  it 'flush should return an error if the adapter and redisClient fail to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
     store._redisClient.flushdb = (callback) -> callback new Error
@@ -63,7 +66,7 @@ module.exports =
       (++callbackCount).should.eql 1
       done()
 
-  'test that subscribe only copies the appropriate properties': (done) ->
+  it 'test that subscribe only copies the appropriate properties', (done) ->
     tests =
       '': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}}
       'a': {a: {b: 1, c: 2, d: [1, 2]}}
@@ -83,7 +86,7 @@ module.exports =
             model.get().should.specEql expected
             finish()
 
-  'store._commit should apply transactions in order': (done) ->
+  it 'store._commit should apply transactions in order', (done) ->
     idIn = []
     idOut = []
     for i in [0..9]
