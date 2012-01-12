@@ -1,5 +1,5 @@
 {merge, hasKeys} = require '../util'
-pathParser = require '../pathParser'
+{eventRegExp, isPrivate} = require '../pathParser'
 
 mutators = {}
 basicMutators = {}
@@ -42,13 +42,22 @@ module.exports =
     refList: (from, to, key) ->
       return @_createRef RefList, from, to, key
 
+    _checkRefPath: (from) ->
+      @_adapter.get from, data = @_specModel(), true
+      unless isPrivate derefPath data, from
+        throw new Error 'cannot create ref on public path ' + from
+      return
+
     _createRef: (RefType, from, to, key) ->
+      @_checkRefPath from
       return @set from, (new RefType this, from, to, key).get
 
   serverProto:
     _createRef: (RefType, from, to, key) ->
-      model = this
+      @_checkRefPath from
       {get, modelMethod} = new RefType this, from, to, key
+
+      model = this
       @on 'bundle', ->
         if model.getRef(from) == get
           args = if key then [from, to, key] else [from, to]
@@ -118,7 +127,7 @@ Ref:: =
 
   addListener: (pattern, callback) ->
     {model, from, get} = self = this
-    re = pathParser.eventRegExp pattern
+    re = eventRegExp pattern
     self.listeners.push listener = (mutator, _arguments) ->
       args = _arguments[0]
       path = args[0]

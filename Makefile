@@ -29,4 +29,4 @@ test-fast:
 
 test: test-mocha
 test!:
-	@perl -n -e '/\[31m  0\) (.*?).\[0m/ && print "make test g=\"$$1\""' $(OUT_FILE) | sh
+	@perl -n -e '/\[31m  0\) (.*?).\[0m/ && print "make test g=\"$$1\$$\""' $(OUT_FILE) | sh
