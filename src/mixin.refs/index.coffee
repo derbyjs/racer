@@ -37,28 +37,22 @@ module.exports =
       return derefPath data, path
 
     ref: (from, to, key) ->
-      return @set from, (new Ref this, from, to, key).get
+      return @_createRef Ref, from, to, key
 
     refList: (from, to, key) ->
-      return @set from, (new RefList this, from, to, key).get
-  
+      return @_createRef RefList, from, to, key
+
+    _createRef: (RefType, from, to, key) ->
+      return @set from, (new RefType this, from, to, key).get
+
   serverProto:
-    ref: (from, to, key) ->
+    _createRef: (RefType, from, to, key) ->
       model = this
-      get = (new Ref this, from, to, key).get
+      {get, modelMethod} = new RefType this, from, to, key
       @on 'bundle', ->
         if model.getRef(from) == get
           args = if key then [from, to, key] else [from, to]
-          model._onLoad.push ['ref', args]
-      return @set from, get
-
-    refList: (from, to, key) ->
-      model = this
-      get = (new RefList this, from, to, key).get
-      @on 'bundle', ->
-        if model.getRef(from) == get
-          args = [from, to, key]
-          model._onLoad.push ['refList', args]
+          model._onLoad.push [modelMethod, args]
       return @set from, get
 
   accessors:
@@ -142,6 +136,8 @@ Ref:: =
     model = @model
     for listener in @listeners
       model.removeListener 'mutator', listener
+  
+  modelMethod: 'ref'
 
 
 # TODO: Allow a name other than 'id' for the key id property?
@@ -259,4 +255,5 @@ RefList = (@model, @from, to, key) ->
 
   return
 
-merge RefList::, Ref::
+merge RefList::, Ref::,
+  modelMethod: 'refList'
