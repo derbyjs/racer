@@ -46,7 +46,6 @@ ot = module.exports =
 
   proto:
     ## OT field functions ##
-    # model.ot initStr
     ot: (initVal) -> $ot: initVal || ''
 
     isOtPath: (path) ->

@@ -182,35 +182,35 @@ describe 'Model.ot', ->
 
   # TODO: Get this passing again!!!
 
-  # it 'an OT op in window A should be reflected in the data of a window Bs browser model that loads after window A and its OT op', (done) ->
-  #   browserRacer = require '../src/racer.browser'
-  #   fullyWiredModels 2, (sockets, store, modelA, modelC) ->
+  it 'an OT op in window A should be reflected in the data of a window Bs browser model that loads after window A and its OT op', (done) ->
+    browserRacer = require '../src/racer.browser'
+    fullyWiredModels 2, (sockets, store, modelA, modelC) ->
 
-  #     createModelB = ->
-  #       serverModelB = store.createModel()
-  #       path = modelC.dereference('_test')
-  #       serverModelB.subscribe _test: path, ->
-  #         serverModelB.bundle (bundle) ->
-  #           bundle = JSON.parse bundle
-  #           bundle.socket = new BrowserSocketMock sockets
-  #           browserModelB = new Model
-  #           browserRacer.init.call model: browserModelB, bundle
-  #           browserModelB.get('_test.text').should.equal 'axyzbcdefg'
+      createModelB = ->
+        serverModelB = store.createModel()
+        path = modelC.dereference('_test')
+        serverModelB.subscribe _test: path, ->
+          serverModelB.bundle (bundle) ->
+            bundle = JSON.parse bundle
+            bundle.socket = new BrowserSocketMock sockets
+            browserModelB = new Model
+            browserRacer.init.call model: browserModelB, bundle
+            browserModelB.get('_test.text').should.equal 'axyzbcdefg'
 
-  #           sockets._disconnect()
-  #           store.disconnect()
-  #           done()
+            sockets._disconnect()
+            store.disconnect()
+            done()
 
-  #     didInsert = false
-  #     didSet = false
-  #     modelC.on 'set', '_test.text', ->
-  #       didSet = true
-  #       createModelB() if didInsert
-  #     modelC.on 'insertOT', '_test.text', ->
-  #       didInsert = true
-  #       createModelB() if didSet
-  #     modelA.set '_test.text', modelA.ot 'abcdefg'
-  #     modelA.insertOT '_test.text', 1, 'xyz'
+      didInsert = false
+      didSet = false
+      modelC.on 'set', '_test.text', ->
+        didSet = true
+        createModelB() if didInsert
+      modelC.on 'insertOT', '_test.text', ->
+        didInsert = true
+        createModelB() if didSet
+      modelA.set '_test.text', modelA.ot 'abcdefg'
+      modelA.insertOT '_test.text', 1, 'xyz'
 
 
 #  # TODO ## Realtime mode conflicts (w/STM) ##

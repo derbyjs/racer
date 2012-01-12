@@ -80,5 +80,5 @@ ServerModel::_addSub = (paths, callback) ->
       # get copied on the server. Implement something that does this
       # just for the memory store instead of doing it here
       self._initSubData JSON.parse JSON.stringify data
-      self._initSubOtData JSON.parse JSON.stringify otData
+      self._initSubOtData otData
       callback()

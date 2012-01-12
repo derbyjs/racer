@@ -124,13 +124,15 @@ Ref:: =
     re = pathParser.eventRegExp pattern
     self.listeners.push listener = (mutator, _arguments) ->
       args = _arguments[0]
-      if re.test path = args[0]
+      path = args[0]
+      if re.test path
         return self.destroy() if model.getRef(from) != get
         args = args.slice()
         path = callback re.exec(path), mutator, args
         return if path is null
         args[0] = path
         model.emit mutator, args, _arguments[1], _arguments[2], _arguments[3]
+      return
     model.on 'mutator', listener
 
   destroy: ->
