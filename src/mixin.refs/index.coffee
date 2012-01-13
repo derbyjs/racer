@@ -42,9 +42,9 @@ module.exports =
     refList: (from, to, key) ->
       return @_createRef RefList, from, to, key
 
-    fn: (from, inputs..., callback) ->
-      @_checkRefPath from
-      return createFn this, from, inputs, callback
+    fn: (path, inputs..., callback) ->
+      @_checkRefPath path
+      return createFn this, path, inputs, callback
 
     _checkRefPath: (from) ->
       @_adapter.get from, data = @_specModel(), true
@@ -275,17 +275,30 @@ merge RefList::, Ref::,
   modelMethod: 'refList'
 
 
-createFn = (model, from, inputs, callback) ->
+createFn = (model, path, inputs, callback) ->
   run = ->
     value = callback (model.get input for input, i in inputs)...
-    model.set from, value
+    model.set path, value
     return value
+  out = run()
 
+  # Create regular expression matching the path or any of its parents
+  p = ''
+  source = (for segment, i in path.split '.'
+    "(?:#{p += if i then '\\.' + segment else segment})"
+  ).join '|'
+  reSelf = new RegExp '^' + source + '$'
+
+  # Create regular expression matching any of the inputs or
+  # child paths of any of the inputs
   source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
-  re = new RegExp '^' + source + '$'
+  reInput = new RegExp '^' + source + '$'
 
-  model.on 'mutator', (mutator, [[path]]) ->
-    run() if re.test path
+  listener = model.on 'mutator', (mutator, [[path]]) ->
+    if reSelf.test(path) && model.get(path) is undefined
+      model.removeListener 'mutator', listener
+    else if reInput.test path
+      run()
     return
 
-  return run()
+  return out

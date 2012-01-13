@@ -78,3 +78,43 @@ describe 'Model.fn', ->
       {score: 2, name: 'y'}
       {score: 10, name: 'x'}
     ]
+
+  it 'has no effect after being deleted', ->
+    model = new Model
+    model.set 'arg1', 3
+    model.set 'arg2', 5
+    model.fn '_out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+    model.get('_out').should.equal 15
+
+    model.del '_out'
+    should.equal undefined, model.get('_out')
+
+    model.set 'arg1', 1
+    should.equal undefined, model.get('_out')
+
+  it 'has no effect after its parent is deleted', ->
+    model = new Model
+    model.set 'arg1', 3
+    model.set 'arg2', 5
+    model.fn 'stuff._out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+    model.get('stuff._out').should.equal 15
+
+    model.del 'stuff'
+    should.equal undefined, model.get('stuff._out')
+
+    model.set 'arg1', 1
+    should.equal undefined, model.get('stuff._out')
+
+  it 'emits a set event when an input changes', (done) ->
+    model = new Model
+    model.set 'arg1', 3
+    model.set 'arg2', 5
+    model.fn '_out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+
+    model.on 'set', '_out', (value, previous, isLocal) ->
+      value.should.equal 5
+      previous.should.equal 15
+      isLocal.should.equal true
+      done()
+    
+    model.set 'arg1', 1
