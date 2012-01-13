@@ -1,4 +1,4 @@
-{merge, hasKeys} = require '../util'
+{merge, hasKeys, isServer} = require '../util'
 {eventRegExp, isPrivate} = require '../pathParser'
 
 mutators = {}
@@ -20,8 +20,8 @@ module.exports =
 
     for mutator of mutators
       do (mutator) ->
-        model.on mutator, ->
-          model.emit 'mutator', mutator, arguments
+        model.on mutator, ([path]) ->
+          model.emit 'mutator', mutator, path, arguments
 
     @on 'beforeTxn', (method, args) ->
       return unless path = args[0]
@@ -44,6 +44,8 @@ module.exports =
 
     fn: (path, inputs..., callback) ->
       @_checkRefPath path
+      if typeof callback is 'string'
+        callback = do new Function 'return ' + callback
       return createFn this, path, inputs, callback
 
     _checkRefPath: (from) ->
@@ -58,23 +60,43 @@ module.exports =
       @set from, get
       return get
 
-  serverProto:
-    _createRef: (RefType, from, to, key) ->
-      @_checkRefPath from
-      {get, modelMethod} = new RefType this, from, to, key
-
-      model = this
-      @on 'bundle', ->
-        if model.getRef(from) == get
-          args = if key then [from, to, key] else [from, to]
-          model._onLoad.push [modelMethod, args]
-      @set from, get
-      return get
-
   accessors:
     getRef:
       type: 'basic'
       fn: (path) -> @_adapter.get path, @_specModel(), true
+
+  createFn: createFn = (model, path, inputs, callback) ->
+    modelPassFn = model.pass('fn')
+    run = ->
+      value = callback (model.get input for input, i in inputs)...
+      modelPassFn.set path, value
+      return value
+    out = run()
+
+    # Create regular expression matching the path or any of its parents
+    p = ''
+    source = (for segment, i in path.split '.'
+      "(?:#{p += if i then '\\.' + segment else segment})"
+    ).join '|'
+    reSelf = new RegExp '^' + source + '$'
+
+    # Create regular expression matching any of the inputs or
+    # child paths of any of the inputs
+    source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
+    reInput = new RegExp '^' + source + '$'
+
+    listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
+      return if _arguments[3] == 'fn'
+
+      if reSelf.test(mutatorPath) && (test = model.get path) != out
+        model.removeListener 'mutator', listener
+      else if reInput.test mutatorPath
+        out = run()
+      return
+
+    return out
+
+require './server' if isServer
 
 
 lookupPath = (path, props, i) ->
@@ -135,12 +157,10 @@ Ref:: =
   addListener: (pattern, callback) ->
     {model, from, get} = self = this
     re = eventRegExp pattern
-    self.listeners.push listener = (mutator, _arguments) ->
-      args = _arguments[0]
-      path = args[0]
+    self.listeners.push listener = (mutator, path, _arguments) ->
       if re.test path
         return self.destroy() if model.getRef(from) != get
-        args = args.slice()
+        args = _arguments[0].slice()
         path = callback re.exec(path), mutator, args
         return if path is null
         args[0] = path
@@ -273,32 +293,3 @@ RefList = (@model, @from, to, key) ->
 
 merge RefList::, Ref::,
   modelMethod: 'refList'
-
-
-createFn = (model, path, inputs, callback) ->
-  run = ->
-    value = callback (model.get input for input, i in inputs)...
-    model.set path, value
-    return value
-  out = run()
-
-  # Create regular expression matching the path or any of its parents
-  p = ''
-  source = (for segment, i in path.split '.'
-    "(?:#{p += if i then '\\.' + segment else segment})"
-  ).join '|'
-  reSelf = new RegExp '^' + source + '$'
-
-  # Create regular expression matching any of the inputs or
-  # child paths of any of the inputs
-  source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
-  reInput = new RegExp '^' + source + '$'
-
-  listener = model.on 'mutator', (mutator, [[path]]) ->
-    if reSelf.test(path) && model.get(path) is undefined
-      model.removeListener 'mutator', listener
-    else if reInput.test path
-      run()
-    return
-
-  return out

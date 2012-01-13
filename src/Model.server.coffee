@@ -20,7 +20,6 @@ ServerModel::_onTxn = (txn) ->
   self = this
   @clientIdPromise.on (clientId) ->
     self.store._nextTxnNum clientId, (num) ->
-      self._txnNum = num
       self._baseOnTxn txn, num
 
 ServerModel::_commit = (txn) ->
@@ -62,8 +61,7 @@ ServerModel::_bundle = (callback) ->
     clientId: clientId
     storeSubs: @_storeSubs
     startId: @_startId
-    txnCount: @_txnCount
-    txnNum: @_txnNum
+    txnCount: @_count.txn
     ioUri: @_ioUri
 
 ServerModel::_addSub = (paths, callback) ->

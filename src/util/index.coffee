@@ -1,5 +1,8 @@
 module.exports =
 
+  isServer: isServer = typeof window is 'undefined'
+  isProduction: isServer && process.env.NODE_ENV is 'production'
+
   mergeAll: (to, froms...) ->
     for from in froms
       if from

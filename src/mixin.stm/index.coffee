@@ -27,7 +27,8 @@ stm = module.exports =
     # atomic models that have been generated stored by atomic transaction id.
     @_atomicModels = {}
 
-    @_txnCount = 0
+    @_count =
+      txn: 0
     @_txns = txns = {}
     @_txnQueue = txnQueue = []
     adapter = @_adapter
@@ -64,7 +65,7 @@ stm = module.exports =
     @async = new Async this
 
   setupSocket: (socket) ->
-    {_adapter, _txns, _txnQueue, _onTxn, _removeTxn} = self = this
+    {_adapter: adapter, _onTxn: onTxn, _removeTxn: removeTxn, _txns: txns, _txnQueue: txnQueue} = self = this
     
     @_commit = commit = (txn) ->
       return if txn.isPrivate || !socket.socket.connected
@@ -72,17 +73,17 @@ stm = module.exports =
       socket.emit 'txn', txn, self._startId
 
     # STM Callbacks
-    socket.on 'txn', _onTxn
+    socket.on 'txn', onTxn
 
     socket.on 'txnNum', @_onTxnNum
 
     socket.on 'txnOk', (txnId, base, num) ->
-      return unless txn = _txns[txnId]
+      return unless txn = txns[txnId]
       transaction.base txn, base
-      _onTxn txn, num
+      onTxn txn, num
 
     socket.on 'txnErr', (err, txnId) ->
-      txn = _txns[txnId]
+      txn = txns[txnId]
       if txn && (callback = txn.callback)
         if transaction.isCompound txn
           callbackArgs = transaction.ops txn
@@ -90,22 +91,22 @@ stm = module.exports =
           callbackArgs = transaction.args(txn).slice 0
         callbackArgs.unshift err
         callback callbackArgs...
-      _removeTxn txnId
+      removeTxn txnId
     # Request any transactions that may have been missed
     @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.version + 1, self._startId
 
     resendInterval = null
     resend = ->
       now = +new Date
-      for id in _txnQueue
-        txn = _txns[id]
+      for id in txnQueue
+        txn = txns[id]
         return if !txn || txn.timeout > now
         commit txn
 
     socket.on 'connect', ->
       # Resend all transactions in the queue
-      for id in _txnQueue
-        commit _txns[id]
+      for id in txnQueue
+        commit txns[id]
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
@@ -123,7 +124,7 @@ stm = module.exports =
 
     ## Transaction handling ##
     
-    _nextTxnId: -> @_clientId + '.' + @_txnCount++
+    _nextTxnId: -> @_clientId + '.' + @_count.txn++
 
     _queueTxn: (txn, callback) ->
       txn.callback = callback

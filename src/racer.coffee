@@ -4,7 +4,7 @@ socketio = require 'socket.io'
 ioClient = require 'socket.io-client'
 browserify = require 'browserify'
 uglify = require 'uglify-js'
-util = require './util'
+{isProduction} = util = require './util'
 session = require './session'
 
 DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
@@ -40,7 +40,7 @@ racer = module.exports =
 
   js: (options, callback) ->
     [callback, options] = [options, {}] if typeof options is 'function'
-    if (minify = options.minify) is undefined then minify = true
+    if ({minify} = options) is undefined then minify = isProduction
     options.filter = uglify if minify
 
     ioClient.builder DEFAULT_TRANSPORTS, {minify}, (err, value) ->

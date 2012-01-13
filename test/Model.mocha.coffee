@@ -351,6 +351,15 @@ describe 'Model', ->
       done()
     model.pass('hi').set 'color', 'green'
 
+  it 'model.pass should support setting', ->
+    model = new Model
+    model.pass('hi').set 'color', 'green'
+    model.get('color').should.eql 'green'
+    model.set 'color2', 'red'
+    model.get().should.specEql
+      color: 'green'
+      color2: 'red'
+
   it 'test client emits events on receipt of a transaction iff it did not create the transaction', (done) ->
     [sockets, model] = mockSocketModel('clientA')
     eventCalled = false
