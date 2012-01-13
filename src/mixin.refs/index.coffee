@@ -42,10 +42,14 @@ module.exports =
     refList: (from, to, key) ->
       return @_createRef RefList, from, to, key
 
+    fn: (from, inputs..., callback) ->
+      @_checkRefPath from
+      return createFn this, from, inputs, callback
+
     _checkRefPath: (from) ->
       @_adapter.get from, data = @_specModel(), true
       unless isPrivate derefPath data, from
-        throw new Error 'cannot create ref on public path ' + from
+        throw new Error 'cannot create ref or fn on public path ' + from
       return
 
     _createRef: (RefType, from, to, key) ->
@@ -269,3 +273,19 @@ RefList = (@model, @from, to, key) ->
 
 merge RefList::, Ref::,
   modelMethod: 'refList'
+
+
+createFn = (model, from, inputs, callback) ->
+  run = ->
+    value = callback (model.get input for input, i in inputs)...
+    model.set from, value
+    return value
+
+  source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
+  re = new RegExp '^' + source + '$'
+
+  model.on 'mutator', (mutator, [[path]]) ->
+    run() if re.test path
+    return
+
+  return run()

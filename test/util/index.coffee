@@ -11,6 +11,9 @@ exports.calls = (num, fn) ->
     done() if num == n = 0
     fn -> done() if ++n >= num
 
+exports.isNaN = (value) ->
+  (value != value).should.be.true
+
 flatten = (a) ->
   if typeof a is 'object'
     obj = if Array.isArray a then [] else {}
