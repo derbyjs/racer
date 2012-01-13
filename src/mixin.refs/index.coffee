@@ -65,7 +65,7 @@ module.exports =
       type: 'basic'
       fn: (path) -> @_adapter.get path, @_specModel(), true
 
-  createFn: createFn = (model, path, inputs, callback) ->
+  createFn: createFn = (model, path, inputs, callback, destroy) ->
     modelPassFn = model.pass('fn')
     run = ->
       value = callback (model.get input for input, i in inputs)...
@@ -90,6 +90,7 @@ module.exports =
 
       if reSelf.test(mutatorPath) && (test = model.get path) != out
         model.removeListener 'mutator', listener
+        destroy() if destroy
       else if reInput.test mutatorPath
         out = run()
       return
