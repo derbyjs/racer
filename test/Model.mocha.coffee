@@ -142,11 +142,12 @@ describe 'Model', ->
   it 'test speculative value of set', ->
     model = new Model '0'
     
-    out = model.set 'color', 'green'
-    out.should.eql 'green'
+    previous = model.set 'color', 'green'
+    should.equal undefined, previous
     model.get('color').should.eql 'green'
     
-    model.set 'color', 'red'
+    previous = model.set 'color', 'red'
+    previous.should.equal 'green'
     model.get('color').should.eql 'red'
     
     model.set 'info.numbers', first: 2, second: 10
@@ -194,8 +195,8 @@ describe 'Model', ->
             first: 2
             second: 10
   
-    out = model.del 'color'
-    out.should.eql 'green'
+    previous = model.del 'color'
+    previous.should.eql 'green'
     model.get().should.specEql
       info:
         numbers:
@@ -308,20 +309,20 @@ describe 'Model', ->
 
   it 'model events should indicate when locally emitted', (done) ->
     model = new Model
-    model.on 'set', '*', (path, value, out, local) ->
+    model.on 'set', '*', (path, value, previous, local) ->
       path.should.eql 'color'
       value.should.eql 'green'
-      out.should.eql 'green'
+      should.equal undefined, previous
       local.should.eql true
       done()
     model.set 'color', 'green'
 
   it 'model events should indicate when not locally emitted', (done) ->
     [sockets, model] = mockSocketModel '0'
-    model.on 'set', '*', (path, value, out, local) ->
+    model.on 'set', '*', (path, value, previous, local) ->
       path.should.eql 'color'
       value.should.eql 'green'
-      out.should.eql 'green'
+      should.equal undefined, previous
       local.should.eql false
       sockets._disconnect()
       done()
@@ -342,9 +343,9 @@ describe 'Model', ->
 
   it 'model.pass should pass an object to an event listener', (done) ->
     model = new Model
-    model.on 'set', 'color', (value, out, isLocal, pass) ->
+    model.on 'set', 'color', (value, previous, isLocal, pass) ->
       value.should.equal 'green'
-      out.should.equal 'green'
+      should.equal undefined, previous
       isLocal.should.equal true
       pass.should.equal 'hi'
       done()

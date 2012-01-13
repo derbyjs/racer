@@ -50,7 +50,9 @@ module.exports =
 
     _createRef: (RefType, from, to, key) ->
       @_checkRefPath from
-      return @set from, (new RefType this, from, to, key).get
+      {get} = new RefType this, from, to, key
+      @set from, get
+      return get
 
   serverProto:
     _createRef: (RefType, from, to, key) ->
@@ -62,7 +64,8 @@ module.exports =
         if model.getRef(from) == get
           args = if key then [from, to, key] else [from, to]
           model._onLoad.push [modelMethod, args]
-      return @set from, get
+      @set from, get
+      return get
 
   accessors:
     getRef:

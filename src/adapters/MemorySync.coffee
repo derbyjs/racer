@@ -24,8 +24,9 @@ MemorySync:: =
 
   set: (path, value, ver, data) ->
     @setVersion ver
-    {1: parent, 2: prop} = lookupSet path, data || @_data, `ver == null`, 'object'
-    return parent[prop] = value
+    [obj, parent, prop] = lookupSet path, data || @_data, `ver == null`, 'object'
+    parent[prop] = value
+    return obj
 
   del: (path, ver, data) ->
     @setVersion ver
@@ -155,9 +156,10 @@ lookupSet = (path, data, speculative, pathType) ->
     else
       break unless pathType
       # If pathType is truthy, create empty parent objects implied by path
-      curr = parent[prop] = if speculative
-          if pathType is 'array' && i == len then createArray() else createObject()
-        else
-          if pathType is 'array' && i == len then [] else {}
+      if i == len
+        if pathType is 'array'
+          curr = parent[prop] = if speculative then createArray() else []
+        break
+      curr = parent[prop] = if speculative then createObject() else {}
 
   return [curr, parent, prop]

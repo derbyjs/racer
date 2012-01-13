@@ -295,7 +295,9 @@ stm = module.exports =
         # incr(path)
         else if typeof byNum isnt 'number'
           byNum = 1
-        @set path, (@get(path) || 0) + byNum, callback
+        value = (@get(path) || 0) + byNum
+        @set path, value, callback
+        return value
 
     push:
       type: 'array'
