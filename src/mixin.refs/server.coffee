@@ -4,9 +4,9 @@ uglify = require 'uglify-js'
 
 refs.proto._createRef = (RefType, from, to, key) ->
     @_checkRefPath from
-    {get, modelMethod} = new RefType this, from, to, key
+    model = @_root
+    {get, modelMethod} = new RefType model, from, to, key
 
-    model = this
     @on 'bundle', ->
       return unless model._getRef(from) == get
       args = if key then [from, to, key] else [from, to]
@@ -17,7 +17,7 @@ refs.proto._createRef = (RefType, from, to, key) ->
 cbs = {}
 refs.proto.fn = (path, inputs..., callback) ->
   @_checkRefPath path
-  model = this
+  model = @_root
   listener = @on 'bundle', ->
     cb = callback.toString()
     if isProduction
@@ -28,5 +28,5 @@ refs.proto.fn = (path, inputs..., callback) ->
         cbs[cb] = uglified.substr 1, uglified.length - 4
       )
     model._onLoad.push ['fn', [path, inputs..., cb]]
-  return createFn this, path, inputs, callback, ->
+  return createFn model, path, inputs, callback, ->
     model.removeListener 'bundle', listener

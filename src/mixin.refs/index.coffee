@@ -1,4 +1,4 @@
-{merge, hasKeys, isServer} = require '../util'
+{mergeAll, hasKeys, isServer} = require '../util'
 {eventRegExp, isPrivate} = require '../pathParser'
 
 # TODO: Add support for model aliases
@@ -18,7 +18,7 @@ module.exports =
     return
 
   init: ->
-    model = this
+    model = @_root
 
     for mutator of mutators
       do (mutator) ->
@@ -30,7 +30,7 @@ module.exports =
 
       obj = @_adapter.get path, data = @_specModel()
       if fn = data.$deref
-        args[0] = fn method, args, this, obj
+        args[0] = fn method, args, model, obj
       return
 
   proto:
@@ -48,7 +48,7 @@ module.exports =
       @_checkRefPath path
       if typeof callback is 'string'
         callback = do new Function 'return ' + callback
-      return createFn this, path, inputs, callback
+      return createFn @_root, path, inputs, callback
 
     _checkRefPath: (from) ->
       @_adapter.get from, data = @_specModel(), true
@@ -58,10 +58,10 @@ module.exports =
 
     _createRef: (RefType, from, to, key) ->
       @_checkRefPath from
-      {get} = new RefType this, from, to, key
+      {get} = new RefType @_root, from, to, key
       @set from, get
       return get
-    
+
     _getRef: (path) -> @_adapter.get path, @_specModel(), true
 
 
@@ -295,5 +295,5 @@ RefList = (@model, @from, to, key) ->
 
   return
 
-merge RefList::, Ref::,
+mergeAll RefList::, Ref::,
   modelMethod: 'refList'

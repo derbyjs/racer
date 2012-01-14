@@ -168,6 +168,10 @@ describe 'Model.at', ->
     stuff.insert 0, 'green', 'red'
     model.get().should.specEql
       stuff: ['green', 'red']
+    
+    stuff.insert '1', 'yellow'
+    model.get().should.specEql
+      stuff: ['green', 'yellow', 'red']
 
     # If inserting to an object, the first argument must be a property path
     stuff.set {}
@@ -177,6 +181,9 @@ describe 'Model.at', ->
 
     stuff.insert 'names', 1, 'Ben', ->
     stuff.get('names').should.specEql ['Sam', 'Ben', 'Jill']
+
+    stuff.insert 'names', '2', 'Karen', ->
+    stuff.get('names').should.specEql ['Sam', 'Ben', 'Karen', 'Jill']
 
   it 'supports pop', ->
     model = new Model
@@ -234,7 +241,7 @@ describe 'Model.at', ->
     stuff.remove(1, ->).should.specEql ['red']
     stuff.get().should.specEql ['green', 'yellow', 'purple']
 
-    stuff.remove(0, 2).should.specEql ['green', 'yellow']
+    stuff.remove('0', 2).should.specEql ['green', 'yellow']
     stuff.get().should.specEql ['purple']
 
     stuff.remove(0, 1, ->).should.specEql ['purple']
@@ -264,6 +271,9 @@ describe 'Model.at', ->
 
     stuff.move(0, 3, ->).should.equal 'green'
     stuff.get().should.specEql ['blue', 'red', 'yellow', 'green']
+
+    stuff.move('0', 1).should.equal 'blue'
+    stuff.get().should.specEql ['red', 'blue', 'yellow', 'green']
 
     stuff.set names: ['Sam', 'Jill', 'Ben']
     stuff.move('names', 2, 0).should.equal 'Ben'

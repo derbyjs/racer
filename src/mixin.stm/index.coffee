@@ -370,7 +370,8 @@ stm = module.exports =
       insertArgs: 2
       fn: (args...) ->
         if at = @_at
-          if typeof (path = args[0]) is 'string'
+          # isNaN will be false for index values in a string like '3'
+          if typeof (path = args[0]) is 'string' && isNaN path
             args[0] = at + '.' + path
           else
             args.unshift at
@@ -406,7 +407,8 @@ stm = module.exports =
       indexArgs: [1]
       fn: (path, start, howMany, callback) ->
         if at = @_at
-          path = if typeof path is 'string'
+          # isNaN will be false for index values in a string like '3'
+          path = if typeof path is 'string' && isNaN path
             at + '.' + path
           else
             callback = howMany
@@ -428,7 +430,8 @@ stm = module.exports =
       indexArgs: [1, 2]
       fn: (path, from, to, callback) ->
         if at = @_at
-          path = if typeof path is 'string'
+          # isNaN will be false for index values in a string like '3'
+          path = if typeof path is 'string' && isNaN path
             at + '.' + path
           else
             callback = to

@@ -1,14 +1,14 @@
 MemorySync = require './adapters/MemorySync'
 pathParser = require './pathParser'
 {EventEmitter} = require 'events'
-{mergeAll: merge} = require './util'
+{mergeAll} = require './util'
 
-Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
-  self = this
-  self._adapter = adapter = new AdapterClass
+Model = module.exports = (@_clientId = '', Adapter = MemorySync) ->
+  @_root = this
+  @_adapter = new Adapter
 
   for {init} in Model.mixins
-    init.call self if init
+    init.call this if init
 
   return
 
@@ -49,8 +49,9 @@ Model:: =
       setupSocket.call @, socket if setupSocket
 
   # Create a model object scoped to a particular path
-  at: (segment) -> Object.create this, _at:
-    value: if (at = @_at) then at + '.' + segment else segment
+  at: (segment) -> Object.create this,
+    _root: {value: this}
+    _at: {value: if (at = @_at) then at + '.' + segment else segment}
 
   # Used to pass an additional argument to local events. This value is
   # added to the event arguments in mixin.stm
@@ -86,7 +87,7 @@ eventListener = (method, pattern, callback, at) ->
       callback emitArgs...
       return true
 
-merge Model::, EventEmitter::,
+mergeAll Model::, EventEmitter::,
   # EventEmitter::on/addListener and once return this. The Model equivalents
   # return the listener instead, since it is made internally for method
   # subscriptions and may need to be passed to removeListener
@@ -125,7 +126,7 @@ Model.mutators = {}
 onMixins = []
 Model.mixin = (mixin) ->
   Model.mixins.push mixin
-  merge Model::, mixin.static, mixin.proto
+  mergeAll Model::, mixin.static, mixin.proto
 
   for category in ['accessors', 'mutators']
     cache = Model[category]
