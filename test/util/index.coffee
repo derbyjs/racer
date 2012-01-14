@@ -11,7 +11,7 @@ exports.calls = (num, fn) ->
     done() if num == n = 0
     fn -> done() if ++n >= num
 
-exports.isNaN = (value) ->
+exports.shouldEqualNaN = (value) ->
   (value != value).should.be.true
 
 flatten = (a) ->

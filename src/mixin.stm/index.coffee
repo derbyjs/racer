@@ -93,7 +93,7 @@ stm = module.exports =
         callback callbackArgs...
       removeTxn txnId
     # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', _adapter.version + 1, self._startId
+    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.version + 1, self._startId
 
     resendInterval = null
     resend = ->

@@ -25,4 +25,3 @@ module.exports = (stm, client) ->
     locks = stm._getLocks path
     client.eval Stm._COMMIT, locks.length, locks..., lockVal, JSON.stringify(transaction), (err, ver) ->
       callback err, ver
-

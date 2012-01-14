@@ -150,7 +150,6 @@ describe 'Model.ref', ->
     model = new Model
     model.ref '_color', 'colors.green'
     model.on 'set', 'colors.green.*', cb = (prop, value, previous, isLocal) ->
-      console.log previous
       prop.should.equal 'hex'
       value.should.equal '#0f0'
       should.equal undefined, previous

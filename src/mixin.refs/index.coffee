@@ -88,7 +88,10 @@ module.exports =
     listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
       return if _arguments[3] == 'fn'
 
-      if reSelf.test(mutatorPath) && (test = model.get path) != out
+      if reSelf.test(mutatorPath) && (test = model.get path) != out && (
+        # Don't remove if both test and out are NaN
+        test == test || out == out
+      )
         model.removeListener 'mutator', listener
         destroy() if destroy
       else if reInput.test mutatorPath

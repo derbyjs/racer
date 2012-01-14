@@ -1,6 +1,6 @@
 Model = require '../src/Model'
 should = require 'should'
-{calls, isNaN} = require './util'
+{calls, shouldEqualNaN} = require './util'
 
 describe 'Model.fn', ->
 
@@ -29,7 +29,7 @@ describe 'Model.fn', ->
     model.get('_out').should.eql 20
 
     model.del 'arg2'
-    isNaN model.get('_out')
+    shouldEqualNaN model.get('_out')
 
     model.set 'arg2', 7
     model.get('_out').should.eql 28
@@ -79,6 +79,20 @@ describe 'Model.fn', ->
       {score: 10, name: 'x'}
     ]
 
+  it 'emits a set event when an input changes', (done) ->
+    model = new Model
+    model.set 'arg1', 3
+    model.set 'arg2', 5
+    model.fn '_out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+
+    model.on 'set', '_out', (value, previous, isLocal) ->
+      value.should.equal 5
+      previous.should.equal 15
+      isLocal.should.equal true
+      done()
+    
+    model.set 'arg1', 1
+
   it 'has no effect after being deleted', ->
     model = new Model
     model.set 'arg1', 3
@@ -105,16 +119,30 @@ describe 'Model.fn', ->
     model.set 'arg1', 1
     should.equal undefined, model.get('stuff._out')
 
-  it 'emits a set event when an input changes', (done) ->
+  it 'has no effect after its parent is set to something else', ->
     model = new Model
     model.set 'arg1', 3
     model.set 'arg2', 5
-    model.fn '_out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+    model.fn 'stuff._out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+    model.get('stuff._out').should.equal 15
 
-    model.on 'set', '_out', (value, previous, isLocal) ->
-      value.should.equal 5
-      previous.should.equal 15
-      isLocal.should.equal true
-      done()
-    
+    model.set 'stuff', {_out: 'new stuff'}
+    model.get('stuff._out').should.equal 'new stuff'
+
     model.set 'arg1', 1
+    model.get('stuff._out').should.equal 'new stuff'
+
+  it 'is not removed when its output should be NaN', ->
+    model = new Model
+    model.set 'arg1', 3
+    model.set 'arg2', undefined
+    model.set 'arr', []
+    model.fn 'arr.0._out', 'arg1', 'arg2', (arg1, arg2) -> arg1 * arg2
+
+    model.set 'arg1', 1
+    shouldEqualNaN model.get('arr.0._out')
+    model.push 'arr', 'stuff'
+    model.set 'arg1', 2
+    shouldEqualNaN model.get('arr.0._out')
+    model.set 'arg2', 7
+    model.get('arr.0._out').should.equal 14
