@@ -49,9 +49,8 @@ Model:: =
       setupSocket.call @, socket if setupSocket
 
   # Create a model object scoped to a particular path
-  at: (segment) -> Object.create this,
-    _root: {value: this}
-    _at: {value: if (at = @_at) then at + '.' + segment else segment}
+  at: (segment) -> Object.create this, _at:
+    value: if (at = @_at) then at + '.' + segment else segment
 
   # Used to pass an additional argument to local events. This value is
   # added to the event arguments in mixin.stm
