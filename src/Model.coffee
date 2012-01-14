@@ -10,10 +10,6 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
   for {init} in Model.mixins
     init.call self if init
 
-  # The value of @_silent is checked in @_addOpAsTxn. It can be used to perform an
-  # operation without triggering an event locally, such as model.silent.set
-  self.silent = Object.create self, _silent: value: true
-
   return
 
 

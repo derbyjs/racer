@@ -149,12 +149,11 @@ stm = module.exports =
       @_queueTxn txn, callback
       out = @_specModel().$out
 
-      unless @_silent
-        # Clone the args, so that they can be modified before being emitted
-        # without affecting the txn args
-        args = args.slice()
-        # Emit an event immediately on creation of the transaction
-        @emit method, args, out, true, @_pass
+      # Clone the args, so that they can be modified before being emitted
+      # without affecting the txn args
+      args = args.slice()
+      # Emit an event immediately on creation of the transaction
+      @emit method, args, out, true, @_pass
       txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
@@ -165,7 +164,7 @@ stm = module.exports =
       @_removeTxn transaction.id txn
 
       data = @_adapter._data
-      doEmit = !(txn.emitted || @_silent)
+      doEmit = !txn.emitted
       ver = transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
