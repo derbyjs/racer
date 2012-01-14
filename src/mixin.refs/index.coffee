@@ -1,6 +1,8 @@
 {merge, hasKeys, isServer} = require '../util'
 {eventRegExp, isPrivate} = require '../pathParser'
 
+# TODO: Add support for model aliases
+
 mutators = {}
 basicMutators = {}
 arrayMutators = {}
@@ -59,11 +61,9 @@ module.exports =
       {get} = new RefType this, from, to, key
       @set from, get
       return get
+    
+    _getRef: (path) -> @_adapter.get path, @_specModel(), true
 
-  accessors:
-    getRef:
-      type: 'basic'
-      fn: (path) -> @_adapter.get path, @_specModel(), true
 
   createFn: createFn = (model, path, inputs, callback, destroy) ->
     modelPassFn = model.pass('fn')
@@ -163,7 +163,7 @@ Ref:: =
     re = eventRegExp pattern
     self.listeners.push listener = (mutator, path, _arguments) ->
       if re.test path
-        return self.destroy() if model.getRef(from) != get
+        return self.destroy() if model._getRef(from) != get
         args = _arguments[0].slice()
         path = callback re.exec(path), mutator, args
         return if path is null

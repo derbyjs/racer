@@ -109,11 +109,11 @@ describe 'Model.ref', ->
     model.push '_items', 'item'
     model.get('arr').should.specEql ['item']
 
-  it 'adds a model.getRef method', ->
+  it 'adds a model._getRef method', ->
     model = new Model
     ref = model.ref '_firstNumber', 'numbers.first'
     should.equal model.get('_firstNumber'), undefined
-    should.equal model.getRef('_firstNumber'), ref
+    should.equal model._getRef('_firstNumber'), ref
 
   it 'does not have an effect after being deleted', ->
     model = new Model

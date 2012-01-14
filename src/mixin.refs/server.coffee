@@ -8,7 +8,7 @@ refs.proto._createRef = (RefType, from, to, key) ->
 
     model = this
     @on 'bundle', ->
-      return unless model.getRef(from) == get
+      return unless model._getRef(from) == get
       args = if key then [from, to, key] else [from, to]
       model._onLoad.push [modelMethod, args]
     @set from, get

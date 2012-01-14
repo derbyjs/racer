@@ -21,6 +21,8 @@ ot = module.exports =
     get:
       type: 'basic'
       fn: (path) ->
+        if at = @_at
+          path = if path then at + '.' + path else at
         val = @_adapter.get path, @_specModel()
         if val && val.$ot?
           return @_otField(path, val).snapshot

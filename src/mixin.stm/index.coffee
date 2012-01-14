@@ -264,83 +264,156 @@ stm = module.exports =
     get:
       type: 'basic'
       fn: (path) ->
+        if at = @_at
+          path = if path then at + '.' + path else at
         @_adapter.get path, @_specModel()
 
   mutators:
 
     set:
       type: 'basic'
-      fn: (path, val, callback) ->
-        @_addOpAsTxn 'set', [path, val], callback
+      fn: (path, value, callback) ->
+        if at = @_at
+          len = arguments.length
+          path = if len is 1 || len is 2 && typeof value is 'function'
+            callback = value
+            value = path
+            at
+          else
+            at + '.' + path
+        @_addOpAsTxn 'set', [path, value], callback
 
     del:
       type: 'basic'
       fn: (path, callback) ->
+        if at = @_at
+          path = if typeof path is 'string'
+            at + '.' + path
+          else
+            callback = path
+            at
         @_addOpAsTxn 'del', [path], callback
 
     setNull:
       type: 'compound'
       fn: (path, value, callback) ->
-        obj = @get path
+        len = arguments.length
+        obj = if @_at && len is 1 || len is 2 && typeof value is 'function'
+          @get()
+        else
+          @get path
         return obj  if obj?
-        @set path, value, callback
+
+        if len is 1
+          return @set path
+        else if len is 2
+          return @set path, value
+        else
+          return @set path, value, callback
 
     incr:
       type: 'compound'
       fn: (path, byNum, callback) ->
-        # incr(path, callback)
+        if typeof path isnt 'string'
+          callback = byNum
+          byNum = path
+          path = ''
+
         if typeof byNum is 'function'
           callback = byNum
           byNum = 1
-        # incr(path)
         else if typeof byNum isnt 'number'
           byNum = 1
         value = (@get(path) || 0) + byNum
-        @set path, value, callback
+
+        if path
+          @set path, value, callback
+          return value
+
+        if callback
+          @set value, callback
+        else
+          @set value
         return value
 
     push:
       type: 'array'
       insertArgs: 1
-      fn: (args..., callback) ->
-        if typeof callback isnt 'function'
-          args.push callback
-          callback = null
+      fn: (args...) ->
+        if at = @_at
+          if typeof (path = args[0]) is 'string' && typeof @get() is 'object'
+            args[0] = at + '.' + path
+          else
+            args.unshift at
+
+        if typeof args[args.length - 1] is 'function'
+          callback = args.pop()
         @_addOpAsTxn 'push', args, callback
 
     unshift:
       type: 'array'
       insertArgs: 1
-      fn: (args..., callback) ->
-        if typeof callback isnt 'function'
-          args.push callback
-          callback = null
+      fn: (args...) ->
+        if at = @_at
+          if typeof (path = args[0]) is 'string' && typeof @get() is 'object'
+            args[0] = at + '.' + path
+          else
+            args.unshift at
+
+        if typeof args[args.length - 1] is 'function'
+          callback = args.pop()
         @_addOpAsTxn 'unshift', args, callback
-
-    pop:
-      type: 'array'
-      fn: (path, callback) ->
-        @_addOpAsTxn 'pop', [path], callback
-
-    shift:
-      type: 'array'
-      fn: (path, callback) ->
-        @_addOpAsTxn 'shift', [path], callback
 
     insert:
       type: 'array'
       indexArgs: [1]
       insertArgs: 2
-      fn: (args..., callback) ->
-        if typeof callback isnt 'function'
-          args.push callback
-          callback = null
+      fn: (args...) ->
+        if at = @_at
+          if typeof (path = args[0]) is 'string'
+            args[0] = at + '.' + path
+          else
+            args.unshift at
+
+        if typeof args[args.length - 1] is 'function'
+          callback = args.pop()
         @_addOpAsTxn 'insert', args, callback
+
+    pop:
+      type: 'array'
+      fn: (path, callback) ->
+        if at = @_at
+          path = if typeof path is 'string'
+            at + '.' + path
+          else
+            callback = path
+            at
+        @_addOpAsTxn 'pop', [path], callback
+
+    shift:
+      type: 'array'
+      fn: (path, callback) ->
+        if at = @_at
+          path = if typeof path is 'string'
+            at + '.' + path
+          else
+            callback = path
+            at
+        @_addOpAsTxn 'shift', [path], callback
 
     remove:
       type: 'array'
       indexArgs: [1]
       fn: (path, start, howMany, callback) ->
+        if at = @_at
+          path = if typeof path is 'string'
+            at + '.' + path
+          else
+            callback = howMany
+            howMany = start
+            start = path
+            at
+
         # remove(path, start, callback)
         if typeof howMany is 'function'
           callback = howMany
@@ -354,4 +427,13 @@ stm = module.exports =
       type: 'array'
       indexArgs: [1, 2]
       fn: (path, from, to, callback) ->
+        if at = @_at
+          path = if typeof path is 'string'
+            at + '.' + path
+          else
+            callback = to
+            to = from
+            from = path
+            at
+
         @_addOpAsTxn 'move', [path, from, to], callback

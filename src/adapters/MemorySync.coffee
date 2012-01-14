@@ -34,7 +34,7 @@ MemorySync:: =
     speculative = `ver == null`
     [obj, parent, prop] = lookupSet path, data, speculative
     if ver?
-      delete parent[prop]
+      delete parent[prop]  if parent
       return obj
     # If speculatiave, replace the parent object with a clone that
     # has the desired item deleted
@@ -154,7 +154,9 @@ lookupSet = (path, data, speculative, pathType) ->
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      break unless pathType
+      unless pathType
+        parent = curr = undefined  unless i == len
+        break
       # If pathType is truthy, create empty parent objects implied by path
       if i == len
         if pathType is 'array'

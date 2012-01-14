@@ -12,54 +12,69 @@ Model = module.exports = (@_clientId = '', AdapterClass = MemorySync) ->
 
   return
 
+Model:: =
 
-## Socket.io communication ##
+  ## Socket.io communication ##
 
-Model::connected = true
-Model::canConnect = true
+  connected: true
+  canConnect: true
 
-Model::_setSocket = (socket) ->
-  self = this
-  self.socket = socket
+  _setSocket: (socket) ->
+    self = this
+    self.socket = socket
 
-  self.canConnect = true
-  socket.on 'fatalErr', ->
-    self.canConnect = false
-    self.emit 'canConnect', false
-    socket.disconnect()
+    self.canConnect = true
+    socket.on 'fatalErr', ->
+      self.canConnect = false
+      self.emit 'canConnect', false
+      socket.disconnect()
 
-  self.connected = false
-  onConnected = ->
-    self.emit 'connected', self.connected
-    self.emit 'connectionStatus', self.connected, self.canConnect
-
-  socket.on 'connect', ->
-    self.connected = true
-    onConnected()
-
-  socket.on 'disconnect', ->
     self.connected = false
-    # Slight delay after disconnect so that offline doesn't flash on reload
-    setTimeout onConnected, 200
-  # Needed in case page is loaded from cache while offline
-  socket.on 'connect_failed', onConnected
+    onConnected = ->
+      self.emit 'connected', self.connected
+      self.emit 'connectionStatus', self.connected, self.canConnect
 
-  for {setupSocket} in Model.mixins
-    setupSocket.call @, socket if setupSocket
+    socket.on 'connect', ->
+      self.connected = true
+      onConnected()
+
+    socket.on 'disconnect', ->
+      self.connected = false
+      # Slight delay after disconnect so that offline doesn't flash on reload
+      setTimeout onConnected, 200
+    # Needed in case page is loaded from cache while offline
+    socket.on 'connect_failed', onConnected
+
+    for {setupSocket} in Model.mixins
+      setupSocket.call @, socket if setupSocket
+
+  # Create a model object scoped to a particular path
+  at: (segment) -> Object.create this, _at:
+    value: if (at = @_at) then at + '.' + segment else segment
+
+  # Used to pass an additional argument to local events. This value is
+  # added to the event arguments in mixin.stm
+  # Example: model.pass(ignore: domId).move 'arr', 0, 2
+  pass: (arg) -> Object.create this, _pass: value: arg
 
 
 ## Model events ##
 
-# Used to pass an additional argument to local events. This value is
-# added to the event arguments in mixin.stm
-# Example: model.pass(ignore: domId).move 'arr', 0, 2
-Model::pass = (arg) -> Object.create this, _pass: value: arg
+eventListener = (method, pattern, callback, at) ->
+  if at
+    if typeof pattern is 'string'
+      pattern = at + '.' + pattern
+    else if pattern.call
+      callback = pattern
+      pattern = at
+    else
+      throw new Error 'Unsupported event pattern on model alias'
 
-eventListener = (method, pattern, callback) ->
-  # on(type, listener)
-  # Test for function by looking for call, since pattern can be a regex,
-  # which has a typeof == 'function' as well
-  return pattern if pattern.call
+  else
+    # on(type, listener)
+    # Test for function by looking for call, since pattern can be a regex,
+    # which has a typeof == 'function' as well
+    return pattern if pattern.call
 
   # on(method, pattern, callback)
   re = pathParser.eventRegExp pattern
@@ -78,11 +93,11 @@ merge Model::, EventEmitter::,
 
   _on: EventEmitter::on
   on: (type, pattern, callback) ->
-    @_on type, listener = eventListener type, pattern, callback
+    @_on type, listener = eventListener type, pattern, callback, @_at
     return listener
 
   once: (type, pattern, callback) ->
-    listener = eventListener type, pattern, callback
+    listener = eventListener type, pattern, callback, @_at
     self = this
     @_on type, g = ->
       matches = listener arguments...
@@ -90,6 +105,7 @@ merge Model::, EventEmitter::,
     return listener
 
 Model::addListener = Model::on
+
 
 ## Mixins ##
 
