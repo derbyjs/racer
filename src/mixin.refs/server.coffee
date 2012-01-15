@@ -15,7 +15,6 @@ refs.proto._createRef = (RefType, from, to, key) ->
     return unless model._getRef(from) == get
     args = if key then [from, to, key] else [from, to]
     model._onLoad.push [modelMethod, args]
-  console.log RefType, from, to, key
   model.set from, get
   return get
 
