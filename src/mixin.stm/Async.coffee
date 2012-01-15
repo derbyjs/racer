@@ -1,5 +1,8 @@
 transaction = require '../transaction'
 
+# TODO: These methods should be defined in one place based on the
+# accessor and mutator properties of mixins
+
 MAX_RETRIES = 20
 RETRY_DELAY = 5  # Initial delay in milliseconds. Linearly increases
 
@@ -61,13 +64,41 @@ Async:: =
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'del', args: [path]
     @model.store._commit txn, callback
 
+  push: (path, items, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'push', args: [path].concat(items)
+    @model.store._commit txn, callback
+
+  unshift: (path, items, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'unshift', args: [path].concat(items)
+    @model.store._commit txn, callback
+
+  insert: (path, index, items, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'insert', args: [path, index].concat(items)
+    @model.store._commit txn, callback
+
+  pop: (path, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'pop', args: [path]
+    @model.store._commit txn, callback
+
+  shift: (path, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'shift', args: [path]
+    @model.store._commit txn, callback
+  
+  remove: (path, start, howMany, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'remove', args: [path, start, howMany]
+    @model.store._commit txn, callback
+
+  move: (path, from, to, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'move', args: [path, from, to]
+    @model.store._commit txn, callback
+
   incr: (path, byNum, callback) ->
     if typeof byNum is 'function'
       # For incr(path, callback)
       callback = byNum
       byNum = 1
     else
-      # For incr(path)
+      # For incr(path, [byNum])
       byNum ?= 1
       callback ||= empty
     
@@ -75,6 +106,14 @@ Async:: =
     @retry (atomic) ->
       atomic.get path, (val) ->
         atomic.set path, tryVal = (val || 0) + byNum
+    , (err) -> callback err, tryVal
+
+  setNull: (path, value, callback) ->
+    tryVal = null
+    @retry (atomic) ->
+      atomic.get path, (val) ->
+        return tryVal = val if val?
+        atomic.set path, tryVal = value
     , (err) -> callback err, tryVal
 
   retry: (fn, callback) ->

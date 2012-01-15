@@ -34,8 +34,8 @@ AtomicModel = module.exports = (id, parentModel) ->
   AtomicModel:: = proto
   parentProto = Object.getPrototypeOf parentModel
   for method in ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation',
-  '_dereference', '_emitModelEvent', 'set', 'setNull', 'del', 'incr', 'push', 'pop', 'unshift',
-  'shift', 'insertAfter', 'insertBefore', 'remove', 'splice', 'move']
+  '_dereference', '_emitModelEvent', 'set', 'setNull', 'del', 'incr',
+  'push', 'unshift', 'insert', 'pop', 'shift', 'insert', 'remove', 'move']
     proto[method] = parentProto[method]
 
   return new AtomicModel id, parentModel
