@@ -26,7 +26,7 @@ racer = module.exports =
     model._clientId = options.clientId
     model._storeSubs = options.storeSubs
     model._startId = options.startId
-    model._count = txn: options.txnCount
+    model._count = options.count
     model._onTxnNum options.txnNum
     for [method, args] in options.onLoad
       model[method] args...

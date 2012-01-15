@@ -29,6 +29,7 @@ stm = module.exports =
 
     @_count =
       txn: 0
+      id: 0
     @_txns = txns = {}
     @_txnQueue = txnQueue = []
     adapter = @_adapter
@@ -117,13 +118,14 @@ stm = module.exports =
       resendInterval = null
 
   proto:
+    id: -> '$_' + @_clientId + '_' + (@_count.id++).toString 36
+
     ## Socket.io communication ##
     _commit: ->
     _reqNewTxns: ->
 
-
     ## Transaction handling ##
-    
+
     _nextTxnId: -> @_clientId + '.' + @_count.txn++
 
     _queueTxn: (txn, callback) ->

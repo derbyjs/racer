@@ -180,12 +180,6 @@ Ref:: =
   modelMethod: 'ref'
 
 
-# TODO: Allow a name other than 'id' for the key id property?
-refListId = (obj) ->
-  unless (id = obj.id)?
-    throw new Error 'refList mutators require an id'
-  return id
-
 RefList = (@model, @from, to, key) ->
   @listeners = []
 
@@ -205,9 +199,9 @@ RefList = (@model, @from, to, key) ->
       data.$deref = (method, args, model) ->
         return path if method of basicMutators
 
-        if method of arrayMutators
+        if arrayMutator = arrayMutators[method]
           # Handle index args if they are specified by id
-          if indexArgs = arrayMutators[method].indexArgs
+          if indexArgs = arrayMutator.indexArgs
             for j in indexArgs
               continue unless (arg = args[j]) && (id = arg.id)?
               # Replace id arg with the current index for the given id
@@ -216,9 +210,9 @@ RefList = (@model, @from, to, key) ->
                   args[j] = index
                   break
 
-          if j = mutators[method].insertArgs
+          if j = arrayMutator.insertArgs
             while arg = args[j]
-              id = refListId arg
+              id = arg.id = model.id()  unless (id = arg.id)?
               # Set the object being inserted if it contains any properties
               # other than id
               model.set dereffed + '.' + id, arg  if hasKeys arg, 'id'
@@ -249,7 +243,8 @@ RefList = (@model, @from, to, key) ->
           # with the original txn instead of making an additional txn
 
           if method is 'set'
-            id = refListId args[1]
+            value = args[1]
+            id = value.id = model.id()  unless (id = value.id)?
             if map
               model.set dereffedKey + '.' + index, id
             else
@@ -257,7 +252,8 @@ RefList = (@model, @from, to, key) ->
             return currPath + '.' + id
 
           if method is 'del'
-            id = refListId obj
+            unless (id = obj.id)?
+              throw new Error 'Cannot delete refList item without id'
             model.del dereffedKey + '.' + index
             return currPath + '.' + id
 

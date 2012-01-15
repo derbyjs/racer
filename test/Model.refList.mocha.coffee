@@ -53,6 +53,11 @@ describe 'Model.refList', ->
       1: {id: 1, val: 'aa'}
       3: {id: 3, val: 'c'}
 
+    # An id should be automatically created by model.id
+    model.set '_list.2', obj = {val: 'x'}
+    id = obj.id
+    model.get("items.#{id}").should.specEql {val: 'x', id}
+
   it 'should support del of children', ->
     model = new Model
     model.set 'items',
@@ -104,6 +109,12 @@ describe 'Model.refList', ->
       3: {id: 3, val: 'c'}
     model.get('map').should.specEql [3, 1, 2]
 
+    # An id should be automatically created by model.id
+    model.push '_list', obj = {val: 'x'}
+    id = obj.id
+    model.get("items.#{id}").should.specEql {val: 'x', id}
+    model.get('map').should.specEql [3, 1, 2, id]
+
   it 'should support unshift', ->
     model = new Model
     model.refList '_list', 'items', 'map'
@@ -127,6 +138,12 @@ describe 'Model.refList', ->
       2: {id: 2, val: 'b'}
       3: {id: 3, val: 'c'}
     model.get('map').should.specEql [1, 2, 3]
+
+    # An id should be automatically created by model.id
+    model.unshift '_list', obj = {val: 'x'}
+    id = obj.id
+    model.get("items.#{id}").should.specEql {val: 'x', id}
+    model.get('map').should.specEql [id, 1, 2, 3]
 
   it 'should support insert', ->
     model = new Model
@@ -155,6 +172,12 @@ describe 'Model.refList', ->
       2: {id: 2, val: 'b'}
       3: {id: 3, val: 'c'}
     model.get('map').should.specEql [1, 3, 2]
+
+    # An id should be automatically created by model.id
+    model.insert '_list', 2, obj = {val: 'x'}
+    id = obj.id
+    model.get("items.#{id}").should.specEql {val: 'x', id}
+    model.get('map').should.specEql [1, 3, id, 2]
 
   it 'should support pop', ->
     model = new Model

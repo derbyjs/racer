@@ -506,3 +506,18 @@ describe 'Model', ->
     out = model.move 'colors', 0, 0
     out.should.eql 'yellow'
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
+
+  it 'supports an id method for creating a guid', ->
+    model = new Model '0'
+    id00 = model.id()
+    id01 = model.id()
+
+    model = new Model '1'
+    id10 = model.id()
+
+    id00.should.be.a 'string'
+    id01.should.be.a 'string'
+    id10.should.be.a 'string'
+
+    id00.should.not.eql id01
+    id00.should.not.eql id10

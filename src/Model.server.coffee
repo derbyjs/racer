@@ -61,7 +61,7 @@ ServerModel::_bundle = (callback) ->
     clientId: clientId
     storeSubs: @_storeSubs
     startId: @_startId
-    txnCount: @_count.txn
+    count: @_count
     ioUri: @_ioUri
 
 ServerModel::_addSub = (paths, callback) ->
