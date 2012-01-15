@@ -146,3 +146,10 @@ describe 'Model.fn', ->
     shouldEqualNaN model.get('arr.0._out')
     model.set 'arg2', 7
     model.get('arr.0._out').should.equal 14
+
+  it 'supports specifying path via model.at', ->
+    model = new Model
+    out = model.at '_out'
+    model.set 'arg', 5
+    out.fn 'arg', (arg) -> arg * 2
+    model.get('_out').should.equal 10

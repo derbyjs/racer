@@ -1,8 +1,6 @@
 {mergeAll, hasKeys, isServer} = require '../util'
 {eventRegExp, isPrivate} = require '../pathParser'
 
-# TODO: Add support for model aliases
-
 mutators = {}
 basicMutators = {}
 arrayMutators = {}
@@ -44,21 +42,28 @@ module.exports =
     refList: (from, to, key) ->
       return @_createRef RefList, from, to, key
 
-    fn: (path, inputs..., callback) ->
-      @_checkRefPath path
+    fn: (inputs..., callback) ->
+      path = if @_at then @_at else inputs.shift()
+      model = @_root
+      model._checkRefPath path, 'fn'
       if typeof callback is 'string'
         callback = do new Function 'return ' + callback
-      return createFn @_root, path, inputs, callback
+      return createFn model, path, inputs, callback
 
-    _checkRefPath: (from) ->
+    _checkRefPath: (from, type) ->
       @_adapter.get from, data = @_specModel(), true
       unless isPrivate derefPath data, from
-        throw new Error 'cannot create ref or fn on public path ' + from
+        throw new Error "cannot create #{type} on public path #{from}"
       return
 
     _createRef: (RefType, from, to, key) ->
-      @_checkRefPath from
-      {get} = new RefType @_root, from, to, key
+      if @_at
+        key = to
+        to = from
+        from = @_at
+      model = @_root
+      model._checkRefPath from, 'ref'
+      {get} = new RefType model, from, to, key
       @set from, get
       return get
 

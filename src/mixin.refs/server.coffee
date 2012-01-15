@@ -3,22 +3,28 @@
 uglify = require 'uglify-js'
 
 refs.proto._createRef = (RefType, from, to, key) ->
-    @_checkRefPath from
-    model = @_root
-    {get, modelMethod} = new RefType model, from, to, key
+  if @_at
+    key = to
+    to = from
+    from = @_at
+  model = @_root
+  model._checkRefPath from, 'ref'
+  {get, modelMethod} = new RefType model, from, to, key
 
-    @on 'bundle', ->
-      return unless model._getRef(from) == get
-      args = if key then [from, to, key] else [from, to]
-      model._onLoad.push [modelMethod, args]
-    @set from, get
-    return get
+  model.on 'bundle', ->
+    return unless model._getRef(from) == get
+    args = if key then [from, to, key] else [from, to]
+    model._onLoad.push [modelMethod, args]
+  console.log RefType, from, to, key
+  model.set from, get
+  return get
 
 cbs = {}
-refs.proto.fn = (path, inputs..., callback) ->
-  @_checkRefPath path
+refs.proto.fn = (inputs..., callback) ->
+  path = if @_at then @_at else inputs.shift()
   model = @_root
-  listener = @on 'bundle', ->
+  model._checkRefPath path, 'fn'
+  listener = model.on 'bundle', ->
     cb = callback.toString()
     if isProduction
       cb = cbs[cb] || (

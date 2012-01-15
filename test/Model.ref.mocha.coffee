@@ -312,3 +312,15 @@ describe 'Model.ref', ->
     model.on 'set', '_room.users.0.name', cb
     model.on 'set', '_session.user.name', cb
     model.set '_session.user.name', 'Bob'
+
+  it 'supports specifying path via model.at', ->
+    model = new Model
+    color = model.at '_color'
+    ref = color.at('favorite').ref 'green'
+    color.set 'favorite.hex', '#0f0'
+    color.get('favorite').should.specEql hex: '#0f0'
+    model.get().should.specEql
+      _color:
+        favorite: ref
+      green:
+        hex: '#0f0'
