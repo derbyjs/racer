@@ -7,6 +7,7 @@ describe 'Model.at', ->
     model = new Model
 
     model.at('path').at().should.equal 'path'
+    model.at('path').at('').at().should.equal 'path'
     model.at('the.path').at('sub').at(0).at().should.equal 'the.path.sub.0'
 
   it 'parent traverses up', ->

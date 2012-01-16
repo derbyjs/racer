@@ -51,8 +51,11 @@ Model:: =
   # Create a model object scoped to a particular path
   at: (segment, absolute) ->
     at = @_at
-    return if segment? then Object.create this, _at:
-      value: if at && !absolute then at + '.' + segment else segment
+    return if arguments.length then Object.create this, _at:
+      value:
+        if at && !absolute
+          if segment == '' then at else at + '.' + segment
+        else segment
     else at || ''
 
   parent: (levels = 1) ->
