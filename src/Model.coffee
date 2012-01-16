@@ -49,8 +49,16 @@ Model:: =
       setupSocket.call @, socket if setupSocket
 
   # Create a model object scoped to a particular path
-  at: (segment) -> Object.create this, _at:
-    value: if (at = @_at) then at + '.' + segment else segment
+  at: (segment, absolute) ->
+    at = @_at
+    return if segment? then Object.create this, _at:
+      value: if at && !absolute then at + '.' + segment else segment
+    else at || ''
+
+  parent: (levels = 1) ->
+    return this unless at = @_at
+    segments = at.split '.'
+    return @at segments.slice(0, segments.length - levels).join('.'), true
 
   # Used to pass an additional argument to local events. This value is
   # added to the event arguments in mixin.stm

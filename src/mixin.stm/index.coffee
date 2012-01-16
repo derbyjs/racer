@@ -377,6 +377,10 @@ stm = module.exports =
             args[0] = at + '.' + path
           else
             args.unshift at
+        if match = /^(.*)\.(\d+)$/.exec args[0]
+          # Use the index from the path if it ends in an index segment
+          args[0] = match[1]
+          args.splice 1, 0, match[2]
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
@@ -417,6 +421,12 @@ stm = module.exports =
             howMany = start
             start = path
             at
+        if match = /^(.*)\.(\d+)$/.exec path
+          # Use the index from the path if it ends in an index segment
+          callback = howMany
+          howMany = start
+          start = match[2]
+          path = match[1]
 
         # remove(path, start, callback)
         if typeof howMany is 'function'
@@ -440,5 +450,11 @@ stm = module.exports =
             to = from
             from = path
             at
+        if match = /^(.*)\.(\d+)$/.exec path
+          # Use the index from the path if it ends in an index segment
+          callback = to
+          to = from
+          from = match[2]
+          path = match[1]
 
         @_addOpAsTxn 'move', [path, from, to], callback

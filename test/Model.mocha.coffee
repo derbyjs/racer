@@ -470,31 +470,35 @@ describe 'Model', ->
     final = model.get 'colors'
     final.should.specEql ['blue']
 
-  it 'model insert should work on an array, with a valid index', ->
+  it 'insert should work on an array, with a valid index', ->
     model = new Model '0'
-    init = model.get 'colors'
-    should.equal undefined, init
     model.push 'colors', 'green'
-    interim = model.get 'colors'
-    interim.should.specEql ['green']
     out = model.insert 'colors', 0, 'red', 'yellow'
     out.should.eql 3
-    final = model.get 'colors'
-    final.should.specEql ['red', 'yellow', 'green']
-
-  it 'model remove should work on an array, with a valid index', ->
+    model.get('colors').should.specEql ['red', 'yellow', 'green']
+  
+  it 'insert should work on an array index path', ->
     model = new Model '0'
-    init = model.get 'colors'
-    should.equal undefined, init
-    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
-    interim = model.get 'colors'
-    interim.should.specEql ['red', 'orange', 'yellow', 'green', 'blue', 'violet']
-    out = model.remove 'colors', 1, 4
-    out.should.eql ['orange', 'yellow', 'green', 'blue']
-    final = model.get 'colors'
-    final.should.specEql ['red', 'violet']
+    model.push 'colors', 'green'
+    out = model.insert 'colors.0', 'red', 'yellow'
+    out.should.eql 3
+    model.get('colors').should.specEql ['red', 'yellow', 'green']
 
-  it 'model move should work on an array, with a valid index', ->
+  it 'remove should work on an array, with a valid index', ->
+    model = new Model '0'
+    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
+    out = model.remove 'colors', 1, 4
+    out.should.specEql ['orange', 'yellow', 'green', 'blue']
+    model.get('colors').should.specEql ['red', 'violet']
+  
+  it 'remove should work on an array index path', ->
+    model = new Model '0'
+    model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
+    out = model.remove 'colors.1', 4
+    out.should.specEql ['orange', 'yellow', 'green', 'blue']
+    model.get('colors').should.specEql ['red', 'violet']
+
+  it 'move should work on an array, with a valid index', ->
     model = new Model '0'
     model.push 'colors', 'red', 'orange', 'yellow', 'green'
     out = model.move 'colors', 1, 2
@@ -504,6 +508,19 @@ describe 'Model', ->
     out.should.eql 'red'
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
     out = model.move 'colors', 0, 0
+    out.should.eql 'yellow'
+    model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
+  
+  it 'move should work on an array index path', ->
+    model = new Model '0'
+    model.push 'colors', 'red', 'orange', 'yellow', 'green'
+    out = model.move 'colors.1', 2
+    out.should.eql 'orange'
+    model.get('colors').should.specEql ['red', 'yellow', 'orange', 'green']
+    out = model.move 'colors.0', 3
+    out.should.eql 'red'
+    model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
+    out = model.move 'colors.0', 0
     out.should.eql 'yellow'
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
 
