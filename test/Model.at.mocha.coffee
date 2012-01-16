@@ -6,23 +6,23 @@ describe 'Model.at', ->
  it 'supports being created and accessed', ->
     model = new Model
 
-    model.at('path').at().should.equal 'path'
-    model.at('path').at('').at().should.equal 'path'
-    model.at('the.path').at('sub').at(0).at().should.equal 'the.path.sub.0'
+    model.at('path').path().should.equal 'path'
+    model.at('path').at('').path().should.equal 'path'
+    model.at('the.path').at('sub').at(0).path().should.equal 'the.path.sub.0'
 
   it 'parent traverses up', ->
     model = new Model
 
     model.parent().should.equal model
     model.parent(3).should.equal model
-    model.parent().at().should.equal ''
-    model.parent(3).at().should.equal ''
+    model.parent().path().should.equal ''
+    model.parent(3).path().should.equal ''
 
-    model.at('path').parent().at().should.equal ''
-    model.at('path.fun').parent().at().should.equal 'path'
-    model.at('path.fun.times').parent(1).at().should.equal 'path.fun'
-    model.at('path.fun.times').parent(2).at().should.equal 'path'
-    model.at('path.fun').parent(4).at().should.equal ''
+    model.at('path').parent().path().should.equal ''
+    model.at('path.fun').parent().path().should.equal 'path'
+    model.at('path.fun.times').parent(1).path().should.equal 'path.fun'
+    model.at('path.fun.times').parent(2).path().should.equal 'path'
+    model.at('path.fun').parent(4).path().should.equal ''
 
   it 'supports get', ->
     model = new Model

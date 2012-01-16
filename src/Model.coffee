@@ -48,20 +48,24 @@ Model:: =
     for {setupSocket} in Model.mixins
       setupSocket.call @, socket if setupSocket
 
+
   # Create a model object scoped to a particular path
-  at: (segment, absolute) ->
-    at = @_at
-    return if arguments.length then Object.create this, _at:
-      value:
-        if at && !absolute
-          if segment == '' then at else at + '.' + segment
-        else segment
-    else at || ''
+  at: (segment, absolute) -> Object.create this, _at: value:
+    if (at = @_at) && !absolute
+      if segment == '' then at else at + '.' + segment
+    else segment.toString()
 
   parent: (levels = 1) ->
     return this unless at = @_at
     segments = at.split '.'
     return @at segments.slice(0, segments.length - levels).join('.'), true
+
+  path: -> @_at || ''
+
+  leaf: (path) ->
+    path = @_at || '' unless path?
+    i = path.lastIndexOf '.'
+    return path.substr i + 1
 
   # Used to pass an additional argument to local events. This value is
   # added to the event arguments in mixin.stm
