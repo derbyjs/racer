@@ -30,14 +30,8 @@ module.exports =
         # All subscriptions match the root and any path below the root
       ) + '(?:\\.|$)'
 
-  fastLookup: (path, obj) ->
+  lookup: (path, obj) ->
     for prop in path.split '.'
-      return unless obj = obj[prop]
-    return obj
-
-  fastLookupBreakOnRef: (path, obj) ->
-    for prop in path.split '.'
-      return obj  if obj.$r
       return unless obj = obj[prop]
     return obj
 

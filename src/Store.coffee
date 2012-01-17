@@ -4,7 +4,7 @@ Model = require './Model.server'
 Stm = require './Stm'
 PubSub = require './PubSub'
 transaction = require './transaction'
-pathParser = require './pathParser'
+{split: splitPath, lookup} = require './pathParser'
 Serializer = require './Serializer'
 specHelper = require './specHelper'
 redisInfo = require './redisInfo'
@@ -229,21 +229,14 @@ Store = module.exports = (options = {}) ->
 
     # Set each property one level down, since the path had a '*'
     # following the current root
-    [appendRoot, remainder] = pathParser.split remainder
+    [appendRoot, remainder] = splitPath remainder
     for prop of value
       nextRoot = if root then root + '.' + prop else prop
       nextValue = value[prop]
       if appendRoot
         nextRoot += '.' + appendRoot
-        nextValue = pathParser.fastLookupBreakOnRef appendRoot, nextValue
-      
-      if nextValue && nextValue.$r
-        # Use @get to retreive the value for path containing a reference
-        finish.remainingGets++
-        self.get nextRoot, (err, value, ver) ->
-          addSubDatum self, data, nextRoot, remainder, value, ver, finish
-          finish()
-      
+        nextValue = lookup appendRoot, nextValue
+
       addSubDatum self, data, nextRoot, remainder, nextValue, ver, finish
     return
 
@@ -254,7 +247,7 @@ Store = module.exports = (options = {}) ->
     finish.remainingGets = paths.length
     self = this
     for path in paths
-      [root, remainder] = pathParser.split path
+      [root, remainder] = splitPath path
     
       @get root, (err, value, ver) ->
         return callback err  if err
@@ -353,7 +346,9 @@ Store = module.exports = (options = {}) ->
       adapter[method] args...
 
   @disconnect = ->
-    [redisClient, subClient, txnSubClient].forEach (client) -> client.quit()
+    redisClient.quit()
+    subClient.quit()
+    txnSubClient.quit()
 
   return
 
