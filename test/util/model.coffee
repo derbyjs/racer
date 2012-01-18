@@ -42,13 +42,12 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
 browserRacer = require '../../src/racer.browser'
 serverRacer = require '../../src/racer'
 nextNs = 1
-exports.fullyWiredModels = (numWindows, callback) ->
+exports.fullyWiredModels = (numWindows, callback, options = {}) ->
   sandboxPath = "tests.#{nextNs++}"
   serverSockets = new mocks.ServerSocketsMock()
-  store = serverRacer.createStore
-    stm: true
-    redis: {db: 2}
-    sockets: serverSockets
+  options.sockets = serverSockets
+  options.redis ||= redis: {db: 2}
+  store = serverRacer.createStore options
 
   browserModels = []
   i = numWindows
