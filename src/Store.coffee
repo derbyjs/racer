@@ -2,6 +2,7 @@ redis = require 'redis'
 PubSub = require './PubSub'
 redisInfo = require './redisInfo'
 Stm = require './Stm'
+Lww = require './Lww'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
@@ -27,7 +28,11 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  @_stm = new Stm @_redisClient, self  if options.stm
+  # These constructors add a @_commit method to this store
+  if options.stm
+    @_stm = new Stm @_redisClient, self
+  else
+    @_lww = new Lww @_redisClient, self
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -81,12 +86,7 @@ Store:: =
     @_subClient.quit()
     @_txnSubClient.quit()
 
-  _commit: (txn, callback) ->
-    # TODO: txns should be written to the journal 
-    self = this
-    @_redisClient.incr 'ver', (err, ver) ->
-      throw err if err
-      self._finishCommit txn, ver, callback
+
 
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
