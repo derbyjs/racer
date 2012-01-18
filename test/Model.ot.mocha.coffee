@@ -17,7 +17,7 @@ describe 'Model.ot', ->
   beforeEach (done) ->
     flushRedis done
 
-  afterEach (done) ->
+  after (done) ->
     flushRedis done
 
   ## Server-side OT ##

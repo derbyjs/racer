@@ -5,10 +5,10 @@ describe 'Model.async', ->
   store = null
 
   beforeEach (done) ->
-    store = new Store
+    store = new Store stm: true
     store.flush done
 
-  afterEach (done) ->
+  after (done) ->
     store.flush ->
       store._redisClient.end()
       store._subClient.end()

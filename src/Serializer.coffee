@@ -29,7 +29,7 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
 Serializer::=
   _setWaiter: ->
   _clearWaiter: ->
-  add: (txn, txnIndex) ->
+  add: (txn, txnIndex, arg) ->
     index = @_index
     # Cache this transaction to be applied later if it is not the next index
     if txnIndex > index
@@ -39,13 +39,13 @@ Serializer::=
     # Ignore this transaction if it is older than the current index
     return false if txnIndex < index
     # Otherwise apply it immediately
-    @withEach txn, index
+    @withEach txn, index, arg
     @_clearWaiter()
     # And apply any transactions that were waiting for txn
     index++
     pending = @_pending
     while txn = pending[index]
-      @withEach txn, index
+      @withEach txn, index, arg
       delete pending[index++]
     @_index = index
     return true

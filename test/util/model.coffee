@@ -46,6 +46,7 @@ exports.fullyWiredModels = (numWindows, callback) ->
   sandboxPath = "tests.#{nextNs++}"
   serverSockets = new mocks.ServerSocketsMock()
   store = serverRacer.createStore
+    stm: true
     redis: {db: 2}
     sockets: serverSockets
 

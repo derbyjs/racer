@@ -1,139 +1,122 @@
 redis = require 'redis'
+PubSub = require './PubSub'
+redisInfo = require './redisInfo'
+storeStm = require './storeStm'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
-Stm = require './Stm'
-PubSub = require './PubSub'
 transaction = require './transaction'
 {split: splitPath, lookup} = require './pathParser'
-Serializer = require './Serializer'
-specHelper = require './specHelper'
-redisInfo = require './redisInfo'
 Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 pathParser = require './pathParser'
 
 # store = new Store
-#   adapter: SomeAdapter
+#   stm: true / false
 #   redis:
 #     port: xxxx
 #     host: xxxx
 #     db:   xxxx
 Store = module.exports = (options = {}) ->
   self = this
-  Adapter = options.Adapter || MemoryAdapter
-  @_adapter = adapter = new Adapter
 
-  {port, host, db, password} = redisOptions = options.redis || {}
-  # Client for data access and event publishing
-  @_redisClient = redisClient = redis.createClient(port, host, redisOptions)
-  # Client for internal Racer event subscriptions
-  @_subClient = subClient = redis.createClient(port, host, redisOptions)
-  # Client for event subscriptions of txns only
-  @_txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
-  if password
-    authCallback = (err) -> throw err if err
-    redisClient.auth password, authCallback
-    subClient.auth password, authCallback
-    txnSubClient.auth password, authCallback
+  setupRedis self, options.redis
+
+  @_pubSub = new PubSub
+    pubClient: @_redisClient
+    subClient: @_txnSubClient
+    onMessage: (clientId, {txn, ot}) ->
+      return self._onTxnMsg clientId, txn if txn
+      return self._onOtMsg clientId, ot
+
+  storeStm.init self, @_redisClient  if options.stm
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
-  @otFields = otFields = {}
+  @_otFields = {}
 
-  # TODO: Make sure there are no weird race conditions here, since we are
-  # caching the value of starts and it could potentially be stale when a
-  # transaction is received
-  # TODO: Make sure this works when redis crashes and is restarted
-  redisStarts = null
-  startIdPromise = new Promise
-  # Calling select right away queues the command before any commands that
-  # a client might add before connect happens. If select is not queued first,
-  # the subsequent commands could happen on the wrong db
-  ignoreSubscribe = false
-  do subscribeToStarts = (selected) ->
-    return ignoreSubscribe = false if ignoreSubscribe
-    if db isnt undefined && !selected
-      return redisClient.select db, (err) ->
-        throw err if err
-        subscribeToStarts true
-    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
-      redisStarts = starts
-      startIdPromise.clearValue() if startIdPromise.value
-      startIdPromise.fulfill starts[0][0]
+  @_localModels = {}
 
-  # Ignore the first connect event
-  ignoreSubscribe = true
-  redisClient.on 'connect', subscribeToStarts
-  redisClient.on 'end', ->
-    redisStarts = null
-    startIdPromise.clearValue()
+  @_adapter = new MemoryAdapter
+  @_createStoreModel()
 
+  return
 
-  ## Downstream Transactional Interface ##
+Store:: =
 
-  # Redis clients used for subscribe, psubscribe, unsubscribe,
-  # and punsubscribe cannot be used with any other commands.
-  # Therefore, we can only pass the current `redisClient` as the
-  # pubsub's @_publishClient.
-  @_localModels = localModels = {}
-  onTxnMsg = (clientId, txn) ->
-    # Don't send transactions back to the model that created them.
-    # On the server, the model directly handles the store._commit callback.
-    # Over Socket.io, a 'txnOk' message is sent below.
-    return if clientId == transaction.clientId txn
-    # For models only present on the server, process the transaction
-    # directly in the model
-    return model._onTxn txn if model = localModels[clientId]
-    # Otherwise, send the transaction over Socket.io
-    if socket = clientSockets[clientId]
-      # Prevent sending duplicate transactions by only sending new versions
-      base = transaction.base txn
-      if base > socket.__base
-        socket.__base = base
-        nextTxnNum clientId, (num) ->
-          socket.emit 'txn', txn, num
-  onOtMsg = (clientId, ot) ->
-    if socket = clientSockets[clientId]
-      return if socket.id == ot.meta.src
-      socket.emit 'otOp', ot
-  @_pubSub = pubSub = new PubSub
-    redis: redisOptions
-    pubClient: redisClient
-    subClient: txnSubClient
-    onMessage: (clientId, {txn, ot}) ->
-      return onTxnMsg clientId, txn if txn
-      return onOtMsg clientId, ot
+  _createStoreModel: ->
+    @_model = @createModel()
+    for key, val of @_model.async
+      @[key] = val
 
-  @_nextTxnNum = nextTxnNum = (clientId, callback) ->
-    redisClient.incr 'txnClock.' + clientId, (err, value) ->
+  createModel: ->
+    model = new Model
+    model.store = this
+    model._ioUri = @_ioUri
+    model.startIdPromise = startIdPromise = @_startIdPromise
+    startIdPromise.on (startId) ->
+      model._startId = startId
+    @_redisClient.incr 'clientClock', (err, value) ->
       throw err if err
-      callback value
+      clientId = value.toString(36)
+      model.clientIdPromise.fulfill clientId      
+    return model
 
-  hasInvalidVer = (socket, ver, clientStartId) ->
-    # Don't allow a client to connect unless there is a valid startId to
-    # compare the model's against
-    unless startIdPromise.value
-      socket.disconnect()
-      return true
-    # TODO: Map the client's version number to the Stm's and update the client
-    # with the new startId unless the client's version includes versions that
-    # can't be mapped
-    unless clientStartId && clientStartId == startIdPromise.value
-      socket.emit 'fatalErr'
-      return true
-    return false
+  flush: (callback) ->
+    done = false
+    cb = (err) ->
+      if callback && (done || err)
+        callback err
+        callback = null
+      done = true
+    @_adapter.flush cb
+    self = this
+    @_redisClient.flushdb (err) ->
+      if err && callback
+        callback err
+        return callback = null
+      redisInfo.onStart self._redisClient, cb
+      self._createStoreModel()
 
-  clientSockets = {}
-  @_setSockets = (sockets) -> sockets.on 'connection', (socket) ->
+  disconnect: ->
+    @_redisClient.quit()
+    @_subClient.quit()
+    @_txnSubClient.quit()
+
+  _commit: (txn, callback) ->
+    self = this
+    @_redisClient.incr 'ver', (err, ver) ->
+      throw err if err
+      self._finishCommit txn, ver, callback
+
+  _finishCommit: (txn, ver, callback) ->
+    transaction.base txn, ver
+    args = transaction.args(txn).slice()
+    method = transaction.method txn
+    args.push ver, (err) ->
+      callback && callback err, txn
+    @_adapter[method] args...
+    @_pubSub.publish transaction.path(txn), {txn}
+
+  _setSockets: (sockets) ->
+    self = this
+    @_clientSockets = clientSockets = {}
+    pubSub = @_pubSub
+    redisClient = @_redisClient
+
+    # TODO: These are for OT, which is hacky. Clean up
+    otFields = @_otFields
+    adapter = @_adapter
+    hasInvalidVer = @_hasInvalidVer
+
     # TODO Once socket.io supports query params in the
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
-    socket.on 'sub', (clientId, paths, ver, clientStartId) ->
+    sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, paths, ver, clientStartId) ->
       return if hasInvalidVer socket, ver, clientStartId
 
-      # TODO Map the clientId to a nickname (e.g., via session?), and broadcast presence
-      #      to subscribers of the relevant namespace(s)
+      # TODO Map the clientId to a nickname (e.g., via session?),
+      # and broadcast presence
       socket.on 'disconnect', ->
         pubSub.unsubscribe clientId
         delete clientSockets[clientId]
@@ -151,7 +134,7 @@ Store = module.exports = (options = {}) ->
       # Handling OT messages
       socket.on 'otSnapshot', (setNull, fn) ->
         # Lazy create/snapshot the OT doc
-        if field = self.otFields[path]
+        if field = otFields[path]
           # TODO
           TODO = 'TODO'
 
@@ -166,27 +149,27 @@ Store = module.exports = (options = {}) ->
           fieldClient.flush()
 
         # Lazy create the OT doc
-        unless field = self.otFields[path]
-          field = self.otFields[path] = new Field self._adapter, self._pubSub, path, v
-          self._adapter.get path, (err, val, ver) ->
+        unless field = otFields[path]
+          field = otFields[path] =
+            new Field adapter, pubSub, path, v
+          adapter.get path, (err, val, ver) ->
             # Lazy snapshot initialization
             snapshot = field.snapshot = val?.$ot || ''
             flushViaFieldClient()
         else
           flushViaFieldClient()
 
-
       # Handling transaction messages
       socket.on 'txn', (txn, clientStartId) ->
         base = transaction.base txn
         return if hasInvalidVer socket, base, clientStartId
-        commit txn, (err, txn) ->
+        self._commit txn, (err, txn) ->
           txnId = transaction.id txn
           base = transaction.base txn
           # Return errors to client, with the exeption of duplicates, which
           # may need to be sent to the model again
           return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-          nextTxnNum clientId, (num) ->
+          nextTxnNum redisClient, clientId, (num) ->
             socket.emit 'txnOk', txnId, base, num
 
       socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
@@ -195,8 +178,8 @@ Store = module.exports = (options = {}) ->
         redisClient.get 'txnClock.' + clientId, (err, value) ->
           throw err if err
           socket.emit 'txnNum', value || 0
-          forTxnSince ver, clientId, (txn) ->
-            nextTxnNum clientId, (num) ->
+          forTxnSince pubSub, redisClient, ver, clientId, (txn) ->
+            nextTxnNum redisClient, clientId, (num) ->
               socket.__base = transaction.base txn
               socket.emit 'txn', txn, num
 
@@ -216,37 +199,34 @@ Store = module.exports = (options = {}) ->
       # Return any transactions that the model may have missed
       txnsSince ver + 1, clientStartId
 
+  _onTxnMsg: (clientId, txn) ->
+    # Don't send transactions back to the model that created them.
+    # On the server, the model directly handles the store._commit callback.
+    # Over Socket.io, a 'txnOk' message is sent below.
+    return if clientId == transaction.clientId txn
+    # For models only present on the server, process the transaction
+    # directly in the model
+    return model._onTxn txn if model = @_localModels[clientId]
+    # Otherwise, send the transaction over Socket.io
+    if socket = @_clientSockets[clientId]
+      # Prevent sending duplicate transactions by only sending new versions
+      base = transaction.base txn
+      if base > socket.__base
+        socket.__base = base
+        nextTxnNum @_redisClient, clientId, (num) ->
+          socket.emit 'txn', txn, num
 
-  # Accumulates an array of tuples to set [path, value, ver]
-  #
-  # @param {Array} data is an array that gets mutated
-  # @param {String} root is the part of the path up to ".*"
-  # @param {String} remainder is the part of the path after "*"
-  # @param {Object} value is the lookup value of the rooth path
-  # @param {Number} ver is the lookup ver of the root path
-  addSubDatum = (self, data, root, remainder, value, ver, finish) ->
-    # Set the entire object
-    return data.push [root, value, ver]  unless remainder?
+  _onOtMsg: (clientId, ot) ->
+    if socket = @_clientSockets[clientId]
+      return if socket.id == ot.meta.src
+      socket.emit 'otOp', ot
 
-    # Set each property one level down, since the path had a '*'
-    # following the current root
-    [appendRoot, remainder] = splitPath remainder
-    for prop of value
-      nextRoot = if root then root + '.' + prop else prop
-      nextValue = value[prop]
-      if appendRoot
-        nextRoot += '.' + appendRoot
-        nextValue = lookup appendRoot, nextValue
-
-      addSubDatum self, data, nextRoot, remainder, nextValue, ver, finish
-    return
-
-  @_fetchSubData = (paths, callback) ->
+  _fetchSubData: (paths, callback) ->
     data = []
     otData = {}
     finish = -> callback null, data, otData  unless --finish.remainingGets
     finish.remainingGets = paths.length
-    self = this
+    otFields = @_otFields
     for path in paths
       [root, remainder] = splitPath path
 
@@ -256,102 +236,14 @@ Store = module.exports = (options = {}) ->
         # TODO Convert the following to work beyond MemoryStore
         otPaths = allOtPaths value, root + '.'
         for otPath in otPaths
-          otData[otPath] = otField if otField = self.otFields[otPath]
+          otData[otPath] = otField if otField = otFields[otPath]
 
         # addSubDatum mutates data argument
-        addSubDatum self, data, root, remainder, value, ver, finish
+        addSubDatum data, root, remainder, value, ver, finish
         finish()
     return
 
-  @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
-    return unless pubSub.hasSubscriptions clientId
-
-    # TODO Replace with a LUA script that does filtering?
-    redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
-      throw err if err
-      txn = null
-      for val, i in vals
-        if i % 2
-          continue unless pubSub.subscribedToTxn clientId, txn
-          transaction.base txn, +val
-          onTxn txn
-        else
-          txn = JSON.parse val
-      done() if done
-
-  nextClientId = (callback) ->
-    redisClient.incr 'clientClock', (err, value) ->
-      throw err if err
-      callback value.toString(36)
-
-  @createModel = ->
-    model = new Model
-    model.store = self
-    model._ioUri = self._ioUri
-    model.startIdPromise = startIdPromise
-    startIdPromise.on (startId) ->
-      model._startId = startId
-    nextClientId (clientId) ->
-      model.clientIdPromise.fulfill clientId
-    return model
-
-  @createStoreModel = ->
-    @model = @createModel()
-    for key, val of @model.async
-      @[key] = val
-  @createStoreModel()
-
-  @flush = (callback) ->
-    done = false
-    cb = (err) ->
-      if callback && (done || err)
-        callback err
-        callback = null
-      done = true
-    adapter.flush cb
-    self = this
-    redisClient.flushdb (err) ->
-      if err && callback
-        callback err
-        return callback = null
-      redisInfo.onStart redisClient, cb
-      self.createStoreModel()
-
-
-  ## Upstream Transaction Interface ##
-
-  stm = new Stm redisClient
-  @_commit = commit = (txn, callback) ->
-    ver = transaction.base txn
-    if ver && typeof ver isnt 'number'
-      # In case of something like @set(path, value, callback)
-      throw new Error 'Version must be null or a number'
-    stm.commit txn, (err, ver) ->
-      transaction.base txn, ver
-      callback err, txn if callback
-      return if err
-      pubSub.publish transaction.path(txn), txn: txn
-      txnApplier.add txn, ver
-
-  ## Ensure Serialization of Transactions to the DB ##
-  # TODO: This algorithm will need to change when we go multi-process,
-  # because we can't count on the version to increase sequentially
-  txnApplier = new Serializer
-    withEach: (txn, ver) ->
-      args = transaction.args(txn).slice 0
-      method = transaction.method txn
-      args.push ver, (err) ->
-        # TODO: Better adapter error handling and potentially a second callback
-        # to the caller of commit when the adapter operation completes
-        throw err if err
-      # adapter[method] args...
-      persistMutation method, args
-
-  @disconnect = ->
-    redisClient.quit()
-    subClient.quit()
-    txnSubClient.quit()
-
+do ->
   ## PERSISTENCE ROUTER ##
   saveRoutes =
     set: []
@@ -365,9 +257,13 @@ Store = module.exports = (options = {}) ->
     shift: []
     remove: []
     move: []
-  @save = (method, path, fn) ->
+  Store::save = (method, path, fn) ->
+    unless @_didSetupDefaultPersistenceRoutes
+      @_adapter.setupDefaultPersistenceRoutes @
+      @_didSetupDefaultPersistenceRoutes = true
     re = pathParser.eventRegExp path
     saveRoutes[method].push [re, fn]
+
   persistMutation = (method, args) ->
     routes = saveRoutes[method]
     [path, rest...] = args
@@ -381,8 +277,50 @@ Store = module.exports = (options = {}) ->
       captures = if match.length > 1 then match[1..] else [match[0]]
       return fn.apply null, captures.concat(rest, [next, done])
     next()
-  adapter.setupDefaultPersistenceRoutes @
 
+nextTxnNum = (redisClient, clientId, callback) ->
+  redisClient.incr 'txnClock.' + clientId, (err, value) ->
+    throw err if err
+    callback value
+
+forTxnSince = (pubSub, redisClient, ver, clientId, onTxn, done) ->
+  return unless pubSub.hasSubscriptions clientId
+  
+  # TODO Replace with a LUA script that does filtering?
+  redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
+    throw err if err
+    txn = null
+    for val, i in vals
+      if i % 2
+        continue unless pubSub.subscribedToTxn clientId, txn
+        transaction.base txn, +val
+        onTxn txn
+      else
+        txn = JSON.parse val
+    done() if done
+  
+# Accumulates an array of tuples to set [path, value, ver]
+#
+# @param {Array} data is an array that gets mutated
+# @param {String} root is the part of the path up to ".*"
+# @param {String} remainder is the part of the path after "*"
+# @param {Object} value is the lookup value of the rooth path
+# @param {Number} ver is the lookup ver of the root path
+addSubDatum = (data, root, remainder, value, ver, finish) ->
+  # Set the entire object
+  return data.push [root, value, ver]  unless remainder?
+
+  # Set each property one level down, since the path had a '*'
+  # following the current root
+  [appendRoot, remainder] = splitPath remainder
+  for prop of value
+    nextRoot = if root then root + '.' + prop else prop
+    nextValue = value[prop]
+    if appendRoot
+      nextRoot += '.' + appendRoot
+      nextValue = lookup appendRoot, nextValue
+
+    addSubDatum data, nextRoot, remainder, nextValue, ver, finish
   return
 
 allOtPaths = (obj, prefix = '') ->
@@ -395,3 +333,59 @@ allOtPaths = (obj, prefix = '') ->
         continue
       results.push allOtPaths(v, k + '.')...
   return results
+
+setupRedis = (self, redisOptions = {}) ->
+  {port, host, db, password} = redisOptions
+  # Client for data access and event publishing
+  self._redisClient = redisClient = redis.createClient(port, host, redisOptions)
+  # Client for internal Racer event subscriptions
+  self._subClient = subClient = redis.createClient(port, host, redisOptions)
+  # Client for event subscriptions of txns only
+  self._txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+  if password
+    authCallback = (err) -> throw err if err
+    redisClient.auth password, authCallback
+    subClient.auth password, authCallback
+    txnSubClient.auth password, authCallback
+
+  # TODO: Make sure there are no weird race conditions here, since we are
+  # caching the value of starts and it could potentially be stale when a
+  # transaction is received
+  # TODO: Make sure this works when redis crashes and is restarted
+  redisStarts = null
+  self._startIdPromise = startIdPromise = new Promise
+  # Calling select right away queues the command before any commands that
+  # a client might add before connect happens. If select is not queued first,
+  # the subsequent commands could happen on the wrong db
+  ignoreSubscribe = false
+  do subscribeToStarts = (selected) ->
+    return ignoreSubscribe = false if ignoreSubscribe
+    if db isnt undefined && !selected
+      return redisClient.select db, (err) ->
+        throw err if err
+        subscribeToStarts true
+    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
+      redisStarts = starts
+      startIdPromise.clearValue() if startIdPromise.value
+      startIdPromise.fulfill starts[0][0]
+  
+  # Ignore the first connect event
+  ignoreSubscribe = true
+  redisClient.on 'connect', subscribeToStarts
+  redisClient.on 'end', ->
+    redisStarts = null
+    startIdPromise.clearValue()
+
+  self._hasInvalidVer = (socket, ver, clientStartId) ->
+    # Don't allow a client to connect unless there is a valid startId to
+    # compare the model's against
+    unless startIdPromise.value
+      socket.disconnect()
+      return true
+    # TODO: Map the client's version number to the Stm's and update the client
+    # with the new startId unless the client's version includes versions that
+    # can't be mapped
+    unless clientStartId && clientStartId == startIdPromise.value
+      socket.emit 'fatalErr'
+      return true
+    return false
