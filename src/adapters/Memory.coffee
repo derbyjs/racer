@@ -4,6 +4,7 @@
 ##  Do not edit it directly.
 
 MemorySync = require './MemorySync'
+MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 
 Memory = module.exports = ->
   @_data = world: {}
@@ -26,8 +27,15 @@ Memory:: =
       return callback err
     callback null, val, @version
 
-['set', 'del', 'push', 'unshift', 'insert', 'pop',
- 'shift', 'remove', 'move'].forEach (method) ->
+  setupDefaultPersistenceRoutes: (store) ->
+    adapter = @
+    for method in MUTATORS
+      store.save method, '*', do (method) ->
+        ->
+          [pathPlusArgs..., next, done] = arguments
+          adapter[method] pathPlusArgs...
+
+MUTATORS.forEach (method) ->
   alias = '_' + method
   Memory::[alias] = fn = MemorySync::[method]
   Memory::[method] = switch fn.length
@@ -55,4 +63,3 @@ Memory:: =
       catch err
         return callback err
       callback null, args...
-

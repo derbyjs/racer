@@ -10,6 +10,7 @@ specHelper = require './specHelper'
 redisInfo = require './redisInfo'
 Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
+pathParser = require './pathParser'
 
 # store = new Store
 #   adapter: SomeAdapter
@@ -59,7 +60,7 @@ Store = module.exports = (options = {}) ->
       redisStarts = starts
       startIdPromise.clearValue() if startIdPromise.value
       startIdPromise.fulfill starts[0][0]
-  
+
   # Ignore the first connect event
   ignoreSubscribe = true
   redisClient.on 'connect', subscribeToStarts
@@ -121,7 +122,7 @@ Store = module.exports = (options = {}) ->
       socket.emit 'fatalErr'
       return true
     return false
-  
+
   clientSockets = {}
   @_setSockets = (sockets) -> sockets.on 'connection', (socket) ->
     # TODO Once socket.io supports query params in the
@@ -187,7 +188,7 @@ Store = module.exports = (options = {}) ->
           return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
           nextTxnNum clientId, (num) ->
             socket.emit 'txnOk', txnId, base, num
-      
+
       socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
         return if hasInvalidVer socket, ver, clientStartId
         # Reset the pending transaction number in the model
@@ -198,7 +199,7 @@ Store = module.exports = (options = {}) ->
             nextTxnNum clientId, (num) ->
               socket.__base = transaction.base txn
               socket.emit 'txn', txn, num
-      
+
       # This is used to prevent emitting duplicate transactions
       socket.__base = 0
       # Set up subscriptions to the store for the model
@@ -248,7 +249,7 @@ Store = module.exports = (options = {}) ->
     self = this
     for path in paths
       [root, remainder] = splitPath path
-    
+
       @get root, (err, value, ver) ->
         return callback err  if err
         # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
@@ -264,7 +265,7 @@ Store = module.exports = (options = {}) ->
 
   @_forTxnSince = forTxnSince = (ver, clientId, onTxn, done) ->
     return unless pubSub.hasSubscriptions clientId
-    
+
     # TODO Replace with a LUA script that does filtering?
     redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
       throw err if err
@@ -331,7 +332,7 @@ Store = module.exports = (options = {}) ->
       return if err
       pubSub.publish transaction.path(txn), txn: txn
       txnApplier.add txn, ver
-  
+
   ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,
   # because we can't count on the version to increase sequentially
@@ -343,12 +344,44 @@ Store = module.exports = (options = {}) ->
         # TODO: Better adapter error handling and potentially a second callback
         # to the caller of commit when the adapter operation completes
         throw err if err
-      adapter[method] args...
+      # adapter[method] args...
+      persistMutation method, args
 
   @disconnect = ->
     redisClient.quit()
     subClient.quit()
     txnSubClient.quit()
+
+  ## PERSISTENCE ROUTER ##
+  saveRoutes =
+    set: []
+    del: []
+    setNull: []
+    incr: []
+    push: []
+    unshift: []
+    insert: []
+    pop: []
+    shift: []
+    remove: []
+    move: []
+  @save = (method, path, fn) ->
+    re = pathParser.eventRegExp path
+    saveRoutes[method].push [re, fn]
+  persistMutation = (method, args) ->
+    routes = saveRoutes[method]
+    [path, rest...] = args
+    done = -> # TODO
+    z = 0
+    next = ->
+      unless handler = routes[z++]
+        throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
+      [re, fn] = handler
+      next() unless match = path.match re
+      captures = if match.length > 1 then match[1..] else [match[0]]
+      return fn.apply null, captures.concat(rest, [next, done])
+    next()
+  adapter.setupDefaultPersistenceRoutes @
 
   return
 
