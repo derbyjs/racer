@@ -1,4 +1,5 @@
 transaction = require './transaction.server'
+Serializer = require './Serializer'
 
 MAX_RETRIES = 10
 RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
@@ -12,7 +13,7 @@ RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
 # TODO How can we improve this to work with multiple shards per transaction
 #      which will eventually happen in the multi-path transaction scenario
 
-Stm = module.exports = (redisClient) ->
+Stm = module.exports = (redisClient, store) ->
 
   lockQueue = {}
   
@@ -39,7 +40,7 @@ Stm = module.exports = (redisClient) ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
   
-  @commit = (txn, callback) ->
+  @commit = commit = (txn, callback) ->
     # If the base of a transaction is null or undefined, pass an empty string
     # for sinceVer, which indicates not to return a journal. Thus, no conflicts
     # will be found
@@ -75,8 +76,28 @@ Stm = module.exports = (redisClient) ->
         # If another transaction failed to lock because of this transaction,
         # shift it from the queue
         lock args... if (queue = lockQueue[path]) && args = queue.shift()
-  
+
+
+  if store
+
+    store._commit = (txn, callback) ->
+      ver = transaction.base txn
+      if ver && typeof ver isnt 'number'
+        # In case of something like @set(path, value, callback)
+        throw new Error 'Version must be null or a number'
+      commit txn, (err, ver) ->
+        return callback && callback err, txn if err
+        txnApplier.add txn, ver, callback
+
+    ## Ensure Serialization of Transactions to the DB ##
+    # TODO: This algorithm will need to change when we go multi-process,
+    # because we can't count on the version to increase sequentially
+    txnApplier = new Serializer
+      withEach: (txn, ver, callback) ->
+        store._finishCommit txn, ver, callback
+
   return
+
 
 Stm._LOCK_TIMEOUT = LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
 Stm._LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000  # Use 32 bits for timeout

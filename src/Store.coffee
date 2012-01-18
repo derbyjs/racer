@@ -1,7 +1,7 @@
 redis = require 'redis'
 PubSub = require './PubSub'
 redisInfo = require './redisInfo'
-storeStm = require './storeStm'
+Stm = require './Stm'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
@@ -27,7 +27,7 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  storeStm.init self, @_redisClient  if options.stm
+  @_stm = new Stm @_redisClient, self  if options.stm
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -82,6 +82,7 @@ Store:: =
     @_txnSubClient.quit()
 
   _commit: (txn, callback) ->
+    # TODO: txns should be written to the journal 
     self = this
     @_redisClient.incr 'ver', (err, ver) ->
       throw err if err
