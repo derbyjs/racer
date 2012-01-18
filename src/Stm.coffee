@@ -19,8 +19,6 @@ Stm = module.exports = (redisClient) ->
   # Callback has signature: fn(err, lockVal, txns)
   lock = (numKeys, locks, sinceVer, path, retries, delay, callback) ->
     redisClient.eval LOCK, numKeys, locks..., sinceVer, (err, values) ->
-      # TODO Uncomment the following line and `make test-fast` to demonstrate broken Stm algorithm
-      # console.log arguments
       return callback err if err
       if values[0]
         return callback null, values[0], values[1]

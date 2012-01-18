@@ -27,7 +27,7 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  storeStm.init self, @_redisClient  #if options.stm
+  storeStm.init self, @_redisClient  if options.stm
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -82,13 +82,17 @@ Store:: =
     @_txnSubClient.quit()
 
   _commit: (txn, callback) ->
+    self = this
+    @_redisClient.incr 'ver', (err, ver) ->
+      throw err if err
+      self._finishCommit txn, ver, callback
+
+  _finishCommit: (txn, ver, callback) ->
+    transaction.base txn, ver
     args = transaction.args(txn).slice()
     method = transaction.method txn
-    ver = transaction.base txn
     args.push ver, (err) ->
-      # TODO: Better adapter error handling and potentially a second callback
-      # to the caller of commit when the adapter operation completes
-      throw err if err
+      callback && callback err, txn
     @_adapter[method] args...
     @_pubSub.publish transaction.path(txn), {txn}
 
