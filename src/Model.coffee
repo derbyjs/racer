@@ -19,9 +19,8 @@ Model:: =
   connected: true
   canConnect: true
 
-  _setSocket: (socket) ->
+  _setSocket: (@socket) ->
     self = this
-    self.socket = socket
 
     self.canConnect = true
     socket.on 'fatalErr', ->

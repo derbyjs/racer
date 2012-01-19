@@ -12,7 +12,23 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   model = new Model clientId
   model._setSocket browserSocket
   browserSocket._connect()
-  return [serverSockets, model]
+  return [model, serverSockets]
+
+# Pass all transactions back to the client immediately
+exports.mockSocketEcho = (clientId = '', unconnected) ->
+  num = 0
+  ver = 0
+  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets.on 'connection', (socket) ->
+    socket.on 'txnsSince', (ver, clientStartId, callback) ->
+      callback [], ++num
+    socket.on 'txn', (txn) ->
+      socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
+  browserSocket = new mocks.BrowserSocketMock(serverSockets)
+  model = new Model clientId
+  model._setSocket browserSocket
+  browserSocket._connect() unless unconnected
+  return [model, serverSockets]
 
 exports.mockSocketModels = (clientIds..., options = {}) ->
   if Object != options.constructor

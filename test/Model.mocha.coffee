@@ -2,7 +2,7 @@ transaction = require '../src/transaction'
 Model = require '../src/Model'
 should = require 'should'
 {calls} = require './util'
-{mockSocketModel} = require './util/model'
+{mockSocketModel, mockSocketEcho} = require './util/model'
 
 describe 'Model', ->
 
@@ -22,20 +22,18 @@ describe 'Model', ->
     model._txnQueue.should.eql ['0.0', '0.1']
     model._txns['0.0'].slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
     model._txns['0.1'].slice().should.eql transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 0]
-  
+
   it 'test client performs set on receipt of message', ->
-    [sockets, model] = mockSocketModel()
+    [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
     model.get('color').should.eql 'green'
     model._adapter.version.should.eql 1
     sockets._disconnect()
-  
+
   it 'test client set roundtrip with server echoing transaction', (done) ->
-    num = 1
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-      transaction.base txn, transaction.base(txn) + 1
-      sockets.emit 'txn', txn, ++num
+    [model, sockets] = mockSocketEcho '0'
+    model.socket.on 'txnOk', (txnId) ->
+      txnId.should.equal '0.0'
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -44,47 +42,43 @@ describe 'Model', ->
     
     model.set 'color', 'green'
     model._txnQueue.should.eql ['0.0']
-  
+
   it 'test client del roundtrip with server echoing transaction', (done) ->
-    num = 1
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
-      transaction.base txn, transaction.base(txn) + 1
-      sockets.emit 'txn', txn, ++num
-      model._adapter._data.should.specEql world: {}
+    [model, sockets] = mockSocketEcho '0'
+    model.socket.on 'txnOk', (txnId) ->
+      txnId.should.equal '0.0'
+      model.get().should.eql {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
       done()
-  
+
     model._adapter._data = world: {color: 'green'}
     model.del 'color'
     model._txnQueue.should.eql ['0.0']
 
-  it 'test client push roundtrip with server echoing transaction', (done) ->
-    num = 1
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
-      txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
-      transaction.base txn, transaction.base(txn) + 1
-      sockets.emit 'txn', txn, ++num
+  it 'test client push roundtrip with server echoing transaction', (done) ->    
+    [model, sockets] = mockSocketEcho '0'
+    model.socket.on 'txnOk', (txnId) ->
+      txnId.should.equal '0.0'
       model.get('colors').should.specEql ['red']
       model._txnQueue.should.eql []
       model._txns.should.eql {}
       sockets._disconnect()
       done()
-  
+
     model.push 'colors', 'red'
     model._txnQueue.should.eql ['0.0']
-  
+
   it 'setting on a private path should only be applied locally', calls 0, (done) ->
-    [sockets, model] = mockSocketModel '0', 'txn', done
+    [model, sockets] = mockSocketModel '0', 'txn', done
     model.set '_color', 'green'
     model.get('_color').should.eql 'green'
     model._txnQueue.should.eql []
     sockets._disconnect()
-  
+
   it 'transactions should be removed after failure', (done) ->
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
       sockets.emit 'txnErr', 'conflict', '0.0'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -95,7 +89,7 @@ describe 'Model', ->
     model._txnQueue.should.eql ['0.0']
   
   it 'transactions received out of order should be applied in order', ->
-    [sockets, model] = mockSocketModel()
+    [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'set', args: ['color', 'green']), 1
     model.get('color').should.eql 'green'
     
@@ -108,7 +102,7 @@ describe 'Model', ->
     sockets._disconnect()
   
   it 'duplicate transaction versions should not be applied', ->
-    [sockets, model] = mockSocketModel()
+    [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
     model.get('colors').should.specEql ['green']
@@ -116,7 +110,7 @@ describe 'Model', ->
   
   it 'transactions should be requested if pending longer than timeout @slow', (done) ->
     ignoreFirst = true
-    [sockets, model] = mockSocketModel '0', 'txnsSince', (ver) ->
+    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
       # A txnsSince request is sent immediately upon connecting,
       # so the first one should be ignored
       return ignoreFirst = false  if ignoreFirst
@@ -130,7 +124,7 @@ describe 'Model', ->
 
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
     ignoreFirst = true
-    [sockets, model] = mockSocketModel '0', 'txnsSince', (ver) ->
+    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
       # A txnsSince request is sent immediately upon connecting,
       # so the first one should be ignored
       return ignoreFirst = false  if ignoreFirst
@@ -141,7 +135,7 @@ describe 'Model', ->
     setTimeout sockets._disconnect, 50
   
   it 'sub event should be sent on socket.io connect', (done) ->
-    [sockets, model] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
+    [model, sockets] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
       clientId.should.eql '0'
       storeSubs.should.eql []
       ver.should.eql 0
@@ -297,7 +291,7 @@ describe 'Model', ->
 
   it 'model events should get emitted properly', (done) ->
     ver = 0
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
       transaction.base txn, ++ver
       sockets.emit 'txn', txn, ver
     count = 0
@@ -327,7 +321,7 @@ describe 'Model', ->
     model.set 'color', 'green'
 
   it 'model events should indicate when not locally emitted', (done) ->
-    [sockets, model] = mockSocketModel '0'
+    [model, sockets] = mockSocketModel '0'
     model.on 'set', '*', (path, value, previous, local) ->
       path.should.eql 'color'
       value.should.eql 'green'
@@ -370,7 +364,7 @@ describe 'Model', ->
       color2: 'red'
 
   it 'test client emits events on receipt of a transaction iff it did not create the transaction', (done) ->
-    [sockets, model] = mockSocketModel('clientA')
+    [model, sockets] = mockSocketModel('clientA')
     eventCalled = false
     model.on 'set', 'color', (val) ->
       eventCalled = true
@@ -403,7 +397,7 @@ describe 'Model', ->
   
   it 'model mutator methods should callback on completion', calls 2, (done) ->
     ver = 0
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
       transaction.base txn, ++ver
       sockets.emit 'txn', txn
       sockets._disconnect()
@@ -419,7 +413,7 @@ describe 'Model', ->
   
   it 'model mutator methods should callback with error on confict', calls 2, (done) ->
     ver = 0
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
       sockets.emit 'txnErr', 'conflict', transaction.id txn
       sockets._disconnect()
     model.set 'color', 'green', (err, path, value) ->
