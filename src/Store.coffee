@@ -1,7 +1,8 @@
 redis = require 'redis'
 PubSub = require './PubSub'
 redisInfo = require './redisInfo'
-storeStm = require './storeStm'
+Stm = require './Stm'
+Lww = require './Lww'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
@@ -28,7 +29,11 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  storeStm.init self, @_redisClient  if options.stm
+  # These constructors add a @_commit method to this store
+  if options.stm
+    @_stm = new Stm @_redisClient, self
+  else
+    @_lww = new Lww @_redisClient, self
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -122,15 +127,6 @@ Store:: =
     @_subClient.quit()
     @_txnSubClient.quit()
 
-  # Example:
-  # store._commit(txn, function (err, txn) {
-  # });
-  _commit: (txn, callback) ->
-    self = this
-    @_redisClient.incr 'ver', (err, ver) ->
-      throw err if err
-      self._finishCommit txn, ver, callback
-
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
     args = transaction.args(txn).slice()
@@ -214,19 +210,16 @@ Store:: =
           # Return errors to client, with the exeption of duplicates, which
           # may need to be sent to the model again
           return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-          nextTxnNum redisClient, clientId, (num) ->
+          self._nextTxnNum clientId, (num) ->
             socket.emit 'txnOk', txnId, base, num
 
-      socket.on 'txnsSince', txnsSince = (ver, clientStartId) ->
+      socket.on 'txnsSince', (ver, clientStartId, callback) ->
         return if hasInvalidVer socket, ver, clientStartId
-        # Reset the pending transaction number in the model
-        redisClient.get 'txnClock.' + clientId, (err, value) ->
-          throw err if err
-          socket.emit 'txnNum', value || 0
-          forTxnSince pubSub, redisClient, ver, clientId, (txn) ->
-            nextTxnNum redisClient, clientId, (num) ->
-              socket.__base = transaction.base txn
-              socket.emit 'txn', txn, num
+        txnsSince pubSub, redisClient, ver, clientId, (txns) ->
+          self._nextTxnNum clientId, (num) ->
+            if len = txns.length
+              socket.__base = transaction.base txns[len - 1]
+            callback txns, num
 
       # This is used to prevent emitting duplicate transactions
       socket.__base = 0
@@ -241,8 +234,11 @@ Store:: =
       # is immediately broadcast to Window 2 just before txn A is
       # broadcast to Window 2.
       pubSub.subscribe clientId, paths
-      # Return any transactions that the model may have missed
-      txnsSince ver + 1, clientStartId
+
+  _nextTxnNum: (clientId, callback) ->
+    @_redisClient.incr 'txnClock.' + clientId, (err, value) ->
+      throw err if err
+      callback value
 
   _onTxnMsg: (clientId, txn) ->
     # Don't send transactions back to the model that created them.
@@ -258,7 +254,7 @@ Store:: =
       base = transaction.base txn
       if base > socket.__base
         socket.__base = base
-        nextTxnNum @_redisClient, clientId, (num) ->
+        @_nextTxnNum clientId, (num) ->
           socket.emit 'txn', txn, num
 
   _onOtMsg: (clientId, ot) ->
@@ -318,26 +314,22 @@ Store:: =
                     [match[0]]
       return fn.apply null, captures.concat(rest, [done, next])
 
-nextTxnNum = (redisClient, clientId, callback) ->
-  redisClient.incr 'txnClock.' + clientId, (err, value) ->
-    throw err if err
-    callback value
-
-forTxnSince = (pubSub, redisClient, ver, clientId, onTxn, done) ->
+txnsSince = (pubSub, redisClient, ver, clientId, callback) ->
   return unless pubSub.hasSubscriptions clientId
-  
+
   # TODO Replace with a LUA script that does filtering?
   redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
     throw err if err
     txn = null
+    txns = []
     for val, i in vals
       if i % 2
         continue unless pubSub.subscribedToTxn clientId, txn
         transaction.base txn, +val
-        onTxn txn
+        txns.push txn
       else
         txn = JSON.parse val
-    done() if done
+    callback txns
 
 # Accumulates an array of tuples to set [path, value, ver]
 #

@@ -27,7 +27,6 @@ racer = module.exports =
     model._storeSubs = options.storeSubs
     model._startId = options.startId
     model._count = options.count
-    model._onTxnNum options.txnNum
     for [method, args] in options.onLoad
       model[method] args...
     model.emit 'initialized'

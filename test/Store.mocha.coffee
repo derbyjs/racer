@@ -12,7 +12,7 @@ describe 'Store', ->
     store = new Store stm: true
     store.flush done
 
-  after (done) ->
+  afterEach (done) ->
     store.flush ->
       store._redisClient.end()
       store._subClient.end()

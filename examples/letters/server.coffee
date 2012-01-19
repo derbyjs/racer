@@ -7,9 +7,12 @@ app = express.createServer()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
 
-# Listen specifies a port or http server
-# Namespace specifies the Socket.IO namespace
-store = racer.createStore redis: {db: 10}, listen: app, namespace: 'letters'
+store = racer.createStore
+  redis: {db: 10}       # Configuration options for Redis transaction journal
+  listen: app           # A port or http server
+  namespace: 'letters'  # Socket.IO namespace
+  stm: true             # Enable STM conflict detection. Last-writer-wins by default
+
 # Clear all existing data on restart
 store.flush()
 
