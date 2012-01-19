@@ -27,7 +27,7 @@ module.exports =
       paths = []
       storeSubs = @_storeSubs
       addPath = (path) ->
-        for path in pathParser.expand path        
+        for path in pathParser.expand path
           return if storeSubs[path]
           # These subscriptions are reestablished when the client connects
           storeSubs[path] = 1
