@@ -20,6 +20,13 @@ MongoAdapter = module.exports = (conf) ->
   @_state = DISCONNECTED
   @_collections = {}
   @_pending = []
+
+  # TODO Make version scale beyond 1 db
+  #      by sharding and with a vector
+  #      clock with each member the
+  #      version of a shard
+  @version = 0
+
   return
 
 MongoAdapter:: =
@@ -111,6 +118,8 @@ MongoAdapter:: =
   _collection: (name) ->
     @_collections[name] ||= new Collection name, @_db
 
+  setVersion: (ver) -> @version = Math.max @version, ver
+
   setupDefaultPersistenceRoutes: (store) ->
     adapter = @
 
@@ -124,66 +133,74 @@ MongoAdapter:: =
     store.defaultRoute 'get', '*.*.*', (collection, _id, relPath, done, next) ->
       only = {}
       only[relPath] = 1
-      only.ver = 1
       adapter.findOne collection, {_id}, only, (err, doc) ->
         return done err if err
-        return done null, undefined if doc is null
+        return done null, undefined, adapter.version if doc is null
 
         val = doc
         parts = relPath.split '.'
         val = val[prop] for prop in parts
 
-        done null, val, doc.ver
+        done null, val, adapter.version
 
     store.defaultRoute 'get', '*.*', (collection, _id, done, next) ->
       adapter.findOne collection, {_id}, {}, (err, doc) ->
         return done err if err
-        return done null, null if doc is null
-        ver = doc.ver
+        return done null, undefined, adapter.version if doc is null
         delete doc.ver
 
         doc.id = doc._id.toString()
         delete doc._id
 
-        done null, doc, ver
+        done null, doc, adapter.version
 
     store.defaultRoute 'get', '*', (collection, done, next) ->
       adapter.find collection, {}, {}, (err, docs) ->
         return done err if err
-        maxVer = 0
         docsById = {}
         for doc in docs
           doc.id = doc._id.toString()
           delete doc._id
-          {ver} = doc
           delete doc.ver
-          maxVer = ver if maxVer < ver
           docsById[doc.id] = doc
-        done null, docsById, ver
+        done null, docsById, adapter.version
 
     store.defaultRoute 'set', '*.*.*', (collection, _id, relPath, val, ver, done, next) ->
       (setTo = {})[relPath] = val
       op = $set: setTo
       _id = idFor _id
-      adapter.update collection, {_id}, op, upsert: true, done
+      adapter.update collection, {_id}, op, upsert: true, (err) ->
+        return done err if err
+        adapter.setVersion ver
+        done()
 
     store.defaultRoute 'set', '*.*', (collection, _id, doc, ver, done, next) ->
+      cb = (err) ->
+        return done err if err
+        adapter.setVersion ver
+        done()
       if _id
         doc._id = _id = idFor _id
         delete doc.id
-        adapter.update collection, {_id}, doc, upsert: true, done
+        adapter.update collection, {_id}, doc, upsert: true, cb
       else
-        adapter.insert collection, doc, {}, done
+        adapter.insert collection, doc, {}, cb
 
     store.defaultRoute 'del', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       (unsetConf = {})[relPath] = 1
       op = $unset: unsetConf
       op.$inc = {ver: 1}
       _id = idFor _id
-      adapter.update collection, {_id}, op, {}, done
+      adapter.update collection, {_id}, op, {}, (err) ->
+        return done err if err
+        adapter.setVersion ver
+        done()
 
     store.defaultRoute 'del', '*.*', (collection, _id, ver, done, next) ->
-      adapter.remove collection, {_id}, done
+      adapter.remove collection, {_id}, (err) ->
+        return done err if err
+        adapter.setVersion ver
+        done()
 
     store.defaultRoute 'push', '*.*.*', (collection, _id, relPath, vals..., ver, done, next) ->
       op = $inc: {ver: 1}
@@ -204,6 +221,7 @@ MongoAdapter:: =
 
       adapter.update collection, {_id}, op, upsert: true, (err) ->
         return done err if err
+        adapter.setVersion ver
         done null
 #        return done null unless clientId
 #        idMap = {}
@@ -224,6 +242,7 @@ MongoAdapter:: =
           op = $set: setTo, $inc: {ver: 1}
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
+            adapter.setVersion ver
             done()
 
     store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., ver, done, next) ->
@@ -240,13 +259,17 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
+            adapter.setVersion ver
             done()
 
     store.defaultRoute 'pop', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       _id = idFor _id
       (popConf = {ver: 1})[relPath] = 1
       op = $pop: popConf, $inc: {ver: 1}
-      adapter.update collection, {_id}, op, {}, done
+      adapter.update collection, {_id}, op, {}, (err) ->
+        return done err if err
+        adapter.setVersion ver
+        done null
 
     store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       opts = ver: 1
@@ -262,7 +285,8 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            done()
+            adapter.setVersion ver
+            done null
 
     store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, ver, done, next) ->
       opts = ver: 1
@@ -278,6 +302,7 @@ MongoAdapter:: =
           ver = found.ver
           adpater.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
+            adapter.setVersion ver
             done()
 
     store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, ver, done, next) ->
@@ -285,7 +310,7 @@ MongoAdapter:: =
       opts[relPath] = 1
       _id = idFor _id
       do exec = ->
-        adapter.findOne {_id}, opts, (err, found) ->
+        adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
           [value] = arr.splice from, 1
@@ -295,6 +320,7 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
+            adapter.setVersion ver
             done()
 
 MongoCollection = mongo.Collection

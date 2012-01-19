@@ -272,7 +272,7 @@ Store:: =
     for path in paths
       [root, remainder] = splitPath path
 
-      @get root, (err, value, ver) ->
+      @get root, do (root, remainder) -> (err, value, ver) ->
         return callback err if err
         # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
         # TODO Convert the following to work beyond MemoryStore

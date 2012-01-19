@@ -199,7 +199,7 @@ stm = module.exports =
       @emit method + 'Post', args, ver
       @emit method, args, out, isLocal, @_pass  if doEmit
       return out
-    
+
     _specModel: ->
       txns = @_txns
       txnQueue = @_txnQueue
