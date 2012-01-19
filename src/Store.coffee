@@ -267,7 +267,9 @@ do ->
   persistMutation = (method, args) ->
     routes = saveRoutes[method]
     [path, rest...] = args
-    done = -> # TODO
+    done = -> (err) ->
+      throw err if err
+      # TODO
     z = 0
     next = ->
       unless handler = routes[z++]
