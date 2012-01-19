@@ -33,7 +33,11 @@ Memory:: =
       store.save method, '*', do (method) ->
         ->
           [pathPlusArgs..., next, done] = arguments
+          console.log "%%%%%%%%%%%%%%"
+          console.log method
+          console.log pathPlusArgs
           adapter[method] pathPlusArgs...
+    return
 
 MUTATORS.forEach (method) ->
   alias = '_' + method

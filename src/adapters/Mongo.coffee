@@ -1,10 +1,7 @@
 url = require 'url'
 mongo = require 'mongodb'
+NativeObjectId = mongo.BSONPure.ObjectID
 {EventEmitter} = require 'events'
-
-ObjectId = mongo.BSONPure.ObjectID
-ObjectId.toString = (oid) -> oid.toHexString()
-ObjectId.fromString = (str) -> @createFromHexString str
 
 DISCONNECTED  = 1
 CONNECTING    = 2
@@ -18,22 +15,18 @@ DISCONNECTING = 4
 #   port: 27017
 #   database: 'example'
 MongoAdapter = module.exports = (conf) ->
-  EventEmitter.call this
-  @_ver = 0
-
+  EventEmitter.call @
   @_loadConf conf if conf
-
   @_state = DISCONNECTED
-
   @_collections = {}
-
   @_pending = []
-
   return
 
 MongoAdapter:: =
+  __proto__: EventEmitter::
+
   _loadConf: (conf) ->
-    if typeof conf == 'string'
+    if typeof conf is 'string'
       uri = url.parse conf
       @_host = uri.hostname
       @_port = uri.port || 27017
@@ -44,11 +37,11 @@ MongoAdapter:: =
       {@_host, @_port, @_database, @_user, @_pass} = conf
 
   connect: (conf, callback) ->
-    if 'function' == typeof conf
+    if typeof conf is 'function'
       callback = conf
     else
       @_loadConf conf
-    @_db = new mongo.Db(
+    @_db ||= new mongo.Db(
         @_database
       , new mongo.Server @_host, @_port
     )
@@ -59,14 +52,17 @@ MongoAdapter:: =
       open = =>
         @_state = CONNECTED
         @emit 'connected'
-        for todo in @_pending
-          @[todo[0]].apply @, todo[1]
+        for [method, args] in @_pending
+          @[method].apply @, args
         @_pending = []
+
       if @_user && @_pass
         return @_db.authenticate @_user, @_pass, open
       return open()
 
   disconnect: (callback) ->
+    collection._ready = false for _, collection of @_collections
+
     switch @_state
       when DISCONNECTED then callback null
       when CONNECTING then @once 'connected', => @close callback
@@ -78,75 +74,168 @@ MongoAdapter:: =
         # TODO onClose callbacks for collections
         callback() if callback
       when DISCONNECTING then @once 'disconnected', => callback null
-  
+
   flush: (callback) ->
     return @_pending.push ['flush', arguments] if @_state != CONNECTED
     @_db.dropDatabase (err, done) ->
       throw err if err
       callback()
 
-  # TODO create (new docs with auto-id's)
-  #      Perhaps use "namespace.?.path.val"
+  # Mutator methods called via CustomDataSource::applyOps
+  update: (collection, conds, op, opts, callback) ->
+    @_collection(collection).update conds, op, opts, callback
 
-  set: (path, val, ver, callback) ->
-    return @_pending.push ['set', arguments] if @_state != CONNECTED
-    [collection, id, path...] = path.split '.'
-    if path.length
-      path = path.join '.'
-      delta = {ver: ver}
-      delta[path] = val
-      return @_collection(collection).update {_id: id}, { $set: delta}, { upsert: true, safe: true }, callback
-    delta = @_flatten path.join('.'), val
-    delta.ver = ver
-    @_collection(collection).update {_id: id}, { $set: delta }, { upsert: true, safe: true }, callback
-
-  del: (path, ver, callback) ->
-    return @_pending.push ['del', arguments] if @_state != CONNECTED
-    [collection, id, path...] = path.split '.'
-    if path.length
-      path = path.join '.'
-      unset = {}
-      unset[path] = 1
-      return @_collection(collection).update {_id: id}, { $unset: unset }, { safe: true}, callback
-    @_collection(collection).remove {_id: id}, callback
-
-  get: (path,callback) ->
-    return @_pending.push ['get', arguments] if @_state != CONNECTED
-    [collection, id, path...] = path.split '.'
-    if path.length
-      path = path.join '.'
-      fields = { _id: 0, ver: 1 }
-      fields[path] = 1
-      return @_collection(collection).findOne {_id: id}, { fields: fields }, (err, doc) ->
-        return callback err if err
-        # TODO Fix doc[path] with a lookup
-        callback null, doc && doc[path], doc && doc.ver
-    @_collection(collection).findOne {_id: id}, (err, doc) ->
+  insert: (collection, json, opts, callback) ->
+    # TODO Leverage pkey flag; it may not be _id
+    json._id = new NativeObjectId
+    @_collection(collection).insert json, opts, (err) ->
       return callback err if err
-      ver = doc && doc.ver
-      delete doc.ver if doc
-      callback null, doc, ver
+      callback null, {_id: json._id}
 
+  remove: (collection, conds, callback) ->
+    @_collection(collection).remove conds, (err) ->
+      return callback err if err
+
+  # Callback here receives raw json data back from Mongo
+  findOne: (collection, conds, opts, callback) ->
+    @_collection(collection).findOne conds, opts, callback
+
+  find: (collection, conds, opts, callback) ->
+    @_collection(collection).find conds, opts, (err, cursor) ->
+      return callback err if err
+      cursor.toArray (err, docs) ->
+        return callback err if err
+        return callback null, docs
+
+  # Finds or creates the Mongo collection
   _collection: (name) ->
     @_collections[name] ||= new Collection name, @_db
 
-  _genObjectId: ->
-    ObjectId.toString(new ObjectId)
+  setupDefaultPersistenceRoutes: (store) ->
+    adapter = @
+    store.save 'set', '*.*.*', (collection, _id, relPath, val, next, done) ->
+      (setTo = {})[relPath] = val
+      op = $set: setTo
+      _id = ObjectId.fromString _id
+      adapter.update collection, {_id}, op, {}, done
 
-  _flatten: (path, obj, delta = {}) ->
-    if obj.constructor != Object
-      delta[path] = obj
-      return delta
+    store.save 'set', '*.*', (collection, _id, doc, next, done) ->
+      if _id
+        _id = ObjectId.fromString _id
+        adapter.update collection, {_id}, doc, upsert: true, done
+      else
+        adapter.insert collection, doc, {}, done
 
-    for k, v of obj
-      nextPath = if path then "#{path}.#{k}" else k
-      @_flatten nextPath, v, delta
-    return delta
-    
+    store.save 'del', '*.*.*', (collection, _id, relPath, next, done) ->
+      (unsetConf = {})[relPath] = 1
+      op = $unset: unsetConf
+      _id = ObjectId.fromString _id
+      adapter.update collection, {_id}, op, {}, done
 
-MongoAdapter.prototype.__proto__ = EventEmitter.prototype
+    store.save 'del', '*.*', (collection, _id, next, done) ->
+      adapter.remove collection, {_id}, done
 
-# MongoCollection = require ('../../node_modules/mongodb/lib/mongodb').Collection
+    store.save 'push', '*.*.*', (collection, _id, relPath, vals..., next, done) ->
+      op = $inc: {ver: 1}
+      if vals.length == 1
+        (op.$push = {})[relPath] = vals[0]
+      else
+        (op.$pushAll = {})[relPath] = vals
+
+      _id = ObjectId.fromString _id
+      adapter.update collection, {_id}, op, {}, done
+
+    store.save 'unshift', '*.*.*', (collection, _id, relPath, next, done) ->
+      opts = ver: 1
+      opts[relPath] = 1
+      _id = ObjectId.fromString _id
+      exec = ->
+        adapter.findOne collection, {_id}, opts, (err, found) ->
+          return done err if err
+          arr = found[relPath]
+          ver = found.ver
+          arr.unshift()
+          (setTo = {})[relPath] = arr
+          op = $set: setTo, $inc: {ver: 1}
+          adapter.update collection, {_id, ver}, op, {}, (err) ->
+            return exec() if err
+            done()
+      exec()
+
+    store.save 'insert', '*.*.*', (collection, _id, relPath, index, vals..., next, done) ->
+      opts = ver: 1
+      opts[relPath] = 1
+      _id = ObjectId.fromString _id
+      exec = ->
+        adapter.findOne collection, {_id}, opts, (err, found) ->
+          return done err if err
+          arr = found[relPath]
+          arr.splice index, 0, vals...
+          (setTo = {})[relPath] = arr
+          op = $set: setTo, $inc: {ver: 1}
+          ver = found.ver
+          adapter.update collection, {_id, ver}, op, {}, (err) ->
+            return exec() if err
+            done()
+      exec()
+
+    store.save 'pop', '*.*.*', (collection, _id, relPath, next, done) ->
+      _id = ObjectId.fromString _id
+      (popConf = {ver: 1})[relPath] = 1
+      op = $pop: popConf, $inc: {ver: 1}
+      adapter.update collection, {_id}, op, {}, done
+
+    store.save 'shift', '*.*.*', (collection, _id, relPath, next, done) ->
+      opts = ver: 1
+      opts[relPath] = 1
+      _id = ObjectId.fromString _id
+      exec = ->
+        adapter.findOne collection, {_id}, opts, (err, found) ->
+          return done err if err
+          arr = found[relPath]
+          arr.shift()
+          (setTo = {})[relPath] = arr
+          op = $set: setTo, $inc: {ver: 1}
+          ver = found.ver
+          adapter.update collection, {_id, ver}, op, {}, (err) ->
+            return exec() if err
+            done()
+      exec()
+
+    store.save 'remove', '*.*.*', (collection, _id, relPath, index, count, next, done) ->
+      opts = ver: 1
+      opts[relPath] = 1
+      _id = ObjectId.fromString _id
+      exec = ->
+        adapter.findOne collection, {_id}, opts, (err, found) ->
+          return done err if err
+          arr = found[relPath]
+          arr.splice index, count
+          (setTo = {})[relPath] = arr
+          op = $set: setTo, $inc: {ver: 1}
+          ver = found.ver
+          adpater.update collection, {_id, ver}, op, {}, (err) ->
+            return exec() if err
+            done()
+      exec()
+
+    store.save 'move', '*.*.*', (collection, _id, relPath, from, to, next, done) ->
+      opts = ver: 1
+      opts[relPath] = 1
+      _id = ObjectId.fromString _id
+      exec = ->
+        adapter.findOne {_id}, opts, (err, found) ->
+          return done err if err
+          arr = found[relPath]
+          [value] = arr.splice from, 1
+          arr.splice to, 0, value
+          (setTo = {})[relPath] = arr
+          op = $set: setTo, $inc: {ver: 1}
+          ver = found.ver
+          adapter.update collection, {_id, ver}, op, {}, (err) ->
+            return exec() if err
+            done()
+
 MongoCollection = mongo.Collection
 
 Collection = (name, db) ->

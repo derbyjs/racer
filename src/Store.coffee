@@ -36,8 +36,22 @@ Store = module.exports = (options = {}) ->
 
   @_localModels = {}
 
-  @_adapter = new MemoryAdapter
+  @_adapter = options.adapter || new MemoryAdapter
   @_createStoreModel()
+
+  @_saveRoutes =
+    set: []
+    del: []
+    setNull: []
+    incr: []
+    push: []
+    unshift: []
+    insert: []
+    pop: []
+    shift: []
+    remove: []
+    move: []
+  @_adapter.setupDefaultPersistenceRoutes @
 
   return
 
@@ -94,7 +108,12 @@ Store:: =
     method = transaction.method txn
     args.push ver, (err) ->
       callback && callback err, txn
-    @_adapter[method] args...
+#    @_adapter[method] args...
+    console.log @_adapter
+    console.log "!!!!!!!!!!!"
+    console.log method
+    console.log args
+    @_persistMutation method, args
     @_pubSub.publish transaction.path(txn), {txn}
 
   _setSockets: (sockets) ->
@@ -243,42 +262,30 @@ Store:: =
         finish()
     return
 
-do ->
-  ## PERSISTENCE ROUTER ##
-  saveRoutes =
-    set: []
-    del: []
-    setNull: []
-    incr: []
-    push: []
-    unshift: []
-    insert: []
-    pop: []
-    shift: []
-    remove: []
-    move: []
-  Store::save = (method, path, fn) ->
-    unless @_didSetupDefaultPersistenceRoutes
-      @_adapter.setupDefaultPersistenceRoutes @
-      @_didSetupDefaultPersistenceRoutes = true
+  ## PERSISTENCE MUTATION ROUTER ##
+  save: (method, path, fn) ->
     re = pathParser.eventRegExp path
-    saveRoutes[method].push [re, fn]
+    @_saveRoutes[method].push [re, fn]
 
-  persistMutation = (method, args) ->
-    routes = saveRoutes[method]
+  _persistMutation: (method, args) ->
+    routes = @_saveRoutes[method]
     [path, rest...] = args
     done = -> (err) ->
       throw err if err
       # TODO
-    z = 0
-    next = ->
-      unless handler = routes[z++]
+    i = 0
+    do next = ->
+      unless handler = routes[i++]
         throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
       [re, fn] = handler
       next() unless match = path.match re
       captures = if match.length > 1 then match[1..] else [match[0]]
       return fn.apply null, captures.concat(rest, [next, done])
-    next()
+
+  ## PERSISTENCE GETTER ROUTER ##
+  load: (queryName, fn) ->
+    @_queryBlocksByName ||= {}
+    queryBlocksByName[queryName] = fn
 
 nextTxnNum = (redisClient, clientId, callback) ->
   redisClient.incr 'txnClock.' + clientId, (err, value) ->
