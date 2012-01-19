@@ -30,13 +30,14 @@ Memory:: =
   setupDefaultPersistenceRoutes: (store) ->
     adapter = @
     for method in MUTATORS
-      store.save method, '*', do (method) ->
+      store.defaultRoute method, '*', do (method) ->
         ->
-          [pathPlusArgs..., next, done] = arguments
-          console.log "%%%%%%%%%%%%%%"
-          console.log method
-          console.log pathPlusArgs
-          adapter[method] pathPlusArgs...
+          [pathPlusArgsPlusDone..., next] = arguments
+          adapter[method] pathPlusArgsPlusDone...
+    store.defaultRoute 'get', '*', (path, done, next) ->
+      adapter.get path, done
+    store.defaultRoute 'get', '', (path, done, next) ->
+      adapter.get '', done
     return
 
 MUTATORS.forEach (method) ->

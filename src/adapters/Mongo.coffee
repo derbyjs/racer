@@ -39,7 +39,7 @@ MongoAdapter:: =
   connect: (conf, callback) ->
     if typeof conf is 'function'
       callback = conf
-    else
+    else if conf isnt undefined
       @_loadConf conf
     @_db ||= new mongo.Db(
         @_database
@@ -87,7 +87,7 @@ MongoAdapter:: =
 
   insert: (collection, json, opts, callback) ->
     # TODO Leverage pkey flag; it may not be _id
-    json._id = new NativeObjectId
+    json._id ||= new NativeObjectId
     @_collection(collection).insert json, opts, (err) ->
       return callback err if err
       callback null, {_id: json._id}
@@ -113,43 +113,108 @@ MongoAdapter:: =
 
   setupDefaultPersistenceRoutes: (store) ->
     adapter = @
-    store.save 'set', '*.*.*', (collection, _id, relPath, val, next, done) ->
+
+    idFor = (id) ->
+      try
+        return new NativeObjectId id
+      catch e
+        throw e unless e.message == 'Argument passed in must be a single String of 12 bytes or a string of 24 hex characters in hex format'
+      return id
+
+    store.defaultRoute 'get', '*.*.*', (collection, _id, relPath, done, next) ->
+      only = {}
+      only[relPath] = 1
+      only.ver = 1
+      adapter.findOne collection, {_id}, only, (err, doc) ->
+        return done err if err
+        return done null, undefined if doc is null
+
+        val = doc
+        parts = relPath.split '.'
+        val = val[prop] for prop in parts
+
+        done null, val, doc.ver
+
+    store.defaultRoute 'get', '*.*', (collection, _id, done, next) ->
+      adapter.findOne collection, {_id}, {}, (err, doc) ->
+        return done err if err
+        return done null, null if doc is null
+        ver = doc.ver
+        delete doc.ver
+
+        doc.id = doc._id.toString()
+        delete doc._id
+
+        done null, doc, ver
+
+    store.defaultRoute 'get', '*', (collection, done, next) ->
+      adapter.find collection, {}, {}, (err, docs) ->
+        return done err if err
+        maxVer = 0
+        docsById = {}
+        for doc in docs
+          doc.id = doc._id.toString()
+          delete doc._id
+          {ver} = doc
+          delete doc.ver
+          maxVer = ver if maxVer < ver
+          docsById[doc.id] = doc
+        done null, docsById, ver
+
+    store.defaultRoute 'set', '*.*.*', (collection, _id, relPath, val, ver, done, next) ->
       (setTo = {})[relPath] = val
       op = $set: setTo
-      _id = ObjectId.fromString _id
-      adapter.update collection, {_id}, op, {}, done
+      _id = idFor _id
+      adapter.update collection, {_id}, op, upsert: true, done
 
-    store.save 'set', '*.*', (collection, _id, doc, next, done) ->
+    store.defaultRoute 'set', '*.*', (collection, _id, doc, ver, done, next) ->
       if _id
-        _id = ObjectId.fromString _id
+        doc._id = _id = idFor _id
+        delete doc.id
         adapter.update collection, {_id}, doc, upsert: true, done
       else
         adapter.insert collection, doc, {}, done
 
-    store.save 'del', '*.*.*', (collection, _id, relPath, next, done) ->
+    store.defaultRoute 'del', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       (unsetConf = {})[relPath] = 1
       op = $unset: unsetConf
-      _id = ObjectId.fromString _id
+      op.$inc = {ver: 1}
+      _id = idFor _id
       adapter.update collection, {_id}, op, {}, done
 
-    store.save 'del', '*.*', (collection, _id, next, done) ->
+    store.defaultRoute 'del', '*.*', (collection, _id, ver, done, next) ->
       adapter.remove collection, {_id}, done
 
-    store.save 'push', '*.*.*', (collection, _id, relPath, vals..., next, done) ->
+    store.defaultRoute 'push', '*.*.*', (collection, _id, relPath, vals..., ver, done, next) ->
       op = $inc: {ver: 1}
       if vals.length == 1
         (op.$push = {})[relPath] = vals[0]
       else
         (op.$pushAll = {})[relPath] = vals
 
-      _id = ObjectId.fromString _id
-      adapter.update collection, {_id}, op, {}, done
+      op.$inc = {ver: 1}
 
-    store.save 'unshift', '*.*.*', (collection, _id, relPath, next, done) ->
+      _id = idFor _id
+#      isLocalId = /^\$_\d+_\d+$/
+#      if isLocalId.test _id
+#        clientId = _id
+#        _id = new NativeObjectId
+#      else
+#        _id = new NativeObjectId _id
+
+      adapter.update collection, {_id}, op, upsert: true, (err) ->
+        return done err if err
+        done null
+#        return done null unless clientId
+#        idMap = {}
+#        idMap[clientId] = _id
+#        done null, idMap
+
+    store.defaultRoute 'unshift', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
-      _id = ObjectId.fromString _id
-      exec = ->
+      _id = idFor _id
+      do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
@@ -160,13 +225,12 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             done()
-      exec()
 
-    store.save 'insert', '*.*.*', (collection, _id, relPath, index, vals..., next, done) ->
+    store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., ver, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
-      _id = ObjectId.fromString _id
-      exec = ->
+      _id = idFor _id
+      do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
@@ -177,19 +241,18 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             done()
-      exec()
 
-    store.save 'pop', '*.*.*', (collection, _id, relPath, next, done) ->
-      _id = ObjectId.fromString _id
+    store.defaultRoute 'pop', '*.*.*', (collection, _id, relPath, ver, done, next) ->
+      _id = idFor _id
       (popConf = {ver: 1})[relPath] = 1
       op = $pop: popConf, $inc: {ver: 1}
       adapter.update collection, {_id}, op, {}, done
 
-    store.save 'shift', '*.*.*', (collection, _id, relPath, next, done) ->
+    store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
-      _id = ObjectId.fromString _id
-      exec = ->
+      _id = idFor _id
+      do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
@@ -200,13 +263,12 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             done()
-      exec()
 
-    store.save 'remove', '*.*.*', (collection, _id, relPath, index, count, next, done) ->
+    store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, ver, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
-      _id = ObjectId.fromString _id
-      exec = ->
+      _id = idFor _id
+      do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
@@ -217,13 +279,12 @@ MongoAdapter:: =
           adpater.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             done()
-      exec()
 
-    store.save 'move', '*.*.*', (collection, _id, relPath, from, to, next, done) ->
+    store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, ver, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
-      _id = ObjectId.fromString _id
-      exec = ->
+      _id = idFor _id
+      do exec = ->
         adapter.findOne {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]

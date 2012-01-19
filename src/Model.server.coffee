@@ -52,7 +52,7 @@ ServerModel::_bundle = (callback) ->
     # OT objects aren't serializable until after one or more OT operations
     # have occured on that object
     otFields[path] = field.toJSON()  if field.toJSON
-  
+
   callback JSON.stringify
     data: @get()
     base: @_adapter.version

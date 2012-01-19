@@ -46,6 +46,8 @@ AsyncAtomic:: =
 
 empty = ->
 
+# TODO @model.store._commit is used in a non-private way. Change
+#      to @model.store.commit
 module.exports = Async = (@model) -> return
 Async:: =
 

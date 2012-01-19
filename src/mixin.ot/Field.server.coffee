@@ -6,8 +6,8 @@ FieldConnection = require './FieldConnection.server'
 # data: {type, v, snapshot, meta}
 # ops: [op]
 
-Field = module.exports = (adapter, pubSub, path, @version, @type = text) ->
-  @adapter = adapter
+Field = module.exports = (store, pubSub, path, @version, @type = text) ->
+  @store = store
   @path = path
 
   @snapshot = ''
@@ -59,9 +59,9 @@ Field ::=
   getSnapshot: (callback) ->
     # TODO Separate adapter.get version return (which is really for stm purposes) from adapter.get for use with OT (See adapters/Memory)
     otPath = 'OT.' + @path
-    @adapter.get otPath, (err, val, ver) ->
+    @store.get otPath, (err, val, ver) ->
       if val is undefined
-        @adapter.set otPath, val, ot: true, (err, val) ->
+        @store.set otPath, val, ot: true, (err, val) ->
       # TODO
 
   applyOp: (opData, callback) ->

@@ -37,9 +37,23 @@ Store = module.exports = (options = {}) ->
   @_localModels = {}
 
   @_adapter = options.adapter || new MemoryAdapter
-  @_createStoreModel()
+  @_model = @_createStoreModel()
 
-  @_saveRoutes =
+  @_persistenceRoutes =
+    get: []
+    set: []
+    del: []
+    setNull: []
+    incr: []
+    push: []
+    unshift: []
+    insert: []
+    pop: []
+    shift: []
+    remove: []
+    move: []
+  @_defaultPersistenceRoutes =
+    get: []
     set: []
     del: []
     setNull: []
@@ -55,12 +69,27 @@ Store = module.exports = (options = {}) ->
 
   return
 
+# TODO Do we even use/need @_model from a Store instance?
 Store:: =
 
   _createStoreModel: ->
-    @_model = @createModel()
-    for key, val of @_model.async
+    model = @createModel()
+    for key, val of model.async
+      continue if key == 'get' || key == 'set'
+      # TODO Beware: mixing in has danger of naming conflicts; better to
+      #      delegate to @_model.async instead.
+      # TODO Define store mutators here instead of copying from Async because
+      #      using Async from here ends up making a hop back to here before
+      #      accessing store again (e.g., async.model.store._adapter). Instead
+      #      we can be more direct (e.g., @_adapter)
       @[key] = val
+    return model
+
+  get: (path, callback) ->
+    @sendToDb 'get', [path], callback
+
+  set: (path, val, ver, callback) ->
+    @sendToDb 'set', [path, val, ver], callback
 
   createModel: ->
     model = new Model
@@ -72,7 +101,7 @@ Store:: =
     @_redisClient.incr 'clientClock', (err, value) ->
       throw err if err
       clientId = value.toString(36)
-      model.clientIdPromise.fulfill clientId      
+      model.clientIdPromise.fulfill clientId
     return model
 
   flush: (callback) ->
@@ -83,19 +112,19 @@ Store:: =
         callback = null
       done = true
     @_adapter.flush cb
-    self = this
-    @_redisClient.flushdb (err) ->
-      if err && callback
-        callback err
-        return callback = null
-      redisInfo.onStart self._redisClient, cb
-      self._createStoreModel()
+    @_redisClient.flushdb (err) =>
+      return callback err if err && callback
+      redisInfo.onStart @_redisClient, cb
+      @_model = @_createStoreModel()
 
   disconnect: ->
     @_redisClient.quit()
     @_subClient.quit()
     @_txnSubClient.quit()
 
+  # Example:
+  # store._commit(txn, function (err, txn) {
+  # });
   _commit: (txn, callback) ->
     self = this
     @_redisClient.incr 'ver', (err, ver) ->
@@ -106,14 +135,9 @@ Store:: =
     transaction.base txn, ver
     args = transaction.args(txn).slice()
     method = transaction.method txn
-    args.push ver, (err) ->
-      callback && callback err, txn
-#    @_adapter[method] args...
-    console.log @_adapter
-    console.log "!!!!!!!!!!!"
-    console.log method
-    console.log args
-    @_persistMutation method, args
+    args.push ver
+    @sendToDb method, args, (err) ->
+      callback err, txn if callback
     @_pubSub.publish transaction.path(txn), {txn}
 
   _setSockets: (sockets) ->
@@ -142,6 +166,7 @@ Store:: =
         redisClient.del 'txnClock.' + clientId, (err, value) ->
           throw err if err
 
+      # TODO WHEN IS THIS CALLED?
       socket.on 'subAdd', (clientId, paths, callback) ->
         pubSub.subscribe clientId, paths
         self._fetchSubData paths, (err, data) ->
@@ -170,7 +195,8 @@ Store:: =
         # Lazy create the OT doc
         unless field = otFields[path]
           field = otFields[path] =
-            new Field adapter, pubSub, path, v
+            new Field self, pubSub, path, v
+          # TODO Replace with sendToDb
           adapter.get path, (err, val, ver) ->
             # Lazy snapshot initialization
             snapshot = field.snapshot = val?.$ot || ''
@@ -243,14 +269,15 @@ Store:: =
   _fetchSubData: (paths, callback) ->
     data = []
     otData = {}
-    finish = -> callback null, data, otData  unless --finish.remainingGets
+    finish = ->
+      callback null, data, otData  unless --finish.remainingGets
     finish.remainingGets = paths.length
     otFields = @_otFields
     for path in paths
       [root, remainder] = splitPath path
 
       @get root, (err, value, ver) ->
-        return callback err  if err
+        return callback err if err
         # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
         # TODO Convert the following to work beyond MemoryStore
         otPaths = allOtPaths value, root + '.'
@@ -262,30 +289,34 @@ Store:: =
         finish()
     return
 
-  ## PERSISTENCE MUTATION ROUTER ##
-  save: (method, path, fn) ->
+  ## PERSISTENCE ROUTER ##
+  route: (method, path, fn) ->
     re = pathParser.eventRegExp path
-    @_saveRoutes[method].push [re, fn]
+    @_persistenceRoutes[method].push [re, fn]
 
-  _persistMutation: (method, args) ->
-    routes = @_saveRoutes[method]
+  defaultRoute: (method, path, fn) ->
+    re = pathParser.eventRegExp path
+    @_defaultPersistenceRoutes[method].push [re, fn]
+
+  sendToDb: (method, args, done) ->
+    persistenceRoutes = @_persistenceRoutes
+    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
     [path, rest...] = args
-    done = -> (err) ->
+    done ||= (err) ->
       throw err if err
-      # TODO
     i = 0
     do next = ->
       unless handler = routes[i++]
         throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
       [re, fn] = handler
-      next() unless match = path.match re
-      captures = if match.length > 1 then match[1..] else [match[0]]
-      return fn.apply null, captures.concat(rest, [next, done])
-
-  ## PERSISTENCE GETTER ROUTER ##
-  load: (queryName, fn) ->
-    @_queryBlocksByName ||= {}
-    queryBlocksByName[queryName] = fn
+      return next() unless path == '' || (match = path.match re)
+      captures = if path == ''
+                   ['']
+                  else if match.length > 1
+                    match[1..]
+                  else
+                    [match[0]]
+      return fn.apply null, captures.concat(rest, [done, next])
 
 nextTxnNum = (redisClient, clientId, callback) ->
   redisClient.incr 'txnClock.' + clientId, (err, value) ->
@@ -307,7 +338,7 @@ forTxnSince = (pubSub, redisClient, ver, clientId, onTxn, done) ->
       else
         txn = JSON.parse val
     done() if done
-  
+
 # Accumulates an array of tuples to set [path, value, ver]
 #
 # @param {Array} data is an array that gets mutated
@@ -377,7 +408,7 @@ setupRedis = (self, redisOptions = {}) ->
       redisStarts = starts
       startIdPromise.clearValue() if startIdPromise.value
       startIdPromise.fulfill starts[0][0]
-  
+
   # Ignore the first connect event
   ignoreSubscribe = true
   redisClient.on 'connect', subscribeToStarts
