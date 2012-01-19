@@ -15,13 +15,6 @@ ServerModel:: = Object.create BrowserModel::
 # Update Model's prototype to provide server-side functionality
 # TODO: This file contains STM-specific code. This should be moved to the STM mixin
 
-ServerModel::_baseOnTxn = ServerModel::_onTxn
-ServerModel::_onTxn = (txn) ->
-  self = this
-  @clientIdPromise.on (clientId) ->
-    self.store._nextTxnNum clientId, (num) ->
-      self._baseOnTxn txn, num
-
 ServerModel::_commit = (txn) ->
   return if txn.isPrivate
   self = this

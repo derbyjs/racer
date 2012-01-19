@@ -31,11 +31,11 @@ describe 'Model', ->
     sockets._disconnect()
   
   it 'test client set roundtrip with server echoing transaction', (done) ->
-    ver = 0
+    num = 1
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-      transaction.base txn, ++ver
-      sockets.emit 'txn', txn, ver
+      transaction.base txn, transaction.base(txn) + 1
+      sockets.emit 'txn', txn, ++num
       model.get('color').should.eql 'green'
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -46,11 +46,11 @@ describe 'Model', ->
     model._txnQueue.should.eql ['0.0']
   
   it 'test client del roundtrip with server echoing transaction', (done) ->
-    ver = 0
+    num = 1
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'del', args: ['color']
-      transaction.base txn, ++ver
-      sockets.emit 'txn', txn, ver
+      transaction.base txn, transaction.base(txn) + 1
+      sockets.emit 'txn', txn, ++num
       model._adapter._data.should.specEql world: {}
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -62,11 +62,11 @@ describe 'Model', ->
     model._txnQueue.should.eql ['0.0']
 
   it 'test client push roundtrip with server echoing transaction', (done) ->
-    ver = 0
+    num = 1
     [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
       txn.slice().should.eql transaction.create base: 0, id: '0.0', method: 'push', args: ['colors', 'red']
-      transaction.base txn, ++ver
-      sockets.emit 'txn', txn, ver
+      transaction.base txn, transaction.base(txn) + 1
+      sockets.emit 'txn', txn, ++num
       model.get('colors').should.specEql ['red']
       model._txnQueue.should.eql []
       model._txns.should.eql {}
@@ -115,8 +115,12 @@ describe 'Model', ->
     sockets._disconnect()
   
   it 'transactions should be requested if pending longer than timeout @slow', (done) ->
-    [sockets, model] = mockSocketModel '0', 'txnsSince', (txnsSince) ->
-      txnsSince.should.eql 3
+    ignoreFirst = true
+    [sockets, model] = mockSocketModel '0', 'txnsSince', (ver) ->
+      # A txnsSince request is sent immediately upon connecting,
+      # so the first one should be ignored
+      return ignoreFirst = false  if ignoreFirst
+      ver.should.eql 3
       sockets._disconnect()
       done()
     sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
@@ -125,7 +129,12 @@ describe 'Model', ->
     sockets.emit 'txn', transaction.create(base: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
 
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
-    [sockets, model] = mockSocketModel '0', 'txnsSince', done
+    ignoreFirst = true
+    [sockets, model] = mockSocketModel '0', 'txnsSince', (ver) ->
+      # A txnsSince request is sent immediately upon connecting,
+      # so the first one should be ignored
+      return ignoreFirst = false  if ignoreFirst
+      done()
     sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
     sockets.emit 'txn', transaction.create(base: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3
     sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2

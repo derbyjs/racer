@@ -8,7 +8,7 @@ run = (options) ->
     store = new Store options
     store.flush done
 
-  after (done) ->
+  afterEach (done) ->
     store.flush ->
       store._redisClient.end()
       store._subClient.end()

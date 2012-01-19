@@ -6,6 +6,8 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new mocks.ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->
     socket.on name, onName
+    socket.on 'txnsSince', (ver, clientStartId, callback) ->
+      callback [], 1
   browserSocket = new mocks.BrowserSocketMock(serverSockets)
   model = new Model clientId
   model._setSocket browserSocket
@@ -21,6 +23,8 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
     socket.num = 1
     ver = 0
     txnNum = 1
+    socket.on 'txnsSince', (ver, clientStartId, callback) ->
+      callback [], socket.num
     socket.on 'txn', (txn) ->
       txn = JSON.parse JSON.stringify txn
       transaction.base txn, ++ver

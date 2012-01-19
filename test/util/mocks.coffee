@@ -29,13 +29,10 @@ nextSocketId = 1
 ServerSocketMock = (@_serverSockets, @_browserSocket) ->
   EventEmitter.call this
   @id = @_browserSocket.id
-  @broadcast =
-    emit: (name, args...) =>
-      for socket in @_serverSockets._sockets
-        callEmit socket, name, args if @_browserSocket != socket
   return
 ServerSocketMock:: =
-  emit: (name, args...) -> callEmit @_browserSocket, name, args
+  emit: (name, args...) ->
+    callEmit @_browserSocket, name, args
   __proto__: EventEmitter::
 
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
@@ -47,5 +44,6 @@ BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
 BrowserSocketMock:: =
   _connect: ->
     EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
-  emit: (name, args...) -> callEmit @_serverSocket, name, args, 'async'
+  emit: (name, args...) ->
+    callEmit @_serverSocket, name, args, 'async'
   __proto__: EventEmitter::

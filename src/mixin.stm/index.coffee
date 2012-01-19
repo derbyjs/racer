@@ -14,7 +14,7 @@ stm = module.exports =
 
   init: ->
     # Context (i.e., this) is Model instance
-    @_specCache =
+    @_specCache = specCache =
       invalidate: ->
         delete @data
         delete @lastTxnId
@@ -32,32 +32,23 @@ stm = module.exports =
       id: 0
     @_txns = txns = {}
     @_txnQueue = txnQueue = []
-    adapter = @_adapter
-    self = this
-
-    txnApplier = new Serializer
-      withEach: (txn) ->
-        if transaction.base(txn) > adapter.version
-          isLocal = 'callback' of txn
-          self._applyTxn txn, isLocal
-      onTimeout: -> self._reqNewTxns()
-
-    @_onTxn = (txn, num) ->
-      # Copy meta properties onto this transaction if it matches one in the queue
-      if queuedTxn = txns[transaction.id txn]
-        txn.callback = queuedTxn.callback
-        txn.emitted = queuedTxn.emitted
-      txnApplier.add txn, num
-
-    @_onTxnNum = (num) ->
-      # Reset the number used to keep track of pending transactions
-      txnApplier.setIndex (+num || 0) + 1
-      txnApplier.clearPending()
 
     @_removeTxn = (txnId) ->
       delete txns[txnId]
       if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
-      self._specCache.invalidate()
+      specCache.invalidate()
+
+    self = this
+    adapter = @_adapter
+    @_onTxn = (txn) ->
+      # Copy meta properties onto this transaction if it matches one in the queue
+      if queuedTxn = txns[transaction.id txn]
+        txn.callback = queuedTxn.callback
+        txn.emitted = queuedTxn.emitted
+
+      if transaction.base(txn) > adapter.version
+        isLocal = 'callback' of txn
+        self._applyTxn txn, isLocal
 
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
     # transaction without conflict detection, such as model.force.set
@@ -66,22 +57,44 @@ stm = module.exports =
     @async = new Async this
 
   setupSocket: (socket) ->
-    {_adapter: adapter, _onTxn: onTxn, _removeTxn: removeTxn, _txns: txns, _txnQueue: txnQueue} = self = this
-    
+    self = this
+    adapter = @_adapter
+    txns = @_txns
+    txnQueue = @_txnQueue
+    removeTxn = @_removeTxn
+    onTxn = @_onTxn
+
+    notReady = true
     @_commit = commit = (txn) ->
-      return if txn.isPrivate || !socket.socket.connected
+      return if txn.isPrivate || notReady
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn, self._startId
 
-    # STM Callbacks
-    socket.on 'txn', onTxn
+    txnApplier = new Serializer
+      withEach: onTxn
+      onTimeout: newTxns = ->
+        socket.emit 'txnsSince', adapter.version + 1, self._startId, (newTxns, num) ->
 
-    socket.on 'txnNum', @_onTxnNum
+          # Apply any missed transactions first
+          for txn in newTxns
+            onTxn txn
+
+          # Reset the number used to keep track of pending transactions
+          txnApplier.clearPending()
+          txnApplier.setIndex num + 1
+          notReady = false
+
+          # Resend all transactions in the queue
+          for id in txnQueue
+            commit txns[id]
+
+    socket.on 'txn', (txn, num) ->
+      txnApplier.add txn, num
 
     socket.on 'txnOk', (txnId, base, num) ->
       return unless txn = txns[txnId]
       transaction.base txn, base
-      onTxn txn, num
+      txnApplier.add txn, num
 
     socket.on 'txnErr', (err, txnId) ->
       txn = txns[txnId]
@@ -93,8 +106,6 @@ stm = module.exports =
         callbackArgs.unshift err
         callback callbackArgs...
       removeTxn txnId
-    # Request any transactions that may have been missed
-    @_reqNewTxns = -> socket.emit 'txnsSince', adapter.version + 1, self._startId
 
     resendInterval = null
     resend = ->
@@ -105,14 +116,13 @@ stm = module.exports =
         commit txn
 
     socket.on 'connect', ->
-      # Resend all transactions in the queue
-      for id in txnQueue
-        commit txns[id]
+      newTxns()
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
-  
+
     socket.on 'disconnect', ->
+      notReady = true
       # Stop resending transactions while disconnected
       clearInterval resendInterval if resendInterval
       resendInterval = null
@@ -122,7 +132,6 @@ stm = module.exports =
 
     ## Socket.io communication ##
     _commit: ->
-    _reqNewTxns: ->
 
     ## Transaction handling ##
 
