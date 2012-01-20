@@ -29,7 +29,7 @@ ServerModel::bundle = (callback) ->
   @_specModel()
   # Wait for all pending transactions to complete before returning
   return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
-  Promise.parallel(@clientIdPromise, @startIdPromise).on ->
+  Promise.parallel([@clientIdPromise, @startIdPromise]).on ->
     self._bundle callback
 
 ServerModel::_bundle = (callback) ->

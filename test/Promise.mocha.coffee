@@ -49,7 +49,7 @@ describe 'Promise', ->
       @foo.should.equal 'fighters'
       done()
     , foo: 'fighters'
-    
+
     p.fulfill true
 
   it 'should execute multiple callbacks immediately if the Promise is already fulfilled', calls 2, (done) ->
@@ -105,9 +105,10 @@ describe 'Promise', ->
       p1Val = val
     p2.on (val) ->
       p2Val = val
-    p = Promise.parallel p1, p2
-    p.on (val) ->
-      val.should.be.true
+    p = Promise.parallel [p1, p2]
+    p.on ([val1], [val2]) ->
+      val1.should.eql 'hello'
+      val2.should.eql 'world'
       p1Val.should.equal 'hello'
       p2Val.should.equal 'world'
       done()
@@ -117,7 +118,7 @@ describe 'Promise', ->
   it 'a promise resulting from Promise.parallel should clear its value if at least one of its component Promises clears its values', calls 2, (done) ->
     p1 = new Promise
     p2 = new Promise
-    p = Promise.parallel p1, p2
+    p = Promise.parallel [p1, p2]
     counter = 0
     p.on (val) ->
       val.should.equal 'first'
