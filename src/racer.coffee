@@ -9,10 +9,6 @@ session = require './session'
 
 DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
 
-Store::setSockets = (@sockets, ioUri = '') ->
-  @_setSockets @sockets
-  @_ioUri = ioUri
-
 Store::listen = (to, namespace) ->
   io = socketio.listen to
   io.configure ->

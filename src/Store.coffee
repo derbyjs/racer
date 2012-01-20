@@ -136,8 +136,9 @@ Store:: =
       callback err, txn if callback
     @_pubSub.publish transaction.path(txn), {txn}
 
-  _setSockets: (sockets) ->
+  setSockets: (@sockets, @_ioUri = '') ->
     self = this
+
     @_clientSockets = clientSockets = {}
     pubSub = @_pubSub
     redisClient = @_redisClient
@@ -151,7 +152,7 @@ Store:: =
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
-    sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, paths, ver, clientStartId) ->
+    @sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, paths, ver, clientStartId) ->
       return if hasInvalidVer socket, ver, clientStartId
 
       # TODO Map the clientId to a nickname (e.g., via session?),
