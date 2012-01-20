@@ -37,7 +37,7 @@ racer = module.exports =
     isReady = true
     racer.onready()
     return racer
-  
+
   onready: ->
   ready: (onready) -> ->
     racer.onready = onready
