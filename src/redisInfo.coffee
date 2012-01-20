@@ -21,7 +21,7 @@ module.exports =
         startsLength = values[0]
         ver = values[1] || 0
         setStarts client, startsLength, ver, callback
-  
+
   _getStarts: getStarts = (client, callback) ->
     client.lrange 'starts', 0, -1, (err, starts) ->
       throw err if err
@@ -40,17 +40,17 @@ module.exports =
               # on starts was applied, return before doing anything
               return client.unwatch 'starts', ->
                 getStarts client, callback
-            
+
             console.error 'WARNING: Redis server does not have any record of ' +
               'being started by the Racer Redis loader.'
-            
+
             # Initialize the value for starts if it is empty
             setStarts client, 0, 0, ->
               getStarts client, callback
       # Return a list in the format [[startId, ver], ...] in order of most
       # recent start to least recent start
       callback (start.split ',' for start in starts)
-  
+
   # This function is intended to be called by the Store when it first connects
   # to the Redis server. It will call the callback with the value of starts
   # immediately and whenever the '$redisInfo', 'starts' event is published
