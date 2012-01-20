@@ -64,20 +64,17 @@ module.exports =
 
     _initSubData: (data) ->
       adapter = @_adapter
-      setSubDatum adapter, datum  for datum in data
+      for [path, value, ver] in data
+        if path is ''
+          if typeof value is 'object'
+            for k, v of value
+              adapter.set k, v, ver
+            return
+          throw 'Cannot subscribe to "' + path '"'
+        adapter.set path, value, ver
       return
 
     _initSubOtData: (data) ->
       fields = @otFields
       fields[path] = field for path, field of data
       return
-
-setSubDatum = (adapter, [path, value, ver]) ->
-  if path is ''
-    if typeof value is 'object'
-      for k, v of value
-        adapter.set k, v, ver
-      return
-    throw 'Cannot subscribe to "' + path '"'
-
-  return adapter.set path, value, ver
