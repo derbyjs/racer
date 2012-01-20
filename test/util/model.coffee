@@ -18,10 +18,15 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
 exports.mockSocketEcho = (clientId = '', unconnected) ->
   num = 0
   ver = 0
+  newTxns = []
   serverSockets = new mocks.ServerSocketsMock()
+  serverSockets._queue = (txn) ->
+    transaction.base txn, ++ver
+    newTxns.push txn
   serverSockets.on 'connection', (socket) ->
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback [], ++num
+      callback newTxns, ++num
+      newTxns = []
     socket.on 'txn', (txn) ->
       socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
   browserSocket = new mocks.BrowserSocketMock(serverSockets)
