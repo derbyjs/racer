@@ -69,7 +69,7 @@ module.exports =
           if typeof value is 'object'
             for k, v of value
               adapter.set k, v, ver
-            return
+            continue
           throw 'Cannot subscribe to "' + path '"'
         adapter.set path, value, ver
       return
