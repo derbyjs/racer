@@ -35,4 +35,4 @@ module.exports =
 
   isSpeculative: (obj) -> obj && obj.$spec
 
-  identifier: '$spec'
+  identifier: '$spec' # Used in tests
