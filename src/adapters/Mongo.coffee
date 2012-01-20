@@ -228,7 +228,7 @@ MongoAdapter:: =
 #        idMap[clientId] = _id
 #        done null, idMap
 
-    store.defaultRoute 'unshift', '*.*.*', (collection, _id, relPath, ver, done, next) ->
+    store.defaultRoute 'unshift', '*.*.*', (collection, _id, relPath, globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -242,10 +242,10 @@ MongoAdapter:: =
           op = $set: setTo, $inc: {ver: 1}
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            adapter.setVersion ver
+            adapter.setVersion globalVer
             done()
 
-    store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., ver, done, next) ->
+    store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -259,7 +259,7 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            adapter.setVersion ver
+            adapter.setVersion globalVer
             done()
 
     store.defaultRoute 'pop', '*.*.*', (collection, _id, relPath, ver, done, next) ->
@@ -271,7 +271,7 @@ MongoAdapter:: =
         adapter.setVersion ver
         done null
 
-    store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, ver, done, next) ->
+    store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -285,10 +285,10 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            adapter.setVersion ver
+            adapter.setVersion globalVer
             done null
 
-    store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, ver, done, next) ->
+    store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -302,10 +302,10 @@ MongoAdapter:: =
           ver = found.ver
           adpater.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            adapter.setVersion ver
+            adapter.setVersion globalVer
             done()
 
-    store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, ver, done, next) ->
+    store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -320,7 +320,7 @@ MongoAdapter:: =
           ver = found.ver
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
-            adapter.setVersion ver
+            adapter.setVersion globalVer
             done()
 
 MongoCollection = mongo.Collection
