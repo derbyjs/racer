@@ -121,6 +121,7 @@ mergeAll Model::, EventEmitter::,
     @_on type, listener = eventListener type, pattern, callback, @_at
     return listener
 
+  _once: EventEmitter::once
   once: (type, pattern, callback) ->
     listener = eventListener type, pattern, callback, @_at
     self = this

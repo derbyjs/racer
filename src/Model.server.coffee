@@ -37,7 +37,7 @@ ServerModel::bundle = (callback) ->
   @_specModel()
   # Wait for all pending transactions to complete before returning
   if @_txnQueue.length
-    return @_on 'emptyTxnQueue', -> self.bundle callback
+    return @_once 'emptyTxnQueue', -> self.bundle callback
   Promise.parallel([@clientIdPromise, @startIdPromise]).on ->
     self._bundle callback
 
