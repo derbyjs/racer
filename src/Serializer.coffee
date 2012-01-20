@@ -21,7 +21,7 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
       if @_waiter
         clearTimeout @_waiter
         @_waiter = null
-  
+
   self._pending = {}
   self._index = init ? 1  # Corresponds to ver in Store and txnNum in Model
   return
