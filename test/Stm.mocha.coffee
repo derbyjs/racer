@@ -259,7 +259,7 @@ describe 'Stm', ->
       done()
   
   it 'test client set roundtrip with STM', (done) ->
-    [sockets, model] = mockSocketModel 'client0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel 'client0', 'txn', (txn) ->
       stm.commit txn, (err, version) ->
         should.equal null, err
         version.should.equal 1

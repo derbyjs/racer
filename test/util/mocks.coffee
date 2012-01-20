@@ -8,16 +8,15 @@ callEmit = (target, name, args, async) ->
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
-  @_sockets = []
-  @on 'connection', (socket) =>
+  @_sockets = sockets = []
+  @on 'connection', (socket) ->
     browserSocket = socket._browserSocket
     browserSocket.socket.connected = true
-    @_sockets.push browserSocket
+    sockets.push browserSocket
     EventEmitter::emit.call browserSocket, 'connect'
-  @_disconnect = =>
-    for browserSocket in @_sockets
-      browserSocket.socket.connected = false
-      EventEmitter::emit.call browserSocket, 'disconnect'
+  @_disconnect = ->
+    for browserSocket in sockets
+      browserSocket._disconnect()
   return
 ServerSocketsMock:: =
   emit: (name, args...) ->
@@ -42,6 +41,9 @@ BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
   @socket = connected: false
   return
 BrowserSocketMock:: =
+  _disconnect: ->
+    @socket.connected = false
+    EventEmitter::emit.call this, 'disconnect'
   _connect: ->
     EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
   emit: (name, args...) ->

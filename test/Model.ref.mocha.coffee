@@ -136,7 +136,7 @@ describe 'Model.ref', ->
 
   it 'should dereference paths', calls 1, (done) ->
     count = 0
-    [sockets, model] = mockSocketModel '0', 'txn', (txn) ->
+    [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
       txn.slice().should.eql expected[count++]
       sockets._disconnect()
       done()
