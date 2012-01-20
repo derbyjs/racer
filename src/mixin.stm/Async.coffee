@@ -85,7 +85,7 @@ Async:: =
   shift: (path, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'shift', args: [path]
     @model.store._commit txn, callback
-  
+
   remove: (path, start, howMany, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'remove', args: [path, start, howMany]
     @model.store._commit txn, callback
@@ -103,7 +103,7 @@ Async:: =
       # For incr(path, [byNum])
       byNum ?= 1
       callback ||= empty
-    
+
     tryVal = null
     @retry (atomic) ->
       atomic.get path, (val) ->
