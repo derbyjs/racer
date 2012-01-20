@@ -8,6 +8,13 @@ module.exports = ServerModel = ->
   self._onLoad = []
   self.clientIdPromise = (new Promise).on (clientId) ->
     self._clientId = clientId
+
+  # Having a remove txn event is useful
+  self.__removeTxn__ = self._removeTxn
+  self._removeTxn = (txnId) ->
+    @__removeTxn__ txnId
+    if @_txnQueue.length == 0
+      @emit 'emptyTxnQueue'
   return
 
 ServerModel:: = Object.create BrowserModel::
@@ -28,7 +35,8 @@ ServerModel::bundle = (callback) ->
   # transactions that may get stuck in the first position of the queue
   @_specModel()
   # Wait for all pending transactions to complete before returning
-  return setTimeout (-> self.bundle callback), 10  if @_txnQueue.length
+  if @_txnQueue.length
+    return @_on 'emptyTxnQueue', -> self.bundle callback
   Promise.parallel([@clientIdPromise, @startIdPromise]).on ->
     self._bundle callback
 
