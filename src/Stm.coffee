@@ -16,7 +16,7 @@ RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
 Stm = module.exports = (redisClient, store) ->
 
   lockQueue = {}
-  
+
   # Callback has signature: fn(err, lockVal, txns)
   lock = (numKeys, locks, sinceVer, path, retries, delay, callback) ->
     redisClient.eval LOCK, numKeys, locks..., sinceVer, (err, values) ->
@@ -34,12 +34,12 @@ Stm = module.exports = (redisClient, store) ->
           lock args... if args = lockQueue[path].shift()
         , delay
       return callback 'lockMaxRetries'
-  
+
   # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
   @_getLocks = getLocks = (path) ->
     lockPath = ''
     return (lockPath += '.' + segment for segment in path.split '.').reverse()
-  
+
   @commit = commit = (txn, callback) ->
     # If the base of a transaction is null or undefined, pass an empty string
     # for sinceVer, which indicates not to return a journal. Thus, no conflicts
@@ -59,20 +59,20 @@ Stm = module.exports = (redisClient, store) ->
     lock locksLen, locks, sinceVer, paths, MAX_RETRIES, RETRY_DELAY, (err, lockVal, txns) ->
       path = paths[0]
       return callback err if err
-      
+
       # Check the new transaction against all transactions in the journal
       # since one after the transaction's base version
       if txns && conflict = transaction.journalConflict txn, txns
         return redisClient.eval UNLOCK, locksLen, locks..., lockVal, (err) ->
           return callback err if err
           callback conflict
-      
+
       # Commit if there are no conflicts and the locks are still held
       redisClient.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
         return callback err if err
         return callback 'lockReleased' if ver is 0
         callback null, ver
-        
+
         # If another transaction failed to lock because of this transaction,
         # shift it from the queue
         lock args... if (queue = lockQueue[path]) && args = queue.shift()
