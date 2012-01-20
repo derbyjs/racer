@@ -9,7 +9,8 @@ module.exports = ServerModel = ->
   self.clientIdPromise = (new Promise).on (clientId) ->
     self._clientId = clientId
 
-  # Having a remove txn event is useful
+  # emptyTxnQueue helps us to wait for the txn queue to become empty
+  # before bundling the model via ServerModel::bundle
   self.__removeTxn__ = self._removeTxn
   self._removeTxn = (txnId) ->
     @__removeTxn__ txnId
