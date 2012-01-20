@@ -1,10 +1,9 @@
 MemorySync = require './adapters/MemorySync'
-pathParser = require './pathParser'
+{eventRegExp} = require './pathParser'
 {EventEmitter} = require 'events'
 {mergeAll} = require './util'
 
 Model = module.exports = (@_clientId = '', Adapter = MemorySync) ->
-  @_root = this
   @_adapter = new Adapter
 
   for {init} in Model.mixins
@@ -48,7 +47,20 @@ Model:: =
       setupSocket.call @, socket if setupSocket
 
 
+  ## Model Aliases ##
   # Create a model object scoped to a particular path
+  # Example:
+  # // Instead of writing
+  # model.set ('users.1.username', 'brian');
+  #
+  # // You can use aliases to write
+  # var user = model.at('users.1');
+  # user.set('username', 'brian');
+  #
+  # // Aliases can also be leveraged for other mutators
+  # // and for events as in the following code:
+  # user.on('push', 'todos', function (todo) {
+  # });
   at: (segment, absolute) -> Object.create this, _at: value:
     if (at = @_at) && !absolute
       if segment == '' then at else at + '.' + segment
@@ -91,13 +103,12 @@ eventListener = (method, pattern, callback, at) ->
     return pattern if pattern.call
 
   # on(method, pattern, callback)
-  re = pathParser.eventRegExp pattern
-  return (args, out, isLocal, pass) ->
-    path = args[0]
+  re = eventRegExp pattern
+  return ([path, args...], out, isLocal, pass) ->
     if re.test path
-      emitArgs = re.exec(path).slice(1).concat args.slice(1)
-      emitArgs.push out, isLocal, pass
-      callback emitArgs...
+      argsForEmit = re.exec(path).slice(1).concat args
+      argsForEmit.push out, isLocal, pass
+      callback argsForEmit...
       return true
 
 mergeAll Model::, EventEmitter::,
@@ -133,27 +144,31 @@ Model::addListener = Model::on
 # onMixin:     called with mutators and accessors after every mixin 
 
 # NOTE: Order of mixins may be important because of dependencies.
-Model.mixins = []
-Model.accessors = {}
-Model.mutators = {}
-onMixins = []
-Model.mixin = (mixin) ->
-  Model.mixins.push mixin
-  mergeAll Model::, mixin.static, mixin.proto
 
-  for category in ['accessors', 'mutators']
-    cache = Model[category]
-    if objs = mixin[category] then for name, obj of objs
-      Model::[name] = cache[name] = fn = obj.fn
-      for key, value of obj
-        continue if key is 'fn'
-        fn[key] = value
+makeMixable = (Klass) ->
+  Klass.mixins = []
+  Klass.accessors = {}
+  Klass.mutators = {}
+  onMixins = []
+  Klass.mixin = (mixin) ->
+    Klass.mixins.push mixin
+    mergeAll Klass::, mixin.static, mixin.proto
 
-  onMixins.push onMixin  if onMixin = mixin.onMixin
-  for onMixin in onMixins
-    onMixin Model.mutators, Model.accessors
+    for category in ['accessors', 'mutators']
+      cache = Klass[category]
+      if methods = mixin[category] then for name, conf of methods
+        Klass::[name] = cache[name] = fn = conf.fn
+        for key, value of conf
+          continue if key is 'fn'
+          fn[key] = value
 
-  return Model
+    onMixins.push onMixin  if onMixin = mixin.onMixin
+    for onMixin in onMixins
+      onMixin Klass.mutators, Klass.accessors
+
+    return Klass
+
+makeMixable Model
 
 Model.mixin require './mixin.subscribe'
 Model.mixin require './mixin.refs'

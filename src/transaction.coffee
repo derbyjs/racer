@@ -14,11 +14,11 @@ module.exports =
   base: (txn, val) ->
     txn[0] = val if val isnt undefined
     return txn[0]
-  
+
   id: (txn, val) ->
     txn[1] = val if val isnt undefined
     return txn[1]
-  
+
   clientIdAndVer: (txn) ->
     res = @id(txn).split '.'
     res[1] = parseInt res[1], 10

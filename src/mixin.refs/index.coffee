@@ -16,7 +16,7 @@ module.exports =
     return
 
   init: ->
-    model = @_root
+    model = @_root = this
 
     for mutator of mutators
       do (mutator) ->

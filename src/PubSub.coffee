@@ -32,7 +32,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
   redisOptions = {port, host, db} = options.redis || {}
   namespace = (db || 0) + '.'
   @_namespace = (path) -> namespace + path
-  
+
   unless @_publishClient = options.pubClient
     @_publishClient = redis.createClient port, host, redisOptions
     @_publishClient.select db if db
@@ -41,7 +41,7 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
 
   @_subs = subs = {}
   @_subscriberSubs = {}
-  
+
   if options.debug
     for event in ['subscribe', 'unsubscribe', 'psubscribe', 'punsubscribe']
       do (event) ->
@@ -122,10 +122,10 @@ RedisAdapter:: =
         delete pathSubs[subscriberId]
         toRemove.push path unless hasKeys pathSubs
       delete ss[path] if ss = subscriberSubs[subscriberId]
-    
+
     handlePaths toRemove, @_pendingUnsubscribe, @_subscribeClient,
       'punsubscribe', callback
-  
+
   hasSubscriptions: (subscriberId) -> subscriberId of @_subscriberSubs
 
   subscribedToTxn: (subscriberId, txn) ->
