@@ -27,7 +27,7 @@ MongoAdapter = module.exports = (conf) ->
   #      version of a shard
   # TODO Initialize the version properly upon web server restart
   #      so it's synced with the STM server (i.e., Redis) version
-  @version = 0
+  @version = undefined
 
   return
 

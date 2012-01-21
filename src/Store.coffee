@@ -10,6 +10,7 @@ transaction = require './transaction'
 Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 pathParser = require './pathParser'
+{bufferify} = require './util'
 
 # store = new Store
 #   stm: true / false
@@ -76,6 +77,7 @@ Store:: =
     @sendToDb 'get', [path], callback
 
   set: (path, val, ver, callback) ->
+    # TODO Use @_commit here instead? - See mixin.stm/Async
     @sendToDb 'set', [path, val, ver], callback
 
   createModel: ->
@@ -277,25 +279,35 @@ Store:: =
     re = pathParser.eventRegExp path
     @_defaultPersistenceRoutes[method].push [re, fn]
 
-  sendToDb: (method, args, done) ->
-    persistenceRoutes = @_persistenceRoutes
-    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
-    [path, rest...] = args
-    done ||= (err) ->
-      throw err if err
-    i = 0
-    do next = ->
-      unless handler = routes[i++]
-        throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
-      [re, fn] = handler
-      return next() unless path == '' || (match = path.match re)
-      captures = if path == ''
-                   ['']
-                  else if match.length > 1
-                    match[1..]
-                  else
-                    [match[0]]
-      return fn.apply null, captures.concat(rest, [done, next])
+  sendToDb:
+    bufferify 'sendToDb',
+      await: (done) ->
+        adapter = @_adapter
+        return done() if adapter.version isnt undefined
+        @_redisClient.get 'ver', (err, ver) ->
+          throw err if err
+          adapter.version = parseInt(ver, 10)
+          return done()
+      origFn: (method, args, done) ->
+        perRoutes = @_persistenceRoutes
+        defPerRoutes = @_defaultPersistenceRoutes
+        routes = perRoutes[method].concat defPerRoutes[method]
+        [path, rest...] = args
+        done ||= (err) ->
+          throw err if err
+        i = 0
+        do next = ->
+          unless handler = routes[i++]
+            throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
+          [re, fn] = handler
+          return next() unless path == '' || (match = path.match re)
+          captures = if path == ''
+                       ['']
+                      else if match.length > 1
+                        match[1..]
+                      else
+                        [match[0]]
+          return fn.apply null, captures.concat(rest, [done, next])
 
 txnsSince = (pubSub, redisClient, ver, clientId, callback) ->
   return unless pubSub.hasSubscriptions clientId
