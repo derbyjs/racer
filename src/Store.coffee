@@ -29,11 +29,13 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  # These constructors add a @_commit method to this store
+  # Add a @_commit method to this store based on the realtime strategy
   if options.stm
-    @_stm = new Stm @_redisClient, self
+    @_stm = new Stm @_redisClient
+    self._commit = @_stm.commitFn self
   else
-    @_lww = new Lww @_redisClient, self
+    @_lww = new Lww @_redisClient
+    self._commit = @_lww.commitFn self
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -44,32 +46,12 @@ Store = module.exports = (options = {}) ->
   @_adapter = options.adapter || new MemoryAdapter
   @_model = @_createStoreModel()
 
-  @_persistenceRoutes =
-    get: []
-    set: []
-    del: []
-    setNull: []
-    incr: []
-    push: []
-    unshift: []
-    insert: []
-    pop: []
-    shift: []
-    remove: []
-    move: []
-  @_defaultPersistenceRoutes =
-    get: []
-    set: []
-    del: []
-    setNull: []
-    incr: []
-    push: []
-    unshift: []
-    insert: []
-    pop: []
-    shift: []
-    remove: []
-    move: []
+  @_persistenceRoutes = {}
+  @_defaultPersistenceRoutes = {}
+  for method in ['get', 'set', 'del', 'setNull', 'incr', 'push',
+    'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
+    @_persistenceRoutes[method] = []
+    @_defaultPersistenceRoutes[method] = []
   @_adapter.setupDefaultPersistenceRoutes @
 
   return
