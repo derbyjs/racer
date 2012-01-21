@@ -79,7 +79,6 @@ Stm = module.exports = (redisClient, store) ->
 
 
   if store
-
     store._commit = (txn, callback) ->
       ver = transaction.base txn
       if ver && typeof ver isnt 'number'
