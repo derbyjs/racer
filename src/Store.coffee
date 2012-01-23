@@ -24,8 +24,10 @@ Store = module.exports = (options = {}) ->
   setupRedis self, options.redis
 
   @_pubSub = new PubSub
-    pubClient: @_redisClient
-    subClient: @_txnSubClient
+    adapter:
+      type: 'Redis'
+      pubClient: @_redisClient
+      subClient: @_txnSubClient
     onMessage: (clientId, {txn, ot}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
@@ -246,6 +248,12 @@ Store:: =
     if socket = @_clientSockets[clientId]
       return if socket.id == ot.meta.src
       socket.emit 'otOp', ot
+
+  subscribe: (model, paths, callback) ->
+    clientId = model._clientId
+    @_localModels[clientId] = model
+    @_pubSub.subscribe clientId, paths
+    @_fetchSubData paths, callback # callback(err, data, otData)
 
   _fetchSubData: (paths, callback) ->
     data = []

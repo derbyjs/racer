@@ -4,29 +4,32 @@ transaction = require './transaction.server'
 {hasKeys} = require './util'
 
 # new PubSub
-#   redis: {...}
-#   pubClient: redisClientA
-#   subClient: redisClientB
+#   adapter:
+#     type: 'Redis'
+#     pubClient: redisClientA
+#     subClient: redisClientB
 #   onMessage: (clientId, txn) ->
 PubSub = module.exports = (options = {}) ->
-  adapterName = options.adapter || 'Redis'
+  adapterName = options.adapter.type || 'Redis'
+  delete options.adapter.type
   onMessage = options.onMessage || ->
-  @_adapter = new PubSub._adapters[adapterName] onMessage, options
+  @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
   return
 
 PubSub:: =
-  subscribe: (subscriberId, paths, callback) ->
-    @_adapter.subscribe subscriberId, paths, callback
+  subscribe: (subscriberId, channels, callback) ->
+    @_adapter.subscribe subscriberId, channels, callback
   publish: (path, message) ->
     @_adapter.publish path, message
-  unsubscribe: (subscriberId, paths, callback) ->
-    @_adapter.unsubscribe subscriberId, paths, callback
+  unsubscribe: (subscriberId, channels, callback) ->
+    @_adapter.unsubscribe subscriberId, channels, callback
   hasSubscriptions: (subscriberId) ->
     @_adapter.hasSubscriptions subscriberId
   subscribedToTxn: (subscriberId, txn) ->
     @_adapter.subscribedToTxn subscriberId, txn
 
 
+# TODO Add a ZeroMQ adapter
 PubSub._adapters = {}
 PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
   redisOptions = {port, host, db} = options.redis || {}

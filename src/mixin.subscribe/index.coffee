@@ -17,10 +17,10 @@ module.exports =
       socket.emit 'sub', self._clientId, storeSubs, self._adapter.version, self._startId
 
   proto:
-    subscribe: (_paths..., callback) ->
+    subscribe: (channels..., callback) ->
       # For subscribe(paths...)
       unless typeof callback is 'function'
-        _paths.push callback
+        channels.push callback
         callback = empty
 
       # TODO: Support all path wildcards, references, and functions
@@ -33,13 +33,18 @@ module.exports =
           storeSubs[path] = 1
           paths.push path
 
-      for path in _paths
-        if typeof path is 'object'
-          for key, value of path
-            root = pathParser.split(value)[0]
-            @ref key, root
-            addPath value
-        else addPath path
+      for ch in channels
+        if ch.isQuery
+          query = ch
+          # TODO
+        else
+          path = ch
+          if typeof path is 'object'
+            for key, value of path
+              root = pathParser.split(value)[0]
+              @ref key, root
+              addPath value
+          else addPath path
 
       # Callback immediately if already subscribed
       return callback() unless paths.length

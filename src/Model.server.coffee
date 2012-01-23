@@ -67,18 +67,15 @@ ServerModel::_bundle = (callback) ->
     ioUri: @_ioUri
 
 ServerModel::_addSub = (paths, callback) ->
-  store = @store
-  self = this
+  model = this
+  store = model.store
   @clientIdPromise.on (clientId) ->
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
-    store._pubSub.subscribe clientId, paths
-    store._localModels[clientId] = self
-
-    store._fetchSubData paths, (err, data, otData) ->
+    store.subscribe model, paths, (err, data, otData) ->
       # TODO: This is a quick fix to make sure that subscribed items
       # get copied on the server. Implement something that does this
       # just for the memory store instead of doing it here
-      self._initSubData data
-      self._initSubOtData otData
+      model._initSubData data
+      model._initSubOtData otData
       callback()
