@@ -249,11 +249,15 @@ Store:: =
       return if socket.id == ot.meta.src
       socket.emit 'otOp', ot
 
-  subscribe: (model, paths, callback) ->
-    clientId = model._clientId
-    @_localModels[clientId] = model
+  registerLocalModel: (model) -> @_localModels[model._clientId] = model
+
+  unregisterLocalModel: (model) -> delete @_localModels[model._clientId]
+
+  subscribe: (clientId, paths, callback) ->
     @_pubSub.subscribe clientId, paths
     @_fetchSubData paths, callback # callback(err, data, otData)
+
+  unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
 
   _fetchSubData: (paths, callback) ->
     data = []
