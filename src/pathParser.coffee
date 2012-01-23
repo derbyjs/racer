@@ -31,7 +31,8 @@ module.exports =
       ) + '(?:\\.|$)'
 
   lookup: (path, obj) ->
-    for prop in path.split '.'
+    parts = path.split '.'
+    for prop in parts
       return unless obj = obj[prop]
     return obj
 
