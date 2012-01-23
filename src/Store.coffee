@@ -32,13 +32,13 @@ Store = module.exports = (options = {}) ->
       return self._onTxnMsg clientId, txn if txn
       return self._onOtMsg clientId, ot
 
-  # Add a @_commit method to this store based on the realtime strategy
+  # Add a @commit method to this store based on the realtime strategy
   if options.stm
     @_stm = new Stm @_redisClient
-    self._commit = @_stm.commitFn self
+    self.commit = @_stm.commitFn self
   else
     @_lww = new Lww @_redisClient
-    self._commit = @_lww.commitFn self
+    self.commit = @_lww.commitFn self
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction
@@ -79,7 +79,7 @@ Store:: =
     @sendToDb 'get', [path], callback
 
   set: (path, val, ver, callback) ->
-    # TODO Use @_commit here instead? - See mixin.stm/Async
+    # TODO Use @commit here instead? - See mixin.stm/Async
     @sendToDb 'set', [path, val, ver], callback
 
   createModel: ->
@@ -191,7 +191,7 @@ Store:: =
       socket.on 'txn', (txn, clientStartId) ->
         base = transaction.base txn
         return if hasInvalidVer socket, base, clientStartId
-        self._commit txn, (err, txn) ->
+        self.commit txn, (err, txn) ->
           txnId = transaction.id txn
           base = transaction.base txn
           # Return errors to client, with the exeption of duplicates, which
@@ -229,7 +229,7 @@ Store:: =
 
   _onTxnMsg: (clientId, txn) ->
     # Don't send transactions back to the model that created them.
-    # On the server, the model directly handles the store._commit callback.
+    # On the server, the model directly handles the store.commit callback.
     # Over Socket.io, a 'txnOk' message is sent below.
     return if clientId == transaction.clientId txn
     # For models only present on the server, process the transaction

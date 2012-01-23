@@ -46,7 +46,7 @@ AsyncAtomic:: =
 
 empty = ->
 
-# TODO @model.store._commit is used in a non-private way. Change
+# TODO @model.store.commit is used in a non-private way. Change
 #      to @model.store.commit
 module.exports = Async = (@model) -> return
 Async:: =
@@ -60,39 +60,39 @@ Async:: =
 
   set: (path, value, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'set', args: [path, value]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   del: (path, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'del', args: [path]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   push: (path, items, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'push', args: [path].concat(items)
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   unshift: (path, items, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'unshift', args: [path].concat(items)
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   insert: (path, index, items, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'insert', args: [path, index].concat(items)
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   pop: (path, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'pop', args: [path]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   shift: (path, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'shift', args: [path]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   remove: (path, start, howMany, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'remove', args: [path, start, howMany]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   move: (path, from, to, ver, callback) ->
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'move', args: [path, from, to]
-    @model.store._commit txn, callback
+    @model.store.commit txn, callback
 
   incr: (path, byNum, callback) ->
     if typeof byNum is 'function'

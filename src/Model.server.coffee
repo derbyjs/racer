@@ -26,7 +26,7 @@ ServerModel:: = Object.create BrowserModel::
 ServerModel::_commit = (txn) ->
   return if txn.isPrivate
   self = this
-  @store._commit txn, (err, txn) ->
+  @store.commit txn, (err, txn) ->
     return self._removeTxn transaction.id txn if err
     self._onTxn txn
 
