@@ -76,11 +76,11 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
           callback() unless --callback.__count
   makeCallback @_pendingSubscribe = {}, 'psubscribe'
   makeCallback @_pendingUnsubscribe = {}, 'punsubscribe'
-  
+
   return
 
 RedisAdapter:: =
-  
+
   subscribe: (subscriberId, paths, callback) ->
     return if subscriberId is undefined
 

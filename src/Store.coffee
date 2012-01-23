@@ -286,10 +286,12 @@ Store:: =
   route: (method, path, fn) ->
     re = pathParser.eventRegExp path
     @_persistenceRoutes[method].push [re, fn]
+    return @
 
   defaultRoute: (method, path, fn) ->
     re = pathParser.eventRegExp path
     @_defaultPersistenceRoutes[method].push [re, fn]
+    return @
 
   sendToDb:
     bufferify 'sendToDb',
