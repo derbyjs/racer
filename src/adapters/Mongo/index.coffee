@@ -34,6 +34,8 @@ MongoAdapter = module.exports = (conf) ->
 MongoAdapter:: =
   __proto__: EventEmitter::
 
+  Query: require './Query'
+
   _loadConf: (conf) ->
     if typeof conf is 'string'
       uri = url.parse conf
@@ -93,6 +95,9 @@ MongoAdapter:: =
   # Mutator methods called via CustomDataSource::applyOps
   update: (collection, conds, op, opts, callback) ->
     @_collection(collection).update conds, op, opts, callback
+
+  findAndModify: (collection, conds, sort, op, opts, callback) ->
+    @_collection(collection).findAndModify conds, sort, op, opts, callback
 
   insert: (collection, json, opts, callback) ->
     # TODO Leverage pkey flag; it may not be _id
@@ -171,10 +176,10 @@ MongoAdapter:: =
       (setTo = {})[relPath] = val
       op = $set: setTo
       _id = idFor _id
-      adapter.update collection, {_id}, op, upsert: true, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, upsert: true, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
-        done()
+        done null, origDoc
 
     store.defaultRoute 'set', '*.*', (collection, _id, doc, ver, done, next) ->
       cb = (err) ->
@@ -184,7 +189,7 @@ MongoAdapter:: =
       if _id
         doc._id = _id = idFor _id
         delete doc.id
-        adapter.update collection, {_id}, doc, upsert: true, cb
+        adapter.findAndModify collection, {_id}, [['_id', 'asc']], doc, upsert: true, cb
       else
         adapter.insert collection, doc, {}, cb
 
@@ -193,16 +198,16 @@ MongoAdapter:: =
       op = $unset: unsetConf
       op.$inc = {ver: 1}
       _id = idFor _id
-      adapter.update collection, {_id}, op, {}, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err) ->
         return done err if err
         adapter.setVersion ver
         done()
 
     store.defaultRoute 'del', '*.*', (collection, _id, ver, done, next) ->
-      adapter.remove collection, {_id}, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], {}, remove: true, (err, removedDoc) ->
         return done err if err
         adapter.setVersion ver
-        done()
+        done null, removedDoc
 
     store.defaultRoute 'push', '*.*.*', (collection, _id, relPath, vals..., ver, done, next) ->
       op = $inc: {ver: 1}
@@ -221,10 +226,10 @@ MongoAdapter:: =
 #      else
 #        _id = new NativeObjectId _id
 
-      adapter.update collection, {_id}, op, upsert: true, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, upsert: true, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
-        done null
+        done null, origDoc
 #        return done null unless clientId
 #        idMap = {}
 #        idMap[clientId] = _id
@@ -245,7 +250,7 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
-            done()
+            done null, found
 
     store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., globalVer, done, next) ->
       opts = ver: 1
@@ -262,16 +267,16 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
-            done()
+            done null, found
 
     store.defaultRoute 'pop', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       _id = idFor _id
       (popConf = {ver: 1})[relPath] = 1
       op = $pop: popConf, $inc: {ver: 1}
-      adapter.update collection, {_id}, op, {}, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
-        done null
+        done null, origDoc
 
     store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, globalVer, done, next) ->
       opts = ver: 1
@@ -288,7 +293,7 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
-            done null
+            done null, found
 
     store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, globalVer, done, next) ->
       opts = ver: 1
@@ -305,7 +310,7 @@ MongoAdapter:: =
           adpater.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
-            done()
+            done null, found
 
     store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, globalVer, done, next) ->
       opts = ver: 1
@@ -323,7 +328,7 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
-            done()
+            done null, found
 
 MongoCollection = mongo.Collection
 

@@ -71,7 +71,7 @@ MemorySync:: =
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
     unless 0 <= index <= len
-      throw new Error 'Out of Bounds'
+      throw new Error "Out of Bounds: index = #{index} violates 0 <= index <= #{len}"
     arr.splice index, 0, args...
     return arr.length
 

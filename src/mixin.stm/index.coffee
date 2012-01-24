@@ -70,6 +70,9 @@ stm = module.exports =
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn, self._startId
 
+    # TODO Add client-side filtering for incoming data on
+    # no-longer-subscribed-to channels. This alleviates race condition of
+    # receiving a message on a channel the client just unsubscribed to
     txnApplier = new Serializer
       withEach: onTxn
       onTimeout: newTxns = ->

@@ -7,6 +7,7 @@ module.exports =
     # model.subscribe, and must be sent to the store upon connecting
     # Maps path -> 1
     @_storeSubs = {}
+    @_querySubs = {}
 
   setupSocket: (socket) ->
     self = this
@@ -17,28 +18,37 @@ module.exports =
       socket.emit 'sub', self._clientId, storeSubs, self._adapter.version, self._startId
 
   proto:
-    subscribe: (channels..., callback) ->
+    subscribe: (targets..., callback) ->
       # For subscribe(paths...)
       unless typeof callback is 'function'
-        channels.push callback
+        targets.push callback
         callback = empty
 
       # TODO: Support all path wildcards, references, and functions
-      paths = []
+      channels = []
       storeSubs = @_storeSubs
       addPath = (path) ->
         for path in pathParser.expand path
           return if storeSubs[path]
           # These subscriptions are reestablished when the client connects
           storeSubs[path] = 1
-          paths.push path
+          channels.push path
 
-      for ch in channels
-        if ch.isQuery
-          query = ch
-          # TODO
+      querySubs = @_querySubs
+      addQuery = (query) ->
+        queryHash = query.hash()
+        return if querySubs[queryHash]
+        querySubs[queryHash] = 1
+        channels.push query
+
+      for targ in targets
+        if targ.isQuery
+          query = targ
+          addQuery query
         else
-          path = ch
+          path = targ
+          # `subscribe({_a: 'b.c.d'}, fn)` is a shortcut to subscribe to
+          # 'b.c.d' and to create a ref named '_a' pointing to 'b.c.d'
           if typeof path is 'object'
             for key, value of path
               root = pathParser.split(value)[0]
@@ -47,8 +57,8 @@ module.exports =
           else addPath path
 
       # Callback immediately if already subscribed
-      return callback() unless paths.length
-      @_addSub paths, callback
+      return callback() unless channels.length
+      @_addSub channels, callback
 
     unsubscribe: (paths..., callback) ->
       # For unsubscribe(paths...)

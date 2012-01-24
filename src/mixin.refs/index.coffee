@@ -230,7 +230,7 @@ RefList = (@model, @from, to, key) ->
       if map
         curr = (obj[prop] for prop in map)
         return [curr, currPath, i]
-      
+
       return [undefined, currPath, i]
 
     else

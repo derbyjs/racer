@@ -46,6 +46,7 @@ Model:: =
     for {setupSocket} in Model.mixins
       setupSocket.call @, socket if setupSocket
 
+  query: require './query'
 
   ## Model Aliases ##
   # Create a model object scoped to a particular path

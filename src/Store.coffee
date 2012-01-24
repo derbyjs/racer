@@ -11,6 +11,7 @@ Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 pathParser = require './pathParser'
 {bufferify} = require './util'
+_query_ = require './query'
 
 # store = new Store
 #   stm: true / false
@@ -47,6 +48,10 @@ Store = module.exports = (options = {}) ->
   @_localModels = {}
 
   @_adapter = options.adapter || new MemoryAdapter
+
+  # This model is used to create transactions with id's
+  # prefixed with '#', so we handle store's async mutations
+  # differently than regular models' sync mutations
   @_model = @_createStoreModel()
 
   @_persistenceRoutes = {}
@@ -65,7 +70,7 @@ Store:: =
   _createStoreModel: ->
     model = @createModel()
     for key, val of model.async
-      continue if key == 'get' || key == 'set'
+      continue if key == 'get'
       # TODO Beware: mixing in has danger of naming conflicts; better to
       #      delegate to @_model.async instead.
       # TODO Define store mutators here instead of copying from Async because
@@ -75,13 +80,27 @@ Store:: =
       @[key] = val
     return model
 
+  query: (query, callback) ->
+    dbQuery = _query_.deserialize query.serialize(), @_adapter.Query
+    dbQuery.run @_adapter, (err, found) =>
+      # TODO Get version consistency right in face of concurrent writes during
+      # query
+      if Array.isArray found
+        for doc in found
+          doc.id = doc._id
+          delete doc._id
+      else
+        found.id = found._id
+        delete found._id
+      callback err, found, @_adapter.version
+
   get: (path, callback) ->
     @sendToDb 'get', [path], callback
 
-  set: (path, val, ver, callback) ->
-    # TODO Use @commit here instead? - See mixin.stm/Async
-    @sendToDb 'set', [path, val, ver], callback
-
+#  set: (path, val, ver, callback) ->
+#    # TODO Use @commit here instead? - See mixin.stm/Async
+#    @sendToDb 'set', [path, val, ver], callback
+#
   createModel: ->
     model = new Model
     model.store = this
@@ -118,9 +137,9 @@ Store:: =
     args = transaction.args(txn).slice()
     method = transaction.method txn
     args.push ver
-    @sendToDb method, args, (err) ->
+    @sendToDb method, args, (err, origDoc) =>
       callback err, txn if callback
-    @_pubSub.publish transaction.path(txn), {txn}
+      @_pubSub.publish transaction.path(txn), {txn}, {origDoc}
 
   setSockets: (@sockets, @_ioUri = '') ->
     self = this
@@ -138,7 +157,7 @@ Store:: =
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
-    @sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, paths, ver, clientStartId) ->
+    @sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
       return if hasInvalidVer socket, ver, clientStartId
 
       # TODO Map the clientId to a nickname (e.g., via session?),
@@ -150,12 +169,20 @@ Store:: =
           throw err if err
 
       # TODO WHEN IS THIS CALLED?
-      socket.on 'subAdd', (clientId, paths, callback) ->
-        pubSub.subscribe clientId, paths
-        self._fetchSubData paths, (err, data) ->
-          callback data
+      socket.on 'subAdd', (clientId, targets, callback) ->
+        for targ, i in targets
+          if Array.isArray targ
+            # Deserialize targ into a Query instance
+            targets[i] = _query_.deserialize targ
+        rem = 2
+        pubSub.subscribe clientId, targets, (err, data) ->
+          # TODO Handle err
+          --rem || callback data
+        self._fetchSubData targets, (err, data) ->
+          # TODO Handle err
+          --rem || callback data
 
-      socket.on 'subRemove', (clientId, paths) ->
+      socket.on 'subRemove', (clientId, targets) ->
         throw 'Unimplemented: subRemove'
 
       # Handling OT messages
@@ -220,7 +247,7 @@ Store:: =
       # txn A that it missed, Window 1 publishes txn B that
       # is immediately broadcast to Window 2 just before txn A is
       # broadcast to Window 2.
-      pubSub.subscribe clientId, paths
+      pubSub.subscribe clientId, targets, ->
 
   _nextTxnNum: (clientId, callback) ->
     @_redisClient.incr 'txnClock.' + clientId, (err, value) ->
@@ -253,33 +280,60 @@ Store:: =
 
   unregisterLocalModel: (model) -> delete @_localModels[model._clientId]
 
-  subscribe: (clientId, paths, callback) ->
-    @_pubSub.subscribe clientId, paths
-    @_fetchSubData paths, callback # callback(err, data, otData)
+  # Fetch the set of data represented by `targets` and subscribe to future
+  # changes to this set of data.
+  # @param {String} clientId representing the subscriber
+  # @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
+  # @param {Function} callback(err, data, otData)
+  subscribe: (clientId, targets, callback) ->
+    rem = 2
+    _data = null
+    _otData = null
+    @_pubSub.subscribe clientId, targets, (err) ->
+      --rem || callback err, _data, _otData
+    @_fetchSubData targets, (err, data, otData) ->
+      --rem || callback err, _data=data, _otData=otData
 
   unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
 
-  _fetchSubData: (paths, callback) ->
+  _fetchSubData: (targets, callback) ->
     data = []
     otData = {}
+
     finish = ->
-      callback null, data, otData  unless --finish.remainingGets
-    finish.remainingGets = paths.length
+      callback null, data, otData  unless --finish.remainingFetches
+
+    finish.remainingFetches = targets.length
+
     otFields = @_otFields
-    for path in paths
-      [root, remainder] = splitPath path
+    for targ in targets
+      if targ.isQuery then do (targ) =>
+        query = targ
+        @query query, (err, found, ver) ->
+          return callback err if err
+          queryResultAsDatum = (doc, ver, query) ->
+            path = query._namespace + '.' + doc.id
+            [path, doc, ver]
+          if Array.isArray found
+            for doc in found
+              data.push queryResultAsDatum(doc, ver, query)
+          else
+            data.push queryResultAsDatum(found, ver, query)
+          finish()
+      else
+        [root, remainder] = splitPath targ
 
-      @get root, do (root, remainder) -> (err, value, ver) ->
-        return callback err if err
-        # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
-        # TODO Convert the following to work beyond MemoryStore
-        otPaths = allOtPaths value, root + '.'
-        for otPath in otPaths
-          otData[otPath] = otField if otField = otFields[otPath]
+        @get root, do (root, remainder) -> (err, value, ver) ->
+          return callback err if err
+          # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
+          # TODO Convert the following to work beyond MemoryStore
+          otPaths = allOtPaths value, root + '.'
+          for otPath in otPaths
+            otData[otPath] = otField if otField = otFields[otPath]
 
-        # addSubDatum mutates data argument
-        addSubDatum data, root, remainder, value, ver, finish
-        finish()
+          # addSubDatum mutates data argument
+          addSubDatum data, root, remainder, value, ver, finish
+          finish()
     return
 
   ## PERSISTENCE ROUTER ##
