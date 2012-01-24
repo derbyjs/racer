@@ -7,14 +7,13 @@ MemorySync = require './MemorySync'
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 
 Memory = module.exports = ->
-  @_data = world: {}
-  @version = 0
+  @_flush()
   return
 
 Memory:: =
+  _flush: MemorySync::flush
   flush: (callback) ->
-    @_data = world: {}
-    @version = 0
+    @_flush()
     callback null
 
   setVersion: MemorySync::setVersion

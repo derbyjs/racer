@@ -6,11 +6,14 @@
 {clone: specClone, create, createObject, createArray} = require '../specHelper'
 
 MemorySync = module.exports = ->
-  @_data = world: {}  # maps path -> val
-  @version = 0
+  @flush()
   return
 
 MemorySync:: =
+
+  flush: ->
+    @_data = world: {}  # maps path -> val
+    @version = 0
 
   setVersion: (ver) ->
     @version = Math.max @version, ver
