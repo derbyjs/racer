@@ -1,6 +1,7 @@
 transaction = require '../transaction'
 pathParser = require '../pathParser'
 Serializer = require '../Serializer'
+MemorySync = require '../adapters/MemorySync'
 {create: specCreate} = require '../specHelper'
 AtomicModel = require './AtomicModel'
 Async = require './Async'
@@ -40,15 +41,21 @@ stm = module.exports =
 
     self = this
     adapter = @_adapter
+    # Used for diffing array operations in order emitted vs order applied
+    scratch = new MemorySync
     @_onTxn = (txn) ->
       # Copy meta properties onto this transaction if it matches one in the queue
-      if queuedTxn = txns[transaction.id txn]
-        txn.callback = queuedTxn.callback
-        txn.emitted = queuedTxn.emitted
+      if txnQ = txns[transaction.id txn]
+        txn.callback = txnQ.callback
+        txn.emitted = txnQ.emitted
+        isLocal = true
+
+      unless isLocal = 'callback' of txn
+        mergeTxn txn, txns, txnQueue, adapter, scratch
 
       if transaction.base(txn) > adapter.version
-        isLocal = 'callback' of txn
         self._applyTxn txn, isLocal
+      return
 
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
     # transaction without conflict detection, such as model.force.set
@@ -160,8 +167,19 @@ stm = module.exports =
       txn = transaction.create {base, id, method, args}
       txn.isPrivate = pathParser.isPrivate path
 
+      # Add remove index as txn metadata. Null if transaction does nothing
+      if method is 'pop'
+        txn.push (arr = @get(path) || null) && (arr.length - 1)
+      else if method is 'unshift'
+        txn.push (@get(path) || null) && 0
+
+      # Queue and evaluate the transaction
       @_queueTxn txn, callback
       out = @_specModel().$out
+
+      # Add insert index as txn metadata
+      if method is 'push'
+        txn.push out - args.length + 1
 
       # Clone the args, so that they can be modified before being emitted
       # without affecting the txn args
@@ -193,13 +211,15 @@ stm = module.exports =
           callback null, transaction.args(txn)..., out
       return out
 
-    _applyMutation: (extractor, mutation, ver, data, doEmit, isLocal) ->
-      method = extractor.method mutation
+    _applyMutation: (extractor, txn, ver, data, doEmit, isLocal) ->
+      method = extractor.method txn
       return if method is 'get'
-      args = extractor.args mutation
+      args = extractor.args txn
       out = @_adapter[method] args..., ver, data
-      @emit method + 'Post', args, ver
-      @emit method, args, out, isLocal, @_pass  if doEmit
+      @emit method + 'Post', args, ver # TODO: Remove this
+      if doEmit
+        {method, args} = patch if patch = txn.patch
+        @emit method, args, out, isLocal, @_pass
       return out
 
     _specModel: ->
@@ -294,7 +314,7 @@ stm = module.exports =
             at
           else
             at + '.' + path
-        @_addOpAsTxn 'set', [path, value], callback
+        return @_addOpAsTxn 'set', [path, value], callback
 
     del:
       type: 'basic'
@@ -305,7 +325,7 @@ stm = module.exports =
           else
             callback = path
             at
-        @_addOpAsTxn 'del', [path], callback
+        return @_addOpAsTxn 'del', [path], callback
 
     setNull:
       type: 'compound'
@@ -361,7 +381,7 @@ stm = module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        @_addOpAsTxn 'push', args, callback
+        return @_addOpAsTxn 'push', args, callback
 
     unshift:
       type: 'array'
@@ -375,7 +395,7 @@ stm = module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        @_addOpAsTxn 'unshift', args, callback
+        return @_addOpAsTxn 'unshift', args, callback
 
     insert:
       type: 'array'
@@ -395,7 +415,7 @@ stm = module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        @_addOpAsTxn 'insert', args, callback
+        return @_addOpAsTxn 'insert', args, callback
 
     pop:
       type: 'array'
@@ -406,7 +426,7 @@ stm = module.exports =
           else
             callback = path
             at
-        @_addOpAsTxn 'pop', [path], callback
+        return @_addOpAsTxn 'pop', [path], callback
 
     shift:
       type: 'array'
@@ -417,7 +437,7 @@ stm = module.exports =
           else
             callback = path
             at
-        @_addOpAsTxn 'shift', [path], callback
+        return @_addOpAsTxn 'shift', [path], callback
 
     remove:
       type: 'array'
@@ -446,7 +466,7 @@ stm = module.exports =
         # remove(path, start)
         else if typeof howMany isnt 'number'
           howMany = 1
-        @_addOpAsTxn 'remove', [path, start, howMany], callback
+        return @_addOpAsTxn 'remove', [path, start, howMany], callback
 
     move:
       type: 'array'
@@ -468,4 +488,32 @@ stm = module.exports =
           from = match[2]
           path = match[1]
 
-        @_addOpAsTxn 'move', [path, from, to], callback
+        return @_addOpAsTxn 'move', [path, from, to], callback
+
+arrayMutator = []
+for method, obj of stm.mutators
+  arrayMutator[method] = true if obj.type is 'array'
+
+mergeTxn = (txn, txns, txnQueue, adapter, scratch) ->
+  path = transaction.path txn
+  method = transaction.method txn
+  isArrayMutator = arrayMutator[method]
+  scratchData = scratch._data
+  for id in txnQueue
+    txnQ = txns[id]
+    continue if txnQ.callback
+    pathQ = transaction.path txnQ
+    continue unless transaction.clientPathConflict path, pathQ
+    methodQ = transaction.method txnQ
+    if isArrayMutator && arrayMutator[methodQ] && path == pathQ
+      unless arrayDiff
+        arrayDiff = true
+        scratch.set path, adapter.get(path), 1, scratchData
+      scratch[methodQ] transaction.args(txnQ).concat(1, scratchData)...
+    else
+      # If there is a conflict, re-emit when applying
+      txnQ.emitted = false
+
+  if arrayDiff
+    scratch[method] transaction.args(txn).concat(1, scratchData)...
+    # TODO: patch up event emissions

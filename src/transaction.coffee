@@ -29,15 +29,17 @@ module.exports =
     return txn[2]
 
   args: (txn, vals) ->
-    if vals isnt undefined
-      txn[3] = vals
+    txn[3] = vals if vals isnt undefined
     return txn[3]
 
   path: (txn, val) ->
     args = @args txn
-    if val isnt undefined
-      args[0] = val
+    args[0] = val if val isnt undefined
     return args[0]
+  
+  meta: (txn, vals) ->
+    txn[4] = vals if vals isnt undefined
+    return txn[4]
 
   clientId: (txn, newClientId) ->
     [clientId, num] = @id(txn).split '.'
@@ -45,6 +47,15 @@ module.exports =
       @id(txn, newClientId + '.' + num)
       return newClientId
     return clientId
+
+  clientPathConflict: (pathA, pathB) ->
+    # Paths conflict if equal
+    return true if pathA == pathB
+    # Paths conflict if pathA is a sub-path of pathB
+    pathALen = pathA.length
+    pathBLen = pathB.length
+    return false if pathBLen >= pathALen
+    return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
 
 
   ops: (txn, ops) ->
