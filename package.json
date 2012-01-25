@@ -20,7 +20,8 @@
     "should": ">=0.2.1",
     "coffee-script": ">=1.1.1",
     "express": ">=2.4.2",
-    "mongodb": ">=0.9.6-7"
+    "mongodb": ">=0.9.6-7",
+    "console.color": "*"
   },
   "engines": {
     "node": ">=0.4.0"
