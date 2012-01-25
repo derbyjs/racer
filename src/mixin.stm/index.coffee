@@ -176,7 +176,6 @@ stm = module.exports =
 
     _applyTxn: (txn, isLocal) ->
       @_removeTxn transaction.id txn
-
       data = @_adapter._data
       doEmit = !txn.emitted
       ver = transaction.base txn

@@ -292,7 +292,9 @@ Store:: =
     @_pubSub.subscribe clientId, targets, (err) ->
       --rem || callback err, _data, _otData
     @_fetchSubData targets, (err, data, otData) ->
-      --rem || callback err, _data=data, _otData=otData
+      _data = data
+      _otData = otData
+      --rem || callback err, _data, _otData
 
   unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
 
@@ -301,7 +303,8 @@ Store:: =
     otData = {}
 
     finish = ->
-      callback null, data, otData  unless --finish.remainingFetches
+      unless --finish.remainingFetches
+        callback null, data, otData
 
     finish.remainingFetches = targets.length
 

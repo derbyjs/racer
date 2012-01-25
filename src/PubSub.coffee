@@ -11,8 +11,8 @@ QueryPubSub = require './QueryPubSub'
 #     subClient: redisClientB
 #   onMessage: (clientId, txn) ->
 PubSub = module.exports = (options = {}) ->
-  adapterName = options.adapter.type || 'Redis'
-  delete options.adapter.type
+  adapterName = options.adapter?.type || 'Redis'
+  delete options.adapter.type if options.adapter
   onMessage = options.onMessage || ->
   @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
   @_queryPubSub = new QueryPubSub @
@@ -56,16 +56,16 @@ PubSub:: =
 
 # TODO Add a ZeroMQ adapter
 PubSub._adapters = {}
-PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
-  redisOptions = {port, host, db} = options.redis || {}
+PubSub._adapters.Redis = RedisAdapter = (onMessage, options = {}) ->
+  {port, host, db} = options
   namespace = (db || 0) + '.'
   @_prefixWithNamespace = (path) -> namespace + path
 
   unless @_publishClient = options.pubClient
-    @_publishClient = redis.createClient port, host, redisOptions
+    @_publishClient = redis.createClient port, host, options
     @_publishClient.select db if db
   unless @_subscribeClient = subClient = options.subClient
-    @_subscribeClient = redis.createClient port, host, redisOptions
+    @_subscribeClient = redis.createClient port, host, options
 
   @_subs = subs = {}
   @_subscriberSubs = {}

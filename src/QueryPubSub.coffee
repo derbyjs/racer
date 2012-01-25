@@ -34,20 +34,20 @@ QueryPubSub::=
     @
 
   publish: (message, diff) ->
-    {txn} = message
-    return unless transaction.method(txn) == 'set'
+    if txn = message.txn # vs message.ot
+      return unless transaction.method(txn) == 'set'
 
-    doc = transaction.args(txn)[1]
-    txnPath = transaction.path txn
-    [txnNs, txnId] = txnPath.split '.'
-    nsPlusId = txnNs + '.' + txnId
+      doc = transaction.args(txn)[1]
+      txnPath = transaction.path txn
+      [txnNs, txnId] = txnPath.split '.'
+      nsPlusId = txnNs + '.' + txnId
 
-    queries = @_liveQueries
-    channelPubSub = @_channelPubSub
+      queries = @_liveQueries
+      channelPubSub = @_channelPubSub
 
-    for hash, q of queries
-      continue unless q.test doc, nsPlusId
-      channelPubSub.publish "queries.#{hash}", message
+      for hash, q of queries
+        continue unless q.test doc, nsPlusId
+        channelPubSub.publish "queries.#{hash}", message
     @
 
   unsubscribe: (subscriberId, queries, callback) ->

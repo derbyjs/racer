@@ -9,13 +9,13 @@ module.exports = ServerModel = ->
   self.clientIdPromise = (new Promise).on (clientId) ->
     self._clientId = clientId
 
-  # emptyTxnQueue helps us to wait for the txn queue to become empty
+  # allTxnsApplied helps us to wait for the txn queue to become empty
   # before bundling the model via ServerModel::bundle
-  self.__removeTxn__ = self._removeTxn
-  self._removeTxn = (txnId) ->
-    @__removeTxn__ txnId
+  self.__applyTxn__= self._applyTxn
+  self._applyTxn = (txnId) ->
+    @__applyTxn__ txnId
     if @_txnQueue.length == 0
-      @emit 'emptyTxnQueue'
+      @emit 'allTxnsApplied'
   return
 
 ServerModel:: = Object.create BrowserModel::
@@ -29,6 +29,7 @@ ServerModel::_commit = (txn) ->
   @store.commit txn, (err, txn) ->
     return self._removeTxn transaction.id txn if err
     self._onTxn txn
+    self._specModel() # For flushing private path txns from the txnQueue
 
 ServerModel::bundle = (callback) ->
   self = this
@@ -37,7 +38,7 @@ ServerModel::bundle = (callback) ->
   @_specModel()
   # Wait for all pending transactions to complete before returning
   if @_txnQueue.length
-    return @_once 'emptyTxnQueue', -> self.bundle callback
+    return @_once 'allTxnsApplied', -> self.bundle callback
   Promise.parallel([@clientIdPromise, @startIdPromise]).on ->
     self._bundle callback
 

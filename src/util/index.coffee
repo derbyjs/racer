@@ -23,8 +23,6 @@ module.exports =
     buffer = null
     return ->
       self = this
-      finalOverwrite = ->
-        self[methodName] = origFn
 
       _arguments = arguments
       didFlush = false
@@ -33,17 +31,17 @@ module.exports =
 
         # When we call flush, we no longer need to buffer,
         # so replace this method with the original method
-        finalOverwrite()
+        self[methodName] = origFn
 
         # Call the method with the first invocation arguments
         # if this is during the first call to methodName, 
         # await called flush immediately, and we therefore
         # have no buffered method calls.
-        return self[methodName].apply self, _arguments unless buffer
+        return unless buffer
 
         # Otherwise, invoke the buffered method calls
-        for _arguments in buffer
-          self[methodName].apply self, _arguments
+        for args in buffer
+          origFn.apply self, args
         return
       # The first time we call methodName, run await
       await.call self, flush
