@@ -101,10 +101,11 @@ MongoAdapter:: =
 
   insert: (collection, json, opts, callback) ->
     # TODO Leverage pkey flag; it may not be _id
-    json._id ||= new NativeObjectId
-    @_collection(collection).insert json, opts, (err) ->
+    toInsert = Object.create json # So we have no side-effects in tests
+    toInsert._id ||= new NativeObjectId
+    @_collection(collection).insert toInsert, opts, (err) ->
       return callback err if err
-      callback null, {_id: json._id}
+      callback null, {_id: toInsert._id}
 
   remove: (collection, conds, callback) ->
     @_collection(collection).remove conds, (err) ->
@@ -187,9 +188,12 @@ MongoAdapter:: =
         adapter.setVersion ver
         done()
       if _id
-        doc._id = _id = idFor _id
-        delete doc.id
-        adapter.findAndModify collection, {_id}, [['_id', 'asc']], doc, upsert: true, cb
+        docCopy = {}
+        for k, v of doc
+          # Don't use `delete docCopy.id` so we avoid side-effects in tests
+          docCopy[k] = v unless k is 'id'
+        docCopy._id = _id = idFor _id
+        adapter.findAndModify collection, {_id}, [['_id', 'asc']], docCopy, upsert: true, cb
       else
         adapter.insert collection, doc, {}, cb
 

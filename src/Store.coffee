@@ -88,6 +88,8 @@ Store:: =
       if Array.isArray found
         for doc in found
           doc.id = doc._id
+          # TODO _id code is specific to Mongo. Move this behind Mongo
+          #      abstraction
           delete doc._id
       else
         found.id = found._id
