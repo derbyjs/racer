@@ -1,4 +1,5 @@
 MemorySync = require './MemorySync'
+MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 
 Memory = module.exports = ->
   @_flush()
@@ -20,18 +21,32 @@ Memory:: =
       return callback err
     callback null, val, @version
 
-['set', 'del', 'push', 'unshift', 'insert', 'pop',
- 'shift', 'remove', 'move'].forEach (method) ->
+  setupDefaultPersistenceRoutes: (store) ->
+    adapter = @
+    for method in MUTATORS
+      store.defaultRoute method, '*', do (method) ->
+        ->
+          [pathPlusArgsPlusDone..., next] = arguments
+          adapter[method] pathPlusArgsPlusDone...
+    store.defaultRoute 'get', '*', (path, done, next) ->
+      adapter.get path, done
+    store.defaultRoute 'get', '', (path, done, next) ->
+      adapter.get '', done
+    return
+
+MUTATORS.forEach (method) ->
   alias = '_' + method
   Memory::[alias] = fn = MemorySync::[method]
   Memory::[method] = switch fn.length
-    #for NONE ONE TWO VARIABLE
+    #for NONE ONE TWO THREE VARIABLE
     #if NONE
     when 3 then (path, ver, callback) ->
     #elseif ONE
     when 4 then (path, arg0, ver, callback) ->
     #elseif TWO
     when 5 then (path, arg0, arg1, ver, callback) ->
+    #elseif THREE
+    when 6 then (path, arg0, arg1, arg2, ver, callback) ->
     #else
     else (path, args..., ver, callback) ->
     #end
@@ -42,6 +57,8 @@ Memory:: =
         @[alias] path, arg0, ver, null
         #elseif TWO
         @[alias] path, arg0, arg1, ver, null
+        #elseif THREE
+        @[alias] path, arg0, arg1, arg2, ver, null
         #else
         @[alias] path, args..., ver, null
         #end
@@ -53,6 +70,8 @@ Memory:: =
       callback null, arg0
       #elseif TWO
       callback null, arg0, arg1
+      #elseif THREE
+      callback null, arg0, arg1, arg2
       #else
       callback null, args...
       #end

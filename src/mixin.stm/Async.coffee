@@ -90,8 +90,8 @@ Async:: =
     txn = transaction.create base: ver, id: @_nextTxnId(), method: 'remove', args: [path, start, howMany]
     @model.store.commit txn, callback
 
-  move: (path, from, to, ver, callback) ->
-    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'move', args: [path, from, to]
+  move: (path, from, to, howMany, ver, callback) ->
+    txn = transaction.create base: ver, id: @_nextTxnId(), method: 'move', args: [path, from, to, howMany]
     @model.store.commit txn, callback
 
   incr: (path, byNum, callback) ->

@@ -83,30 +83,30 @@ describe 'Model client conflicts', ->
       remote.push 'items', 'a'
       model.set 'items', []
 
-  # it 'pushes on same path', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.push 'items', 'a', 'b', 'c'
-  #     remote.push 'items', 'd'
-  #     model.push 'items', 'x', 'y', 'z'
-  #     model.push 'items', 'm', 'n'
+  it 'pushes on same path', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', 'a', 'b', 'c'
+      remote.push 'items', 'd'
+      model.push 'items', 'x', 'y', 'z'
+      model.push 'items', 'm', 'n'
 
-  # it 'unshifts on same path', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.unshift 'items', 'a', 'b', 'c'
-  #     remote.unshift 'items', 'd'
-  #     model.unshift 'items', 'x', 'y', 'z'
-  #     model.unshift 'items', 'm', 'n'
+  it 'unshifts on same path', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.unshift 'items', 'a', 'b', 'c'
+      remote.unshift 'items', 'd'
+      model.unshift 'items', 'x', 'y', 'z'
+      model.unshift 'items', 'm', 'n'
 
-  # it 'inserts on same path', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.insert 'items', 0, 'a', 'b', 'c'
-  #     remote.insert 'items', 1, 'd'
-  #     model.insert 'items', 0, 'x', 'y', 'z'
-  #     model.insert 'items', 3, 'm', 'n'
+  it 'inserts on same path', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.insert 'items', 0, 'a', 'b', 'c'
+      remote.insert 'items', 1, 'd'
+      model.insert 'items', 0, 'x', 'y', 'z'
+      model.insert 'items', 3, 'm', 'n'
 
-  # it 'push & pop on same path', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.push 'items', 'a', 'b', 'c'
-  #     # remote.pop 'items'
-  #     model.push 'items', 'x'
-  #     model.pop 'items'
+  it 'push & pop on same path', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', 'a', 'b', 'c'
+      remote.pop 'items'
+      model.push 'items', 'x'
+      model.pop 'items'
