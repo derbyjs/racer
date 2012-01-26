@@ -220,7 +220,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', -1, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -232,7 +232,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', 2, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -244,7 +244,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', 3, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -333,7 +333,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.move 'colors', 2, 0, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
@@ -345,7 +345,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.move 'colors', -3, 0, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
@@ -357,7 +357,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.move 'colors', 0, 2, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
   
@@ -369,7 +369,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.move 'colors', 0, -3, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -407,7 +407,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.remove 'colors', 0, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
     
@@ -421,7 +421,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.remove 'colors', 0, 2, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -432,7 +432,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.remove 'colors', -1, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -440,6 +440,6 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.remove 'colors', 3, 1, ver, null
     catch e
-      e.message.should.equal 'Out of bounds'
+      e.message.should.include 'Out of bounds'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true

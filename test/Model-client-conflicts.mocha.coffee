@@ -110,3 +110,12 @@ describe 'Model client conflicts', ->
       remote.pop 'items'
       model.push 'items', 'x'
       model.pop 'items'
+
+  it 'push, move, & pop on same path', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', 'a', 'b', 'c'
+      remote.move 'items', 1, 0, 2
+      remote.pop 'items'
+      model.push 'items', 'x', 'y'
+      model.move 'items', 0, 1, 1
+      model.pop 'items'
