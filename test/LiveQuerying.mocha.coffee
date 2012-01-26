@@ -6,10 +6,8 @@ async = require 'async'
 {fullSetup} = require './util/model'
 
 describe 'Live Querying', ->
-
-  store = null
-
   describe 'with Mongo', ->
+    store = null
 
     beforeEach ->
       MongoAdapter = require '../src/adapters/Mongo'

@@ -129,15 +129,13 @@ Store:: =
     return model
 
   flush: (callback) ->
-#    done = false
-#    cb = (err) ->
-#      if callback && (done || err)
-#        callback err
-#        callback = null
-#      done = true
     rem = 2
+    done = false
     cb = (err) ->
-      return callback err if err
+      if err || done
+        callback err
+        done = true
+        return callback = null
       --rem || callback err
     @_adapter.flush cb
     @_redisClient.flushdb (err) =>
@@ -399,7 +397,7 @@ Store:: =
           return fn.apply null, captures.concat(rest, [done, next])
 
 txnsSince = (pubSub, redisClient, ver, clientId, callback) ->
-  return unless pubSub.hasSubscriptions clientId
+  return callback [] unless pubSub.hasSubscriptions clientId
 
   # TODO Replace with a LUA script that does filtering?
   redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->

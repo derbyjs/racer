@@ -84,9 +84,8 @@ stm = module.exports =
     # receiving a message on a channel the client just unsubscribed to
     txnApplier = new Serializer
       withEach: onTxn
-      onTimeout: newTxns = ->
+      onTimeout: fetchNewTxns = ->
         socket.emit 'txnsSince', adapter.version + 1, self._startId, (newTxns, num) ->
-
           # Apply any missed transactions first
           for txn in newTxns
             onTxn txn
@@ -146,8 +145,7 @@ stm = module.exports =
         commit txn
 
     socket.on 'connect', ->
-      notReady = false # TODO Does this belong here?
-      newTxns()
+      fetchNewTxns()
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
       resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
