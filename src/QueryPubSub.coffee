@@ -1,8 +1,5 @@
 transaction = require './transaction.server'
 
-# TODO When an attribute changes, move that doc into a new subscription data set but
-# out of an existing subscription data set
-
 # Appraoches:
 # 1. Most naive - Run all subscription queries every x seconds
 # 2. Every mutation returns a full doc or docs. We pass that doc and the diff
@@ -33,22 +30,32 @@ QueryPubSub::=
     @_channelPubSub.subscribe subscriberId, channels, callback, 'subscribe'
     @
 
-  publish: (message, diff) ->
-    if txn = message.txn # vs message.ot
-      return unless transaction.method(txn) == 'set'
+  publish: (message, origDoc, newDoc) ->
+    return @ unless txn = message.txn # vs message.ot
+    txnPath = transaction.path txn
+    [txnNs, txnId] = parts = txnPath.split '.'
+    nsPlusId = txnNs + '.' + txnId
+    queries = @_liveQueries
+    channelPubSub = @_channelPubSub
 
+    if transaction.method(txn) == 'set' && parts.length == 2
       doc = transaction.args(txn)[1]
-      txnPath = transaction.path txn
-      [txnNs, txnId] = txnPath.split '.'
-      nsPlusId = txnNs + '.' + txnId
-
-      queries = @_liveQueries
-      channelPubSub = @_channelPubSub
-
       for hash, q of queries
         continue unless q.test doc, nsPlusId
         channelPubSub.publish "queries.#{hash}", message
-    @
+    else
+      for hash, q of queries
+        queryChannel = "queries.#{hash}"
+        if q.test origDoc, nsPlusId
+          if q.test newDoc, nsPlusId
+            channelPubSub.publish queryChannel, message
+          else
+            channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: oldDoc}
+        else
+          if q.test newDoc, nsPlusId
+            channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc}
+
+    return @
 
   unsubscribe: (subscriberId, queries, callback) ->
     liveQs = @_liveQueries

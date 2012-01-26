@@ -2,6 +2,7 @@ should = require 'should'
 Store = require '../src/Store'
 redis = require 'redis'
 async = require 'async'
+{calls} = require './util'
 
 describe 'Live Querying', ->
 
@@ -114,6 +115,101 @@ describe 'Live Querying', ->
           model.get('users.1').should.eql users[1]
           done()
 
-    describe 'setting <namespace>.<id>', ->
+    describe 'receiving proper publishes', ->
+      describe 'set <namespace>.<id>', ->
+        it 'should publish the txn *only* to relevant live `equals` queries', calls 2, (done) ->
+          modelLeo = store.createModel()
+          queryLeo = modelLeo.query('users').where('name').equals('leo')
+
+          modelBill = store.createModel()
+          queryBill = modelBill.query('users').where('name').equals('bill')
+
+          modelLeo.subscribe queryLeo, ->
+            modelLeo.on 'set', 'users.*', (id, user) ->
+              id.should.equal '1'
+              user.should.eql userLeo
+              done()
+
+          modelBill.subscribe queryBill, ->
+            modelBill.on 'set', 'users.*', (id, user) ->
+              id.should.equal '2'
+              user.should.eql userBill
+              done()
+
+          userLeo  = id: '1', name: 'leo'
+          userBill = id: '2', name: 'bill'
+          userSue  = id: '3', name: 'sue'
+          ver = 0
+          modelSue = store.createModel()
+          modelSue.set 'users.1', userLeo
+          modelSue.set 'users.2', userBill
+          modelSue.set 'users.3', userSue
+
+      describe 'set <namespace>.<id>.*', ->
+        describe 'for equals queries', ->
+          it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', (done) ->
+            numModels = 2
+            # TODO LIVE_QUERY
+            fullSetup numModels
+            , (sockets, modelHello, modelFoo) ->
+                queryHello = modelHello.query('users').where('greeting').equals('hello')
+                modelFoo.set 'users.1', user = id: 1, greeting: 'foo'
+                modelHello.subscribe queryHello, ->
+                  should.equal undefined, modelHello.get 'users.1'
+            , (modelHello) ->
+                modelHello.on 'changeDataSet', ->
+                  modelHello.get('users.1').should.eql user
+                  done()
+            , (modelFoo) ->
+                modelFoo.set 'users.1.greeting', 'hello'
+
+            # TODO Remove the below code once the above code is done
+            modelHello = store.createModel()
+            queryHello = modelHello.query('users').where('greeting').equals('hello')
+
+            modelFoo = store.createModel()
+            modelFoo.set 'users.1', user = id: 1, greeting: 'foo'
+
+            modelHello.subscribe queryHello, ->
+              should.equal undefined, modelHello.get 'users.1'
+              modelHello.on 'changeDataSet', ->
+                modelHello.get('users.1').should.eql user
+                done()
+              modelFoo.set 'users.1.greeting', 'hello'
+
+          it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation'
+
+          it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
+             'and (2) a query matching the doc both pre- and post-mutation'
+
+          it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
+             ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation'
+
+        describe 'for gt/gte/lt/lte queries', ->
+          it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation'
+
+          it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation'
+
+      describe 'del <namespace>.<id>', ->
+        it 'should remove the modified doc from any models subscribed to a query matching the doc pre-del'
+
+      describe 'del <namespace>.<id>.*', ->
+        it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation'
+
+      describe 'incr', ->
+
+      describe 'push', ->
+
+      describe 'unshift', ->
+
+      describe 'insert', ->
+
+      describe 'pop', ->
+
+      describe 'shift', ->
+
+      describe 'remove', ->
+
+      describe 'move', ->
 
   describe 'with Memory', ->

@@ -66,6 +66,7 @@ ServerModel::_bundle = (callback) ->
     startId: @_startId
     count: @_count
     ioUri: @_ioUri
+    liveQueries: '' # TODO LIVE_QUERY
 
 ServerModel::_addSub = (channels, callback) ->
   model = this

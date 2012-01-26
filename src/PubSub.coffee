@@ -1,7 +1,7 @@
 redis = require 'redis'
 pathParser = require './pathParser'
 transaction = require './transaction.server'
-{hasKeys} = require './util'
+{hasKeys, deepCopy} = require './util'
 QueryPubSub = require './QueryPubSub'
 
 # new PubSub
@@ -41,7 +41,14 @@ PubSub:: =
       , method
 
   publish: (path, message, meta = {}) ->
-    @_queryPubSub.publish message unless path.substring(0, 8) == 'queries.'
+    unless path.substring(0,8) == 'queries.'
+      if origDoc = meta.origDoc
+        {txn} = message
+        newDoc = deepCopy origDoc
+        applyTxn txn, newDoc
+        @_queryPubSub.publish message, origDoc, newDoc
+      else
+        @_queryPubSub.publish message
     @_adapter.publish path, message
 
   unsubscribe: (subscriberId, channels, callback) ->
@@ -196,3 +203,18 @@ handlePaths = (paths, queue, client, fn, callback) ->
     client[fn] path
     if callback
       (queue[path] ||= []).push callback
+
+
+MemorySync = require './adapters/MemorySync'
+adapter = new MemorySync
+adapter.setVersion = ->
+applyTxn = (txn, doc) ->
+  method = transaction.method txn
+  args = transaction.args txn
+  path = transaction.path txn
+  [ns, id] = path.split '.'
+  world = {}
+  world[ns] = {}
+  world[ns][id] = doc
+  data = {world}
+  adapter[method] args..., 0, data

@@ -55,7 +55,6 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
-
   push: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'

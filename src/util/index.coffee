@@ -134,3 +134,16 @@ module.exports =
       key = ka[i]
       return false unless deepEqual a[key], b[key]
     return true
+
+  # TODO Test this
+  deepCopy: deepCopy = (obj) ->
+    if obj.constructor == Object
+      ret = {}
+      ret[k] = deepCopy v for k, v of obj
+      return ret
+    if Array.isArray obj
+      ret = []
+      ret.push deepCopy v for v in obj
+      return ret
+    return obj
+

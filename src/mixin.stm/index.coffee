@@ -117,6 +117,22 @@ stm = module.exports =
         callback callbackArgs...
       removeTxn txnId
 
+    # Live Query Channels
+    # TODO LIVE_QUERY Does this + the txnlog result in an inconsistent state in
+    #      the browser?
+    socket.on 'rmDoc', ({doc, ns}) ->
+      # TODO Optimize this by sending + using only ns.id
+      for k, q of liveQueries
+        return if q.test doc
+
+      delete adapter._data.world[ns][doc.id]
+      self.emit('rmDoc', ns + '.' + doc.id, doc)
+
+    socket.on 'addDoc', ({doc, ns}) ->
+      data = adapter._data.world[ns] ||= {}
+      data[doc.id] = doc
+      self.emit('rmDoc', ns + '.' + doc.id, doc)
+
     resendInterval = null
     resend = ->
       now = +new Date

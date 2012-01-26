@@ -180,6 +180,8 @@ MongoAdapter:: =
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, upsert: true, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
+        origDoc.id = origDoc._id
+        delete origDoc._id
         done null, origDoc
 
     store.defaultRoute 'set', '*.*', (collection, _id, doc, ver, done, next) ->
@@ -233,6 +235,8 @@ MongoAdapter:: =
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, upsert: true, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
+        origDoc.id = origDoc._id
+        delete origDoc._id
         done null, origDoc
 #        return done null unless clientId
 #        idMap = {}
@@ -280,6 +284,8 @@ MongoAdapter:: =
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
+        origDoc.id = origDoc._id
+        delete origDoc._id
         done null, origDoc
 
     store.defaultRoute 'shift', '*.*.*', (collection, _id, relPath, globalVer, done, next) ->

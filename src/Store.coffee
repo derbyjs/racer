@@ -29,9 +29,21 @@ Store = module.exports = (options = {}) ->
       type: 'Redis'
       pubClient: @_redisClient
       subClient: @_txnSubClient
-    onMessage: (clientId, {txn, ot}) ->
+    onMessage: (clientId, msg) ->
+      {txn, ot, rmDoc, addDoc} = msg
       return self._onTxnMsg clientId, txn if txn
-      return self._onOtMsg clientId, ot
+      return self._onOtMsg clientId, ot if ot
+
+      # Live Query Channels
+      # These following 2 channels are for
+      # informing a client about changes to their
+      # data set based on mutations that add/rm
+      # docs to/from the data set enclosed by the
+      # live queries the client subscribes to
+      socket = self._clientSockets[clientId]
+      return socket.emit 'rmDoc', rmDoc if rmDoc
+      return socket.emit 'addDoc', addDoc if addDoc
+      throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
   # Add a @commit method to this store based on the realtime strategy
   if options.stm
