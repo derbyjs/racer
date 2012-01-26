@@ -269,7 +269,7 @@ describe 'Model.refList', ->
     moved = model.move '_list', 1, 0
     # Move returns the moved key, not the
     # referenced object
-    moved.should.eql 7
+    moved.should.eql [7]
     model.get('_list').should.specEql [
       {id: 7, val: 'g'}
       {id: 3, val: 'c'}
@@ -284,7 +284,7 @@ describe 'Model.refList', ->
     moved = model.move '_list', 0, 2
     # Move returns the moved key, not the
     # referenced object
-    moved.should.eql 7
+    moved.should.eql [7]
     model.get('_list').should.specEql [
       {id: 3, val: 'c'}
       {id: 8, val: 'h'}
@@ -365,7 +365,7 @@ describe 'Model.refList', ->
     moved = model.move '_list', {id: 7}, 0
     # Move returns the moved key, not the
     # referenced object
-    moved.should.eql 7
+    moved.should.eql [7]
     model.get('_list').should.specEql [
       {id: 7, val: 'g'}
       {id: 3, val: 'c'}
@@ -380,7 +380,7 @@ describe 'Model.refList', ->
     moved = model.move '_list', {id: 7}, {id: 8}
     # Move returns the moved key, not the
     # referenced object
-    moved.should.eql 7
+    moved.should.eql [7]
     model.get('_list').should.specEql [
       {id: 3, val: 'c'}
       {id: 8, val: 'h'}

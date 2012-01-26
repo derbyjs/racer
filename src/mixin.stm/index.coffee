@@ -460,36 +460,37 @@ stm = module.exports =
           start = match[2]
           path = match[1]
 
-        # remove(path, start, callback)
-        if typeof howMany is 'function'
+        if typeof howMany isnt 'number'
           callback = howMany
-          howMany = 1
-        # remove(path, start)
-        else if typeof howMany isnt 'number'
           howMany = 1
         return @_addOpAsTxn 'remove', [path, start, howMany], callback
 
     move:
       type: 'array'
       indexArgs: [1, 2]
-      fn: (path, from, to, callback) ->
+      fn: (path, from, to, howMany, callback) ->
         if at = @_at
           # isNaN will be false for index values in a string like '3'
           path = if typeof path is 'string' && isNaN path
             at + '.' + path
           else
-            callback = to
+            callback = howMany
+            howMany = to
             to = from
             from = path
             at
         if match = /^(.*)\.(\d+)$/.exec path
           # Use the index from the path if it ends in an index segment
-          callback = to
+          callback = howMany
+          howMany = to
           to = from
           from = match[2]
           path = match[1]
 
-        return @_addOpAsTxn 'move', [path, from, to], callback
+        if typeof howMany isnt 'number'
+          callback = howMany
+          howMany = 1
+        return @_addOpAsTxn 'move', [path, from, to, howMany], callback
 
 arrayMutator = []
 for method, obj of stm.mutators

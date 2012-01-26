@@ -297,7 +297,7 @@ module.exports = (Adapter) -> describe 'Adapter', ->
     _ver = 0
     adapter.set 'colors', ['red', 'orange', 'yellow', 'green', 'blue'], ++_ver, (err) ->
       should.equal null, err
-      adapter.move 'colors', 1, 3, ++_ver, (err) ->
+      adapter.move 'colors', 1, 3, 1, ++_ver, (err) ->
         should.equal null, err
         adapter.get 'colors', (err, value, ver) ->
           should.equal null, err

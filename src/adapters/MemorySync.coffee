@@ -1,4 +1,4 @@
-#  WARNING:
+##  WARNING:
 ##  ========
 ##  This file was compiled from a macro.
 ##  Do not edit it directly.
@@ -55,62 +55,66 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
-
+  
   push: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.push args...
-
+  
   unshift: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.unshift args...
-
+  
   insert: (path, index, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
+    index = +index
     unless 0 <= index <= len
-      throw new Error "Out of Bounds: index = #{index} violates 0 <= index <= #{len}"
+      throw new Error 'Out of Bounds'
     arr.splice index, 0, args...
     return arr.length
-
+  
   pop: (path, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.pop()
-
+  
   shift: (path, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.shift()
-
+  
   remove: (path, index, howMany, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
-    unless 0 <= index < (len || 1)
+    index = +index
+    unless (0 <= index) && (index + howMany <= len)
       throw new Error 'Out of Bounds'
     return arr.splice index, howMany
-
-  move: (path, from, to, ver, data) ->
+  
+  move: (path, from, to, howMany, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     len = arr.length
+    from = +from
+    to = +to
     from += len if from < 0
     to += len if to < 0
-    unless (0 <= from < len) && (0 <= to < len)
+    unless (0 <= from) && (from + howMany <= len) && (0 <= to) && (to + howMany <= len)
       throw new Error 'Out of Bounds'
-    [value] = arr.splice from, 1  # Remove from old location
-    arr.splice to, 0, value  # Insert in new location
-    return value
+    values = arr.splice from, howMany  # Remove from old location
+    arr.splice to, 0, values...  # Insert in new location
+    return values
 
 
 # Returns value
@@ -134,7 +138,7 @@ lookup = (path, data, getRef) ->
       break if getRef && i == len
 
       [curr, path, i] = refOut = curr lookup, data, path, props, len, i
-
+    
     break unless curr?
 
   return curr

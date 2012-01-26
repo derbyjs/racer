@@ -505,26 +505,26 @@ describe 'Model', ->
     model = new Model '0'
     model.push 'colors', 'red', 'orange', 'yellow', 'green'
     out = model.move 'colors', 1, 2
-    out.should.eql 'orange'
+    out.should.eql ['orange']
     model.get('colors').should.specEql ['red', 'yellow', 'orange', 'green']
     out = model.move 'colors', 0, 3
-    out.should.eql 'red'
+    out.should.eql ['red']
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
     out = model.move 'colors', 0, 0
-    out.should.eql 'yellow'
+    out.should.eql ['yellow']
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
   
   it 'move should work on an array index path', ->
     model = new Model '0'
     model.push 'colors', 'red', 'orange', 'yellow', 'green'
     out = model.move 'colors.1', 2
-    out.should.eql 'orange'
+    out.should.eql ['orange']
     model.get('colors').should.specEql ['red', 'yellow', 'orange', 'green']
     out = model.move 'colors.0', 3
-    out.should.eql 'red'
+    out.should.eql ['red']
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
     out = model.move 'colors.0', 0
-    out.should.eql 'yellow'
+    out.should.eql ['yellow']
     model.get('colors').should.specEql ['yellow', 'orange', 'green', 'red']
 
   it 'supports an id method for creating a guid', ->

@@ -287,21 +287,21 @@ describe 'Model.at', ->
     stuff = model.at 'stuff'
 
     stuff.set ['green', 'red', 'blue', 'yellow']
-    stuff.move(1, 2).should.equal 'red'
+    stuff.move(1, 2).should.eql ['red']
     stuff.get().should.specEql ['green', 'blue', 'red', 'yellow']
 
-    stuff.move(0, 3, ->).should.equal 'green'
+    stuff.move(0, 3, ->).should.eql ['green']
     stuff.get().should.specEql ['blue', 'red', 'yellow', 'green']
 
-    stuff.move('0', 1).should.equal 'blue'
+    stuff.move('0', 1).should.eql ['blue']
     stuff.get().should.specEql ['red', 'blue', 'yellow', 'green']
 
     stuff.set names: ['Sam', 'Jill', 'Ben']
-    stuff.move('names', 2, 0).should.equal 'Ben'
+    stuff.move('names', 2, 0).should.eql ['Ben']
     stuff.get('names').should.specEql ['Ben', 'Sam', 'Jill']
     model.get().should.specEql stuff: names: ['Ben', 'Sam', 'Jill']
 
-    stuff.move('names', 1, 0, ->).should.equal 'Sam'
+    stuff.move('names', 1, 0, ->).should.eql ['Sam']
     stuff.get('names').should.specEql ['Sam', 'Ben', 'Jill']
 
   it 'supports event subscription', (done) ->

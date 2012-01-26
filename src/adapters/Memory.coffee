@@ -61,9 +61,16 @@ MUTATORS.forEach (method) ->
       catch err
         return callback err
       callback null, arg0, arg1
+    when 6 then (path, arg0, arg1, arg2, ver, callback) ->
+      try
+        @[alias] path, arg0, arg1, arg2, ver, null
+      catch err
+        return callback err
+      callback null, arg0, arg1, arg2
     else (path, args..., ver, callback) ->
       try
         @[alias] path, args..., ver, null
       catch err
         return callback err
       callback null, args...
+
