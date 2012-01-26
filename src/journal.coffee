@@ -1,9 +1,6 @@
 transaction = require './transaction.server'
 Serializer = require './Serializer'
 
-MAX_RETRIES = 10
-RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
-
 # TODO: Since transactions from different clients targeting the same path
 # should be in conflict, then we should be able to abort a transaction just by
 # knowing if the client associated with the same lock we want is not our client.
@@ -13,12 +10,16 @@ RETRY_DELAY = 5 # Initial delay in milliseconds. Exponentially increases
 # TODO How can we improve this to work with multiple shards per transaction
 #      which will eventually happen in the multi-path transaction scenario
 
-Stm = module.exports = (redisClient) ->
 
-  lockQueue = {}
+journal = module.exports =
 
-  # Callback has signature: fn(err, lockVal, txns)
-  lock = (numKeys, locks, sinceVer, path, retries, delay, callback) ->
+  _getLocks: getLocks = (path) ->
+    # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
+    lockPath = ''
+    return (lockPath += '.' + segment for segment in path.split '.').reverse()
+
+  _lock: lock = (redisClient, lockQueue, numKeys, locks, sinceVer, path, retries, delay, callback) ->
+    # Callback has signature: fn(err, lockVal, txns)
     redisClient.eval LOCK, numKeys, locks..., sinceVer, (err, values) ->
       return callback err if err
       if values[0]
@@ -27,7 +28,7 @@ Stm = module.exports = (redisClient) ->
         queue = lockQueue[path] ||= []
         # Maintain a queue so that if this lock conflicts with another operation
         # on the same server and the same path, the lock can be retried immediately
-        queue.push [numKeys, locks, sinceVer, path, retries - 1, delay * 2, callback]
+        queue.push [redisClient, lockQueue, numKeys, locks, sinceVer, path, retries - 1, delay * 2, callback]
         # Use an exponential timeout in case the conflict is because of a lock
         # on a child path or is coming from a different server
         return setTimeout ->
@@ -35,12 +36,7 @@ Stm = module.exports = (redisClient) ->
         , delay
       return callback 'lockMaxRetries'
 
-  # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
-  @_getLocks = getLocks = (path) ->
-    lockPath = ''
-    return (lockPath += '.' + segment for segment in path.split '.').reverse()
-
-  @commit = commit = (txn, callback) ->
+  _stmCommit: stmCommit = (redisClient, lockQueue, txn, callback) ->
     # If the base of a transaction is null or undefined, pass an empty string
     # for sinceVer, which indicates not to return a journal. Thus, no conflicts
     # will be found
@@ -56,7 +52,7 @@ Stm = module.exports = (redisClient) ->
       locks
     , []
     locksLen = locks.length
-    lock locksLen, locks, sinceVer, paths, MAX_RETRIES, RETRY_DELAY, (err, lockVal, txns) ->
+    lock redisClient, lockQueue, locksLen, locks, sinceVer, paths, MAX_RETRIES, RETRY_DELAY, (err, lockVal, txns) ->
       path = paths[0]
       return callback err if err
 
@@ -68,7 +64,7 @@ Stm = module.exports = (redisClient) ->
           callback conflict
 
       # Commit if there are no conflicts and the locks are still held
-      redisClient.eval COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
+      redisClient.eval LOCKED_COMMIT, locksLen, locks..., lockVal, JSON.stringify(txn), (err, ver) ->
         return callback err if err
         return callback 'lockReleased' if ver is 0
         callback null, ver
@@ -77,30 +73,46 @@ Stm = module.exports = (redisClient) ->
         # shift it from the queue
         lock args... if (queue = lockQueue[path]) && args = queue.shift()
 
-  return
+  # TODO: Default mode should be 'ot'
+  commitFn: (store, mode = 'lww') ->
+    redisClient = store._redisClient
 
-Stm::commitFn = (store) ->
-  ## Ensure Serialization of Transactions to the DB ##
-  # TODO: This algorithm will need to change when we go multi-process,
-  # because we can't count on the version to increase sequentially
-  txnApplier = new Serializer
-    withEach: (txn, ver, callback) ->
-      store._finishCommit txn, ver, callback
+    if mode is 'lww'
+      return (txn, callback) ->
+        # Increment version and store the transaction with a
+        # score of the new version
+        redisClient.eval LWW_COMMIT, 0, JSON.stringify(txn), (err, ver) ->
+          throw err if err
+          store._finishCommit txn, ver, callback
 
-  self = this
+    ## Ensure Serialization of Transactions to the DB ##
+    # TODO: This algorithm will need to change when we go multi-process,
+    # because we can't count on the version to increase sequentially
+    txnApplier = new Serializer
+      withEach: (txn, ver, callback) ->
+        store._finishCommit txn, ver, callback
 
-  return (txn, callback) ->
-    ver = transaction.base txn
-    if ver && typeof ver isnt 'number'
-      # In case of something like @set(path, value, callback)
-      throw new Error 'Version must be null or a number'
-    self.commit txn, (err, ver) ->
-      return callback && callback err, txn if err
-      txnApplier.add txn, ver, callback
+    lockQueue = {}
+    return (txn, callback) ->
+      ver = transaction.base txn
+      if ver && typeof ver isnt 'number'
+        # In case of something like @set(path, value, callback)
+        throw new Error 'Version must be null or a number'
+      stmCommit redisClient, lockQueue, txn, (err, ver) ->
+        return callback && callback err, txn if err
+        txnApplier.add txn, ver, callback
 
-Stm._LOCK_TIMEOUT = LOCK_TIMEOUT = 3  # Lock timeout in seconds. Could be +/- one second
-Stm._LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000  # Use 32 bits for timeout
-Stm._LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000  # Use 20 bits for lock clock
+
+journal._MAX_RETRIES = MAX_RETRIES = 10
+# Initial delay in milliseconds. Exponentially increases
+journal._RETRY_DELAY = RETRY_DELAY = 5
+
+# Lock timeout in seconds. Could be +/- one second
+journal._LOCK_TIMEOUT = LOCK_TIMEOUT = 3
+# Use 32 bits for timeout
+journal._LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000
+# Use 20 bits for lock clock
+journal._LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000
 
 # Each node/path has
 # - A SET keyed by path containing a lock
@@ -113,7 +125,7 @@ Stm._LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000  # Use 20 bits for lock clock
 # 4. For each path and subpath, add this single lock string to the SETs associated with the paths and subpaths.
 # 5. Fetch the transaction log since the incoming txn ver.
 # 6. Return [lock string, truncated since transaction log]
-Stm._LOCK = LOCK = """
+journal._LOCK = LOCK = """
 local now = os.time()
 local path = KEYS[1]
 for i, lock in pairs(redis.call('smembers', path)) do
@@ -146,7 +158,7 @@ if ARGV[1] ~= '' then txns = redis.call('zrangebyscore', 'txns', ARGV[1], '+inf'
 return {lock, txns}
 """
 
-Stm._UNLOCK = UNLOCK = """
+journal._UNLOCK = UNLOCK = """
 local val = ARGV[1]
 local path = 'l' .. KEYS[1]
 if redis.call('get', path) == val then redis.call('del', path) end
@@ -155,7 +167,7 @@ for i, path in pairs(KEYS) do
 end
 """
 
-Stm._COMMIT = COMMIT = """
+journal._LOCKED_COMMIT = LOCKED_COMMIT = """
 local val = ARGV[1]
 local path = 'l' .. KEYS[1]
 local fail = false
@@ -166,5 +178,11 @@ end
 if fail then return 0 end
 local ver = redis.call('incr', 'ver')
 redis.call('zadd', 'txns', ver, ARGV[2])
+return ver
+"""
+
+journal._LWW_COMMIT = LWW_COMMIT = """
+local ver = redis.call('incr', 'ver')
+redis.call('zadd', 'txns', ver, ARGV[1])
 return ver
 """
