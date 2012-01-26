@@ -117,12 +117,16 @@ Store:: =
     return model
 
   flush: (callback) ->
-    done = false
+#    done = false
+#    cb = (err) ->
+#      if callback && (done || err)
+#        callback err
+#        callback = null
+#      done = true
+    rem = 2
     cb = (err) ->
-      if callback && (done || err)
-        callback err
-        callback = null
-      done = true
+      return callback err if err
+      --rem || callback err
     @_adapter.flush cb
     @_redisClient.flushdb (err) =>
       return callback err if err && callback

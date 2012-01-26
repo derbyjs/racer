@@ -20,8 +20,29 @@ MongoQuery::=
     @_conds[@_currProp] = $ne: val
     @
 
+  gt: (val) ->
+    @_conds[@_currProp] = $gt: val
+    @
+
+  gte: (val) ->
+    @_conds[@_currProp] = $gte: val
+    @
+
+  lt: (val) ->
+    @_conds[@_currProp] = $lt: val
+    @
+
+  lte: (val) ->
+    @_conds[@_currProp] = $lte: val
+    @
+
   within: (list) ->
     @_conds[@_currProp] = $in: list
+    @
+
+  contains: (list) ->
+    @_conds[@_currProp] = $all: list
+    @
 
   run: (mongoAdapter, callback) ->
     promise = new Promise bothback: callback
