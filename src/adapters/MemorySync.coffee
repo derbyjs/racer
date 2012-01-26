@@ -55,19 +55,19 @@ MemorySync:: =
     grandparent[parentProp] = parentClone
     return obj
 
-  
+
   push: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.push args...
-  
+
   unshift: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.unshift args...
-  
+
   insert: (path, index, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
@@ -78,19 +78,19 @@ MemorySync:: =
       throw new Error 'Out of Bounds'
     arr.splice index, 0, args...
     return arr.length
-  
+
   pop: (path, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.pop()
-  
+
   shift: (path, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
     throw new Error 'Not an Array' unless Array.isArray arr
     return arr.shift()
-  
+
   remove: (path, index, howMany, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
@@ -100,7 +100,7 @@ MemorySync:: =
     unless (0 <= index) && (index + howMany <= len)
       throw new Error 'Out of Bounds'
     return arr.splice index, howMany
-  
+
   move: (path, from, to, howMany, ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
