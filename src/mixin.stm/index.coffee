@@ -3,6 +3,7 @@ pathParser = require '../pathParser'
 Serializer = require '../Serializer'
 MemorySync = require '../adapters/MemorySync'
 {create: specCreate} = require '../specHelper'
+{diffArrays} = require '../diffMatchPatch'
 AtomicModel = require './AtomicModel'
 Async = require './Async'
 
@@ -42,7 +43,8 @@ stm = module.exports =
     self = this
     adapter = @_adapter
     # Used for diffing array operations in order emitted vs order applied
-    scratch = new MemorySync
+    before = new MemorySync
+    after = new MemorySync
     @_onTxn = (txn) ->
       # Copy meta properties onto this transaction if it matches one in the queue
       if txnQ = txns[transaction.id txn]
@@ -51,7 +53,7 @@ stm = module.exports =
         isLocal = true
 
       unless isLocal = 'callback' of txn
-        mergeTxn txn, txns, txnQueue, adapter, scratch
+        mergeTxn txn, txns, txnQueue, adapter, before, after
 
       if transaction.base(txn) > adapter.version
         self._applyTxn txn, isLocal
@@ -234,8 +236,11 @@ stm = module.exports =
       out = @_adapter[method] args..., ver, data
       @emit method + 'Post', args, ver # TODO: Remove this
       if doEmit
-        {method, args} = patch if patch = txn.patch
-        @emit method, args, out, isLocal, @_pass
+        if patch = txn.patch
+          for {method, args} in patch
+            @emit method, args, null, isLocal, @_pass
+        else
+          @emit method, args, out, isLocal, @_pass
       return out
 
     _specModel: ->
@@ -511,11 +516,12 @@ arrayMutator = []
 for method, obj of stm.mutators
   arrayMutator[method] = true if obj.type is 'array'
 
-mergeTxn = (txn, txns, txnQueue, adapter, scratch) ->
+mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
   path = transaction.path txn
   method = transaction.method txn
   isArrayMutator = arrayMutator[method]
-  scratchData = scratch._data
+  beforeData = before._data
+  afterData = after._data
   for id in txnQueue
     txnQ = txns[id]
     continue if txnQ.callback
@@ -525,12 +531,21 @@ mergeTxn = (txn, txns, txnQueue, adapter, scratch) ->
     if isArrayMutator && arrayMutator[methodQ] && path == pathQ
       unless arrayDiff
         arrayDiff = true
-        scratch.set path, adapter.get(path), 1, scratchData
-      scratch[methodQ] transaction.args(txnQ).concat(1, scratchData)...
+        arr = adapter.get(path)
+        before.set path, arr && arr.slice(), 1, beforeData
+        after.set path, arr && arr.slice(), 1, afterData
+        after[method] transaction.args(txn).concat(1, afterData)...
+      before[methodQ] transaction.args(txnQ).concat(1, beforeData)...
+      after[methodQ] transaction.args(txnQ).concat(1, afterData)...
     else
       # If there is a conflict, re-emit when applying
       txnQ.emitted = false
 
   if arrayDiff
-    scratch[method] transaction.args(txn).concat(1, scratchData)...
-    # TODO: patch up event emissions
+    txn.patch = patch = []
+    diffArrays before.get(path), after.get(path), (index, items) ->
+      patch.push method: 'insert', args: [path, index].concat(items)
+    , (index, howMany) ->
+      patch.push method: 'remove', args: [path, index, howMany]
+    , (from, to, howMany) ->
+      patch.push method: 'move', args: [path, from, to, howMany]
