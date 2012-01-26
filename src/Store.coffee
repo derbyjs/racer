@@ -1,8 +1,7 @@
 redis = require 'redis'
 PubSub = require './PubSub'
 redisInfo = require './redisInfo'
-Stm = require './Stm'
-Lww = require './Lww'
+journal = require './journal'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
@@ -14,11 +13,12 @@ pathParser = require './pathParser'
 _query_ = require './query'
 
 # store = new Store
-#   stm: true / false
+#   mode: 'lww' || 'stm' || 'ot'
 #   redis:
 #     port: xxxx
 #     host: xxxx
-#     db:   xxxx
+#     db: xxxx
+#     password: xxxx
 Store = module.exports = (options = {}) ->
   self = this
 
@@ -45,13 +45,8 @@ Store = module.exports = (options = {}) ->
         return socket.emit 'addDoc', addDoc if addDoc
       throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
-  # Add a @commit method to this store based on the realtime strategy
-  if options.stm
-    @_stm = new Stm @_redisClient
-    self.commit = @_stm.commitFn self
-  else
-    @_lww = new Lww @_redisClient
-    self.commit = @_lww.commitFn self
+  # Add a @commit method to this store based on the conflict resolution mode
+  @commit = journal.commitFn self, options.mode
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
   # TODO Encapsulate this at a lower level of abstraction

@@ -5,7 +5,7 @@ describe 'Model.async', ->
   store = null
 
   beforeEach (done) ->
-    store = new Store stm: true
+    store = new Store mode: 'stm'
     store.flush done
 
   afterEach (done) ->
