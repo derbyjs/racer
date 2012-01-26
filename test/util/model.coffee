@@ -130,17 +130,17 @@ exports.fullSetup = (options, clients, done) ->
         done()
 
     serverModel = store.createModel()
-    serverFinish =
-    serverFinishes[clientId] = do (clientId, serverModel, browserModel) ->
-      return ->
-        delete serverFinishes[clientId]
-        serverModel.bundle (bundle) ->
-          bundle = JSON.parse bundle
-          bundle.socket = browserSocket = new mocks.BrowserSocketMock serverSockets
-          browserRacer.init.call model: browserModel, bundle
-          browserSocket._connect()
-          return if --remServerModels
-          for _clientId_, _browserModel_ of browserModels
-            browserFns[_clientId_] _browserModel_, browserFinishes[_clientId_]
+    serverFinish = serverFinishes[clientId] =
+      do (clientId, serverModel, browserModel) ->
+        return ->
+          delete serverFinishes[clientId]
+          serverModel.bundle (bundle) ->
+            bundle = JSON.parse bundle
+            bundle.socket = browserSocket = new mocks.BrowserSocketMock serverSockets
+            browserRacer.init.call model: browserModel, bundle
+            browserSocket._connect()
+            return if --remServerModels
+            for _clientId_, _browserModel_ of browserModels
+              browserFns[_clientId_] _browserModel_, browserFinishes[_clientId_]
     server serverModel, serverFinish
   return
