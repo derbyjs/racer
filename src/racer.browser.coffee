@@ -2,6 +2,8 @@ require 'es5-shim'
 util = require './util'
 Model = require './Model'
 Field = require './mixin.ot/Field'
+query = require './query'
+LiveQuery = require './LiveQuery'
 
 # isReady and model are used by the ready function, so that it can be called
 # anonymously. This assumes that only one instace of Racer is running, which
@@ -27,6 +29,10 @@ racer = module.exports =
     model._storeSubs = options.storeSubs
     model._startId = options.startId
     model._count = options.count
+    model.liveQueries = {}
+    if liveQueries = options.liveQueries
+      for hash, q of liveQueries
+        model.liveQueries[hash] = query.deserialize q, LiveQuery
     for [method, args] in options.onLoad
       model[method] args...
     model.emit 'initialized'

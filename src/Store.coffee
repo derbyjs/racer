@@ -40,9 +40,9 @@ Store = module.exports = (options = {}) ->
       # data set based on mutations that add/rm
       # docs to/from the data set enclosed by the
       # live queries the client subscribes to
-      socket = self._clientSockets[clientId]
-      return socket.emit 'rmDoc', rmDoc if rmDoc
-      return socket.emit 'addDoc', addDoc if addDoc
+      if socket = self._clientSockets[clientId]
+        return socket.emit 'rmDoc', rmDoc if rmDoc
+        return socket.emit 'addDoc', addDoc if addDoc
       throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
   # Add a @commit method to this store based on the realtime strategy
@@ -175,7 +175,7 @@ Store:: =
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
-    @sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
+    sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
       return if hasInvalidVer socket, ver, clientStartId
 
       # TODO Map the clientId to a nickname (e.g., via session?),

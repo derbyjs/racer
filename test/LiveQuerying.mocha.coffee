@@ -3,6 +3,7 @@ Store = require '../src/Store'
 redis = require 'redis'
 async = require 'async'
 {calls} = require './util'
+{fullSetup} = require './util/model'
 
 describe 'Live Querying', ->
 
@@ -148,39 +149,72 @@ describe 'Live Querying', ->
       describe 'set <namespace>.<id>.*', ->
         describe 'for equals queries', ->
           it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', (done) ->
-            numModels = 2
-            # TODO LIVE_QUERY
-            fullSetup numModels
-            , (sockets, modelHello, modelFoo) ->
-                queryHello = modelHello.query('users').where('greeting').equals('hello')
-                modelFoo.set 'users.1', user = id: 1, greeting: 'foo'
-                modelHello.subscribe queryHello, ->
-                  should.equal undefined, modelHello.get 'users.1'
-            , (modelHello) ->
-                modelHello.on 'changeDataSet', ->
-                  modelHello.get('users.1').should.eql user
-                  done()
-            , (modelFoo) ->
-                modelFoo.set 'users.1.greeting', 'hello'
+            fullSetup {store},
+              modelHello:
+                server: (modelHello, finish) ->
+                  queryHello = modelHello.query('users').where('greeting').equals('hello')
+                  modelHello.subscribe queryHello, ->
+                    should.equal undefined, modelHello.get 'users.1'
+                    finish()
+                browser: (modelHello, finish) ->
+                  modelHello.on 'addDoc', ->
+                    modelHello.get('users.1').should.eql {id: '1', greeting: 'hello'}
+                    finish()
+              modelFoo:
+                server: (modelFoo, finish) ->
+                  modelFoo.set 'users.1', user = id: '1', greeting: 'foo'
+                  finish()
+                browser: (modelFoo, finish) ->
+                  modelFoo.set 'users.1.greeting', 'hello'
+                  finish()
+            , done
 
-            # TODO Remove the below code once the above code is done
-            modelHello = store.createModel()
-            queryHello = modelHello.query('users').where('greeting').equals('hello')
-
-            modelFoo = store.createModel()
-            modelFoo.set 'users.1', user = id: 1, greeting: 'foo'
-
-            modelHello.subscribe queryHello, ->
-              should.equal undefined, modelHello.get 'users.1'
-              modelHello.on 'changeDataSet', ->
-                modelHello.get('users.1').should.eql user
-                done()
-              modelFoo.set 'users.1.greeting', 'hello'
-
-          it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation'
+          it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', (done) ->
+            fullSetup {store},
+              modelHello:
+                server: (modelHello, finish) ->
+                  queryHello = modelHello.query('users').where('greeting').equals('foo')
+                  modelHello.subscribe queryHello, ->
+                    finish()
+                browser: (modelHello, finish) ->
+                  modelHello.on 'setPost', ->
+                    modelHello.get('users.1').should.eql {id: '1', greeting: 'foo'}
+                    modelHello.on 'rmDoc', ->
+                      should.equal undefined, modelHello.get 'users.1'
+                      finish()
+              modelFoo:
+                server: (modelFoo, finish) ->
+                  modelFoo.set 'users.1', user = id: '1', greeting: 'foo'
+                  finish()
+                browser: (modelFoo, finish) ->
+                  modelFoo.set 'users.1.greeting', 'hello'
+                  finish()
+            , done
 
           it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
-             'and (2) a query matching the doc both pre- and post-mutation'
+             'and (2) a query matching the doc both pre- and post-mutation', (done) ->
+            fullSetup {store},
+              modelHello:
+                server: (modelHello, finish) ->
+                  queryUno = modelHello.query('users').where('greeting').equals('foo')
+                  queryDos = modelHello.query('users').where('age').equals(21)
+                  modelHello.subscribe queryUno, queryDos, ->
+                    finish()
+                browser: (modelHello, finish) ->
+                  modelHello.on 'setPost', ([path, val]) ->
+                    if path == 'users.1.greeting' && val == 'hello'
+                      modelHello.get('users.1').should.eql {id: '1', greeting: 'hello', age: 21}
+                      finish()
+                      modelHello.on 'rmDoc', ->
+                        finish() # This should never get called. Keep it here to detect if we call > 1
+              modelFoo:
+                server: (modelFoo, finish) ->
+                  modelFoo.set 'users.1', user = id: '1', greeting: 'foo', age: 21
+                  finish()
+                browser: (modelFoo, finish) ->
+                  modelFoo.set 'users.1.greeting', 'hello'
+                  finish()
+            , done
 
           it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
              ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation'

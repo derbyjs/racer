@@ -16,6 +16,7 @@ module.exports = ServerModel = ->
     @__applyTxn__ txnId
     if @_txnQueue.length == 0
       @emit 'allTxnsApplied'
+  self.liveQueries = {}
   return
 
 ServerModel:: = Object.create BrowserModel::
@@ -66,7 +67,7 @@ ServerModel::_bundle = (callback) ->
     startId: @_startId
     count: @_count
     ioUri: @_ioUri
-    liveQueries: '' # TODO LIVE_QUERY
+    liveQueries: @liveQueries
 
 ServerModel::_addSub = (channels, callback) ->
   model = this
@@ -81,4 +82,7 @@ ServerModel::_addSub = (channels, callback) ->
       # just for the memory store instead of doing it here
       model._initSubData data
       model._initSubOtData otData
+      for chan in channels
+        if chan.isQuery
+          model.liveQueries[chan.hash()] = chan.serialize()
       callback()
