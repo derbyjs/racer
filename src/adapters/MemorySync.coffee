@@ -75,7 +75,7 @@ MemorySync:: =
     len = arr.length
     index = +index
     unless 0 <= index <= len
-      throw new Error 'Out of Bounds'
+      throw new Error 'Out of bounds'
     arr.splice index, 0, args...
     return arr.length
 
@@ -98,7 +98,7 @@ MemorySync:: =
     len = arr.length
     index = +index
     unless (0 <= index) && (index + howMany <= len)
-      throw new Error 'Out of Bounds'
+      throw new Error 'Out of bounds'
     return arr.splice index, howMany
 
   move: (path, from, to, howMany, ver, data) ->
@@ -111,7 +111,7 @@ MemorySync:: =
     from += len if from < 0
     to += len if to < 0
     unless (0 <= from) && (from + howMany <= len) && (0 <= to) && (to + howMany <= len)
-      throw new Error 'Out of Bounds'
+      throw new Error 'Out of bounds'
     values = arr.splice from, howMany  # Remove from old location
     arr.splice to, 0, values...  # Insert in new location
     return values

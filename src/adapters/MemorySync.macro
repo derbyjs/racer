@@ -93,7 +93,7 @@ MemorySync:: =
     to += len if to < 0
     unless (0 <= from) && (from + howMany <= len) && (0 <= to) && (to + howMany <= len)
     #end
-      throw new Error 'Out of Bounds'
+      throw new Error 'Out of bounds'
     #if INSERT
     arr.splice index, 0, args...
     return arr.length
