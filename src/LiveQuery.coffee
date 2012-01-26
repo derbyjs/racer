@@ -47,10 +47,47 @@ LiveQuery::=
       doc[currProp] != val
     @
 
+  gt: (val) ->
+    currProp = @_currProp
+    @_predicates.push (doc) ->
+      doc[currProp] > val
+    @
+
+  gte: (val) ->
+    currProp = @_currProp
+    @_predicates.push (doc) ->
+      doc[currProp] >= val
+    @
+
+  lt: (val) ->
+    currProp = @_currProp
+    @_predicates.push (doc) ->
+      doc[currProp] < val
+    @
+
+  lte: (val) ->
+    currProp = @_currProp
+    @_predicates.push (doc) ->
+      doc[currProp] <= val
+    @
+
   within: (list) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       return -1 != list.indexOf doc[currProp]
+    @
+
+  contains: (list) ->
+    currProp = @_currProp
+    @_predicates.push (doc) ->
+      # TODO Handle flattened currProp - e.g., "phone.home"
+      docList = doc[currProp]
+      for x in list
+        if x.constructor == Object
+          return false if -1 == deepIndexOf docList, x
+        else
+          return false if -1 == docList.indexOf x
+      return true
     @
 
 evalToTrue = -> true

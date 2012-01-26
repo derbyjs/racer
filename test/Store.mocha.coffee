@@ -18,7 +18,7 @@ describe 'Store', ->
       store._subClient.end()
       store._txnSubClient.end()
       done()
-  
+
   it 'flush should delete everything in the adapter and redisClient', (done) ->
     callbackCount = 0
     store._adapter.set 'color', 'green', 1, ->
@@ -40,7 +40,7 @@ describe 'Store', ->
                   # Once again, 'clientClock' and 'starts' should exist after the flush
                   value.should.eql ['clientClock', 'starts']
                   done()
-  
+
   it 'flush should return an error if the adapter fails to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
@@ -48,7 +48,7 @@ describe 'Store', ->
       err.should.be.instanceof Error
       (++callbackCount).should.eql 1
       done()
-  
+
   it 'flush should return an error if the redisClient fails to flush', (done) ->
     callbackCount = 0
     store._redisClient.flushdb = (callback) -> callback new Error
@@ -56,7 +56,7 @@ describe 'Store', ->
       err.should.be.instanceof Error
       (++callbackCount).should.eql 1
       done()
-  
+
   it 'flush should return an error if the adapter and redisClient fail to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
@@ -66,7 +66,7 @@ describe 'Store', ->
       (++callbackCount).should.eql 1
       done()
 
-  it 'test that subscribe only copies the appropriate properties', (done) ->
+  it 'subscribe should only copy the appropriate properties', (done) ->
     tests =
       '': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}}
       'a': {a: {b: 1, c: 2, d: [1, 2]}}
@@ -86,13 +86,13 @@ describe 'Store', ->
             model.get().should.specEql expected
             finish()
 
-  it 'store._commit should apply transactions in order', (done) ->
+  it 'store.commit should apply transactions in order', (done) ->
     idIn = []
     idOut = []
     for i in [0..9]
       idIn.push id = "1.#{i}"
       txn = transaction.create(base: 0, id: id, method: 'set', args: ['stuff', 0])
-      store._commit txn, (err, txn) ->
+      store.commit txn, (err, txn) ->
         idOut.push transaction.id txn
         finish() if idOut.length is 10
     finish = ->

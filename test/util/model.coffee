@@ -1,7 +1,7 @@
 Model = require '../../src/Model'
 mocks = require './mocks'
 transaction = require '../../src/transaction'
-  
+
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new mocks.ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->
@@ -72,7 +72,7 @@ exports.fullyWiredModels = (numWindows, callback, options = {}) ->
   serverSockets = new mocks.ServerSocketsMock()
   options.sockets = serverSockets
   options.redis ||= redis: {db: 2}
-  store = serverRacer.createStore options
+  store = options.store || serverRacer.createStore options
 
   browserModels = []
   i = numWindows
@@ -91,3 +91,14 @@ exports.fullyWiredModels = (numWindows, callback, options = {}) ->
           browserModels.push browserModel
           if browserModels.length == numWindows
             callback serverSockets, store, browserModels...
+
+exports.fullSetup = (numWindows, serverCb, clientCb) ->
+  serverSockets = new mocks.ServerSocketsMock()
+  options.sockets = serverSockets
+  options.redis ||= redis: {db: 2}
+  store = options.store || serverRacer.createStore options
+
+  browserModels = []
+  i = numWindows
+  while i--
+    serverModel = store.createModel()

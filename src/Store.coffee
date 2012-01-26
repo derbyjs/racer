@@ -29,9 +29,21 @@ Store = module.exports = (options = {}) ->
       type: 'Redis'
       pubClient: @_redisClient
       subClient: @_txnSubClient
-    onMessage: (clientId, {txn, ot}) ->
+    onMessage: (clientId, msg) ->
+      {txn, ot, rmDoc, addDoc} = msg
       return self._onTxnMsg clientId, txn if txn
-      return self._onOtMsg clientId, ot
+      return self._onOtMsg clientId, ot if ot
+
+      # Live Query Channels
+      # These following 2 channels are for
+      # informing a client about changes to their
+      # data set based on mutations that add/rm
+      # docs to/from the data set enclosed by the
+      # live queries the client subscribes to
+      socket = self._clientSockets[clientId]
+      return socket.emit 'rmDoc', rmDoc if rmDoc
+      return socket.emit 'addDoc', addDoc if addDoc
+      throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
   # Add a @commit method to this store based on the realtime strategy
   if options.stm
@@ -88,6 +100,8 @@ Store:: =
       if Array.isArray found
         for doc in found
           doc.id = doc._id
+          # TODO _id code is specific to Mongo. Move this behind Mongo
+          #      abstraction
           delete doc._id
       else
         found.id = found._id
@@ -115,12 +129,16 @@ Store:: =
     return model
 
   flush: (callback) ->
-    done = false
+#    done = false
+#    cb = (err) ->
+#      if callback && (done || err)
+#        callback err
+#        callback = null
+#      done = true
+    rem = 2
     cb = (err) ->
-      if callback && (done || err)
-        callback err
-        callback = null
-      done = true
+      return callback err if err
+      --rem || callback err
     @_adapter.flush cb
     @_redisClient.flushdb (err) =>
       return callback err if err && callback
@@ -292,7 +310,9 @@ Store:: =
     @_pubSub.subscribe clientId, targets, (err) ->
       --rem || callback err, _data, _otData
     @_fetchSubData targets, (err, data, otData) ->
-      --rem || callback err, _data=data, _otData=otData
+      _data = data
+      _otData = otData
+      --rem || callback err, _data, _otData
 
   unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
 
@@ -301,7 +321,8 @@ Store:: =
     otData = {}
 
     finish = ->
-      callback null, data, otData  unless --finish.remainingFetches
+      unless --finish.remainingFetches
+        callback null, data, otData
 
     finish.remainingFetches = targets.length
 

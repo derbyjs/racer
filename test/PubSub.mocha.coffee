@@ -8,7 +8,9 @@ describe 'PubSub', ->
   subClient = null
 
   debug = false
-  newPubSub = (onMessage) -> new PubSub {pubClient, subClient, onMessage, debug}
+  newPubSub = (onMessage) -> new PubSub
+    adapter: {type: 'Redis', pubClient, subClient, debug}
+    onMessage: onMessage
 
   beforeEach (done) ->
     pubClient = redis.createClient()

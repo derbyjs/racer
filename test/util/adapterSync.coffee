@@ -220,7 +220,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', -1, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of Bounds'
+      e.message.should.equal 'Out of Bounds: index = -1 violates 0 <= index <= 1'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -232,7 +232,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', 2, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of Bounds'
+      e.message.should.equal 'Out of Bounds: index = 2 violates 0 <= index <= 1'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 
@@ -244,7 +244,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     try
       adapterSync.insert 'colors', 3, 'violet', ver, null
     catch e
-      e.message.should.equal 'Out of Bounds'
+      e.message.should.equal 'Out of Bounds: index = 3 violates 0 <= index <= 1'
       didThrowOutOfBounds = true
     didThrowOutOfBounds.should.be.true
 

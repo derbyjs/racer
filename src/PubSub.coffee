@@ -1,7 +1,7 @@
 redis = require 'redis'
 pathParser = require './pathParser'
 transaction = require './transaction.server'
-{hasKeys} = require './util'
+{hasKeys, deepCopy} = require './util'
 QueryPubSub = require './QueryPubSub'
 
 # new PubSub
@@ -11,8 +11,8 @@ QueryPubSub = require './QueryPubSub'
 #     subClient: redisClientB
 #   onMessage: (clientId, txn) ->
 PubSub = module.exports = (options = {}) ->
-  adapterName = options.adapter.type || 'Redis'
-  delete options.adapter.type
+  adapterName = options.adapter?.type || 'Redis'
+  delete options.adapter.type if options.adapter
   onMessage = options.onMessage || ->
   @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
   @_queryPubSub = new QueryPubSub @
@@ -41,7 +41,14 @@ PubSub:: =
       , method
 
   publish: (path, message, meta = {}) ->
-    @_queryPubSub.publish message unless path.substring(0, 8) == 'queries.'
+    unless path.substring(0,8) == 'queries.'
+      if origDoc = meta.origDoc
+        {txn} = message
+        newDoc = deepCopy origDoc
+        applyTxn txn, newDoc
+        @_queryPubSub.publish message, origDoc, newDoc
+      else
+        @_queryPubSub.publish message
     @_adapter.publish path, message
 
   unsubscribe: (subscriberId, channels, callback) ->
@@ -56,16 +63,16 @@ PubSub:: =
 
 # TODO Add a ZeroMQ adapter
 PubSub._adapters = {}
-PubSub._adapters.Redis = RedisAdapter = (onMessage, options) ->
-  redisOptions = {port, host, db} = options.redis || {}
+PubSub._adapters.Redis = RedisAdapter = (onMessage, options = {}) ->
+  {port, host, db} = options
   namespace = (db || 0) + '.'
   @_prefixWithNamespace = (path) -> namespace + path
 
   unless @_publishClient = options.pubClient
-    @_publishClient = redis.createClient port, host, redisOptions
+    @_publishClient = redis.createClient port, host, options
     @_publishClient.select db if db
   unless @_subscribeClient = subClient = options.subClient
-    @_subscribeClient = redis.createClient port, host, redisOptions
+    @_subscribeClient = redis.createClient port, host, options
 
   @_subs = subs = {}
   @_subscriberSubs = {}
@@ -196,3 +203,18 @@ handlePaths = (paths, queue, client, fn, callback) ->
     client[fn] path
     if callback
       (queue[path] ||= []).push callback
+
+
+MemorySync = require './adapters/MemorySync'
+adapter = new MemorySync
+adapter.setVersion = ->
+applyTxn = (txn, doc) ->
+  method = transaction.method txn
+  args = transaction.args txn
+  path = transaction.path txn
+  [ns, id] = path.split '.'
+  world = {}
+  world[ns] = {}
+  world[ns][id] = doc
+  data = {world}
+  adapter[method] args..., 0, data
