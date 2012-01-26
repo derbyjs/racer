@@ -105,6 +105,15 @@ describe 'Live Querying', ->
           should.equal undefined, model.get('users.2')
           done()
 
+      it 'should work for compound queries', (done) ->
+        model = store.createModel()
+        query = model.query('users').where('workdays').contains(['wed']).where('age').gt(25)
+        model.subscribe query, ->
+          for i in [0, 2]
+            should.equal undefined, model.get('users.' + i)
+          model.get('users.1').should.eql users[1]
+          done()
+
     describe 'setting <namespace>.<id>', ->
 
   describe 'with Memory', ->
