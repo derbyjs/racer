@@ -256,7 +256,7 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath]
+          arr = found[relPath].slice()
           ver = found.ver
           arr.unshift()
           (setTo = {})[relPath] = arr
@@ -273,7 +273,7 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath]
+          arr = found[relPath].slice()
           arr.splice index, 0, vals...
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -301,7 +301,7 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath]
+          arr = found[relPath].slice()
           arr.shift()
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -318,7 +318,7 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath]
+          arr = found[relPath].slice()
           arr.splice index, count
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -335,7 +335,8 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath]
+          arr = found[relPath].slice()
+          to += arr.length if to < 0
           values = arr.splice from, count
           arr.splice to, 0, values...
           (setTo = {})[relPath] = arr
