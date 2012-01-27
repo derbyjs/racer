@@ -126,12 +126,12 @@ Store:: =
   flush: (callback) ->
     rem = 2
     cb = (err) ->
-      if err || --rem
+      if !(--rem) || err
         callback err if callback
         return callback = null
     @_adapter.flush cb
     @_redisClient.flushdb (err) =>
-      return callback err if err && callback
+      return cb err if err
       redisInfo.onStart @_redisClient, cb
       @_model = @_createStoreModel()
 
