@@ -111,11 +111,11 @@ exports.fullSetup = (options, clients, done) ->
   timeout = options.timeout || 2000
   setTimeout ->
     if remWindows + remServerModels > 0
-      console.red "\nThe following functions did not invoke finish within #{timeout} ms:\n"
+      console.red.log "\nThe following functions did not invoke finish within #{timeout} ms:\n"
       for cid of serverFinishes
-        console.red clients[cid].server.toString() + "\n"
+        console.red.log clients[cid].server.toString() + "\n"
       for cid of browserFinishes
-        console.red clients[cid].browser.toString() + "\n"
+        console.red.log clients[cid].browser.toString() + "\n"
       return
   , timeout
 
