@@ -107,10 +107,6 @@ Store:: =
   get: (path, callback) ->
     @sendToDb 'get', [path], callback
 
-#  set: (path, val, ver, callback) ->
-#    # TODO Use @commit here instead? - See mixin.stm/Async
-#    @sendToDb 'set', [path, val, ver], callback
-#
   createModel: ->
     model = new Model
     model.store = this
@@ -385,11 +381,11 @@ Store:: =
           [re, fn] = handler
           return next() unless path == '' || (match = path.match re)
           captures = if path == ''
-                       ['']
-                      else if match.length > 1
-                        match[1..]
-                      else
-                        [match[0]]
+              ['']
+            else if match.length > 1
+              match[1..]
+            else
+              [match[0]]
           return fn.apply null, captures.concat(rest, [done, next])
 
 txnsSince = (pubSub, redisClient, ver, clientId, callback) ->
