@@ -213,7 +213,30 @@ describe 'Live Querying', ->
             , done
 
           it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
-             ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation'
+             ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', (done) ->
+            @timeout 3000
+            fullSetup {store},
+              modelHello:
+                server: (modelHello, finish) ->
+                  queryUno = modelHello.query('users').where('age').equals(27)
+                  queryDos = modelHello.query('users').where('age').equals(28)
+                  modelHello.subscribe queryUno, queryDos, ->
+                    finish()
+                browser: (modelHello, finish) ->
+                  modelHello.on 'rmDoc', ->
+                    finish() # This should never get called. Keep it here to detect if we call > 1
+                  modelHello.on 'addDoc', ([path, val]) ->
+                    if path == 'users.1.age'
+                      modelHello.get('users.1').should {id: '1', age: 28}
+                      finish()
+              modelFoo:
+                server: (modelFoo, finish) ->
+                  modelFoo.set 'users.1', {id: '1', age: 27}
+                  finish()
+                browser: (modelFoo, finish) ->
+                  modelFoo.set 'users.1.age', 28
+                  finish()
+            , done
 
         describe 'for gt/gte/lt/lte queries', ->
           it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation'
