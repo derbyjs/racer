@@ -68,7 +68,7 @@ Field ::=
     process.nextTick => @applyQueue opData, callback
 
   registerSocket: (socket, ver) ->
-    client = new FieldConnection @, socket
+    client = new FieldConnection this, socket
     if ver?
       # TODO Test out race conditions e.g., if we request to listen since ver and then miss some ops after
       client.listenSinceVer ver ? null

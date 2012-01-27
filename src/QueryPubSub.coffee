@@ -28,10 +28,10 @@ QueryPubSub::=
       liveQs[queryHash] = liveQuery
       channels.push "queries.#{queryHash}"
     @_channelPubSub.subscribe subscriberId, channels, callback, 'subscribe'
-    @
+    return this
 
   publish: (message, origDoc, newDoc) ->
-    return @ unless txn = message.txn # vs message.ot
+    return this unless txn = message.txn # vs message.ot
     txnPath = transaction.path txn
     [txnNs, txnId] = parts = txnPath.split '.'
     nsPlusId = txnNs + '.' + txnId
@@ -55,7 +55,7 @@ QueryPubSub::=
           if q.test newDoc, nsPlusId
             channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc}
 
-    return @
+    return this
 
   unsubscribe: (subscriberId, queries, callback) ->
     liveQs = @_liveQueries

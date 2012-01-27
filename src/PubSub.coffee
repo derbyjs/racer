@@ -15,7 +15,7 @@ PubSub = module.exports = (options = {}) ->
   delete options.adapter.type if options.adapter
   onMessage = options.onMessage || ->
   @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
-  @_queryPubSub = new QueryPubSub @
+  @_queryPubSub = new QueryPubSub this
   return
 
 PubSub:: =

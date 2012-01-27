@@ -22,7 +22,7 @@ Query::=
 
   from: (@_namespace) ->
     @_calls.push ['from', [@_namespace]]
-    @
+    return this
 
 query.deserialize = (calls, AdapterQuery = Query) ->
   q = new AdapterQuery
@@ -35,4 +35,4 @@ for method in ['byKey', 'where', 'equals', 'notEquals',
   do (method) ->
     Query::[method] = ->
       @_calls.push [method, Array::slice.call arguments]
-      @
+      return this

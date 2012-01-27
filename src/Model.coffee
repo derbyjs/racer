@@ -44,7 +44,7 @@ Model:: =
     socket.on 'connect_failed', onConnected
 
     for {setupSocket} in Model.mixins
-      setupSocket.call @, socket if setupSocket
+      setupSocket.call this, socket if setupSocket
 
   query: require './query'
 

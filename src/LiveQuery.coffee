@@ -7,7 +7,7 @@ LiveQuery::=
     @_predicates.push (doc, channel) ->
       docNs = channel.substring 0, channel.indexOf '.'
       return namespace == docNs
-    @
+    return this
 
   test: (doc, channel) ->
     accumPredicate = @_compile()
@@ -31,51 +31,52 @@ LiveQuery::=
     @_predicates.push (doc, channel) ->
       [ns, id] = channel.split '.'
       return id == keyVal
-    @
+    return this
 
-  where: (@_currProp) -> @
+  where: (@_currProp) ->
+    return this
 
   equals: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] == val
-    @
+    return this
 
   notEquals: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] != val
-    @
+    return this
 
   gt: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] > val
-    @
+    return this
 
   gte: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] >= val
-    @
+    return this
 
   lt: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] < val
-    @
+    return this
 
   lte: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       doc[currProp] <= val
-    @
+    return this
 
   within: (list) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
       return -1 != list.indexOf doc[currProp]
-    @
+    return this
 
   contains: (list) ->
     currProp = @_currProp
@@ -88,6 +89,6 @@ LiveQuery::=
         else
           return false if -1 == docList.indexOf x
       return true
-    @
+    return this
 
 evalToTrue = -> true

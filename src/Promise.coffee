@@ -17,7 +17,7 @@ Promise:: =
       @value = args
     callback.apply scope, args for [callback, scope] in @callbacks
     @callbacks = []
-    @
+    return this
 
   error: (err) ->
     if @err
@@ -26,32 +26,32 @@ Promise:: =
     throw err unless @errbacks.length
     callback.call scope, err for [callback, scope] in @errbacks
     @errbacks = []
-    @
+    return this
 
   resolve: (err, vals...) ->
     return @error err if err
     return @fulfill vals...
-    @
+    return this
 
   on: (callback, scope) ->
     return callback.call scope, @value if @fulfilled
     @callbacks.push [callback, scope]
-    @
+    return this
 
   errback: (callback, scope) ->
     return callback.call scope, @err if @err
     @errbacks.push [callback, scope]
-    @
+    return this
 
   bothback: (callback, scope) ->
     @errback callback, scope
     @callback (vals...) ->
-      callback.call @, null, vals...
+      callback.call this, null, vals...
     , scope
 
   onClearValue: (callback, scope) ->
     @clearValueCallbacks.push [callback, scope]
-    @
+    return this
 
   clearValue: ->
     delete @value
@@ -59,7 +59,7 @@ Promise:: =
     cbs = @clearValueCallbacks
     callback.call scope for [callback, scope] in cbs
     @clearValueCallbacks = []
-    @
+    return this
 
 Promise::callback = Promise::on
 
@@ -89,5 +89,5 @@ Promise.transform = (transformFn) ->
   transPromise = new Promise
   origTransFulfill = transPromise.fulfill
   transPromise.fulfill = (val) ->
-    origTransFulfill.call @, transformFn val
+    origTransFulfill.call this, transformFn val
   return transPromise

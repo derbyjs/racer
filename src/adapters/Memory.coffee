@@ -27,7 +27,7 @@ Memory:: =
     callback null, val, @version
 
   setupDefaultPersistenceRoutes: (store) ->
-    adapter = @
+    adapter = this
     for method in MUTATORS
       store.defaultRoute method, '*', do (method) ->
         ->

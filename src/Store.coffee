@@ -165,6 +165,7 @@ Store:: =
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
     sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
+      console.log 'sub', clientId, targets
       return if hasInvalidVer socket, ver, clientStartId
 
       # TODO Map the clientId to a nickname (e.g., via session?),
@@ -177,6 +178,7 @@ Store:: =
 
       # TODO WHEN IS THIS CALLED?
       socket.on 'subAdd', (clientId, targets, callback) ->
+        console.log 'subAdd', clientId, targets
         for targ, i in targets
           if Array.isArray targ
             # Deserialize targ into a Query instance
@@ -351,12 +353,12 @@ Store:: =
   route: (method, path, fn) ->
     re = pathParser.eventRegExp path
     @_persistenceRoutes[method].push [re, fn]
-    return @
+    return this
 
   defaultRoute: (method, path, fn) ->
     re = pathParser.eventRegExp path
     @_defaultPersistenceRoutes[method].push [re, fn]
-    return @
+    return this
 
   sendToDb:
     bufferify 'sendToDb',

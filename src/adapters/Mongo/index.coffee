@@ -15,7 +15,7 @@ DISCONNECTING = 4
 #   port: 27017
 #   database: 'example'
 MongoAdapter = module.exports = (conf) ->
-  EventEmitter.call @
+  EventEmitter.call this
   @_loadConf conf if conf
   @_state = DISCONNECTED
   @_collections = {}
@@ -132,7 +132,7 @@ MongoAdapter:: =
   setVersion: (ver) -> @version = Math.max @version, ver
 
   setupDefaultPersistenceRoutes: (store) ->
-    adapter = @
+    adapter = this
 
     idFor = (id) ->
       try
@@ -367,7 +367,7 @@ Collection = (name, db) ->
 Collection:: =
   onReady: ->
     for todo in @_pending
-      @[todo[0]].apply @, todo[1]
+      @[todo[0]].apply this, todo[1]
     @_pending = []
 
 for name, fn of MongoCollection::
