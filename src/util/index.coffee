@@ -42,6 +42,7 @@ module.exports =
         # Otherwise, invoke the buffered method calls
         for args in buffer
           origFn.apply self, args
+        buffer = null
         return
       # The first time we call methodName, run await
       await.call self, flush

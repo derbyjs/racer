@@ -72,7 +72,6 @@ exports.fullyWiredModels = (numWindows, callback, options = {}) ->
   sandboxPath = "tests.#{nextNs++}"
   serverSockets = new mocks.ServerSocketsMock()
   options.sockets = serverSockets
-  options.redis ||= redis: {db: 2}
   store = options.store || serverRacer.createStore options
 
   browserModels = []
@@ -99,7 +98,6 @@ exports.fullSetup = (options, clients, done) ->
     store.setSockets serverSockets
   else
     options.sockets = serverSockets
-    options.redis ||= redis: {db: 2}
     store = serverRacer.createStore options
 
   browserModels = {}

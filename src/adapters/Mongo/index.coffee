@@ -188,7 +188,7 @@ MongoAdapter:: =
       cb = (err) ->
         return done err if err
         adapter.setVersion ver
-        done()
+        done null
       if _id
         docCopy = {}
         for k, v of doc

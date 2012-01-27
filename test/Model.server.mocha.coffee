@@ -10,9 +10,7 @@ run = (options) ->
 
   afterEach (done) ->
     store.flush ->
-      store._redisClient.end()
-      store._subClient.end()
-      store._txnSubClient.end()
+      store.disconnect()
       done()
 
   it 'bundle should wait for the model transactions to be committed AND applied', (done) ->

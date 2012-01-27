@@ -10,7 +10,8 @@ describe 'Store', ->
 
   # TODO: Add tests for all store modes
   beforeEach (done) ->
-    store = new Store mode: 'stm'
+    store = new Store
+      mode: 'stm'
     store.flush done
 
   afterEach (done) ->

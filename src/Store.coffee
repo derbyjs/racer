@@ -145,9 +145,10 @@ Store:: =
     args = transaction.args(txn).slice()
     method = transaction.method txn
     args.push ver
-    @sendToDb method, args, (err, origDoc) =>
+    self = this
+    @sendToDb method, args, (err, origDoc) ->
+      self._pubSub.publish transaction.path(txn), {txn}, {origDoc}
       callback err, txn if callback
-      @_pubSub.publish transaction.path(txn), {txn}, {origDoc}
 
   setSockets: (@sockets, @_ioUri = '') ->
     self = this

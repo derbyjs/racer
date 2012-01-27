@@ -17,7 +17,6 @@ describe 'Live Querying', ->
       # may bleed from one test into the next
       store = new Store
         adapter: mongo
-        stm: false
 
     afterEach (done) ->
       store.flush ->
@@ -36,10 +35,9 @@ describe 'Live Querying', ->
       ]
 
       beforeEach (done) ->
-        ver = 0
         async.forEach users
         , (user, callback) ->
-          store.set "users.#{user.id}", user, ++ver, callback
+          store.set "users.#{user.id}", user, null, callback
         , done
 
       it 'should work for one parameter `equals` queries', (done) ->
