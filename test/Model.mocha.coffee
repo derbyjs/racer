@@ -109,6 +109,7 @@ describe 'Model', ->
     sockets._disconnect()
   
   it 'transactions should be requested if pending longer than timeout @slow', (done) ->
+    @timeout 2000
     ignoreFirst = true
     [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
       # A txnsSince request is sent immediately upon connecting,

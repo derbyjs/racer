@@ -141,6 +141,7 @@ describe 'journal', ->
             done()
 
     it 'Lua lock script should replaced timed out locks @slow', (done) ->
+      @timeout 5000
       luaLock 'color', 0, (err, values) ->
         should.equal null, err
         values[0].should.be.above 0
