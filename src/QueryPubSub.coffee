@@ -12,7 +12,7 @@ transaction = require './transaction.server'
 # belong to any query, but with the update it now belongs to a query. In this
 # case, we need to pass the entire doc to the appropriate queries
 LiveQuery = require './LiveQuery'
-_query_ = require './query'
+{deserialize: deserializeQuery} = require './query'
 
 QueryPubSub = module.exports = (@_channelPubSub) ->
   @_liveQueries = {}
@@ -23,7 +23,7 @@ QueryPubSub::=
     liveQs = @_liveQueries
     channels = []
     for query in queries
-      liveQuery = _query_.deserialize query.serialize(), LiveQuery
+      liveQuery = deserializeQuery query.serialize(), LiveQuery
       queryHash = query.hash()
       liveQs[queryHash] = liveQuery
       channels.push "queries.#{queryHash}"
