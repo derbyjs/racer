@@ -17,8 +17,8 @@ mirrorTest = (done, init, callback) ->
 
   if arguments.length == 3
     mirror._adapter._data.world =
-    model._adapter._data.world =
-    remoteModel._adapter._data.world = init
+      model._adapter._data.world =
+        remoteModel._adapter._data.world = init
   else
     callback = init
 
