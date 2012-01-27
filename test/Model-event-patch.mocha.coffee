@@ -4,15 +4,23 @@ should = require 'should'
 {calls} = require './util'
 {mockSocketEcho, mockSocketModel} = require './util/model'
 
-mirrorTest = (done, callback) ->
+mirrorTest = (done, init, callback) ->
   mirror = new Model
   [model, sockets] = mockSocketEcho 0, true
+
   model.on 'mutator', (method, path, {0: args}) ->
     args = JSON.parse JSON.stringify args
     # console.log method, args
     mirror[method] args...
   [remoteModel] = mockSocketModel 1, 'txn', (txn) ->
-    sockets._queue txn.slice()
+    sockets._queue JSON.parse JSON.stringify txn
+
+  if arguments.length == 3
+    mirror._adapter._data.world =
+    model._adapter._data.world =
+    remoteModel._adapter._data.world = init
+  else
+    callback = init
 
   callback model, remoteModel
 
@@ -103,6 +111,15 @@ describe 'Model event patch', ->
       remote.pop 'items'
       model.push 'items', 'x'
       model.pop 'items'
+  
+  it 'moves on same path', (done) ->
+    mirrorTest done, items: [
+      {a: 0}
+      {b: 1}
+      {c: 2}
+    ], (model, remote) ->
+      remote.move 'items', 0, 1, 2
+      model.move 'items', 1, 2
 
   it 'push, move, & pop on same path', (done) ->
     mirrorTest done, (model, remote) ->
