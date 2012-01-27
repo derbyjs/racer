@@ -109,14 +109,14 @@ describe 'transaction', ->
 
   it 'paths where neither is a sub-path of the other should not conflict', ->
     transaction.pathConflict('abc', 'def').should.be.false
-    transaction.pathConflict('def', 'abc').should.be.false # symmetric
+    transaction.pathConflict('def', 'abc').should.be.false
     transaction.pathConflict('abc.de', 'abc.def').should.be.false
-    transaction.pathConflict('abc.def', 'abc.de').should.be.false # symmetric
+    transaction.pathConflict('abc.def', 'abc.de').should.be.false
 
   it 'paths where one is a sub-path of the other should conflict', ->
-    transaction.pathConflict('abc', 'abc.def').should.be.true
-    transaction.pathConflict('abc.def', 'abc').should.be.true # symmetric
-    transaction.pathConflict('abc', 'abc').should.be.true
+    transaction.pathConflict('abc', 'abc.def').should.equal 'parent'
+    transaction.pathConflict('abc.def', 'abc').should.equal 'child'
+    transaction.pathConflict('abc', 'abc').should.equal 'equal'
 
   # Transaction Conflict Detection
   

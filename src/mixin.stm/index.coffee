@@ -527,14 +527,14 @@ mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
     txnQ = txns[id]
     continue if txnQ.callback
     pathQ = transaction.path txnQ
-    continue unless transaction.clientPathConflict path, pathQ
+    continue unless transaction.pathConflict path, pathQ
     methodQ = transaction.method txnQ
-    if isArrayMutator && arrayMutator[methodQ] && path == pathQ
-      unless arrayDiff
-        arrayDiff = true
-        arr = adapter.get(path)
-        before.set path, arr && arr.slice(), 1, beforeData
-        after.set path, arr && arr.slice(), 1, afterData
+    if isArrayMutator || arrayMutator[methodQ]
+      unless arrPath
+        arrPath = if isArrayMutator then path else pathQ
+        arr = adapter.get(arrPath)
+        before.set arrPath, arr && arr.slice(), 1, beforeData
+        after.set arrPath, arr && arr.slice(), 1, afterData
         after[method] transaction.args(txn).concat(1, afterData)...
       before[methodQ] transaction.args(txnQ).concat(1, beforeData)...
       after[methodQ] transaction.args(txnQ).concat(1, afterData)...
@@ -542,11 +542,11 @@ mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
       # If there is a conflict, re-emit when applying
       txnQ.emitted = false
 
-  if arrayDiff
+  if arrPath
     txn.patch = patch = []
-    diffArrays before.get(path), after.get(path), (index, items) ->
-      patch.push method: 'insert', args: [path, index].concat(items)
+    diffArrays before.get(arrPath), after.get(arrPath), (index, items) ->
+      patch.push method: 'insert', args: [arrPath, index].concat(items)
     , (index, howMany) ->
-      patch.push method: 'remove', args: [path, index, howMany]
+      patch.push method: 'remove', args: [arrPath, index, howMany]
     , (from, to, howMany) ->
-      patch.push method: 'move', args: [path, from, to, howMany]
+      patch.push method: 'move', args: [arrPath, from, to, howMany]

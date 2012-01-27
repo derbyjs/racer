@@ -48,14 +48,15 @@ module.exports =
       return newClientId
     return clientId
 
-  clientPathConflict: (pathA, pathB) ->
-    # Paths conflict if equal
-    return true if pathA == pathB
-    # Paths conflict if pathA is a sub-path of pathB
+  pathConflict: (pathA, pathB) ->
+    # Paths conflict if equal or either is a sub-path of the other
+    return 'equal' if pathA == pathB
     pathALen = pathA.length
     pathBLen = pathB.length
-    return false if pathBLen >= pathALen
-    return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
+    return false if pathALen == pathBLen
+    if pathALen > pathBLen
+      return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB && 'child'
+    return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA && 'parent'
 
 
   ops: (txn, ops) ->

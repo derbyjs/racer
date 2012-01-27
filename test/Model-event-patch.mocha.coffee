@@ -7,10 +7,9 @@ should = require 'should'
 mirrorTest = (done, callback) ->
   mirror = new Model
   [model, sockets] = mockSocketEcho 0, true
-  emitted = 0
   model.on 'mutator', (method, path, {0: args}) ->
+    args = JSON.parse JSON.stringify args
     # console.log method, args
-    emitted++
     mirror[method] args...
   [remoteModel] = mockSocketModel 1, 'txn', (txn) ->
     sockets._queue txn.slice()
@@ -20,12 +19,11 @@ mirrorTest = (done, callback) ->
   process.nextTick ->
     model.socket._connect()
   setTimeout ->
-    emitted.should.be.above 1
     mirror.get().should.specEql model.get()
     done()
   , 10
 
-describe 'Model client conflicts', ->
+describe 'Model event patch', ->
 
   it 'mock should support synching txns on connect', (done) ->
     [model, sockets] = mockSocketEcho 0, true
@@ -53,25 +51,20 @@ describe 'Model client conflicts', ->
       done()
     , 10
 
-  it 'should detect path conflicts', ->
-    # Paths conflict if equal or pathA is a sub-path of pathB
-    transaction.clientPathConflict('abc', 'abc').should.be.true
-    transaction.clientPathConflict('abc.def', 'abc').should.be.true
-    transaction.clientPathConflict('abc', 'abc.def').should.be.false
-    transaction.clientPathConflict('abc', 'def').should.be.false
-    transaction.clientPathConflict('def', 'abc').should.be.false
-    transaction.clientPathConflict('abc.de', 'abc.def').should.be.false
-    transaction.clientPathConflict('abc.def', 'abc.de').should.be.false
-
   it 'set on same path', (done) ->
     mirrorTest done, (model, remote) ->
       remote.set 'name', 'John'
       model.set 'name', 'Sue'
 
-  it 'set on sub-path', (done) ->
+  it 'set on parent', (done) ->
     mirrorTest done, (model, remote) ->
       remote.set 'user.name', 'John'
       model.set 'user', {}
+  
+  it 'set on child', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.set 'user', {}
+      model.set 'user.name', 'John'
 
   it 'set and del on same path', (done) ->
     mirrorTest done, (model, remote) ->
@@ -119,3 +112,27 @@ describe 'Model client conflicts', ->
       model.push 'items', 'x', 'y'
       model.move 'items', 0, 1, 1
       model.pop 'items'
+
+  it 'push & set on array index remote', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', 1
+      remote.set 'items.0', 'x'
+      model.push 'items', 2
+
+  it 'push & set on array index local', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', 1
+      model.push 'items', 0
+      model.set 'items.0', 'x'
+
+  # it 'push & set on array child remote', (done) ->
+  #   mirrorTest done, (model, remote) ->
+  #     remote.push 'items', {name: 1}
+  #     remote.set 'items.0.name', 'x'
+  #     model.push 'items', {name: 2}
+
+  # it 'push & set on array child local', (done) ->
+  #   mirrorTest done, (model, remote) ->
+  #     remote.push 'items', {name: 1}
+  #     model.push 'items', {name: 0}
+  #     model.set 'items.0.name', 'x'
