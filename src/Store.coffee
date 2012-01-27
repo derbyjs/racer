@@ -67,7 +67,7 @@ Store = module.exports = (options = {}) ->
     'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
     @_persistenceRoutes[method] = []
     @_defaultPersistenceRoutes[method] = []
-  @_adapter.setupDefaultPersistenceRoutes @
+  @_adapter.setupDefaultPersistenceRoutes this
 
   return
 
@@ -89,7 +89,8 @@ Store:: =
 
   query: (query, callback) ->
     dbQuery = _query_.deserialize query.serialize(), @_adapter.Query
-    dbQuery.run @_adapter, (err, found) =>
+    self = this
+    dbQuery.run @_adapter, (err, found) ->
       # TODO Get version consistency right in face of concurrent writes during
       # query
       if Array.isArray found
@@ -101,7 +102,7 @@ Store:: =
       else
         found.id = found._id
         delete found._id
-      callback err, found, @_adapter.version
+      callback err, found, self._adapter.version
 
   get: (path, callback) ->
     @sendToDb 'get', [path], callback
@@ -130,10 +131,11 @@ Store:: =
         callback err if callback
         return callback = null
     @_adapter.flush cb
-    @_redisClient.flushdb (err) =>
+    self = this
+    @_redisClient.flushdb (err) ->
       return cb err if err
-      redisInfo.onStart @_redisClient, cb
-      @_model = @_createStoreModel()
+      redisInfo.onStart self._redisClient, cb
+      self._model = self._createStoreModel()
 
   disconnect: ->
     @_redisClient.quit()
@@ -319,9 +321,10 @@ Store:: =
 
     otFields = @_otFields
     for targ in targets
-      if targ.isQuery then do (targ) =>
+      self = this
+      if targ.isQuery then do (targ) ->
         query = targ
-        @query query, (err, found, ver) ->
+        self.query query, (err, found, ver) ->
           return callback err if err
           queryResultAsDatum = (doc, ver, query) ->
             path = query._namespace + '.' + doc.id

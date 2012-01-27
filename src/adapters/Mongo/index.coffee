@@ -58,17 +58,18 @@ MongoAdapter:: =
     )
     @_state = CONNECTING
     @emit 'connecting'
-    @_db.open (err) =>
+    self = this
+    @_db.open (err) ->
       return callback err if err && callback
-      open = =>
-        @_state = CONNECTED
-        @emit 'connected'
-        for [method, args] in @_pending
-          @[method].apply @, args
-        @_pending = []
+      open = ->
+        self._state = CONNECTED
+        self.emit 'connected'
+        for [method, args] in self._pending
+          self[method].apply self, args
+        self._pending = []
 
-      if @_user && @_pass
-        return @_db.authenticate @_user, @_pass, open
+      if self._user && self._pass
+        return self._db.authenticate self._user, self._pass, open
       return open()
 
   disconnect: (callback) ->
@@ -76,7 +77,9 @@ MongoAdapter:: =
 
     switch @_state
       when DISCONNECTED then callback null
-      when CONNECTING then @once 'connected', => @close callback
+      when CONNECTING
+        self = this
+        @once 'connected', -> self.close callback
       when CONNECTED
         @_state = DISCONNECTING
         @_db.close()
@@ -84,7 +87,7 @@ MongoAdapter:: =
         @emit 'disconnected'
         # TODO onClose callbacks for collections
         callback() if callback
-      when DISCONNECTING then @once 'disconnected', => callback null
+      when DISCONNECTING then @once 'disconnected', -> callback null
 
   flush: (callback) ->
     return @_pending.push ['flush', arguments] if @_state != CONNECTED
