@@ -10,7 +10,7 @@ Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 pathParser = require './pathParser'
 {bufferify} = require './util'
-_query_ = require './query'
+{deserialize: deserializeQuery} = require './query'
 
 # store = new Store
 #   mode: 'lww' || 'stm' || 'ot'
@@ -88,7 +88,7 @@ Store:: =
     return model
 
   query: (query, callback) ->
-    dbQuery = _query_.deserialize query.serialize(), @_adapter.Query
+    dbQuery = deserializeQuery query.serialize(), @_adapter.Query
     self = this
     dbQuery.run @_adapter, (err, found) ->
       # TODO Get version consistency right in face of concurrent writes during
@@ -180,7 +180,7 @@ Store:: =
         for targ, i in targets
           if Array.isArray targ
             # Deserialize targ into a Query instance
-            targets[i] = _query_.deserialize targ
+            targets[i] = deserializeQuery targ
         rem = 2
         pubSub.subscribe clientId, targets, (err, data) ->
           # TODO Handle err
