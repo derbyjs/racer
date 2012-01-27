@@ -323,12 +323,12 @@ MongoAdapter:: =
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
           ver = found.ver
-          adpater.update collection, {_id, ver}, op, {}, (err) ->
+          adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
             done null, found
 
-    store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, globalVer, done, next) ->
+    store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, count, globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
@@ -336,8 +336,8 @@ MongoAdapter:: =
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
           arr = found[relPath]
-          [value] = arr.splice from, 1
-          arr.splice to, 0, value
+          values = arr.splice from, count
+          arr.splice to, 0, values...
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
           ver = found.ver
