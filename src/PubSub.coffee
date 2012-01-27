@@ -44,7 +44,11 @@ PubSub:: =
     unless path.substring(0,8) == 'queries.'
       if origDoc = meta.origDoc
         {txn} = message
-        newDoc = deepCopy origDoc
+        if origDoc
+          newDoc = deepCopy origDoc
+        else
+          # Otherwise, this is a new doc
+          newDoc = transaction.args(txn)[1]
         applyTxn txn, newDoc
         @_queryPubSub.publish message, origDoc, newDoc
       else

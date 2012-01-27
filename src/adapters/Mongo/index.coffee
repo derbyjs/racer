@@ -183,9 +183,12 @@ MongoAdapter:: =
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, upsert: true, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
-        origDoc.id = origDoc._id
-        delete origDoc._id
-        done null, origDoc
+        if Object.keys(origDoc).length
+          origDoc.id = origDoc._id
+          delete origDoc._id
+          done null, origDoc
+        else
+          done null
 
     store.defaultRoute 'set', '*.*', (collection, _id, doc, ver, done, next) ->
       cb = (err) ->
