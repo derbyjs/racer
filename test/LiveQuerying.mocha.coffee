@@ -212,6 +212,8 @@ describe 'Live Querying', ->
                   finish()
             , done
 
+          # TODO Re-visit this because we should propagate the txn, not replace
+          #      via addDoc
           it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
              ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', (done) ->
             @timeout 3000
