@@ -22,16 +22,6 @@ transaction.conflict = (txnA, txnB) ->
 
   return 'conflict'
 
-transaction.pathConflict = (pathA, pathB) ->
-  # Paths conflict if either is a sub-path of the other
-  return true if pathA == pathB
-  pathALen = pathA.length
-  pathBLen = pathB.length
-  return false if pathALen == pathBLen
-  if pathALen > pathBLen
-    return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB
-  return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA
-
 transaction.journalConflict = (txn, txns) ->
   i = txns.length
   while i--
