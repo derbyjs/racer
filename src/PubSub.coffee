@@ -28,10 +28,7 @@ PubSub:: =
       else channels.push targ
     numChannels = channels.length
     numQueries = queries.length
-    remaining = if numChannels && numQueries
-                  2
-                else
-                  1
+    remaining = if numChannels && numQueries then 2 else 1
     if numQueries
       @_queryPubSub.subscribe subscriberId, queries, (err) ->
         --remaining || callback()

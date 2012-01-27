@@ -6,6 +6,7 @@ MemorySync = require '../adapters/MemorySync'
 {diffArrays} = require '../diffMatchPatch'
 AtomicModel = require './AtomicModel'
 Async = require './Async'
+{deepCopy} = require '../util'
 
 stm = module.exports =
   static:
@@ -536,7 +537,7 @@ mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
         before.set arrPath, arr && arr.slice(), 1, beforeData
         after.set arrPath, arr && arr.slice(), 1, afterData
         after[method] transaction.args(txn).concat(1, afterData)...
-      argsQ = JSON.parse JSON.stringify transaction.args(txnQ)
+      argsQ = deepCopy transaction.args(txnQ)
       before[methodQ] argsQ.concat(1, beforeData)...
       after[methodQ] argsQ.concat(1, afterData)...
     else

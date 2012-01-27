@@ -138,13 +138,12 @@ module.exports =
 
   # TODO Test this
   deepCopy: deepCopy = (obj) ->
-    if obj.constructor == Object
+    if typeof obj is 'object'
+      if Array.isArray obj
+        ret = []
+        ret.push deepCopy v for v in obj
+        return ret
       ret = {}
       ret[k] = deepCopy v for k, v of obj
       return ret
-    if Array.isArray obj
-      ret = []
-      ret.push deepCopy v for v in obj
-      return ret
     return obj
-
