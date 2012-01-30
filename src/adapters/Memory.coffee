@@ -4,6 +4,7 @@
 ##  Do not edit it directly.
 
 MemorySync = require './MemorySync'
+{deepCopy} = require '../util'
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 
 Memory = module.exports = ->
@@ -28,11 +29,17 @@ Memory:: =
 
   setupDefaultPersistenceRoutes: (store) ->
     adapter = this
-    for method in MUTATORS
-      store.defaultRoute method, '*', do (method) ->
-        ->
-          [pathPlusArgsPlusDone..., next] = arguments
-          adapter[method] pathPlusArgsPlusDone...
+    MUTATORS.forEach (method) ->
+      store.defaultRoute method, '*', (args..., done, next) ->
+        path = args[0]
+        match = /^[^.]+\.[^.]+(?=\.|$)/.exec path
+        docPath = if match then match[0] else path
+        adapter.get docPath, (err, doc) ->
+          return done err if err
+          doc = deepCopy doc
+          adapter[method] args..., (err) ->
+            done err, doc
+
     store.defaultRoute 'get', '*', (path, done, next) ->
       adapter.get path, done
     store.defaultRoute 'get', '', (path, done, next) ->
