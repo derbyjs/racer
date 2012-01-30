@@ -111,7 +111,7 @@ describe 'Model event patch', ->
       remote.pop 'items'
       model.push 'items', 'x'
       model.pop 'items'
-  
+
   it 'moves on same path', (done) ->
     mirrorTest done, items: [
       {a: 0}
@@ -142,14 +142,41 @@ describe 'Model event patch', ->
       model.push 'items', 0
       model.set 'items.0', 'x'
 
-  # it 'push & set on array child remote', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.push 'items', {name: 1}
-  #     remote.set 'items.0.name', 'x'
-  #     model.push 'items', {name: 2}
+  it 'remote set & local push on array child', (done) ->
+    mirrorTest done, {items: []}, (model, remote) ->
+      remote.set 'items.0.name', 'x'
+      model.push 'items', {name: 2}
+  
+  it 'remote push & local set on array child', (done) ->
+    mirrorTest done, {items: []}, (model, remote) ->
+      remote.push 'items', {name: 2}
+      model.set 'items.0.name', 'x'
 
-  # it 'push & set on array child local', (done) ->
-  #   mirrorTest done, (model, remote) ->
-  #     remote.push 'items', {name: 1}
-  #     model.push 'items', {name: 0}
-  #     model.set 'items.0.name', 'x'
+  it 'remote push & set on array child', (done) ->
+    mirrorTest done, {items: []}, (model, remote) ->
+      remote.push 'items', {name: 1}
+      remote.set 'items.0.name', 'x'
+      model.push 'items', {name: 2}
+
+  it 'local push & set on array child', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', {name: 1}
+      model.push 'items', {name: 0}
+      model.set 'items.0.name', 'x'
+
+  it 'local push & nested set on array child', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', {name: 1}
+      model.push 'items', {name: 0}
+      model.set 'items.0.stuff.name', 'x'
+
+  it 'local push & del on array child', (done) ->
+    mirrorTest done, (model, remote) ->
+      remote.push 'items', {name: 1}
+      model.push 'items', {name: 0}
+      model.del 'items.0.name'
+  
+  it 'local push & nested del on array child', (done) ->
+    mirrorTest done, {items: [{stuff: {name: 2}}]}, (model, remote) ->
+      remote.unshift 'items', {name: 1}
+      model.del 'items.0.stuff.name'

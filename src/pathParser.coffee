@@ -33,7 +33,8 @@ module.exports =
   lookup: (path, obj) ->
     parts = path.split '.'
     for prop in parts
-      return unless obj = obj[prop]
+      return unless obj?
+      obj = obj[prop]
     return obj
 
   split: (path) -> path.split /\.?[(*]\.?/
