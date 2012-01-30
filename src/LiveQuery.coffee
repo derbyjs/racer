@@ -13,6 +13,7 @@ LiveQuery::=
     accumPredicate = @_compile()
     # Over-write @test, so we compile and cache accumPredicate only once
     @test = (doc, channel) ->
+      return false if doc is undefined
       accumPredicate doc, channel
     @test doc, channel
 

@@ -210,15 +210,19 @@ MongoAdapter:: =
       op = $unset: unsetConf
       op.$inc = {ver: 1}
       _id = idFor _id
-      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err) ->
+      adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err, origDoc) ->
         return done err if err
         adapter.setVersion ver
-        done()
+        origDoc.id = origDoc._id
+        delete origDoc._id
+        done null, origDoc
 
     store.defaultRoute 'del', '*.*', (collection, _id, ver, done, next) ->
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], {}, remove: true, (err, removedDoc) ->
         return done err if err
         adapter.setVersion ver
+        removedDoc.id = removedDoc._id
+        delete removedDoc._id
         done null, removedDoc
 
     store.defaultRoute 'push', '*.*.*', (collection, _id, relPath, vals..., ver, done, next) ->

@@ -122,15 +122,15 @@ stm = module.exports =
     # Live Query Channels
     # TODO LIVE_QUERY Does this + the txnlog result in an inconsistent state in
     #      the browser?
-    socket.on 'rmDoc', ({doc, ns, hash}) ->
+    socket.on 'rmDoc', ({doc, ns, hash, id}) ->
       # TODO Optimize this by sending + using only ns.id
       for k, q of self.liveQueries
         # Remove the doc from here if any other queries --
         # besides the one that triggered the rmDoc -- match the doc
-        return if hash != k && q.test doc, "#{ns}.#{doc.id}"
+        return if hash != k && q.test doc, "#{ns}.#{id}"
 
-      delete adapter._data.world[ns][doc.id]
-      self.emit('rmDoc', ns + '.' + doc.id, doc)
+      delete adapter._data.world[ns][id]
+      self.emit('rmDoc', ns + '.' + id, doc)
 
     socket.on 'addDoc', ({doc, ns}) ->
       data = adapter._data.world[ns] ||= {}

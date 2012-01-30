@@ -46,7 +46,7 @@ PubSub:: =
         else
           # Otherwise, this is a new doc
           newDoc = transaction.args(txn)[1]
-        applyTxn txn, newDoc
+        newDoc = applyTxn txn, newDoc
         @_queryPubSub.publish message, origDoc, newDoc
       else
         @_queryPubSub.publish message
@@ -213,9 +213,12 @@ applyTxn = (txn, doc) ->
   method = transaction.method txn
   args = transaction.args txn
   path = transaction.path txn
+  if method == 'del' && path.split('.').length == 2
+    return undefined
   [ns, id] = path.split '.'
   world = {}
   world[ns] = {}
   world[ns][id] = doc
   data = {world}
   adapter[method] args..., 0, data
+  return doc

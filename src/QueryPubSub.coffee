@@ -50,7 +50,7 @@ QueryPubSub::=
           if q.test newDoc, nsPlusId
             channelPubSub.publish queryChannel, message
           else
-            channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: origDoc, hash}
+            channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
         else
           if q.test newDoc, nsPlusId
             channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc}
