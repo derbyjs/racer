@@ -117,9 +117,20 @@ describe 'Model event patch', ->
       {a: 0}
       {b: 1}
       {c: 2}
+      {d: 3}
     ], (model, remote) ->
-      remote.move 'items', 0, 1, 2
-      model.move 'items', 1, 2
+      remote.move 'items', 0, 3
+      model.move 'items', 3, 0
+  
+  it 'moves on same path reverse', (done) ->
+    mirrorTest done, items: [
+      {a: 0}
+      {b: 1}
+      {c: 2}
+      {d: 3}
+    ], (model, remote) ->
+      remote.move 'items', 3, 0
+      model.move 'items', 0, 3
 
   it 'push, move, & pop on same path', (done) ->
     mirrorTest done, (model, remote) ->
@@ -156,6 +167,11 @@ describe 'Model event patch', ->
     mirrorTest done, {items: []}, (model, remote) ->
       remote.push 'items', {name: 2}
       model.set 'items.0.name', 'x'
+  
+  it 'remote del & local move on array child', (done) ->
+    mirrorTest done, {items: [1, 2, 3]}, (model, remote) ->
+      remote.remove 'items', 0
+      model.move 'items', 0, 2
 
   it 'remote push & set on array child', (done) ->
     mirrorTest done, {items: []}, (model, remote) ->

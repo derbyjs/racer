@@ -42,7 +42,7 @@ module.exports =
         continue
 
       else
-        if move? && (move != index + offset - 1)
+        if move? && (move != index + offset - numMove)
           onMove move, to, numMove
           move = null
           if to <= j + offset

@@ -135,6 +135,20 @@ describe 'diffArrays', ->
     after:  [2, 3, 0, 1]
     expect: [['mov', 2, 0, 2]]
 
+  it 'detects move from end to start', test
+    before: [0, 1, 2, 3]
+    after:  [3, 0, 1, 2]
+    expect: [
+      ['mov', 3, 0, 1]
+    ]
+
+  it 'detects move from start to end', test
+    before: [3, 0, 1, 2]
+    after:  [0, 1, 2, 3]
+    expect: [
+      ['mov', 1, 0, 3]
+    ]
+
   it 'detects overlapping moves', test
     before: [0, 1, 2, 3]
     after:  [3, 2, 1, 0]
