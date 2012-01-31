@@ -212,42 +212,6 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     adapterSync.insert 'colors', 1, 'orange', ver, null
     adapterSync.get('colors').should.specEql ['violet', 'orange', 'yellow', 'black']
 
-  it 'insert -1 should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insert 'colors', -1, 'violet', ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-  it 'insert == length + 1 should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insert 'colors', 2, 'violet', ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-  it 'insert > length + 1 should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.insert 'colors', 3, 'violet', ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
 
   it 'insert on a non-array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
@@ -325,54 +289,6 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
     adapterSync.move 'colors', 2, -2, 1, ver, null
     adapterSync.get('colors').should.specEql ['red', 'blue', 'green']
 
-  it 'move from > max index should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'purple'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.move 'colors', 2, 0, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-  
-  it 'move from <= -len should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'purple'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.move 'colors', -3, 0, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-  
-  it 'move to > max index should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'purple'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.move 'colors', 0, 2, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-  
-  it 'move to <= -len should throw an "Out of Bounds" error', ->
-    adapterSync = new AdapterSync
-    ver = 0
-    adapterSync.set 'colors', ['yellow', 'purple'], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.move 'colors', 0, -3, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
   it 'move on a non-array should throw a "Not an Array" error', ->
     adapterSync = new AdapterSync
     ver = 0
@@ -401,45 +317,7 @@ module.exports = (AdapterSync) -> describe 'AdapterSync', ->
       didThrowNotAnArray = true
     didThrowNotAnArray.should.be.true
 
-    # on an empty array
-    adapterSync.set 'colors', [], ver, null
-    didThrowOutOfBounds = false
-    try
-      adapterSync.remove 'colors', 0, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-    
     # on a non-empty array, with howMany to remove in-bounds
-    adapterSync.push 'colors', 'red', 'yellow', 'orange', ver, null
+    adapterSync.set 'colors', ['red', 'yellow', 'orange'], ver, null
     adapterSync.remove 'colors', 0, 2, ver, null
     adapterSync.get('colors').should.specEql ['orange']
-
-    # on a non-empty array, with howMany to remove out of bounds
-    didThrowOutOfBounds = false
-    try
-      adapterSync.remove 'colors', 0, 2, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-    # on a non-empty array, with startAt index out-of-bounds
-    adapterSync.set 'colors', ['blue', 'green', 'pink'], ver, null
-    adapterSync.get('colors').should.specEql ['blue', 'green', 'pink']
-    didThrowOutOfBounds = false
-    try
-      adapterSync.remove 'colors', -1, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true
-
-    didThrowOutOfBounds = false
-    try
-      adapterSync.remove 'colors', 3, 1, ver, null
-    catch e
-      e.message.should.include 'Out of bounds'
-      didThrowOutOfBounds = true
-    didThrowOutOfBounds.should.be.true

@@ -81,23 +81,15 @@ MemorySync:: =
     #else
     len = arr.length
     #if INSERT
-    index = +index
-    unless 0 <= index <= len
-      throw new Error "Out of bounds: insert('#{path}', #{index}, #{args.join(', ')}) on array of length #{len}"
     arr.splice index, 0, args...
     return arr.length
     #elseif REMOVE
-    index = +index
-    unless (0 <= index) && (index + howMany <= len)
-      throw new Error "Out of bounds: remove('#{path}', #{index}, #{howMany}) on array of length #{len}"
     return arr.splice index, howMany
     #elseif MOVE
     from = +from
     to = +to
     from += len if from < 0
     to += len if to < 0
-    unless (0 <= from) && (from + howMany <= len) && (0 <= to) && (to + howMany <= len)
-      throw new Error "Out of bounds: move('#{path}', #{from}, #{to}, #{howMany}) on array of length #{len}"
     values = arr.splice from, howMany  # Remove from old location
     arr.splice to, 0, values...  # Insert in new location
     return values

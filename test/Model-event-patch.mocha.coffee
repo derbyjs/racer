@@ -130,6 +130,11 @@ describe 'Model event patch', ->
       model.move 'items', 0, 1, 1
       model.pop 'items'
 
+  it 'remove both local and remote', (done) ->
+    mirrorTest done, {items: ['x']}, (model, remote) ->
+      remote.remove 'items', 0
+      model.remove 'items', 0
+
   it 'push & set on array index remote', (done) ->
     mirrorTest done, (model, remote) ->
       remote.push 'items', 1
@@ -141,7 +146,7 @@ describe 'Model event patch', ->
       remote.push 'items', 1
       model.push 'items', 0
       model.set 'items.0', 'x'
-
+  
   it 'remote set & local push on array child', (done) ->
     mirrorTest done, {items: []}, (model, remote) ->
       remote.set 'items.0.name', 'x'
