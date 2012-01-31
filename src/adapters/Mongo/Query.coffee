@@ -1,6 +1,7 @@
 Promise = require '../../Promise'
 module.exports = MongoQuery = ->
   @_conds = {}
+  @_fields = {}
   return
 
 MongoQuery::=
@@ -46,8 +47,18 @@ MongoQuery::=
     @_conds[@_currProp] = $all: list
     return this
 
+  only: (paths...) ->
+    fields = @_fields
+    fields[path] = 1 for path in paths
+    return this
+
+  except: (paths...) ->
+    fields = @_fields
+    fields[path] = 0 for path in paths
+    return this
+
   run: (mongoAdapter, callback) ->
     promise = new Promise bothback: callback
-    mongoAdapter.find @_namespace, @_conds, {}, (err, found) ->
+    mongoAdapter.find @_namespace, @_conds, @_fields, (err, found) ->
       promise.resolve err, found
     return promise

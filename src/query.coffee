@@ -31,7 +31,8 @@ query.deserialize = (calls, AdapterQuery = Query) ->
   return q
 
 for method in ['byKey', 'where', 'equals', 'notEquals',
-  'gt', 'gte', 'lt', 'lte', 'within', 'contains']
+  'gt', 'gte', 'lt', 'lte', 'within', 'contains',
+  'only', 'except']
   do (method) ->
     Query::[method] = ->
       @_calls.push [method, Array::slice.call arguments]

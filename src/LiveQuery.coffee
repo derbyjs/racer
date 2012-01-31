@@ -100,6 +100,20 @@ LiveQuery::=
       return true
     return this
 
+  only: (paths...) ->
+    if @_except
+      throw new Error "You cannot specify both query(...).except(...) and query(...).only(...)"
+    @_only ||= {}
+    @_only[path] = 1 for path in paths
+    return this
+
+  except: (paths...) ->
+    if @_only
+      throw new Error "You cannot specify both query(...).except(...) and query(...).only(...)"
+    @_except ||= {}
+    @_except[path] = 1 for path in paths
+    return this
+
 evalToTrue = -> true
 
 deepIndexOf = (list, obj) ->

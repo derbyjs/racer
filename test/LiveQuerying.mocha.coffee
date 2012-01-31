@@ -114,6 +114,28 @@ describe 'Live Querying', ->
               model.get('users.1').should.eql users[1]
               done()
 
+          it 'should only retrieve paths specified in `only`', (done) ->
+            model = store.createModel()
+            query = model.query('users').where('age').gt(20).only('name', 'age')
+            model.subscribe query, ->
+              for i in [0..2]
+                model.get('users.' + i + '.id').should.equal users[i].id
+                model.get('users.' + i + '.name').should.equal users[i].name
+                model.get('users.' + i + '.age').should.equal users[i].age
+                should.equal undefined, model.get('users.' + i + '.workdays')
+              done()
+
+          it 'should exclude paths specified in `except`', (done) ->
+            model = store.createModel()
+            query = model.query('users').where('age').gt(20).except('name', 'workdays')
+            model.subscribe query, ->
+              for i in [0..2]
+                model.get('users.' + i + '.id').should.equal users[i].id
+                model.get('users.' + i + '.age').should.equal users[i].age
+                should.equal undefined, model.get('users.' + i + '.name')
+                should.equal undefined, model.get('users.' + i + '.workdays')
+              done()
+
         describe 'receiving proper publishes', ->
           describe 'set <namespace>.<id>', ->
             it 'should publish the txn *only* to relevant live `equals` queries', calls 2, (done) ->
@@ -812,3 +834,54 @@ describe 'Live Querying', ->
                   subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.move 'users.1.tags', 2, 1
+
+          describe 'only queries', ->
+            # TODO
+            it 'should not propagate properties not in `only`'#, test
+#              # TODO Note this is a stronger requirement than "should not
+#              # assign properties" because we want to hide data for security
+#              # reasons
+#              initialDoc: ['users.1', {id: '1', name: 'brian', age: 26, city: 'sf'}]
+#              queries: (query) -> [query('users').where('name').equals('bri').only('name', 'city')]
+#              listenForMutation: (subscriberBrowserModel, onMutation) ->
+#                subscriberBrowserModel.on 'addDoc', onMutation
+#              preCondition: (subscriberModel) ->
+#                should.equal undefined, subscriberModel.get('users.1')
+#              postCondition: (subscriberBrowserModel) ->
+#                subscriberBrowserModel.get('users.1').should.eql {id: '1', name: 'bri', city: 'sf'}
+#              mutate: (publisherBrowserModel) ->
+#                publisherBrowserModel.set 'users.1.name', 'bri'
+
+            # TODO
+            it 'should not propagate transactions that involve paths outside of the `only` query param'
+              # TODO Note this is a stronger requirement than "should not
+              # assign properties" because we want to hide data for security
+              # reasons
+
+            it 'should not propagate transactions that involve paths in the `except` query param'
+
+            it 'should proapgate transactions that involve a query-matching doc if the transaction involves a path in the `only` query param'
+
+            it 'should propagate transactions that involve a query-matching doc if the transaction involves a path not in the `exclude` query param'
+
+          describe 'paginated queries', ->
+            describe 'for non-saturated result sets (e.g., limit=10, sizeof(resultSet) < 10)', ->
+              it 'should add a document that satisfies the query'
+              it 'should remove a document that no longer satisfies the query'
+            describe 'for saturated result sets (i.e., limit == sizeof(resultSet))', ->
+              it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible'
+              it 'should replace a document if another doc was just mutated so it supercedes the doc according to the query'
+          describe 'dependent queries', ->
+            it "should send updates when they react to their depedency queries' updates"
+            it "should not send updates if its dependency queries emit updates that don't impact the dependent query"
+
+          describe 'transaction application', ->
+            it 'should apply a txn if a document is still in a query result set after a mutation'
+            it 'should not apply a txn if a document is being added to a query result set after a mutation'
+
+          describe 'versioning', ->
+            it 'should update the version when the doc is removed from a model because it no longer matches subscriptions'
+            it 'should update the version when the doc is added to a model because it starts to matche subscriptions'
+
+          describe 'over-subscribing to a doc via 2 queries', ->
+            it 'should ignore duplicate transactions'
