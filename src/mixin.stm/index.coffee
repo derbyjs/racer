@@ -134,6 +134,8 @@ stm = module.exports =
 
     socket.on 'addDoc', ({doc, ns}) ->
       data = adapter._data.world[ns] ||= {}
+      # If the doc is already in the model, don't add it
+      return if adapter._data.world[ns][doc.id]
       data[doc.id] = doc
       self.emit('addDoc', ns + '.' + doc.id, doc)
 

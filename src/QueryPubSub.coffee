@@ -51,9 +51,11 @@ QueryPubSub::=
             channelPubSub.publish queryChannel, message
           else
             channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
+            channelPubSub.publish queryChannel, message
         else
           if q.test newDoc, nsPlusId
             channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc}
+            channelPubSub.publish queryChannel, message
 
     return this
 

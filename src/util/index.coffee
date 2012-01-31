@@ -147,3 +147,6 @@ module.exports =
       ret[k] = deepCopy v for k, v of obj
       return ret
     return obj
+
+isArguments = (object) ->
+  Object::toString.call(object) == '[object Arguments]'

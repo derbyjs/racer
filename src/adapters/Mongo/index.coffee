@@ -253,22 +253,26 @@ MongoAdapter:: =
 #        idMap[clientId] = _id
 #        done null, idMap
 
-    store.defaultRoute 'unshift', '*.*.*', (collection, _id, relPath, globalVer, done, next) ->
+    store.defaultRoute 'unshift', '*.*.*', (collection, _id, relPath, vals..., globalVer, done, next) ->
       opts = ver: 1
       opts[relPath] = 1
       _id = idFor _id
-      do exec = ->
+      exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath].slice()
+          arr = found[relPath]?.slice() || []
           ver = found.ver
-          arr.unshift()
+          arr.unshift vals...
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
           adapter.update collection, {_id, ver}, op, {}, (err) ->
+            throw err if err
             return exec() if err
             adapter.setVersion globalVer
+            found.id = found._id
+            delete found._id
             done null, found
+      exec()
 
     store.defaultRoute 'insert', '*.*.*', (collection, _id, relPath, index, vals..., globalVer, done, next) ->
       opts = ver: 1
@@ -277,7 +281,7 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath].slice()
+          arr = found[relPath]?.slice() || []
           arr.splice index, 0, vals...
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -285,11 +289,13 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
+            found.id = found._id
+            delete found._id
             done null, found
 
     store.defaultRoute 'pop', '*.*.*', (collection, _id, relPath, ver, done, next) ->
       _id = idFor _id
-      (popConf = {ver: 1})[relPath] = 1
+      (popConf = {})[relPath] = 1
       op = $pop: popConf, $inc: {ver: 1}
       adapter.findAndModify collection, {_id}, [['_id', 'asc']], op, {}, (err, origDoc) ->
         return done err if err
@@ -305,7 +311,8 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath].slice()
+          arr = found[relPath].slice?()
+          return done null, found unless arr
           arr.shift()
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -313,6 +320,8 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
+            found.id = found._id
+            delete found._id
             done null, found
 
     store.defaultRoute 'remove', '*.*.*', (collection, _id, relPath, index, count, globalVer, done, next) ->
@@ -322,7 +331,8 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath].slice()
+          arr = found[relPath].slice?()
+          done null, found unless arr
           arr.splice index, count
           (setTo = {})[relPath] = arr
           op = $set: setTo, $inc: {ver: 1}
@@ -330,6 +340,8 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
+            found.id = found._id
+            delete found._id
             done null, found
 
     store.defaultRoute 'move', '*.*.*', (collection, _id, relPath, from, to, count, globalVer, done, next) ->
@@ -339,7 +351,8 @@ MongoAdapter:: =
       do exec = ->
         adapter.findOne collection, {_id}, opts, (err, found) ->
           return done err if err
-          arr = found[relPath].slice()
+          arr = found[relPath].slice?()
+          done null, found unless arr
           to += arr.length if to < 0
           values = arr.splice from, count
           arr.splice to, 0, values...
@@ -349,6 +362,8 @@ MongoAdapter:: =
           adapter.update collection, {_id, ver}, op, {}, (err) ->
             return exec() if err
             adapter.setVersion globalVer
+            found.id = found._id
+            delete found._id
             done null, found
 
 MongoCollection = mongo.Collection

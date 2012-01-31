@@ -1,3 +1,5 @@
+{deepEqual} = require './util'
+
 module.exports = LiveQuery = ->
   @_predicates = []
   return
@@ -40,7 +42,10 @@ LiveQuery::=
   equals: (val) ->
     currProp = @_currProp
     @_predicates.push (doc) ->
-      doc[currProp] == val
+      currVal = doc[currProp]
+      if typeof currVal is 'object'
+        return deepEqual currVal, val
+      currVal == val
     return this
 
   notEquals: (val) ->
@@ -84,6 +89,9 @@ LiveQuery::=
     @_predicates.push (doc) ->
       # TODO Handle flattened currProp - e.g., "phone.home"
       docList = doc[currProp]
+      if docList is undefined
+        return false if list.length
+        return true # contains nothing
       for x in list
         if x.constructor == Object
           return false if -1 == deepIndexOf docList, x
@@ -93,3 +101,8 @@ LiveQuery::=
     return this
 
 evalToTrue = -> true
+
+deepIndexOf = (list, obj) ->
+  for v, i in list
+    return i if deepEqual obj, v
+  return -1
