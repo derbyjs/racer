@@ -286,6 +286,68 @@ describe 'Live Querying', ->
 
           # TODO gte, lt, lte queries testing
 
+            describe 'for within queries', ->
+              it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
+                initialDoc: ['users.1', {id: '1', age: 27}]
+                queries: (query) -> [query('users').where('age').within([28, 29, 30])]
+                listenForMutation: (subscriberBrowserModel, onMutation) ->
+                  subscriberBrowserModel.on 'addDoc', onMutation
+                preCondition: (subscriberModel) ->
+                  should.equal undefined, subscriberModel.get 'users.1'
+                postCondition: (subscriberBrowserModel) ->
+                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 30}
+                mutate: (publisherBrowserModel) ->
+                  publisherBrowserModel.set 'users.1.age', 30
+
+              it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
+                initialDoc: ['users.1', {id: '1', age: 27}]
+                queries: (query) -> [query('users').where('age').within([27, 28])]
+                listenForMutation: (subscriberBrowserModel, onMutation) ->
+                  subscriberBrowserModel.on 'rmDoc', onMutation
+                preCondition: (subscriberModel) ->
+                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                postCondition: (subscriberBrowserModel) ->
+                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                mutate: (publisherBrowserModel) ->
+                  publisherBrowserModel.set 'users.1.age', 29
+
+              it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation'+
+                 'and (2) a query matching the doc both pre- and post-mutation', test
+                initialDoc: ['users.1', {id: '1', age: 27}]
+                queries: (query) ->
+                  return [
+                    query('users').where('age').within([27, 28])
+                    query('users').where('age').within([27, 30])
+                  ]
+                listenForMutation: (subscriberBrowserModel, onMutation) ->
+                  subscriberBrowserModel.on 'setPost', onMutation
+                preCondition: (subscriberModel) ->
+                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                postCondition: (subscriberBrowserModel) ->
+                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 30}
+                mutate: (publisherBrowserModel) ->
+                  publisherBrowserModel.set 'users.1.age', 30
+
+              it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
+                 ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
+                initialDoc: ['users.1', {id: '1', age: 27}]
+                queries: (query) ->
+                  return [
+                    query('users').where('age').within([27, 29])
+                    query('users').where('age').within([28, 29])
+                  ]
+                listenForMutation: (subscriberBrowserModel, onMutation) ->
+                  subscriberBrowserModel.on 'rmDoc', ->
+                    # This should never get called. Keep it here to detect if we call > 1
+                    throw new Error 'Should not rmDoc'
+                  subscriberBrowserModel.on 'setPost', onMutation
+                preCondition: (subscriberModel) ->
+                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                postCondition: (subscriberBrowserModel, finish) ->
+                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 28}
+                mutate: (publisherBrowserModel) ->
+                  publisherBrowserModel.set 'users.1.age', 28
+
           describe 'del <namespace>.<id>', ->
             it 'should remove the modified doc from any models subscribed to a query matching the doc pre-del', test
               initialDoc: ['users.1', {id: '1', age: 28}]
