@@ -865,12 +865,148 @@ describe 'Live Querying', ->
             it 'should propagate transactions that involve a query-matching doc if the transaction involves a path not in the `exclude` query param'
 
           describe 'paginated queries', ->
+
+            players = [
+              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+            ]
+            beforeEach (done) ->
+              async.forEach players
+              , (player, callback) ->
+                store.set "players.#{player.id}", player, null, callback
+              , done
+
             describe 'for non-saturated result sets (e.g., limit=10, sizeof(resultSet) < 10)', ->
-              it 'should add a document that satisfies the query'
-              it 'should remove a document that no longer satisfies the query'
+              it 'should add a document that satisfies the query', (done) ->
+                fullSetup {store},
+                  modelHello:
+                    server: (modelHello, finish) ->
+                      query = modelHello.query('players').where('ranking').gte(3).limit(2)
+                      modelHello.subscribe query, ->
+                        should.equal    undefined, modelHello.get('players.1')
+                        should.notEqual undefined, modelHello.get('players.2')
+                        should.equal    undefined, modelHello.get('players.3')
+                        finish()
+                    browser: (modelHello, finish) ->
+                      modelHello.on 'addDoc', ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.notEqual undefined, modelHello.get('players.2')
+                        should.equal    undefined, modelHello.get('players.3')
+                        finish()
+                  modelFoo:
+                    server: (modelFoo, finish) -> finish()
+                    browser: (modelFoo, finish) ->
+                      modelFoo.set 'players.1.ranking', 4
+                      finish()
+                , done
+
+              it 'should remove a document that no longer satisfies the query', (done) ->
+                fullSetup {store},
+                  modelHello:
+                    server: (modelHello, finish) ->
+                      query = modelHello.query('players').where('ranking').lt(2).limit(2)
+                      modelHello.subscribe query, ->
+                        should.equal    undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.notEqual undefined, modelHello.get('players.3')
+                        finish()
+                    browser: (modelHello, finish) ->
+                      modelHello.on 'rmDoc', ->
+                        should.equal    undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.equal    undefined, modelHello.get('players.3')
+                        finish()
+                  modelFoo:
+                    server: (modelFoo, finish) -> finish()
+                    browser: (modelFoo, finish) ->
+                      modelFoo.set 'players.3.ranking', 2
+                      finish()
+                , done
+
+            # TODO Test multi-param sorts
             describe 'for saturated result sets (i.e., limit == sizeof(resultSet))', ->
-              it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible'
-              it 'should replace a document if another doc was just mutated so it supercedes the doc according to the query'
+              # TODO Test a shift to the entire result set because a member of
+              # the prev page is no longer a member
+
+              # TODO Test an unshift to the entire result set because a new
+              # member is added to the prev page
+
+              it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible', (done) ->
+                fullSetup {store},
+                  modelHello:
+                    server: (modelHello, finish) ->
+                      query = modelHello.query('players').where('ranking').lt(5).sort('ranking', 'asc').limit(2)
+                      modelHello.subscribe query, ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.notEqual undefined, modelHello.get('players.3')
+                        finish()
+                    browser: (modelHello, finish) ->
+                      cb = ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.notEqual undefined, modelHello.get('players.2')
+                        should.equal    undefined, modelHello.get('players.3')
+                        finish()
+                      rem = 2
+                      modelHello.on 'rmDoc', ->
+                        --rem || cb()
+                      modelHello.on 'addDoc', ->
+                        --rem || cb()
+                  modelFoo:
+                    server: (modelFoo, finish) -> finish()
+                    browser: (modelFoo, finish) ->
+                      modelFoo.set 'players.3.ranking', 6
+                      finish()
+                , done
+
+              it 'should replace a document if another doc was just mutated so it supercedes the doc according to the query', (done) ->
+                fullSetup {store},
+                  modelHello:
+                    server: (modelHello, finish) ->
+                      query = modelHello.query('players').where('ranking').lt(3).sort('name.first', 'desc').limit(2)
+                      modelHello.subscribe query, ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.notEqual undefined, modelHello.get('players.3')
+                        finish()
+                    browser: (modelHello, finish) ->
+                      modelHello.on 'rmDoc', ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.notEqual undefined, modelHello.get('players.2')
+                        should.equal    undefined, modelHello.get('players.3')
+                        finish()
+                  modelFoo:
+                    server: (modelFoo, finish) -> finish()
+                    browser: (modelFoo, finish) ->
+                      modelFoo.set 'players.2.ranking', 2
+                      finish()
+                , done
+
+              it 'should keep a document that just re-orders the query result set', (done) ->
+                fullSetup {store},
+                  modelHello:
+                    server: (modelHello, finish) ->
+                      query = modelHello.query('players').where('ranking').lt(10).sort('ranking', 'asc').limit(2)
+                      modelHello.subscribe query, ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.notEqual undefined, modelHello.get('players.3')
+                        finish()
+                    browser: (modelHello, finish) ->
+                      modelHello.on 'setPost', ->
+                        should.notEqual undefined, modelHello.get('players.1')
+                        should.equal    undefined, modelHello.get('players.2')
+                        should.notEqual undefined, modelHello.get('players.3')
+                        modelHello.get('players.1.ranking').should.equal 0
+                        finish()
+                  modelFoo:
+                    server: (modelFoo, finish) -> finish()
+                    browser: (modelFoo, finish) ->
+                      modelFoo.set 'players.1.ranking', 0
+                      finish()
+                , done
+
           describe 'dependent queries', ->
             it "should send updates when they react to their depedency queries' updates"
             it "should not send updates if its dependency queries emit updates that don't impact the dependent query"

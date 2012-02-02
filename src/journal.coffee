@@ -74,6 +74,7 @@ journal = module.exports =
         lock args... if (queue = lockQueue[path]) && args = queue.shift()
 
   # TODO: Default mode should be 'ot'
+  # TODO Use polymorphism instead of conditionals
   commitFn: (store, mode = 'lww') ->
     redisClient = store._redisClient
 

@@ -148,5 +148,13 @@ module.exports =
       return ret
     return obj
 
+  deepIndexOf: (list, obj) ->
+    return indexOf list, obj, deepEqual
+
+  indexOf: indexOf = (list, obj, isEqual) ->
+    for v, i in list
+      return i if isEqual obj, v
+    return -1
+
 isArguments = (object) ->
   Object::toString.call(object) == '[object Arguments]'

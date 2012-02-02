@@ -1,7 +1,7 @@
 Promise = require '../../Promise'
 module.exports = MongoQuery = ->
   @_conds = {}
-  @_fields = {}
+  @_opts = {}
   return
 
 MongoQuery::=
@@ -24,19 +24,23 @@ MongoQuery::=
     return this
 
   gt: (val) ->
-    @_conds[@_currProp] = $gt: val
+    cond = @_conds[@_currProp] ||= {}
+    cond.$gt = val
     return this
 
   gte: (val) ->
-    @_conds[@_currProp] = $gte: val
+    cond = @_conds[@_currProp] ||= {}
+    cond.$gte = val
     return this
 
   lt: (val) ->
-    @_conds[@_currProp] = $lt: val
+    cond = @_conds[@_currProp] ||= {}
+    cond.$lt = val
     return this
 
   lte: (val) ->
-    @_conds[@_currProp] = $lte: val
+    cond = @_conds[@_currProp] ||= {}
+    cond.$lte = val
     return this
 
   within: (list) ->
@@ -48,17 +52,32 @@ MongoQuery::=
     return this
 
   only: (paths...) ->
-    fields = @_fields
+    fields = @_opts.fields ||= {}
     fields[path] = 1 for path in paths
     return this
 
   except: (paths...) ->
-    fields = @_fields
+    fields = @_opts.fields ||= {}
     fields[path] = 0 for path in paths
+    return this
+
+  skip: (skip) ->
+    @_opts.skip = skip
+    return this
+
+  limit: (limit) ->
+    @_opts.limit = limit
+    return this
+
+  # sort('field1', 'asc', 'field2', 'desc')
+  sort: (params...) ->
+    @_opts.sort = ([path, params[i+1]] for path, i in params by 2)
     return this
 
   run: (mongoAdapter, callback) ->
     promise = new Promise bothback: callback
-    mongoAdapter.find @_namespace, @_conds, @_fields, (err, found) ->
+    if @_opts.limit isnt undefined && @_opts.skip is undefined
+      @skip 0
+    mongoAdapter.find @_namespace, @_conds, @_opts, (err, found) ->
       promise.resolve err, found
     return promise

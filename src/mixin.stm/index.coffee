@@ -53,7 +53,7 @@ stm = module.exports =
         txn.emitted = txnQ.emitted
         isLocal = true
 
-      unless isLocal = 'callback' of txn
+      unless isLocal
         mergeTxn txn, txns, txnQueue, adapter, before, after
 
       if transaction.base(txn) > adapter.version
@@ -99,6 +99,7 @@ stm = module.exports =
           # Resend all transactions in the queue
           for id in txnQueue
             commit txns[id]
+          return
 
     socket.on 'txn', (txn, num) ->
       txnApplier.add txn, num
@@ -137,7 +138,7 @@ stm = module.exports =
       # If the doc is already in the model, don't add it
       return if adapter._data.world[ns][doc.id]
       data[doc.id] = doc
-      self.emit('addDoc', ns + '.' + doc.id, doc)
+      self.emit 'addDoc', "#{ns}.#{doc.id}", doc
 
     resendInterval = null
     resend = ->
@@ -218,7 +219,7 @@ stm = module.exports =
       @_removeTxn transaction.id txn
       data = @_adapter._data
       doEmit = !txn.emitted
-      ver = transaction.base txn
+      ver = Math.floor transaction.base txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops

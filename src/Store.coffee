@@ -5,10 +5,9 @@ journal = require './journal'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
-{split: splitPath, lookup} = require './pathParser'
+{split: splitPath, lookup, eventRegExp} = require './pathParser'
 Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
-pathParser = require './pathParser'
 {bufferify} = require './util'
 {deserialize: deserializeQuery} = require './query'
 
@@ -25,6 +24,7 @@ Store = module.exports = (options = {}) ->
   setupRedis self, options.redis
 
   @_pubSub = new PubSub
+    store: @
     adapter:
       type: 'Redis'
       pubClient: @_redisClient
@@ -88,9 +88,16 @@ Store:: =
     return model
 
   query: (query, callback) ->
-    dbQuery = deserializeQuery query.serialize(), @_adapter.Query
     self = this
-    dbQuery.run @_adapter, (err, found) ->
+
+    if query.isPaginated
+      cache = self._pubSub.getQueryCache query
+      if cache && cache.length
+        return callback null, cache, self._adapter.version
+
+    # TODO Improve this de/serialize API
+    dbQuery = deserializeQuery query.serialize(), self._adapter.Query
+    dbQuery.run self._adapter, (err, found) ->
       # TODO Get version consistency right in face of concurrent writes during
       # query
       if Array.isArray found
@@ -99,13 +106,14 @@ Store:: =
           # TODO _id code is specific to Mongo. Move this behind Mongo
           #      abstraction
           delete doc._id
+        if query.isPaginated
+          self._pubSub.setQueryCache(query, found)
       else
         found.id = found._id
         delete found._id
       callback err, found, self._adapter.version
 
-  get: (path, callback) ->
-    @sendToDb 'get', [path], callback
+  get: (path, callback) -> @sendToDb 'get', [path], callback
 
   createModel: ->
     model = new Model
@@ -349,12 +357,12 @@ Store:: =
 
   ## PERSISTENCE ROUTER ##
   route: (method, path, fn) ->
-    re = pathParser.eventRegExp path
+    re = eventRegExp path
     @_persistenceRoutes[method].push [re, fn]
     return this
 
   defaultRoute: (method, path, fn) ->
-    re = pathParser.eventRegExp path
+    re = eventRegExp path
     @_defaultPersistenceRoutes[method].push [re, fn]
     return this
 

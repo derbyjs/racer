@@ -16,6 +16,7 @@ PubSub = module.exports = (options = {}) ->
   onMessage = options.onMessage || ->
   @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
   @_queryPubSub = new QueryPubSub this
+  @store = options.store
   return
 
 PubSub:: =
@@ -60,6 +61,12 @@ PubSub:: =
 
   subscribedToTxn: (subscriberId, txn) ->
     @_adapter.subscribedToTxn subscriberId, txn
+
+  getQueryCache: (query) ->
+    @_queryPubSub.getQueryCache query
+
+  setQueryCache: (query, cache) ->
+    @_queryPubSub.setQueryCache query, cache
 
 
 # TODO Add a ZeroMQ adapter
