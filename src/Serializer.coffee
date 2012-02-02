@@ -32,11 +32,14 @@ Serializer::=
       @_pending[txnIndex] = txn
       @_setWaiter()
       return true
+
     # Ignore this message if it is older than the current index
     return false if txnIndex < index
+
     # Otherwise apply it immediately
     @withEach txn, index, arg
     @_clearWaiter()
+
     # And apply any messages that were waiting for txn
     index++
     pending = @_pending
@@ -45,7 +48,9 @@ Serializer::=
       delete pending[index++]
     @_index = index
     return true
+
   setIndex: (@_index) ->
+
   clearPending: ->
     index = @_index
     pending = @_pending
