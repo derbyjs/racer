@@ -1,9 +1,7 @@
-transaction = require './transaction'
-
-# Given a stream of out of order transactions and an index, Serializer
+# Given a stream of out of order messages and an index, Serializer
 # figures out what to apply immediately and what to buffer
-# to apply later if the incoming transaction has to wait first for
-# another transaction.
+# to apply later if the incoming message has to wait first for
+# another message.
 
 DEFAULT_TIMEOUT = 1000
 
@@ -31,17 +29,17 @@ Serializer::=
   _clearWaiter: ->
   add: (txn, txnIndex, arg) ->
     index = @_index
-    # Cache this transaction to be applied later if it is not the next index
+    # Cache this message to be applied later if it is not the next index
     if txnIndex > index
       @_pending[txnIndex] = txn
       @_setWaiter()
       return true
-    # Ignore this transaction if it is older than the current index
+    # Ignore this message if it is older than the current index
     return false if txnIndex < index
     # Otherwise apply it immediately
     @withEach txn, index, arg
     @_clearWaiter()
-    # And apply any transactions that were waiting for txn
+    # And apply any messages that were waiting for txn
     index++
     pending = @_pending
     while txn = pending[index]
