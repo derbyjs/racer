@@ -926,8 +926,48 @@ describe 'Live Querying', ->
 
             # TODO Test multi-param sorts
             describe 'for saturated result sets (i.e., limit == sizeof(resultSet))', ->
-              # TODO Test a shift to the entire result set because a member of
-              # the prev page is no longer a member
+              it 'should shift a member out and push a member in when a prev page document fails to satisfy the query', (done) ->
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        cb = ->
+                          for player in allPlayers
+                            if player.ranking not in [4, 5]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                        rem = 2
+                        modelHello.on 'rmDoc', ->
+                          --rem || cb()
+                        modelHello.on 'addDoc', ->
+                          --rem || cb()
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.1.ranking', 6
+                        finish()
+                  , done
+
+              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to maintain order'
 
               # TODO Test an unshift to the entire result set because a new
               # member is added to the prev page

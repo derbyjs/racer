@@ -12,9 +12,16 @@ LiveQuery::=
       return namespace == docNs
     return this
 
+  testWithoutPaging: (doc, channel) ->
+    # Over-write @testWithoutPaging, so we compile and cache it only once
+    @testWithoutPaging = compileDocFilter @_predicates
+    @testWithoutPaging doc, channel
+
   test: (doc, channel) ->
+    if sort
+      @_comparator = compileSortComparator sort
     # Over-write @test, so we compile and cache accumPredicate only once
-    @test = compile @_predicates, @_paginatedCache, @_limit, @_skip, @_sort
+    @test = compile @testWithoutPaging, @_paginatedCache, @_limit, @_skip, @_comparator
     @test doc, channel
 
   byKey: (keyVal) ->
@@ -120,13 +127,26 @@ LiveQuery::=
       @_sort = params
     return this
 
+
+  ## Cache manipulating methods
+  # Given a doc that should be guaranteed to satisfy the conditions of this
+  # query, determine if it occurs in a page 'before', a page 'after', or the
+  # 'curr' page
+  beforeOrAfter: (doc) ->
+    comparator = @_comparator
+    return 'before' if -1 == comparator doc, @_paginatedCache[0]
+    return 'after'  if  1 == comparator doc, @_paginatedCache[@_paginatedCache.length-1]
+    return 'curr'
+
+  slideLeftInCache: (store, callback) ->
+    shiftedDoc = @_paginatedCache.shift()
+    store.query @, (err, found, ver) ->
+      pushedDoc = found[0]
+      callback err, {shiftedDoc, pushedDoc}, ver
+
 evalToTrue = -> true
 
-compile = (predicates, cache, limit, skip, sort) ->
-  docFilter = compileDocFilter predicates
-  if sort
-    comparator = compileSortComparator sort
-
+compile = (docFilter, cache, limit, skip, comparator) ->
   return (doc, channel) ->
     unless isMatch = docFilter doc, channel
       rmFromCache doc, cache if cache
@@ -192,3 +212,6 @@ compileSortComparator = (sortParams) ->
       else if aVal > bVal
         return factor
     return 0
+
+LiveQuery.pageMemberReplacementQuery = (liveQuery, {push, unshift}, store) ->
+  throw new Error 'Undefined'
