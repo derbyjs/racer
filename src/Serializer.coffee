@@ -1,7 +1,7 @@
 # Given a stream of out of order messages and an index, Serializer
-# figures out what to apply immediately and what to buffer
-# to apply later if the incoming message has to wait first for
-# another message.
+# figures out what messages to handle immediately and what messages
+# to buffer and defer handling until later, if the incoming message
+# has to wait first for another message.
 
 DEFAULT_TIMEOUT = 1000
 
@@ -25,8 +25,6 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
   return
 
 Serializer::=
-  _setWaiter: ->
-  _clearWaiter: ->
   add: (txn, txnIndex, arg) ->
     index = @_index
     # Cache this message to be applied later if it is not the next index
