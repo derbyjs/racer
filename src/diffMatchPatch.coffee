@@ -3,61 +3,98 @@ module.exports =
 
   diffArrays: (before, after, onInsert, onRemove, onMove) ->
     afterLen = after.length
-    i = j = -1
+    a = b = -1
     offset = 0
-    skip = {}
+    skipA = {}
+    skipB = {}
+    offsetAt = {}
 
-    while i < afterLen
-      item = after[++i]
-      while skip[++j] then
-      oldItem = before[j]
+    while a < afterLen
 
-      if oldItem == item
-        if move?
-          onMove move, to, numMove
-          move = null
-        if insert?
-          onInsert insert, after.slice(insert, i)
-          insert = null
-        if remove?
-          onRemove removeIndex, numRemove
-          remove = null
+      while skipA[++a] then
+      while skipB[++b] then
+      itemAfter = after[a]
+      itemBefore = before[b]
+
+      for i of offsetAt
+        if i <= a
+          offset += offsetAt[i]
+          delete offsetAt[i]
+      
+      if itemBefore == itemAfter
+        offset = emit onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt
+        insert = remove = move = null
         continue
 
-      if i < afterLen && (index = before.indexOf(item)) == -1
+      if a < afterLen && (indexAfter = before.indexOf itemAfter) == -1
         unless insert?
-          insert = i
-        offset++
-        j--
+          insert = a
+          numInsert = 0
+        numInsert++
+        b--
         continue
 
-      if after.indexOf(oldItem) == -1
+      if (indexBefore = after.indexOf itemBefore) == -1
         unless remove?
-          remove = j
-          removeIndex = i
+          remove = a
           numRemove = 0
         numRemove++
-        offset--
-        i--
+        a--
         continue
 
-      else
-        if move? && (move != index + offset - numMove)
-          onMove move, to, numMove
-          move = null
-          if to <= j + offset
-            offset++
-        if insert?
-          onInsert insert, after.slice(insert, i)
-          insert = null
-        if remove?
-          onRemove removeIndex, numRemove
-          remove = null
+      offset = emit onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt
+      insert = remove = null
+      move = true
 
-        unless move?
-          move = index + offset
-          to = j + offset
-          numMove = 0
-        numMove++
-        j--
-        skip[index] = true
+      fromForward = b + offset
+      toForward = indexBefore
+      numForward = lookAhead before, after, afterLen, skipA, skipB, b, indexBefore
+
+      fromBackward = indexAfter + offset
+      toBackward = a
+      numBackward = lookAhead before, after, afterLen, skipA, skipB, indexAfter, a
+
+      for i of offsetAt
+        fromBackward += offsetAt[i]  if i < indexAfter
+
+    return
+
+emit = (onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt) ->
+  if move?
+    if a < toForward
+      onMove fromForward, toForward, numForward
+      offset -= numForward
+      offsetAt[toForward] = (offsetAt[toForward] || 0) + numForward
+      fromBackward -= numForward
+      if fromBackward != toBackward
+        onMove fromBackward, toBackward, numBackward
+        offset += numBackward
+        offsetAt[fromBackward] = (offsetAt[fromBackward] || 0) - numBackward
+    else if a < fromBackward
+      onMove fromBackward, toBackward, numBackward
+      offset += numBackward
+      offsetAt[fromBackward] = (offsetAt[fromBackward] || 0) - numBackward
+    else
+      # The move was a simple swap, so only emit one move.
+      # Choose the one that moves fewer items
+      if numForward <= numBackward
+        onMove fromForward, toForward, numForward
+      else
+        onMove fromBackward, toBackward, numBackward
+  if insert?
+    onInsert insert, after.slice(insert, insert + numInsert)
+    offset += numInsert
+  if remove?
+    onRemove remove, numRemove
+    offset -= numRemove
+  return offset
+
+lookAhead = (before, after, afterLen, skipA, skipB, from, to) ->
+  num = 1
+  skipA[to] = true
+  skipB[from] = true
+  while to < afterLen && before[++from] == after[++to]
+    num++
+    skipA[to] = true
+    skipB[from] = true
+  return num
