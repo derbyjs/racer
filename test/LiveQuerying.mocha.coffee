@@ -4,8 +4,19 @@ redis = require 'redis'
 async = require 'async'
 {calls} = require './util'
 {fullSetup} = require './util/model'
+query = require '../src/query'
 
 describe 'Live Querying', ->
+  describe 'hasing', ->
+    it 'should create the same hash for 2 equivalent queries that exhibit different method call ordering', ->
+      q1 = query('users').where('name').equals('brian').where('age').equals(26)
+      q2 = query('users').where('age').equals(26).where('name').equals('brian')
+      q1.hash().should.eql q2.hash()
+
+      q1 = query('users').where('votes').lt(20).gt(10).where('followers').gt(100).lt(200)
+      q2 = query('users').where('followers').lt(200).gt(100).where('votes').gt(10).lt(20)
+      q1.hash().should.eql q2.hash()
+
   adapters =
     Mongo: ->
       MongoAdapter = require '../src/adapters/Mongo'
