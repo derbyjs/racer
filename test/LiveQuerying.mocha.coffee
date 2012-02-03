@@ -17,6 +17,11 @@ describe 'Live Querying', ->
       q2 = query('users').where('followers').lt(200).gt(100).where('votes').gt(10).lt(20)
       q1.hash().should.eql q2.hash()
 
+    it 'should create different hashes for different queries', ->
+      q1 = query('users').where('name').equals('brian')
+      q2 = query('users').where('name').equals('nate')
+      q1.hash().should.not.eql q2.hash()
+
   adapters =
     Mongo: ->
       MongoAdapter = require '../src/adapters/Mongo'

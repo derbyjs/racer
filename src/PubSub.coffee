@@ -212,7 +212,6 @@ handlePaths = (paths, queue, client, fn, callback) ->
     if callback
       (queue[path] ||= []).push callback
 
-
 MemorySync = require './adapters/MemorySync'
 adapter = new MemorySync
 adapter.setVersion = ->
