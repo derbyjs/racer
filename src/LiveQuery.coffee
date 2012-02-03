@@ -13,11 +13,11 @@ LiveQuery::=
       return namespace == docNs
     return this
 
-  test: (doc, channel) ->
+  testWithoutPaging: (doc, channel) ->
     @testWithoutPaging = compileDocFilter @_predicates
-    # Over-write @test, so we compile and cache accumPredicate only once
-    @test = compile @testWithoutPaging, @_paginatedCache, @_limit, @_skip, @_comparator
-    @test doc, channel
+    @testWithoutPaging doc, channel
+
+  test: (doc, channel) -> @testWithoutPaging doc, channel
 
   byKey: (keyVal) ->
     @_predicates.push (doc, channel) ->
@@ -153,18 +153,6 @@ LiveQuery::=
 
 evalToTrue = -> true
 
-compile = (docFilter, cache, limit, skip, comparator) ->
-  return (doc, channel) ->
-    unless isMatch = docFilter doc, channel
-      rmFromCache doc, cache if cache
-      return false
-    return isMatch unless cache
-    if cache.length < limit
-      addToCache doc, cache, comparator
-    else if cache.length == limit
-      return insertIntoCache doc, cache, comparator
-    return isMatch
-
 compileDocFilter = (predicates) ->
   switch predicates.length
     when 0 then return evalToTrue
@@ -175,31 +163,6 @@ compileDocFilter = (predicates) ->
     for pred in predicates
       return false unless pred doc, channel
     return true
-
-addToCache = (doc, cache, query) ->
-  # TODO
-
-insertIntoCache = (doc, cache, comparator, skip) ->
-  # TODO Leverage a binary search
-  for x, i in cache
-    switch comparator(doc, x)
-      when -1, 0
-        # If the document is already in the cache, do nothing
-        return true if doc.id == x.id
-        if i == 0 && skip > 0
-          # We may have modified docA so that it is added to a
-          # prev page, effectively displacing a docB in a prev
-          # page, so docB ends up being unshifted into the curr page
-          throw new Error 'Unimplemented'
-        else
-          cache.splice i, 0, doc
-        break
-  return {requiresRm: true}
-
-rmFromCache = (doc, cache) ->
-  for {id}, i in cache
-    return cache.splice(i, 1) if id == doc.id
-  return
 
 # Generates a comparator function that returns -1, 0, or 1
 # if a < b, a == b, or a > b respectively, according to the

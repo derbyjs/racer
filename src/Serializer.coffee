@@ -25,6 +25,8 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
   return
 
 Serializer::=
+  _clearWaiter: ->
+  _setWaiter: ->
   add: (txn, txnIndex, arg) ->
     index = @_index
     # Cache this message to be applied later if it is not the next index

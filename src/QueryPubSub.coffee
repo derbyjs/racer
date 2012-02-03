@@ -41,22 +41,36 @@ QueryPubSub::=
       doc = transaction.args(txn)[1]
       for hash, q of queries
         queryChannel = "queries.#{hash}"
-        unless q.test doc, nsPlusId
-          if q.isPaginated && q.testWithoutPaging doc, nsPlusId
-            if 'before' == q.beforeOrAfter doc
-              q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
-                throw err if err
-                for mem in newMembers
-                  channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
-                for mem in oldMembers
-                  channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
-          continue
+        if q.isPaginated
+          continue unless q.testWithoutPaging doc, nsPlusId
+          q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
+            throw err if err
+            for mem in newMembers
+              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            for mem in oldMembers
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
+        continue unless q.test doc, nsPlusId
         channelPubSub.publish queryChannel, message
       return this
 
     for hash, q of queries
       queryChannel = "queries.#{hash}"
-      if q.test origDoc, nsPlusId
+      if q.isPaginated
+        if (q.testWithoutPaging(origDoc, nsPlusId) || q.testWithoutPaging(newDoc, nsPlusId))
+          # TODO Optimize for non-saturated case
+          q.updateCache channelPubSub.store ,(err, newMembers, oldMembers, ver) ->
+            throw err if err
+            for mem in newMembers
+              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            for mem in oldMembers
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
+            # TODO Be more discreet about when to publish this message. We are
+            # probably publishing more than we need to. We can narrow it down
+            # to a smaller subset of scenarios.
+            channelPubSub.publish queryChannel, message
+            return
+
+      else if q.test origDoc, nsPlusId
         if q.test newDoc, nsPlusId
           # The query contains the document pre- and post-mutation,
           # so just publish the mutation
@@ -65,18 +79,9 @@ QueryPubSub::=
           # The query no longer contains the document,
           # so tell any subscribed clients to remove it.
           channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
-          if q.isPaginated
-            q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
-              throw err if err
-              for mem in newMembers
-                channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
-              for mem in oldMembers
-                continue if origDoc.id == mem.id
-                channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
-
       # The query didn't contain the document before its mutation, but now it
       # does contain it, so tell the client to add the document to its model.
-      else if testResult = q.test newDoc, nsPlusId
+      else if q.test newDoc, nsPlusId
         channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc, ver: pseudoVer()}
         # But also send along the original mutation just in case
         # the client is also subscribed to another query that matched this document
@@ -84,30 +89,12 @@ QueryPubSub::=
         # the doc knowing that one query begins to match a doc at the same time another
         # query fails to match the doc
         channelPubSub.publish queryChannel, message
-        if q.isPaginated && testResult.requiresRm
-          q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
-            throw err if err
-            for mem in newMembers
-              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
-            for mem in oldMembers
-              continue if origDoc.id == mem.id
-              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
 
       # The query didn't contain the doument before the mutation.
       # It also doesn't contain the document after the mutation.
-      else
-        # The document mutation may impact the paginated set, despite not being
-        # in the page of interest.
-        if q.isPaginated &&
-          (q.testWithoutPaging origDoc, nsPlusId ||
-           q.testWithoutPaging newDoc, nsPlusId)
-          q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
-            throw err if err
-            for mem in newMembers
-              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
-            for mem in oldMembers
-              continue if origDoc.id == mem.id
-              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
+
+      # Else the document mutation may impact the paginated set, despite not being
+      # in the page of interest.
     return this
 
   unsubscribe: (subscriberId, queries, callback) ->

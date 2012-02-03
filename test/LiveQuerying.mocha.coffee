@@ -965,10 +965,83 @@ describe 'Live Querying', ->
                         finish()
                   , done
 
-              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to maintain order'
+              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to maintain order', (done) ->
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        async.forEach ['rmDoc', 'addDoc']
+                        , (event, callback) ->
+                          modelHello.on event, -> callback()
+                        , ->
+                          for player in allPlayers
+                            if player.ranking not in [4, 5]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.1.ranking', 6
+                        finish()
+                  , done
 
-              # TODO Test an unshift to the entire result set because a new
-              # member is added to the prev page
+              it 'should move an existing result from a prev page if a mutation causes a new member to be added to the prev page', (done) ->
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        async.forEach ['rmDoc', 'addDoc']
+                        , (event, callback) ->
+                          modelHello.on event, -> callback()
+                        , ->
+                          for player in allPlayers
+                            if player.ranking not in [2, 3]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.6', {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
+                        finish()
+                  , done
 
               it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible', (done) ->
                 fullSetup {store},

@@ -51,9 +51,8 @@ stm = module.exports =
       if txnQ = txns[transaction.id txn]
         txn.callback = txnQ.callback
         txn.emitted = txnQ.emitted
-        isLocal = true
 
-      unless isLocal
+      unless isLocal = 'callback' of txn
         mergeTxn txn, txns, txnQueue, adapter, before, after
 
       if transaction.base(txn) > adapter.version
