@@ -120,7 +120,6 @@ describe 'diffArrays', ->
       ['ins', 2, [6]]
     ]
 
-
   it 'detects single move forward', test
     before: [0, 1, 2, 3]
     after:  [1, 2, 0, 3]
@@ -180,8 +179,8 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3, 4]
     after:  [1, 4, 2, 3, 0]
     expect: [
+      ['mov', 4, 2, 1]
       ['mov', 0, 4, 1]
-      ['mov', 3, 1, 1]
     ]
   
   it 'detects move from end to start & middle forward', test
@@ -199,27 +198,23 @@ describe 'diffArrays', ->
       ['mov', 4, 0, 1]
       ['mov', 4, 2, 1]
     ]
-
-    [0, 1, 2, 3, 4]
-    [4, 0, 1, 2, 3]
-    [4, 0, 3]
   
   it 'detects move forward and backward from start', test
     before: [0, 1, 2, 3, 4]
     after:  [3, 2, 4, 0, 1]
     expect: [
-      ['mov', 0, 3, 2]
-      ['mov', 1, 0, 1]
+      ['mov', 3, 0, 1]
+      ['mov', 1, 3, 2]
     ]
 
   it 'detects reversing', test
     before: [0, 1, 2, 3, 4, 5]
     after:  [5, 4, 3, 2, 1, 0]
     expect: [
-      ['mov', 0, 5, 1]
-      ['mov', 4, 0, 1]
-      ['mov', 1, 4, 1]
-      ['mov', 3, 1, 1]
+      ['mov', 5, 0, 1]
+      ['mov', 5, 1, 1]
+      ['mov', 2, 5, 1]
+      ['mov', 2, 4, 1]
       ['mov', 2, 3, 1]
     ]
   
@@ -235,8 +230,8 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3, 4]
     after:  [2, 1, 0, 4, 3]
     expect: [
-      ['mov', 0, 2, 1]
-      ['mov', 1, 0, 1]
+      ['mov', 2, 0, 1]
+      ['mov', 1, 2, 1]
       ['mov', 3, 4, 1]
     ]
   
@@ -244,12 +239,12 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3, 4]
     after:  [2, 1, 4, 3, 0]
     expect: [
-      ['mov', 0, 4, 1]
-      ['mov', 1, 0, 1]
+      ['mov', 2, 0, 1]
+      ['mov', 1, 4, 1]
       ['mov', 2, 3, 1]
     ]
-  
-  it 'detects move from start to middle & both ways', test
+
+  it 'detects move from start to middle & both ways', log
     before: [0, 1, 2, 3, 4]
     after:  [1, 3, 0, 4, 2]
     expect: [
@@ -258,7 +253,8 @@ describe 'diffArrays', ->
       ['mov', 2, 1, 1]
     ]
 
-  it 'detects insert within move', test
+
+  it 'detects insert within backward move', test
     before: [0, 1, 2]
     after:  [2, 3, 0, 1]
     expect: [
@@ -266,27 +262,26 @@ describe 'diffArrays', ->
       ['ins', 1, [3]]
     ]
 
-  it 'detects insert within move then move', test
+  it 'detects insert within forward move', test
     before: [0, 1, 2]
-    after:  [2, 3, 1, 0]
+    after:  [1, 3, 2, 0]
     expect: [
-      ['mov', 2, 0, 1]
-      ['ins', 1, [3]]
-      ['mov', 3, 2, 1]
+      ['ins', 2, [3]]
+      ['mov', 0, 3, 1]
+    ]
+  
+  it 'detects remove within backward move', test
+    before: [0, 1, 2, 3]
+    after:  [3, 0, 2]
+    expect: [
+      ['mov', 3, 0, 1]
+      ['rem', 2, 1]
     ]
 
-  # it 'detects move then remove', test
-  #   before: [0, 1, 2]
-  #   after:  [2, 0]
-  #   expect: [
-  #     ['mov', 2, 0, 1]
-  #     ['rem', 2, 1]
-  #   ]
-
-  # it 'detects remove within move', test
-  #   before: [0, 1, 2, 3, 4]
-  #   after:  [4, 0, 2, 3]
-  #   expect: [
-  #     ['mov', 4, 0, 1]
-  #     ['rem', 2, 1]
-  #   ]
+  it 'detects remove within forward move', test
+    before: [0, 1, 2, 3]
+    after:  [1, 3, 0]
+    expect: [
+      ['rem', 2, 1]
+      ['mov', 0, 2, 1]
+    ]
