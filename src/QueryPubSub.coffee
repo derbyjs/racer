@@ -119,27 +119,33 @@ QueryPubSub::=
 #   <page prev> <page curr> <page next>
 #                                         do nothing to curr
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
 #                   -                     push to curr from next
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
 #       +   <<<<<   -                     unshift to curr from prev
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
 #       -                                 shift from curr to prev
 #                                         push to curr from right
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
 #       -   >>>>>   +                     shift from curr to prev
 #                                         insert + in curr
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
+#       -   >>>>>>>>>>>>>>>>>   +         shift from curr to prev
+#                                         push from next to curr
+#
+#+  <page prev> <page curr> <page next>
 #       +                                 unshift to curr from prev
 #                                         pop from curr to next
 #
-#   <page prev> <page curr> <page next>
+#+  <page prev> <page curr> <page next>
 #                   +                     pop from curr to next
 #
 #   <page prev> <page curr> <page next>
 #                               -/+       do nothing to curr
 #
+#+  <page prev> <page curr> <page next>
+#                   -><-                  re-arrange curr members

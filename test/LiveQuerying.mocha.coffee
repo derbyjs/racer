@@ -942,7 +942,11 @@ describe 'Live Querying', ->
 
             # TODO Test multi-param sorts
             describe 'for saturated result sets (i.e., limit == sizeof(resultSet))', ->
+
               it 'should shift a member out and push a member in when a prev page document fails to satisfy the query', (done) ->
+              #   <page prev> <page curr> <page next>
+              #       -                                 shift from curr to prev
+              #                                         push to curr from right
                 newPlayers = [
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
@@ -981,7 +985,52 @@ describe 'Live Querying', ->
                         finish()
                   , done
 
-              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to maintain order', (done) ->
+              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to the current page to maintain order', (done) ->
+              #   <page prev> <page curr> <page next>
+              #       -   >>>>>   +                     shift from curr to prev
+              #                                         insert + in curr
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 6}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        async.forEach ['rmDoc', 'addDoc']
+                        , (event, callback) ->
+                          modelHello.on event, -> callback()
+                        , ->
+                          for player in allPlayers
+                            if player.ranking not in [4, 5]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.1.ranking', 5
+                        finish()
+                  , done
+
+              it 'should shift a member out and push a member in when a prev page document mutates in a way forcing it to move to a subsequent page to maintain order', (done) ->
+              #   <page prev> <page curr> <page next>
+              #       -   >>>>>>>>>>>>>>>>>   +         shift from curr to prev
+              #                                         push from next to curr
                 newPlayers = [
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
@@ -1021,6 +1070,9 @@ describe 'Live Querying', ->
                   , done
 
               it 'should move an existing result from a prev page if a mutation causes a new member to be added to the prev page', (done) ->
+              #   <page prev> <page curr> <page next>
+              #       +                                 unshift to curr from prev
+              #                                         pop from curr to next
                 newPlayers = [
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
@@ -1059,7 +1111,132 @@ describe 'Live Querying', ->
                         finish()
                   , done
 
+              it 'should move the last member of the prev page to the curr page, if a curr page member mutates in a way that moves it to a prev page', (done) ->
+              #   <page prev> <page curr> <page next>
+              #       +   <<<<<   -                     unshift to curr from prev
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        async.forEach ['rmDoc', 'addDoc']
+                        , (event, callback) ->
+                          modelHello.on event, -> callback()
+                        , ->
+                          for player in allPlayers
+                            if player.ranking not in [2, 3]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.5.ranking', 0
+                        finish()
+                  , done
+
+              it 'should do nothing to the curr page if mutations only add docs to subsequent pages', (done) ->
+              #   <page prev> <page curr> <page next>
+              #                               +         do nothing to curr
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 10}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        setTimeout ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                        , 200
+                        modelHello.on 'addDoc', -> finish() # Should never be called
+                        modelHello.on 'rmDoc', -> finish() # Should never be called
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.4.ranking', 5
+                        finish()
+                  , done
+
+              it 'should do nothing to the curr page if mutations only remove docs from subsequent pages', (done) ->
+              #   <page prev> <page curr> <page next>
+              #                               -         do nothing to curr
+                newPlayers = [
+                  {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
+                  {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
+                ]
+                allPlayers = players + newPlayers
+                async.forEach newPlayers
+                , (player, callback) ->
+                  store.set "players.#{player.id}", player, null, callback
+                , ->
+                  fullSetup {store},
+                    modelHello:
+                      server: (modelHello, finish) ->
+                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        modelHello.subscribe query, ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                      browser: (modelHello, finish) ->
+                        setTimeout ->
+                          for player in allPlayers
+                            if player.ranking not in [3, 4]
+                              should.equal undefined, modelHello.get('players.' + player.id)
+                            else
+                              modelHello.get('players.' + player.id).should.eql player
+                          finish()
+                        , 200
+                        modelHello.on 'addDoc', -> finish() # Should never be called
+                        modelHello.on 'rmDoc', -> finish() # Should never be called
+                    modelFoo:
+                      server: (modelFoo, finish) -> finish()
+                      browser: (modelFoo, finish) ->
+                        modelFoo.set 'players.4.ranking', 10
+                        finish()
+                  , done
+
               it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible', (done) ->
+              #   <page prev> <page curr> <page next>
+              #                   -                     push to curr from next
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
@@ -1086,6 +1263,8 @@ describe 'Live Querying', ->
                 , done
 
               it 'should replace a document if another doc was just mutated so it supercedes the doc according to the query', (done) ->
+                #   <page prev> <page curr> <page next>
+                #                   +                     pop from curr to next
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
@@ -1109,6 +1288,8 @@ describe 'Live Querying', ->
                 , done
 
               it 'should keep a document that just re-orders the query result set', (done) ->
+              #   <page prev> <page curr> <page next>
+              #                   -><-                  re-arrange curr members
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
