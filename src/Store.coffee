@@ -90,10 +90,12 @@ Store:: =
   query: (query, callback) ->
     self = this
 
-    if query.isPaginated
-      cache = self._pubSub.getQueryCache query
-      if cache && cache.length
-        return callback null, cache, self._adapter.version
+    # TODO Add in an optimization later since query._paginatedCache
+    # can be read instead of going to the db. However, we must make
+    # sure that the cache is a consistent snapshot of a given moment
+    # in time. i.e., no versions of the cache should exist between
+    # an add/remove combined action that should be atomic but currently
+    # isn't
 
     # TODO Improve this de/serialize API
     dbQuery = deserializeQuery query.serialize(), self._adapter.Query

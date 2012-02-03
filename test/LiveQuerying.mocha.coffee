@@ -934,7 +934,7 @@ describe 'Live Querying', ->
                 allPlayers = players + newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, callback
+                  store.set "players.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:

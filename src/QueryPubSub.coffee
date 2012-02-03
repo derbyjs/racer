@@ -40,13 +40,18 @@ QueryPubSub::=
       # If we are setting an entire document
       doc = transaction.args(txn)[1]
       for hash, q of queries
+        queryChannel = "queries.#{hash}"
         unless q.test doc, nsPlusId
           if q.isPaginated && q.testWithoutPaging doc, nsPlusId
             if 'before' == q.beforeOrAfter doc
-              # TODO TODO TODO TODO reactToPrevAdd
-              q.reactToPrevAdd doc, channelPubSub
+              q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
+                throw err if err
+                for mem in newMembers
+                  channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+                for mem in oldMembers
+                  channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
           continue
-        channelPubSub.publish "queries.#{hash}", message
+        channelPubSub.publish queryChannel, message
       return this
 
     for hash, q of queries
@@ -56,72 +61,53 @@ QueryPubSub::=
           # The query contains the document pre- and post-mutation,
           # so just publish the mutation
           channelPubSub.publish queryChannel, message
-          return this
-
-        # The query no longer contains the document,
-        # so tell any subscribed clients to remove it.
-        channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
-        if q.isPaginated
-          # We just removed the document from the query result set.
-          if q.testWithoutPaging newDoc, nsPlusId && 'before' == q.beforeOrAfter newDoc
-            # If we moved this doc from the curr page to a prev page,
-            # then grab the last member in the prev page and ushift it onto
-            # the curr page
-            query = newMemberQuery(TODO)
-            store.query query, (err, found, ver) ->
+        else
+          # The query no longer contains the document,
+          # so tell any subscribed clients to remove it.
+          channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
+          if q.isPaginated
+            q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
               throw err if err
-              if docToAdd = found[found.length-1]
-                q._paginatedCache.unshift found[found.length-1]
-                channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: docToAdd, ver: pseudoVer()}
-            return this
+              for mem in newMembers
+                channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+              for mem in oldMembers
+                continue if origDoc.id == mem.id
+                channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
 
-          # Otherwise, the doc does not satisfy *any* of the conditions,
-          # or it was moved to a subsequent page. In either case, then
-          # grab the first member of the next page and push it onto the curr
-          # page
-          query = newMemberQuery q, {push: 1}, channelPubSub.store
-          channelPubSub.store.query query, (err, found, ver) ->
-            throw err if err
-            if docToAdd = found[0]
-              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: docToAdd, ver: pseudoVer()}
-          return this
-        return this
-
-      if testResult = q.test newDoc, nsPlusId
-        # The query didn't contain the document before its mutation, but now it
-        # does contain it, so tell the client to add the document to its model.
+      # The query didn't contain the document before its mutation, but now it
+      # does contain it, so tell the client to add the document to its model.
+      else if testResult = q.test newDoc, nsPlusId
         channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc, ver: pseudoVer()}
         # But also send along the original mutation just in case
-        # the client is also subscribed to another query that already matches
-        # this document
+        # the client is also subscribed to another query that matched this document
+        # pre-mutation but not post-mutation. In this case, the client should keep
+        # the doc knowing that one query begins to match a doc at the same time another
+        # query fails to match the doc
         channelPubSub.publish queryChannel, message
-        if q.isPaginated
-          if docToRm = testResult.rmDoc
-            channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: docToRm, hash, id: docToRm.id}
-      else if q.isPaginated && q.testWithoutPaging origDoc, nsPlusId
-        # The document that was mutated was in another page, satisfying the
-        # conditions.
+        if q.isPaginated && testResult.requiresRm
+          q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
+            throw err if err
+            for mem in newMembers
+              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            for mem in oldMembers
+              continue if origDoc.id == mem.id
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
 
-        unless q.testWithoutPaging newDoc, nsPlusId
-          # Now, it is not supposed to be in any pages, so...
-          # ... first, figure out which page the original doc was relative to the
-          # current page: before or after?
-          switch q.beforeOrAfter origDoc
-            when 'before'
-              # If the original doc was in a prior page, then we need to shift
-              # the first doc in our current page of results to the previous
-              # page, and we need to push the first doc in the next page of
-              # results to the current page (if a next page exists)
-              q.slideLeftInCache channelPubSub.store, (err, {shiftedDoc, pushedDoc}) ->
-                throw err if err
-                channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: shiftedDoc, hash, id: shiftedDoc.id}
-                channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: pushedDoc, ver: pseudoVer()}
-            when 'after'
-              # If the original doc was on the next page, then removing it from
-              # that page does not impact this page
-              return this
-            else throw new Error 'Impossible!'
-
+      # The query didn't contain the doument before the mutation.
+      # It also doesn't contain the document after the mutation.
+      else
+        # The document mutation may impact the paginated set, despite not being
+        # in the page of interest.
+        if q.isPaginated &&
+          (q.testWithoutPaging origDoc, nsPlusId ||
+           q.testWithoutPaging newDoc, nsPlusId)
+          q.updateCache channelPubSub.store, (err, newMembers, oldMembers, ver) ->
+            throw err if err
+            for mem in newMembers
+              channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            for mem in oldMembers
+              continue if origDoc.id == mem.id
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
     return this
 
   unsubscribe: (subscriberId, queries, callback) ->
@@ -141,7 +127,7 @@ QueryPubSub::=
     if liveQuery = @_liveQueries[query.hash()]
       liveQuery._paginatedCache = cache
 
-# Cases:
+# Cases for mutations impacting paginated queries
 #
 #   <page prev> <page curr> <page next>
 #                                         do nothing to curr
@@ -170,58 +156,3 @@ QueryPubSub::=
 #   <page prev> <page curr> <page next>
 #                               -/+       do nothing to curr
 #
-newMemberQuery = (liveQuery, {push, unshift}, store) ->
-  cache = liveQuery._paginatedCache
-  newQuery = createQuery()
-  if push isnt undefined
-    skip = cache.length
-    skipOffset = 0
-    lastDoc = cache[skip-1]
-    queryParams = liveQuery.serialize()
-    for [method, args] in queryParams
-      switch method
-        when 'where' then newQuery.where(currPath = args[0])
-        when 'skip'  then skipOffset = args[0]
-        when 'limit' then continue
-        when 'sort'
-          [path, dir] = args[0]
-          switch dir
-            when 'asc'
-              val = lookup path, lastDoc
-              if typeof val is 'number'
-                skip = Math.min skip, countSimilar(cache, lastDoc, currPath, from: 'right')
-                if skip == cache.length
-                  skip += skipOffset
-                else
-                  newQuery.gte path, val # TODO What if there already exists a gt/gte?
-            when 'desc'
-              val = lookup path, lastDoc
-              if typeof val is 'number'
-                skip = Math.min skip, countSimilar(cache, lastDoc, currPath, from: 'right')
-                if skip == cache.length
-                  skip += skipOffset
-                else
-                  newQuery.lte path, val
-          newQuery.sort args...
-        else
-          newQuery[method](args...)
-
-    newQuery.limit 1
-    newQuery.skip skip
-
-  return newQuery
-
-countSimilar = (cache, doc, path, {from}) ->
-  switch from
-    when 'right'
-      return 0 unless len = cache.length
-      i = len-1
-      numSimilar = 1
-      while mem = cache[--i]
-        if lookup(path, mem) == lookup(path, doc)
-          numSimilar++
-        else
-          break
-    when 'left'
-      throw new Error 'Unimplemented'
-  return numSimilar

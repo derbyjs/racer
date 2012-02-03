@@ -1,5 +1,6 @@
-{deepIndexOf, deepEqual} = require './util'
+{indexOf, deepIndexOf, deepEqual} = require './util'
 {lookup} = require './pathParser'
+deserializeQuery = require('./query').deserialize
 
 module.exports = LiveQuery = ->
   @_predicates = []
@@ -12,14 +13,8 @@ LiveQuery::=
       return namespace == docNs
     return this
 
-  testWithoutPaging: (doc, channel) ->
-    # Over-write @testWithoutPaging, so we compile and cache it only once
-    @testWithoutPaging = compileDocFilter @_predicates
-    @testWithoutPaging doc, channel
-
   test: (doc, channel) ->
-    if sort
-      @_comparator = compileSortComparator sort
+    @testWithoutPaging = compileDocFilter @_predicates
     # Over-write @test, so we compile and cache accumPredicate only once
     @test = compile @testWithoutPaging, @_paginatedCache, @_limit, @_skip, @_comparator
     @test doc, channel
@@ -125,6 +120,7 @@ LiveQuery::=
       @_sort = @_sort.concat(params)
     else
       @_sort = params
+    @_comparator = compileSortComparator @_sort
     return this
 
 
@@ -138,11 +134,22 @@ LiveQuery::=
     return 'after'  if  1 == comparator doc, @_paginatedCache[@_paginatedCache.length-1]
     return 'curr'
 
-  slideLeftInCache: (store, callback) ->
-    shiftedDoc = @_paginatedCache.shift()
-    store.query @, (err, found, ver) ->
-      pushedDoc = found[0]
-      callback err, {shiftedDoc, pushedDoc}, ver
+  updateCache: (store, callback) ->
+    self = this
+    cache = self._paginatedCache
+    plainQuery = deserializeQuery @serialize()
+    store.query plainQuery, (err, found, ver) ->
+      return callback err if err
+      removed = []
+      added = []
+      for x in cache
+        if -1 == indexOf(found, x, (y, z) -> y.id == z.id)
+          removed.push x
+      for x in found
+        if -1 == indexOf(cache, x, (y, z) -> y.id == z.id)
+          added.push x
+      self._paginatedCache = found
+      callback null, added, removed, ver
 
 evalToTrue = -> true
 
@@ -155,7 +162,7 @@ compile = (docFilter, cache, limit, skip, comparator) ->
     if cache.length < limit
       addToCache doc, cache, comparator
     else if cache.length == limit
-      return maybeUpdateCache doc, cache, comparator
+      return insertIntoCache doc, cache, comparator
     return isMatch
 
 compileDocFilter = (predicates) ->
@@ -172,7 +179,7 @@ compileDocFilter = (predicates) ->
 addToCache = (doc, cache, query) ->
   # TODO
 
-maybeUpdateCache = (doc, cache, comparator, skip) ->
+insertIntoCache = (doc, cache, comparator, skip) ->
   # TODO Leverage a binary search
   for x, i in cache
     switch comparator(doc, x)
@@ -187,7 +194,7 @@ maybeUpdateCache = (doc, cache, comparator, skip) ->
         else
           cache.splice i, 0, doc
         break
-  return {rmDoc: cache.pop()}
+  return {requiresRm: true}
 
 rmFromCache = (doc, cache) ->
   for {id}, i in cache
@@ -212,6 +219,3 @@ compileSortComparator = (sortParams) ->
       else if aVal > bVal
         return factor
     return 0
-
-LiveQuery.pageMemberReplacementQuery = (liveQuery, {push, unshift}, store) ->
-  throw new Error 'Undefined'
