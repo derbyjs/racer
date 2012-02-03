@@ -948,18 +948,16 @@ describe 'Live Querying', ->
                               modelHello.get('players.' + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
-                        cb = ->
+                        async.forEach ['rmDoc', 'addDoc']
+                        , (event, callback) ->
+                          modelHello.on event, -> callback()
+                        , ->
                           for player in allPlayers
                             if player.ranking not in [4, 5]
                               should.equal undefined, modelHello.get('players.' + player.id)
                             else
                               modelHello.get('players.' + player.id).should.eql player
                           finish()
-                        rem = 2
-                        modelHello.on 'rmDoc', ->
-                          --rem || cb()
-                        modelHello.on 'addDoc', ->
-                          --rem || cb()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
@@ -983,16 +981,14 @@ describe 'Live Querying', ->
                         should.notEqual undefined, modelHello.get('players.3')
                         finish()
                     browser: (modelHello, finish) ->
-                      cb = ->
+                      async.forEach ['rmDoc', 'addDoc']
+                      , (event, callback) ->
+                        modelHello.on event, -> callback()
+                      , ->
                         should.notEqual undefined, modelHello.get('players.1')
                         should.notEqual undefined, modelHello.get('players.2')
                         should.equal    undefined, modelHello.get('players.3')
                         finish()
-                      rem = 2
-                      modelHello.on 'rmDoc', ->
-                        --rem || cb()
-                      modelHello.on 'addDoc', ->
-                        --rem || cb()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
