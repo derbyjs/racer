@@ -4,8 +4,22 @@ should = require 'should'
 
 describe 'diffArrays', ->
 
+  apply = (arr, ops) ->
+    for op in ops
+      switch op[0]
+        when 'insert'
+          arr.splice op[1], 0, op.splice(2)...
+        when 'remove'
+          arr.splice op[1], op[2]
+        when 'move'
+          items = arr.splice op[1], op[3]
+          arr.splice op[2], 0, items...
+    return arr
+
   test = ({before, after, expect}) -> ->
-    diffArrays(before, after).should.specEql expect
+    diff = diffArrays before, after
+    diff.should.eql expect if expect
+    apply(before, diff).should.eql after
 
   log = ({before, after}) -> ->
     console.log ''
@@ -284,7 +298,8 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3, 4, 5, 6, 7]
     after:  [1, 6, 2, 7, 3, 4, 0, 5]
     expect: [
-      ['move', 0, 5, 1]
+      ['move', 0, 4, 1]
       ['move', 6, 1, 1]
       ['move', 7, 3, 1]
     ]
+
