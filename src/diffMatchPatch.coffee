@@ -79,21 +79,27 @@ module.exports =
           if sameForward && sameBackward
             toOffset.push ops[i] = if numForward <= numBackward
                 offset -= numForward
+                offsetMovesByMove toOffset, fromForward, toForward, numForward
                 ['move', fromForward, toForward, numForward]
               else
                 offset += numBackward
+                offsetMovesByMove toOffset, toBackward, fromBackward, -numBackward
                 ['move', fromBackward, toBackward, numBackward]
 
           else if sameForward
             offset -= numForward
+            offsetMovesByMove toOffset, fromForward, toForward, numForward
             toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
 
           else if sameBackward
             offset += numBackward
+            offsetMovesByMove toOffset, toBackward, fromBackward, -numBackward
             toOffset.push ops[i] = ['move', fromBackward, toBackward, numBackward]
 
           else
             offset += numBackward - numForward
+            offsetMovesByMove toOffset, fromForward, toForward, numForward
+            offsetMovesByMove toOffset, toBackward, fromBackward, -numBackward
             toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
             toOffset.push op = ['move', fromBackward - numForward, toBackward, numBackward]
             ops.splice ++i, 0, op
@@ -106,6 +112,17 @@ offsetMoves = (toOffset, index, offset) ->
     to = op[2]
     if from < to
       op[2] += offset if index < to
+
+offsetMovesByMove = (toOffset, start, end, offset) ->
+  for op in toOffset
+    from = op[1]
+    to = op[2]
+    if from < to
+      # TODO: Test the bounds of this. Not sure if should be < or <=
+      op[2] += offset if start < to <= end
+    else
+      # TODO: Test the bounds of this. Not sure if should be < or <=
+      op[1] -= offset if start <= from < end
 
 offsetByMoves = (toOffset, index) ->
   offset = 0

@@ -279,3 +279,12 @@ describe 'diffArrays', ->
       ['move', 0, 3, 1]
       ['remove', 1, 1]
     ]
+
+  it 'detects multiple overlapping moves', test
+    before: [0, 1, 2, 3, 4, 5, 6, 7]
+    after:  [1, 6, 2, 7, 3, 4, 0, 5]
+    expect: [
+      ['move', 0, 5, 1]
+      ['move', 6, 1, 1]
+      ['move', 7, 3, 1]
+    ]
