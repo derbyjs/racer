@@ -597,12 +597,11 @@ mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
 
   if arrPath
     txn.patch = patch = []
-    diffArrays before.get(arrPath), after.get(arrPath), (index, items) ->
-      patch.push method: 'insert', args: [arrPath, index].concat(items)
-    , (index, howMany) ->
-      patch.push method: 'remove', args: [arrPath, index, howMany]
-    , (from, to, howMany) ->
-      patch.push method: 'move', args: [arrPath, from, to, howMany]
+    diff = diffArrays before.get(arrPath), after.get(arrPath)
+    for op in diff
+      method = op[0]
+      op[0] = arrPath
+      patch.push {method, args: op}
 
     for [root, remainder] in resetPaths
       i = remainder.indexOf '.'

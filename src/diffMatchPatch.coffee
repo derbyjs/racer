@@ -1,14 +1,12 @@
 
 module.exports =
 
-  diffArrays: (before, after, onInsert, onRemove, onMove) ->
+  diffArrays: (before, after) ->
     afterLen = after.length
     a = b = -1
-    offset = 0
     skipA = {}
     skipB = {}
-    offsetAt = {}
-    pendingMoves = []
+    ops = []
 
     while a < afterLen
 
@@ -17,14 +15,9 @@ module.exports =
       itemAfter = after[a]
       itemBefore = before[b]
 
-      for i of offsetAt
-        if i <= a
-          offset += offsetAt[i]
-          delete offsetAt[i]
-
-      if itemBefore == itemAfter
-        offset = emit onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt, pendingMoves
-        insert = remove = move = null
+      if itemAfter == itemBefore
+        addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
+        insert = remove = null
         continue
 
       if a < afterLen && (indexAfter = before.indexOf itemAfter) == -1
@@ -43,87 +36,90 @@ module.exports =
         a--
         continue
 
-      offset = emit onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt, pendingMoves
+      addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
       insert = remove = null
-      move = true
 
-      fromForward = b + offset
-      toForward = indexBefore
-      numForward = lookAhead before, after, afterLen, skipA, skipB, b, indexBefore
+      numForward = moveLookAhead before, after, afterLen, skipA, skipB, b, indexBefore
+      numBackward = moveLookAhead before, after, afterLen, skipA, skipB, indexAfter, a
+      ops.push ['move', b, indexBefore, numForward, indexAfter, a, numBackward]
 
-      fromBackward = indexAfter + offset
-      toBackward = a
-      numBackward = lookAhead before, after, afterLen, skipA, skipB, indexAfter, a
+    offset = 0
+    toOffset = []
+    i = -1
+    while op = ops[++i]
+      method = op[0]
 
-      console.log offsetAt, pendingMoves
-      for i of offsetAt
-        fromBackward += offsetAt[i]  if i <= fromBackward
+      switch method
+        when 'insert'
+          num = op.length - 2
+          offset += num
+          offsetMoves toOffset, op[1], -num
+          continue
 
-    return
+        when 'remove'
+          num = op[2]
+          offset -= num
+          offsetMoves toOffset, op[1], num
+          continue
 
-emit = (onInsert, onRemove, onMove, insert, remove, move, before, after, a, b, numInsert, numRemove, fromForward, toForward, numForward, fromBackward, toBackward, numBackward, offset, offsetAt, pendingMoves) ->
-  if move?
+        when 'move'
+          fromForward = op[1]
+          toForward = op[2]
+          numForward = op[3]
+          fromBackward = op[4]
+          toBackward = op[5]
+          numBackward = op[6]
 
-    console.log fromForward, toForward, fromBackward, toBackward
+          fromForward += offset + offsetByMoves(toOffset, fromForward)
+          fromBackward += offset + offsetByMoves(toOffset, fromBackward)
 
-    for pending in pendingMoves
-      [from, to, num] = pending
-      fromForward -= num  if fromForward <= to
-      toBackward += num  if from < toBackward
+          sameForward = toBackward == fromBackward - numForward
+          sameBackward = toForward == fromForward + numBackward
 
-    console.log fromForward, toForward, fromBackward, toBackward
+          if sameForward && sameBackward
+            toOffset.push ops[i] = if numForward <= numBackward
+                offset -= numForward
+                ['move', fromForward, toForward, numForward]
+              else
+                offset += numBackward
+                ['move', fromBackward, toBackward, numBackward]
 
-    gapBackward = toBackward != fromBackward - numForward
-    gapForward = fromForward != toForward - numBackward
+          else if sameForward
+            offset -= numForward
+            toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
 
-    if gapBackward
-      onMove fromBackward, toBackward, numBackward
-      offset += numBackward
-      offsetAt[fromBackward] = (offsetAt[fromBackward] || 0) - numBackward
+          else if sameBackward
+            offset += numBackward
+            toOffset.push ops[i] = ['move', fromBackward, toBackward, numBackward]
 
-      for pending in pendingMoves
-        pending[0] += numBackward  if toBackward <= pending[0]
+          else
+            offset += numBackward - numForward
+            toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
+            toOffset.push op = ['move', fromBackward - numForward, toBackward, numBackward]
+            ops.splice ++i, 0, op
 
-      fromForward += numBackward
-      if fromForward != toForward
-        pendingMoves.push [fromForward, toForward, numForward]
+    return ops
 
-    else if gapForward
-      pendingMoves.push [fromForward, toForward, numForward]
+offsetMoves = (toOffset, index, offset) ->
+  for op in toOffset
+    from = op[1]
+    to = op[2]
+    if from < to
+      op[2] += offset if index < to
 
+offsetByMoves = (toOffset, index) ->
+  offset = 0
+  for op in toOffset
+    from = op[1]
+    to = op[2]
+    num = op[3]
+    if from < to
+      offset += num if to < index
     else
-      # The move was a simple swap, so only emit one move.
-      # Choose the one that moves fewer items
-      if numForward <= numBackward
-        pendingMoves.push [fromForward, toForward, numForward]
-      else
-        onMove fromBackward, toBackward, numBackward
-
-  if insert?
-    pendingOffset = 0
-    for pending in pendingMoves
-      pendingOffset += pending[2]  if pending[0] < insert
-
-    onInsert insert + pendingOffset, after.slice(insert, insert + numInsert)
-    offset += numInsert
-
-  if remove?
-    pendingOffset = 0
-    for pending in pendingMoves
-      pendingOffset += pending[2]  if pending[0] < remove
-
-    onRemove remove + pendingOffset, numRemove
-    offset -= numRemove
-
-  while pending = pendingMoves[0]
-    to = pending[1]
-    break unless to <= a
-    onMove pending[0], to, pending[2]
-    pendingMoves.shift()
-
+      offset -= num if from < index 
   return offset
 
-lookAhead = (before, after, afterLen, skipA, skipB, from, to) ->
+moveLookAhead = (before, after, afterLen, skipA, skipB, from, to) ->
   num = 1
   skipA[to] = true
   skipB[from] = true
@@ -132,3 +128,8 @@ lookAhead = (before, after, afterLen, skipA, skipB, from, to) ->
     skipA[to] = true
     skipB[from] = true
   return num
+
+addInsertOrRemove = (ops, after, insert, numInsert, remove, numRemove) ->
+  ops.push ['insert', insert, after.slice(insert, insert + numInsert)...]  if insert?
+  ops.push ['remove', remove, numRemove]  if remove?
+  return
