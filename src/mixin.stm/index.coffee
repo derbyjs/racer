@@ -17,7 +17,8 @@ stm = module.exports =
 
   init: ->
     # Context (i.e., this) is Model instance
-    @_specCache = specCache =
+    self = this
+    self._specCache = specCache =
       invalidate: ->
         delete @data
         delete @lastTxnId
@@ -25,28 +26,25 @@ stm = module.exports =
     # The startId is the ID of the last Redis restart. This is sent along with
     # each versioned message from the Model so that the Store can map the model's
     # version number to the version number of the Stm in case of a Redis failure
-    @_startId = ''
+    self._startId = ''
 
     # atomic models that have been generated stored by atomic transaction id.
-    @_atomicModels = {}
+    self._atomicModels = {}
 
-    @_count =
-      txn: 0
-      id: 0
-    @_txns = txns = {}
-    @_txnQueue = txnQueue = []
+    self._count = txn: 0, id: 0
+    self._txns = txns = {}         # transaction id -> transaction
+    self._txnQueue = txnQueue = [] # [transactionIds...]
 
-    @_removeTxn = (txnId) ->
+    self._removeTxn = (txnId) ->
       delete txns[txnId]
       if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
       specCache.invalidate()
 
-    self = this
-    adapter = @_adapter
+    adapter = self._adapter
     # Used for diffing array operations in order emitted vs order applied
     before = new MemorySync
     after = new MemorySync
-    @_onTxn = (txn) ->
+    self._onTxn = (txn) ->
       # Copy meta properties onto this transaction if it matches one in the queue
       if txnQ = txns[transaction.id txn]
         txn.callback = txnQ.callback
@@ -57,24 +55,25 @@ stm = module.exports =
 
       if transaction.base(txn) > adapter.version
         self._applyTxn txn, isLocal
+
       return
 
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
     # transaction without conflict detection, such as model.force.set
-    @force = Object.create this, _force: value: true
+    self.force = Object.create this, _force: value: true
 
-    @async = new Async this
+    self.async = new Async this
 
   setupSocket: (socket) ->
     self = this
-    adapter = @_adapter
-    txns = @_txns
-    txnQueue = @_txnQueue
-    removeTxn = @_removeTxn
-    onTxn = @_onTxn
+    adapter = self._adapter
+    txns = self._txns
+    txnQueue = self._txnQueue
+    removeTxn = self._removeTxn
+    onTxn = self._onTxn
 
     notReady = true
-    @_commit = commit = (txn) ->
+    self._commit = commit = (txn) ->
       return if txn.isPrivate || notReady
       txn.timeout = +new Date + SEND_TIMEOUT
       socket.emit 'txn', txn, self._startId
@@ -103,6 +102,8 @@ stm = module.exports =
     socket.on 'txn', (txn, num) ->
       txnApplier.add txn, num
 
+    # The model receives 'txnOk' from the server/store after the server/store
+    # applies the transaction successfully
     socket.on 'txnOk', (txnId, base, num) ->
       return unless txn = txns[txnId]
       transaction.base txn, base
