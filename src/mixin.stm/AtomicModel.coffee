@@ -58,7 +58,7 @@ proto =
     ) for txn in @oplog())
     return transaction.create base: @ver, id: @id, ops: ops
 
-  _getVer: -> @ver
+  getVer: -> @ver
   _commit: ->
   commit: (callback) ->
     txn = @_oplogAsTxn()
