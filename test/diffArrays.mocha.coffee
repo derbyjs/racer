@@ -22,13 +22,19 @@ describe 'diffArrays', ->
     diff = diffArrays before, after
     diff.should.eql expect if expect
     try
-      apply(before, diff).should.eql after
+      result = apply before, diff
+      result.should.eql after
     catch e
       throw new Error """failure diffing
+
       before: [#{before.join ', '}]
       after:  [#{after.join ', '}]
+
+      result: [#{result.join ', '}]
+
       diff:
       #{inspect diff}
+
       """
 
   log = ({before, after}) ->
@@ -340,22 +346,37 @@ describe 'diffArrays', ->
   it 't4', -> test
     before: [0, 1, 2]
     after:  [2, 1, 2]
-  
+
   it 't5', -> test
     before: [0, 0, 1]
     after:  [1, 1, 0]
 
-    [0, 0, 1]
-    [0, 1, 0]
+  it 't6', -> test
+    before: [0, 1, 1, 2]
+    after:  [2, 3, 4, 1]
 
-  it 't', -> test
-    before: [1, 4, 3, 5, 8, 2, 2, 0, 9]
-    after:  [5, 8, 7, 5, 7, 0, 1, 3, 6]
+  it 't7', -> test
+    before: [0, 1, 2, 3]
+    after:  [1, 4, 0, 0]
+
+  it 't8', -> test
+    before: [0, 1, 1, 2]
+    after:  [2, 3, 0, 0]
+
+  # [0, 1, 1, 2]
+  # [2, 0, 1, 1]
+  # [2, 3, 0, 1, 1]
+  # [2, 3, 0, 0, 1, 1]
+  # [2, 3, 0, 0] -> 4, 2
+
+  # it 't', -> test
+  #   before: [1, 4, 3, 5, 8, 2, 2, 0, 9]
+  #   after:  [5, 8, 7, 5, 7, 0, 1, 3, 6]
 
   it 'works on random arrays', ->
     randomArray = ->
       arr = []
-      i = 3
+      i = 4
       while i--
         if ~(random = Math.floor(Math.random() * 11) - 1)
           arr.push random

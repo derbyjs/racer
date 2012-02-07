@@ -10,7 +10,9 @@ module.exports =
 
     while a < afterLen
 
-      while skipA[++a] then
+      while skipA[++a]
+        addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
+        insert = remove = null
       while skipB[++b] then
       itemAfter = after[a]
       itemBefore = before[b]
@@ -19,7 +21,7 @@ module.exports =
         addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
         insert = remove = null
         continue
-
+      
       indexAfter = before.indexOf itemAfter, b
       while skipB[indexAfter]
         indexAfter = before.indexOf itemAfter, indexAfter + 1
@@ -62,10 +64,9 @@ module.exports =
       ops.push ['move', b, indexBefore, numForward, indexAfter, a, numBackward]
 
     # Turn move operations into moves forward or backward as appropriate.
-    # Offset moves by inserts, removes, and moves going forward
+    # Offset moves & removes by inserts, removes, and moves going forward
+    moves = []
     offset = 0
-    toOffset = []
-    moveDirections = []
     i = -1
     while op = ops[++i]
       method = op[0]
@@ -73,28 +74,27 @@ module.exports =
       switch method
         when 'insert'
           num = op.length - 2
+          offsetMoves moves, op[1], -num
           offset += num
-          offsetMoves toOffset, moveDirections, op[1], -num
           continue
 
         when 'remove'
-          index = op[1]
-          op[1] += offset + offsetByMoves(toOffset, moveDirections, index)
+          index = op[1] += forwardOffset(moves, op[1], offset)
           num = op[2]
+          offsetMoves moves, index, num
           offset -= num
-          offsetMoves toOffset, moveDirections, index, num
           continue
 
         when 'move'
           fromForward = op[1]
           toForward = op[2]
           numForward = op[3]
-          fromForward += offset + offsetByMoves(toOffset, moveDirections, fromForward)
+          fromForwardOffset = fromForward + forwardOffset(moves, fromForward, offset)
 
           fromBackward = op[4]
           toBackward = op[5]
           numBackward = op[6]
-          fromBackward += offset + offsetByMoves(toOffset, moveDirections, fromBackward)
+          fromBackwardOffset = fromBackward + forwardOffset(moves, fromBackward, offset)
 
           if numForward == -1
             singleMove = true
@@ -103,8 +103,8 @@ module.exports =
             singleMove = true
             dir = 1
           else
-            sameForward = toBackward == fromBackward - numForward
-            sameBackward = toForward == fromForward + numBackward
+            sameForward = toBackward == fromBackwardOffset - numForward
+            sameBackward = toForward == fromForwardOffset + numBackward
 
             singleMove = sameForward || sameBackward
             dir = if sameForward && sameBackward
@@ -115,44 +115,45 @@ module.exports =
           if singleMove
             if dir
               offset -= numForward
-              toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
-              moveDirections.push dir
+              ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
+              moves.push {dir: 1, ref: toForward, op}
             else
               offset += numBackward
-              toOffset.push ops[i] = ['move', fromBackward, toBackward, numBackward]
-              moveDirections.push dir
+              ops[i] = op = ['move', fromBackwardOffset, toBackward, numBackward]
+              moves.push {dir: 0, op}
 
           else
             offset += numBackward - numForward
-            toOffset.push ops[i] = ['move', fromForward, toForward, numForward]
-            toOffset.push op = ['move', fromBackward - numForward, toBackward, numBackward]
+            ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
+            moves.push {dir: 1, ref: toForward, op}
+
+            fromBackwardOffset -= numForward  if toForward >= fromBackwardOffset
+            op = ['move', fromBackwardOffset, toBackward, numBackward]
             ops.splice ++i, 0, op
-            moveDirections.push 1, 0
-    
-    # Offset moves by other moves ahead of them
-    i = toOffset.length
-    while op = toOffset[--i]
-      j = i
-      from = op[1]
-      to = op[2]
-      if from < to
-        start = from
-        end = to
+            moves.push {dir: 0, op}
+
+    # Offset moves by other moves going backwards
+    i = moves.length
+    while move = moves[--i]
+      op = move.op
+      if move.dir
+        start = op[1]
+        end = op[2]
         offset = op[3]
       else
-        start = to
-        end = from
+        start = op[2]
+        end = op[1]
         offset = -op[3]
 
-      while op = toOffset[--j]
-        from = op[1]
-        to = op[2]
-        if from < to
-          op[2] += offset if start <= to <= end
+      j = i
+      while move = moves[--j]
+        op = move.op
+        if move.dir
+          op[2] += offset if start <= op[2] <= end
         else
-          op[1] -= offset if start < from < end
+          op[1] -= offset if start < op[1] < end
 
-    # Remove any moves that have the same from & to indicies
+    # Remove any no-op moves
     i = ops.length
     while op = ops[--i]
       if op[0] is 'move' && op[1] == op[2]
@@ -160,19 +161,19 @@ module.exports =
 
     return ops
 
-offsetMoves = (toOffset, moveDirections, index, offset) ->
-  for op, i in toOffset
-    if moveDirections[i]
-      op[2] += offset if index <= op[2]
+offsetMoves = (moves, index, offset) ->
+  i = moves.length
+  while move = moves[--i]
+    if move.dir
+      move.op[2] += offset  if index <= move.ref
 
-offsetByMoves = (toOffset, moveDirections, index) ->
-  offset = 0
-  for op, i in toOffset
-    num = op[3]
-    if moveDirections[i]
-      offset += num if op[2] < index
+forwardOffset = (moves, index, offset) ->
+  for move in moves
+    op = move.op
+    if move.dir
+      offset += op[3] if op[2] < index
     else
-      offset -= num if op[1] < index 
+      offset -= op[3] if op[1] < index
   return offset
 
 moveLookAhead = (before, after, skipA, skipB, afterLen, from, to, otherItem) ->
