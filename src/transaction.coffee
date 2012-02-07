@@ -11,6 +11,10 @@ module.exports =
       txn = [obj.base, obj.id, obj.method, obj.args]
     return txn
 
+  createNull: -> @create base: -1
+
+  isNull: (txn) -> @base(txn) == -1
+
   base: (txn, val) ->
     txn[0] = val if val isnt undefined
     return txn[0]
@@ -36,7 +40,7 @@ module.exports =
     args = @args txn
     args[0] = val if val isnt undefined
     return args[0]
-  
+
   meta: (txn, vals) ->
     txn[4] = vals if vals isnt undefined
     return txn[4]

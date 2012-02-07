@@ -45,6 +45,7 @@ stm = module.exports =
     before = new MemorySync
     after = new MemorySync
     self._onTxn = (txn) ->
+      return if transaction.isNull txn
       # Copy meta properties onto this transaction if it matches one in the queue
       if txnQ = txns[transaction.id txn]
         txn.callback = txnQ.callback
@@ -121,23 +122,27 @@ stm = module.exports =
       removeTxn txnId
 
     # Live Query Channels
-    # TODO LIVE_QUERY Does this + the txnlog result in an inconsistent state in
-    #      the browser?
-    socket.on 'rmDoc', ({doc, ns, hash, id}) ->
+    socket.on 'rmDoc', ({doc, ns, hash, id, ver}, num) ->
       # TODO Optimize this by sending + using only ns.id
       for k, q of self.liveQueries
         # Remove the doc from here if any other queries --
         # besides the one that triggered the rmDoc -- match the doc
-        return if hash != k && q.test doc, "#{ns}.#{id}"
+        if hash != k && q.test doc, "#{ns}.#{id}"
+          txn = transaction.createNull()
+          return txnApplier.add txn, num
 
-      delete adapter._data.world[ns][id]
+      txn = transaction.create base: ver, id: null, method: 'del', args: ["#{ns}.#{id}"]
+      txnApplier.add txn, num
       self.emit('rmDoc', ns + '.' + id, doc)
 
-    socket.on 'addDoc', ({doc, ns}) ->
+    socket.on 'addDoc', ({doc, ns, ver}, num) ->
       data = adapter._data.world[ns] ||= {}
       # If the doc is already in the model, don't add it
-      return if adapter._data.world[ns][doc.id]
-      data[doc.id] = doc
+      if adapter._data.world[ns][doc.id]
+        txn = transaction.createNull()
+        return txnApplier.add txn, num
+      txn = transaction.create base: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
+      txnApplier.add txn, num
       self.emit 'addDoc', "#{ns}.#{doc.id}", doc
 
     resendInterval = null
@@ -216,7 +221,7 @@ stm = module.exports =
       return out
 
     _applyTxn: (txn, isLocal) ->
-      @_removeTxn transaction.id txn
+      @_removeTxn txnId if txnId = transaction.id txn
       data = @_adapter._data
       doEmit = !txn.emitted
       ver = Math.floor transaction.base txn

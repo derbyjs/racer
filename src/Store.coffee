@@ -41,8 +41,12 @@ Store = module.exports = (options = {}) ->
       # docs to/from the data set enclosed by the
       # live queries the client subscribes to
       if socket = self._clientSockets[clientId]
-        return socket.emit 'rmDoc', rmDoc if rmDoc
-        return socket.emit 'addDoc', addDoc if addDoc
+        if rmDoc
+          return self._nextTxnNum clientId, (num) ->
+            return socket.emit 'rmDoc', rmDoc, num
+        if addDoc
+          return self._nextTxnNum clientId, (num) ->
+            return socket.emit 'addDoc', addDoc, num
       throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
   # Add a @commit method to this store based on the conflict resolution mode

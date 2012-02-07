@@ -29,7 +29,7 @@ QueryPubSub::=
   publish: (message, origDoc, newDoc) ->
     return this unless txn = message.txn # vs message.ot
     txnVer = transaction.base txn
-    pseudoVer = -> txnVer += 0.2
+    pseudoVer = -> txnVer += 0.01
     txnPath = transaction.path txn
     [txnNs, txnId] = parts = txnPath.split '.'
     nsPlusId = txnNs + '.' + txnId
@@ -48,7 +48,7 @@ QueryPubSub::=
             for mem in newMembers
               channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
             for mem in oldMembers
-              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
         continue unless q.test doc, nsPlusId
         channelPubSub.publish queryChannel, message
       return this
@@ -63,7 +63,7 @@ QueryPubSub::=
             for mem in newMembers
               channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
             for mem in oldMembers
-              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id}
+              channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
             # TODO Be more discreet about when to publish this message. We are
             # probably publishing more than we need to. We can narrow it down
             # to a smaller subset of scenarios.
@@ -78,7 +78,7 @@ QueryPubSub::=
         else
           # The query no longer contains the document,
           # so tell any subscribed clients to remove it.
-          channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id}
+          channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id, ver: pseudoVer()}
       # The query didn't contain the document before its mutation, but now it
       # does contain it, so tell the client to add the document to its model.
       else if q.test newDoc, nsPlusId
