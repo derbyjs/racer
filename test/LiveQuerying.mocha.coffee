@@ -1313,17 +1313,65 @@ describe 'Live Querying', ->
                       finish()
                 , done
 
-          describe 'dependent queries', ->
-            it "should send updates when they react to their depedency queries' updates"
-            it "should not send updates if its dependency queries emit updates that don't impact the dependent query"
+          describe 'versioning', ->
+            players = [
+              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+            ]
+            beforeEach (done) ->
+              async.forEach players
+              , (player, callback) ->
+                store.set "players.#{player.id}", player, null, callback
+              , done
+
+            it 'should update the version when the doc is removed from a model because it no longer matches subscriptions', (done) ->
+              oldVer = null
+              fullSetup {store},
+                modelHello:
+                  server: (modelHello, finish) ->
+                    query = modelHello.query('players').where('ranking').lt(10)
+                    modelHello.subscribe query, ->
+                      oldVer = modelHello.getVer()
+                      finish()
+                  browser: (modelHello, finish) ->
+                    modelHello.on 'rmDoc', ->
+                      modelHello.getVer().should.equal(oldVer + 1)
+                      finish()
+                modelFoo:
+                  server: (modelFoo, finish) -> finish()
+                  browser: (modelFoo, finish) ->
+                    modelFoo.set 'players.1.ranking', 11
+                    finish()
+              , done
+
+            it 'should update the version when the doc is added to a model because it starts to matche subscriptions', (done) ->
+              oldVer = null
+              fullSetup {store},
+                modelHello:
+                  server: (modelHello, finish) ->
+                    query = modelHello.query('players').where('ranking').gt(2)
+                    modelHello.subscribe query, ->
+                      oldVer = modelHello.getVer()
+                      finish()
+                  browser: (modelHello, finish) ->
+                    modelHello.on 'addDoc', ->
+                      modelHello.getVer().should.equal(oldVer + 1)
+                      finish()
+                modelFoo:
+                  server: (modelFoo, finish) -> finish()
+                  browser: (modelFoo, finish) ->
+                    modelFoo.set 'players.1.ranking', 11
+                    finish()
+              , done
 
           describe 'transaction application', ->
             it 'should apply a txn if a document is still in a query result set after a mutation'
             it 'should not apply a txn if a document is being added to a query result set after a mutation'
 
-          describe 'versioning', ->
-            it 'should update the version when the doc is removed from a model because it no longer matches subscriptions'
-            it 'should update the version when the doc is added to a model because it starts to matche subscriptions'
-
           describe 'over-subscribing to a doc via 2 queries', ->
             it 'should ignore duplicate transactions'
+
+          describe 'dependent queries', ->
+            it "should send updates when they react to their depedency queries' updates"
+            it "should not send updates if its dependency queries emit updates that don't impact the dependent query"

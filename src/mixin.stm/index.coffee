@@ -176,7 +176,7 @@ stm = module.exports =
       @_txns[id] = txn
       @_txnQueue.push id
 
-    _getVer: -> if @_force then null else @_adapter.version
+    getVer: -> if @_force then null else @_adapter.version
 
     _addOpAsTxn: (method, args, callback) ->
       # Refs may mutate the args in its 'beforeTxn' handler
@@ -185,7 +185,7 @@ stm = module.exports =
       return unless (path = args[0])?
 
       # Create a new transaction
-      base = @_getVer()
+      base = @getVer()
       id = @_nextTxnId()
       txn = transaction.create {base, id, method, args}
       txn.isPrivate = isPrivate path
