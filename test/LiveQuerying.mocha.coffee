@@ -1424,7 +1424,47 @@ describe 'Live Querying', ->
               , done
 
           describe 'over-subscribing to a doc via 2 queries', ->
-            it 'should ignore duplicate transactions'
+            players = [
+              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+            ]
+            beforeEach (done) ->
+              async.forEach players
+              , (player, callback) ->
+                store.set "players.#{player.id}", player, null, callback
+              , done
+
+            # The following is true because we only pass along transactions
+            # whose version is > the socket version. The first time the socket
+            # sees the transaction via pubSub, it sends it down to the browser.
+            # The second time it sees the now-duplicate transaction, it doesn't
+            # send it down because the txn version == socket version.
+            it 'should only receive a transaction once if it applies to > 1 query', (done) ->
+              txnDuplicateReceipts = 0
+              fullSetup {store},
+                modelHello:
+                  server: (modelHello, finish) ->
+                    queryZoo    = modelHello.query('players').where('ranking').lt(10)
+                    queryLander = modelHello.query('players').where('ranking').lt(9)
+                    modelHello.subscribe queryZoo, queryLander, ->
+                      finish()
+                  browser: (modelHello, finish) ->
+                    modelHello.on 'set', ([path, val], ver) ->
+                      if path == 'players.3.name.last'
+                        modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      else
+                        throw new Error "Should not be setting #{path}"
+                    modelHello.socket.on 'txn', (txn, num) ->
+                      finish() # This will throw an error if called twice
+                modelFoo:
+                  server: (modelFoo, finish) -> finish()
+                  browser: (modelFoo, finish) ->
+                    setTimeout ->
+                      modelFoo.set 'players.3.name.last', 'Djokovic'
+                    , 400
+                    finish()
+              , done
 
           describe 'dependent queries', ->
             it "should send updates when they react to their depedency queries' updates"
