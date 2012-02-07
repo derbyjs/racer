@@ -244,7 +244,7 @@ stm = module.exports =
       return if method is 'get'
       args = extractor.args txn
       out = @_adapter[method] args..., ver, data
-      @emit method + 'Post', args, ver # TODO: Remove this
+      @emit method + 'Post', args, ver
       if doEmit
         if patch = txn.patch
           for {method, args} in patch

@@ -1366,8 +1366,62 @@ describe 'Live Querying', ->
               , done
 
           describe 'transaction application', ->
-            it 'should apply a txn if a document is still in a query result set after a mutation'
-            it 'should not apply a txn if a document is being added to a query result set after a mutation'
+            players = [
+              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+            ]
+            beforeEach (done) ->
+              async.forEach players
+              , (player, callback) ->
+                store.set "players.#{player.id}", player, null, callback
+              , done
+
+            it 'should apply a txn if a document is still in a query result set after a mutation', (done) ->
+              fullSetup {store},
+                modelHello:
+                  server: (modelHello, finish) ->
+                    query = modelHello.query('players').where('ranking').equals(1)
+                    modelHello.subscribe query, ->
+                      for player in players
+                        if player.ranking == 1
+                          modelHello.get("players.#{player.id}").should.eql player
+                        else
+                          should.equal undefined, modelHello.get("players.#{player.id}")
+                      finish()
+                  browser: (modelHello, finish) ->
+                    modelHello.on 'setPost', ->
+                      modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      finish()
+                modelFoo:
+                  server: (modelFoo, finish) -> finish()
+                  browser: (modelFoo, finish) ->
+                    modelFoo.set 'players.3.name.last', 'Djokovic'
+                    finish()
+              , done
+
+            it 'should not apply a txn if a document is being added to a query result set after a mutation', (done) ->
+              fullSetup {store},
+                modelHello:
+                  server: (modelHello, finish) ->
+                    query = modelHello.query('players').where('name.last').equals('Djokovic')
+                    modelHello.subscribe query, ->
+                      for player in players
+                        should.equal undefined, modelHello.get("players.#{player.id}")
+                      finish()
+                  browser: (modelHello, finish) ->
+                    modelHello.on 'setPost', ([path, val], ver) ->
+                      if path == 'players.3'
+                        modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                        finish()
+                      else
+                        throw new Error "Should not be setting #{path}"
+                modelFoo:
+                  server: (modelFoo, finish) -> finish()
+                  browser: (modelFoo, finish) ->
+                    modelFoo.set 'players.3.name.last', 'Djokovic'
+                    finish()
+              , done
 
           describe 'over-subscribing to a doc via 2 queries', ->
             it 'should ignore duplicate transactions'
