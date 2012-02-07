@@ -93,8 +93,8 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 5, 6]
     after:  [0, 3, 4, 1, 2]
     expect: [
+      ['remove', 3, 2]
       ['insert', 1, 3, 4]
-      ['remove', 5, 2]
     ]
 
   it 'detects remove then insert', -> test
@@ -109,24 +109,24 @@ describe 'diffArrays', ->
     before: [0, 5, 6, 1, 2]
     after:  [0, 3, 4, 1, 2]
     expect: [
+      ['remove', 1, 2]
       ['insert', 1, 3, 4]
-      ['remove', 3, 2]
     ]
   
   it 'detects insert and remove all', -> test
     before: [1, 2, 3]
     after:  [4, 5]
     expect: [
+      ['remove', 0, 3]
       ['insert', 0, 4, 5]
-      ['remove', 2, 3]
     ]
 
   it 'detects insert then remove overlapping', -> test
     before: [0, 5, 1, 2]
     after:  [0, 3, 4, 1, 2]
     expect: [
+      ['remove', 1, 1]
       ['insert', 1, 3, 4]
-      ['remove', 3, 1]
     ]
 
   it 'detects remove then insert overlapping', -> test
@@ -139,7 +139,7 @@ describe 'diffArrays', ->
 
   it 'detects remove then insert of repeated item', -> test
     before: [0, 4]
-    after: [4, 4]
+    after:  [4, 4]
     expect: [
       ['remove', 0, 1]
       ['insert', 1, 4]
@@ -164,16 +164,16 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3]
     after:  [4, 1, 2, 0, 3]
     expect: [
+      ['move', 0, 2, 1]
       ['insert', 0, 4]
-      ['move', 1, 3, 1]
     ]
 
   it 'detects insert then move backward', -> test
-    before: [1, 2, 0, 3]
-    after:  [4, 0, 1, 2, 3]
+    before: [0, 1, 2, 3]
+    after:  [4, 2, 0, 1, 3]
     expect: [
+      ['move', 2, 0, 1]
       ['insert', 0, 4]
-      ['move', 3, 1, 1]
     ]
 
   it 'detects remove then move forward', -> test
@@ -286,11 +286,11 @@ describe 'diffArrays', ->
       ['insert', 1, 3]
     ]
 
-  it 'detects insert within multiple forward move', -> test
+  it 'detects insert within backward move', -> test
     before: [0, 1, 2]
     after:  [2, 3, 0, 1]
     expect: [
-      ['move', 0, 1, 2]
+      ['move', 2, 0, 1]
       ['insert', 1, 3]
     ]
 
@@ -306,16 +306,16 @@ describe 'diffArrays', ->
     before: [0, 1, 2, 3]
     after:  [3, 0, 2]
     expect: [
-      ['move', 3, 0, 1]
-      ['remove', 2, 1]
+      ['remove', 1, 1]
+      ['move', 2, 0, 1]
     ]
 
   it 'detects remove within forward move', -> test
     before: [0, 1, 2, 3]
     after:  [1, 3, 0]
     expect: [
-      ['move', 0, 3, 1]
-      ['remove', 1, 1]
+      ['remove', 2, 1]
+      ['move', 0, 2, 1]
     ]
 
   it 'detects multiple overlapping moves', -> test
@@ -362,16 +362,23 @@ describe 'diffArrays', ->
   it 't8', -> test
     before: [0, 1, 1, 2]
     after:  [2, 3, 0, 0]
-
-  # [0, 1, 1, 2]
-  # [2, 0, 1, 1]
-  # [2, 3, 0, 1, 1]
-  # [2, 3, 0, 0, 1, 1]
-  # [2, 3, 0, 0] -> 4, 2
-
-  # it 't', -> test
-  #   before: [1, 4, 3, 5, 8, 2, 2, 0, 9]
-  #   after:  [5, 8, 7, 5, 7, 0, 1, 3, 6]
+  
+  it 't9', -> test
+    before: [0, 1, 2, 3]
+    after:  [2, 0, 0, 4]
+  
+  it 't10', -> test
+    before: [0, 1, 2, 0]
+    after:  [2, 0, 3, 1]
+  
+  it 't11', -> test
+    before: [0, 1, 2, 3]
+    after:  [3, 4, 0, 2]
+  
+    # [0, 1, 2, 3]
+    # [0, 2, 3] -> 2, 0, 1
+    # [3, 0, 2]
+    # [3, 4, 0, 2]
 
   it 'works on random arrays', ->
     randomArray = ->

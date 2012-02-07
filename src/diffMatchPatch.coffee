@@ -7,18 +7,24 @@ module.exports =
     skipA = {}
     skipB = {}
     ops = []
+    inserts = []
+    removes = []
 
     while a < afterLen
 
       while skipA[++a]
-        addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
+        addInsertOrRemove inserts, removes, after, insert, numInsert, remove, numRemove
         insert = remove = null
-      while skipB[++b] then
+      while skipB[++b]
+        addInsertOrRemove inserts, removes, after, insert, numInsert, remove, numRemove
+        insert = remove = null
       itemAfter = after[a]
       itemBefore = before[b]
 
+      # console.log a, b, skipA, skipB
+
       if itemAfter == itemBefore
-        addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
+        addInsertOrRemove inserts, removes, after, insert, numInsert, remove, numRemove
         insert = remove = null
         continue
       
@@ -46,7 +52,7 @@ module.exports =
         a--
         continue
 
-      addInsertOrRemove ops, after, insert, numInsert, remove, numRemove
+      addInsertOrRemove inserts, removes, after, insert, numInsert, remove, numRemove
       insert = remove = null
 
       numBackward = moveLookAhead before, after, skipA, skipB, afterLen, indexAfter, a, itemBefore
@@ -63,74 +69,78 @@ module.exports =
 
       ops.push ['move', b, indexBefore, numForward, indexAfter, a, numBackward]
 
-    # Turn move operations into moves forward or backward as appropriate.
-    # Offset moves & removes by inserts, removes, and moves going forward
+
+    # Removes are all emitted first. Offset the indices of removes after other removes
+    # and the indicies of moves by removes
+    offset = 0
+    for op in removes
+      index = op[1] += offset
+      num = op[2]
+      offset -= num
+      for op in ops
+        op[1] -= num  if index < op[1]
+        op[4] -= num  if index < op[4]
+
+    # Inserts are all emitted last. Offset the indices of moves by inserts 
+    for op in inserts
+      num = op.length - 2
+      index = op[1]
+      for op in ops
+        op[2] -= num  if index < op[2]
+        op[5] -= num  if index < op[5]
+
     moves = []
     offset = 0
     i = -1
     while op = ops[++i]
-      method = op[0]
 
-      switch method
-        when 'insert'
-          num = op.length - 2
-          offsetMoves moves, op[1], -num
-          offset += num
-          continue
+      fromForward = op[1]
+      toForward = op[2]
+      numForward = op[3]
+      fromForwardOffset = fromForward + forwardOffset(moves, fromForward, offset)
 
-        when 'remove'
-          index = op[1] += forwardOffset(moves, op[1], offset)
-          num = op[2]
-          offsetMoves moves, index, num
-          offset -= num
-          continue
+      fromBackward = op[4]
+      toBackward = op[5]
+      numBackward = op[6]
+      fromBackwardOffset = fromBackward + forwardOffset(moves, fromBackward, offset)
 
-        when 'move'
-          fromForward = op[1]
-          toForward = op[2]
-          numForward = op[3]
-          fromForwardOffset = fromForward + forwardOffset(moves, fromForward, offset)
+      if numForward == -1
+        singleMove = true
+        dir = 0
+      else if numBackward == -1
+        singleMove = true
+        dir = 1
+      else
+        sameForward = toBackward == fromBackwardOffset - numForward
+        sameBackward = toForward == fromForwardOffset + numBackward
 
-          fromBackward = op[4]
-          toBackward = op[5]
-          numBackward = op[6]
-          fromBackwardOffset = fromBackward + forwardOffset(moves, fromBackward, offset)
-
-          if numForward == -1
-            singleMove = true
-            dir = 0
-          else if numBackward == -1
-            singleMove = true
-            dir = 1
+        singleMove = sameForward || sameBackward
+        dir = if sameForward && sameBackward
+            numForward <= numBackward
           else
-            sameForward = toBackward == fromBackwardOffset - numForward
-            sameBackward = toForward == fromForwardOffset + numBackward
+            sameForward
 
-            singleMove = sameForward || sameBackward
-            dir = if sameForward && sameBackward
-                numForward <= numBackward
-              else
-                sameForward
+      if singleMove
+        if dir
+          offset -= numForward
+          ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
+          moves.push {dir: 1, op}
+        else
+          offset += numBackward
+          ops[i] = op = ['move', fromBackwardOffset, toBackward, numBackward]
+          moves.push {dir: 0, op}
 
-          if singleMove
-            if dir
-              offset -= numForward
-              ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
-              moves.push {dir: 1, ref: toForward, op}
-            else
-              offset += numBackward
-              ops[i] = op = ['move', fromBackwardOffset, toBackward, numBackward]
-              moves.push {dir: 0, op}
+      else
+        offset += numBackward - numForward
+        ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
+        moves.push {dir: 1, op}
 
-          else
-            offset += numBackward - numForward
-            ops[i] = op = ['move', fromForwardOffset, toForward, numForward]
-            moves.push {dir: 1, ref: toForward, op}
+        fromBackwardOffset -= numForward  if toForward >= fromBackwardOffset
+        op = ['move', fromBackwardOffset, toBackward, numBackward]
+        ops.splice ++i, 0, op
+        moves.push {dir: 0, op}
 
-            fromBackwardOffset -= numForward  if toForward >= fromBackwardOffset
-            op = ['move', fromBackwardOffset, toBackward, numBackward]
-            ops.splice ++i, 0, op
-            moves.push {dir: 0, op}
+    # console.log moves
 
     # Offset moves by other moves going backwards
     i = moves.length
@@ -154,18 +164,12 @@ module.exports =
           op[1] -= offset if start < op[1] < end
 
     # Remove any no-op moves
-    i = ops.length
-    while op = ops[--i]
-      if op[0] is 'move' && op[1] == op[2]
-        ops.splice i, 1
+    # i = ops.length
+    # while op = ops[--i]
+    #   if op[0] is 'move' && op[1] == op[2]
+    #     ops.splice i, 1
 
-    return ops
-
-offsetMoves = (moves, index, offset) ->
-  i = moves.length
-  while move = moves[--i]
-    if move.dir
-      move.op[2] += offset  if index <= move.ref
+    return removes.concat ops, inserts
 
 forwardOffset = (moves, index, offset) ->
   for move in moves
@@ -181,7 +185,7 @@ moveLookAhead = (before, after, skipA, skipB, afterLen, from, to, otherItem) ->
   b = from
   a = to
   while (item = before[++b]) == after[++a] && a < afterLen
-    return -1 if item == otherItem
+    return -1 if item == otherItem || skipB[b] || skipA[a]
     num++
 
   end = from + num
@@ -190,7 +194,7 @@ moveLookAhead = (before, after, skipA, skipB, afterLen, from, to, otherItem) ->
     skipA[to++] = true
   return num
 
-addInsertOrRemove = (ops, after, insert, numInsert, remove, numRemove) ->
-  ops.push ['insert', insert, after.slice(insert, insert + numInsert)...]  if insert?
-  ops.push ['remove', remove, numRemove]  if remove?
+addInsertOrRemove = (inserts, removes, after, insert, numInsert, remove, numRemove) ->
+  inserts.push ['insert', insert, after.slice(insert, insert + numInsert)...]  if insert?
+  removes.push ['remove', remove, numRemove]  if remove?
   return
