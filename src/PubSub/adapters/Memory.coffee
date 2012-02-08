@@ -1,3 +1,5 @@
+# TODO Finish implementation
+
 module.exports = MemoryAdapter = (options = {}) ->
   return
 
