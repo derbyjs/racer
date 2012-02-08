@@ -1,77 +1,17 @@
 redis = require 'redis'
-pathParser = require './pathParser'
-transaction = require './transaction.server'
-{hasKeys, deepCopy} = require './util'
-QueryPubSub = require './QueryPubSub'
+pathParser = require '../../pathParser'
+transaction = require '../../transaction.server'
+{hasKeys} = require '../../util'
 
 # new PubSub
-#   adapter:
-#     type: 'Redis'
-#     pubClient: redisClientA
-#     subClient: redisClientB
+#   store: store
 #   onMessage: (clientId, txn) ->
-PubSub = module.exports = (options = {}) ->
-  adapterName = options.adapter?.type || 'Redis'
-  delete options.adapter.type if options.adapter
-  onMessage = options.onMessage || ->
-  @_adapter = new PubSub._adapters[adapterName] onMessage, options.adapter
-  @_queryPubSub = new QueryPubSub this
-  @store = options.store
-  return
-
-PubSub:: =
-  subscribe: (subscriberId, targets, callback, method = 'psubscribe') ->
-    channels = []
-    queries = []
-    for targ in targets
-      if targ.isQuery
-        queries.push targ
-      else channels.push targ
-    numChannels = channels.length
-    numQueries = queries.length
-    remaining = if numChannels && numQueries then 2 else 1
-    if numQueries
-      @_queryPubSub.subscribe subscriberId, queries, (err) ->
-        --remaining || callback()
-    if numChannels
-      @_adapter.subscribe subscriberId, channels, (err) ->
-        --remaining || callback()
-      , method
-
-  publish: (path, message, meta = {}) ->
-    unless path.substring(0,8) == 'queries.'
-      if origDoc = meta.origDoc
-        {txn} = message
-        if origDoc
-          newDoc = deepCopy origDoc
-        else
-          # Otherwise, this is a new doc
-          newDoc = transaction.args(txn)[1]
-        newDoc = applyTxn txn, newDoc
-        @_queryPubSub.publish message, origDoc, newDoc
-      else
-        @_queryPubSub.publish message
-    @_adapter.publish path, message
-
-  unsubscribe: (subscriberId, channels, callback) ->
-    @_adapter.unsubscribe subscriberId, channels, callback
-
-  hasSubscriptions: (subscriberId) ->
-    @_adapter.hasSubscriptions subscriberId
-
-  subscribedToTxn: (subscriberId, txn) ->
-    @_adapter.subscribedToTxn subscriberId, txn
-
-  getQueryCache: (query) ->
-    @_queryPubSub.getQueryCache query
-
-  setQueryCache: (query, cache) ->
-    @_queryPubSub.setQueryCache query, cache
-
-
-# TODO Add a ZeroMQ adapter
-PubSub._adapters = {}
-PubSub._adapters.Redis = RedisAdapter = (onMessage, options = {}) ->
+#   adapter: new RedisAdapter(
+#              pubClient: redisClientA
+#              subClient: redisClientB
+#            )
+module.exports = RedisAdapter = (options = {}) ->
+  self = this
   {port, host, db} = options
   namespace = (db || 0) + '.'
   @_prefixWithNamespace = (path) -> namespace + path
@@ -104,13 +44,13 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options = {}) ->
     if pathSubs = subs[pattern.substr(0, pattern.length - 1)]
       message = JSON.parse message
       for subscriberId, re of pathSubs
-        onMessage subscriberId, message if re.test path
+        self.onMessage subscriberId, message if re.test path
 
   subClient.on 'message', (path, message) ->
     if pathSubs = subs[path]
       message = JSON.parse message
       for subscriberId of pathSubs
-        onMessage subscriberId, message
+        self.onMessage subscriberId, message
 
   # Redis doesn't support callbacks on subscribe or unsubscribe methods, so
   # we call the callback after subscribe/unsubscribe events are published on
@@ -126,17 +66,6 @@ PubSub._adapters.Redis = RedisAdapter = (onMessage, options = {}) ->
   makeCallback @_pendingUnsubscribe = {}, 'unsubscribe'
 
   return
-
-eachTargetType = (targets, callbackByType) ->
-  queries = []
-  paths = []
-  for targ in targets
-    if targ.isQuery
-      queries.push targ
-    else
-      paths.push targ
-  callbackByType.queries queries
-  callbackByType.pathPatterns paths
 
 RedisAdapter:: =
 
@@ -212,19 +141,3 @@ handlePaths = (paths, queue, client, fn, callback) ->
     if callback
       (queue[path] ||= []).push callback
 
-MemorySync = require './adapters/MemorySync'
-adapter = new MemorySync
-adapter.setVersion = ->
-applyTxn = (txn, doc) ->
-  method = transaction.method txn
-  args = transaction.args txn
-  path = transaction.path txn
-  if method == 'del' && path.split('.').length == 2
-    return undefined
-  [ns, id] = path.split '.'
-  world = {}
-  world[ns] = {}
-  world[ns][id] = doc
-  data = {world}
-  adapter[method] args..., 0, data
-  return doc

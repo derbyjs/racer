@@ -10,6 +10,7 @@ Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 {bufferify} = require './util'
 {deserialize: deserializeQuery} = require './query'
+PubSubRedisAdapter = require './PubSub/adapters/Redis'
 
 # store = new Store
 #   mode: 'lww' || 'stm' || 'ot'
@@ -23,12 +24,13 @@ Store = module.exports = (options = {}) ->
 
   setupRedis self, options.redis
 
+  pubSubAdapter = options.pubSub?.adapter || new PubSubRedisAdapter
+                                 pubClient: @_redisClient
+                                 subClient: @_txnSubClient
+
   @_pubSub = new PubSub
     store: @
-    adapter:
-      type: 'Redis'
-      pubClient: @_redisClient
-      subClient: @_txnSubClient
+    adapter: pubSubAdapter
     onMessage: (clientId, msg) ->
       {txn, ot, rmDoc, addDoc} = msg
       return self._onTxnMsg clientId, txn if txn

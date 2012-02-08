@@ -1,6 +1,8 @@
 should = require 'should'
 redis = require 'redis'
 PubSub = require '../src/PubSub'
+adapters =
+  Redis: require '../src/PubSub/adapters/Redis'
 
 describe 'PubSub', ->
 
@@ -9,8 +11,8 @@ describe 'PubSub', ->
 
   debug = false
   newPubSub = (onMessage) -> new PubSub
-    adapter: {type: 'Redis', pubClient, subClient, debug}
     onMessage: onMessage
+    adapter: new adapters.Redis {pubClient, subClient, debug}
 
   beforeEach (done) ->
     pubClient = redis.createClient()
