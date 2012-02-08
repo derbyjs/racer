@@ -60,7 +60,7 @@ PubSub:: =
   setQueryCache: (query, cache) ->
     @_queryPubSub.setQueryCache query, cache
 
-# TODO
+# TODO Should we use this?
 eachTargetType = (targets, callbackByType) ->
   queries = []
   paths = []

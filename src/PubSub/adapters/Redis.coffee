@@ -68,7 +68,6 @@ module.exports = RedisAdapter = (options = {}) ->
   return
 
 RedisAdapter:: =
-
   subscribe: (subscriberId, paths, callback, method = 'psubscribe') ->
     return if subscriberId is undefined
 
@@ -140,4 +139,3 @@ handlePaths = (paths, queue, client, fn, callback) ->
     client[fn] path
     if callback
       (queue[path] ||= []).push callback
-
