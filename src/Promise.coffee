@@ -84,10 +84,3 @@ Promise.parallel = (promises) ->
           --numDependencies || compositePromise.fulfill valsByName
       promise.onClearValue -> compositePromise.clearValue()
   return compositePromise
-
-Promise.transform = (transformFn) ->
-  transPromise = new Promise
-  origTransFulfill = transPromise.fulfill
-  transPromise.fulfill = (val) ->
-    origTransFulfill.call this, transformFn val
-  return transPromise
