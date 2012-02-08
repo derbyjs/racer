@@ -1,6 +1,7 @@
 {indexOf, deepIndexOf, deepEqual} = require './util'
 {lookup} = require './pathParser'
 deserializeQuery = require('./query').deserialize
+transaction = require './transaction'
 
 module.exports = LiveQuery = ->
   @_predicates = []
@@ -8,6 +9,7 @@ module.exports = LiveQuery = ->
 
 LiveQuery::=
   from: (namespace) ->
+    @_namespace = namespace
     @_predicates.push (doc, channel) ->
       docNs = channel.substring 0, channel.indexOf '.'
       return namespace == docNs
@@ -105,7 +107,7 @@ LiveQuery::=
 
   limit: (@_limit) ->
     @isPaginated = true
-    cache = @_paginatedCache ||= []
+    @_paginatedCache ||= []
     self = this
     return this
 
@@ -150,6 +152,15 @@ LiveQuery::=
           added.push x
       self._paginatedCache = found
       callback null, added, removed, ver
+
+
+  isCacheImpactedByTxn: (txn) ->
+    [ns, id] = transaction.path(txn).split '.'
+    return false if ns != @_namespace
+    cache = @_paginatedCache
+    for x in cache
+      return true if x.id == id
+    return false
 
 evalToTrue = -> true
 

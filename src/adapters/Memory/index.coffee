@@ -3,8 +3,8 @@
 ##  This file was compiled from a macro.
 ##  Do not edit it directly.
 
-MemorySync = require './MemorySync'
-{deepCopy} = require '../util'
+MemorySync = require '../MemorySync'
+{deepCopy} = require '../../util'
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 
 Memory = module.exports = ->
@@ -12,6 +12,8 @@ Memory = module.exports = ->
   return
 
 Memory:: =
+  Query: require './Query'
+
   _flush: MemorySync::flush
   flush: (callback) ->
     @_flush()
@@ -26,6 +28,18 @@ Memory:: =
     catch err
       return callback err
     callback null, val, @version
+
+  filter: (predicate, namespace) ->
+    data = @_get()
+    if namespace
+      docs = data[namespace]
+      return (doc for id, doc of docs when predicate doc, "#{namespace}.#{id}")
+
+    results = []
+    for namespace, docs of data
+      newResults = (doc for id, doc of docs when predicate doc, "#{namespace}.#{id}")
+      results.push newResults...
+    return results
 
   setupDefaultPersistenceRoutes: (store) ->
     adapter = this

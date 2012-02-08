@@ -37,6 +37,16 @@ module.exports =
       obj = obj[prop]
     return obj
 
+  assign: (obj, path, val) ->
+    parts = path.split '.'
+    lastIndex = parts.length-1
+    for prop, i in parts
+      if i == lastIndex
+        obj[prop] = val
+      else
+        obj = obj[prop] ||= {}
+    return
+
   split: (path) -> path.split /\.?[(*]\.?/
 
   expand: (path) ->

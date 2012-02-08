@@ -50,7 +50,8 @@ QueryPubSub::=
             for mem in oldMembers
               channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
         continue unless q.test doc, nsPlusId
-        channelPubSub.publish queryChannel, message
+        if !q.isPaginated || (q.isPaginated && q.isCacheImpactedByTxn txn)
+          channelPubSub.publish queryChannel, message
       return this
 
     for hash, q of queries
@@ -64,10 +65,8 @@ QueryPubSub::=
               channelPubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
             for mem in oldMembers
               channelPubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
-            # TODO Be more discreet about when to publish this message. We are
-            # probably publishing more than we need to. We can narrow it down
-            # to a smaller subset of scenarios.
-            channelPubSub.publish queryChannel, message
+            if q.isCacheImpactedByTxn txn
+              channelPubSub.publish queryChannel, message
             return
 
       else if q.test origDoc, nsPlusId

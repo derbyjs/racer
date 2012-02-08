@@ -552,6 +552,7 @@ txnEffect = (txn, method, args) ->
       num = 1
   return [ins, rem, num]
 
+# Given a txn, does a diff based on the txnQueue
 mergeTxn = (txn, txns, txnQueue, adapter, before, after) ->
   path = transaction.path txn
   method = transaction.method txn

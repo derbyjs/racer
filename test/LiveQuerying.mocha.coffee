@@ -28,6 +28,9 @@ describe 'Live Querying', ->
       mongo = new MongoAdapter 'mongodb://localhost/database'
       mongo.connect()
       return mongo
+    Memory: ->
+      MemoryAdapter = require '../src/adapters/Memory'
+      return new MemoryAdapter
 
   for adapterName, adapterBuilder of adapters
     do (adapterName, adapterBuilder) ->
@@ -882,12 +885,13 @@ describe 'Live Querying', ->
 
           describe 'paginated queries', ->
 
-            players = [
-              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
-              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
-              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
-            ]
+            players = null
             beforeEach (done) ->
+              players = [
+                {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+                {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+                {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+              ]
               async.forEach players
               , (player, callback) ->
                 store.set "players.#{player.id}", player, null, callback
@@ -951,7 +955,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -972,11 +976,9 @@ describe 'Live Querying', ->
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          for player in allPlayers
-                            if player.ranking not in [4, 5]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -993,7 +995,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 6}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1012,13 +1014,12 @@ describe 'Live Querying', ->
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
                         , (event, callback) ->
-                          modelHello.on event, -> callback()
+                          modelHello.on event, ->
+                            callback()
                         , ->
-                          for player in allPlayers
-                            if player.ranking not in [4, 5]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1035,7 +1036,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1056,11 +1057,9 @@ describe 'Live Querying', ->
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          for player in allPlayers
-                            if player.ranking not in [4, 5]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1077,7 +1076,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1098,11 +1097,9 @@ describe 'Live Querying', ->
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          for player in allPlayers
-                            if player.ranking not in [2, 3]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1118,7 +1115,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1139,11 +1136,9 @@ describe 'Live Querying', ->
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          for player in allPlayers
-                            if player.ranking not in [2, 3]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1159,7 +1154,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 10}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1200,7 +1195,7 @@ describe 'Live Querying', ->
                   {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
                   {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
                 ]
-                allPlayers = players + newPlayers
+                allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
                   store.set "players.#{player.id}", player, null, callback
@@ -1218,11 +1213,9 @@ describe 'Live Querying', ->
                           finish()
                       browser: (modelHello, finish) ->
                         setTimeout ->
-                          for player in allPlayers
-                            if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
-                            else
-                              modelHello.get('players.' + player.id).should.eql player
+                          modelPlayers = modelHello.get 'players'
+                          for _, player of modelPlayers
+                            player.ranking.should.be.within 3, 4
                           finish()
                         , 200
                         modelHello.on 'addDoc', -> finish() # Should never be called
@@ -1314,12 +1307,13 @@ describe 'Live Querying', ->
                 , done
 
           describe 'versioning', ->
-            players = [
-              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
-              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
-              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
-            ]
+            players = null
             beforeEach (done) ->
+              players = [
+                {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+                {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+                {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+              ]
               async.forEach players
               , (player, callback) ->
                 store.set "players.#{player.id}", player, null, callback
@@ -1366,12 +1360,13 @@ describe 'Live Querying', ->
               , done
 
           describe 'transaction application', ->
-            players = [
-              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
-              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
-              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
-            ]
+            players = null
             beforeEach (done) ->
+              players = [
+                {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+                {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+                {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+              ]
               async.forEach players
               , (player, callback) ->
                 store.set "players.#{player.id}", player, null, callback
@@ -1424,12 +1419,13 @@ describe 'Live Querying', ->
               , done
 
           describe 'over-subscribing to a doc via 2 queries', ->
-            players = [
-              {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
-              {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
-              {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
-            ]
+            players = null
             beforeEach (done) ->
+              players = [
+                {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
+                {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
+                {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
+              ]
               async.forEach players
               , (player, callback) ->
                 store.set "players.#{player.id}", player, null, callback

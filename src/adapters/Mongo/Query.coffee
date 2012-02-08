@@ -79,5 +79,9 @@ MongoQuery::=
     if @_opts.limit isnt undefined && @_opts.skip is undefined
       @skip 0
     mongoAdapter.find @_namespace, @_conds, @_opts, (err, found) ->
-      promise.resolve err, found
+      promise.resolve err, found, xf
     return promise
+
+xf = (doc) ->
+  doc.id = doc._id
+  delete doc._id

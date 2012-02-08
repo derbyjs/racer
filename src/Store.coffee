@@ -103,20 +103,16 @@ Store:: =
 
     # TODO Improve this de/serialize API
     dbQuery = deserializeQuery query.serialize(), self._adapter.Query
-    dbQuery.run self._adapter, (err, found) ->
+    dbQuery.run self._adapter, (err, found, xf) ->
       # TODO Get version consistency right in face of concurrent writes during
       # query
       if Array.isArray found
-        for doc in found
-          doc.id = doc._id
-          # TODO _id code is specific to Mongo. Move this behind Mongo
-          #      abstraction
-          delete doc._id
+        if xf then for doc in found
+          xf doc
         if query.isPaginated
           self._pubSub.setQueryCache(query, found)
-      else
-        found.id = found._id
-        delete found._id
+      else if xf
+        xf found
       callback err, found, self._adapter.version
 
   get: (path, callback) -> @sendToDb 'get', [path], callback
