@@ -227,21 +227,21 @@ describe 'diffArrays', ->
   it 'detects move forward and backward from start', -> test
     before: [0, 1, 2, 3, 4]
     after:  [3, 2, 4, 0, 1]
-    expect: [
-      ['move', 0, 3, 2]
-      ['move', 1, 0, 1]
-    ]
+    # expect: [
+    #   ['move', 0, 3, 2]
+    #   ['move', 1, 0, 1]
+    # ]
 
   it 'detects reversing', -> test
     before: [0, 1, 2, 3, 4, 5]
     after:  [5, 4, 3, 2, 1, 0]
-    expect: [
-      ['move', 0, 5, 1]
-      ['move', 4, 0, 1]
-      ['move', 1, 4, 1]
-      ['move', 3, 1, 1]
-      ['move', 2, 3, 1]
-    ]
+    # expect: [
+    #   ['move', 0, 5, 1]
+    #   ['move', 4, 0, 1]
+    #   ['move', 1, 4, 1]
+    #   ['move', 3, 1, 1]
+    #   ['move', 2, 3, 1]
+    # ]
 
   it 'detects move from start to middle & middle to end', -> test
     before: [0, 1, 2, 3, 4]
@@ -254,29 +254,33 @@ describe 'diffArrays', ->
   it 'detects move both ways from start to middle & middle to end', -> test
     before: [0, 1, 2, 3, 4]
     after:  [2, 1, 0, 4, 3]
-    expect: [
-      ['move', 0, 2, 1]
-      ['move', 1, 0, 1]
-      ['move', 3, 4, 1]
-    ]
+    # expect: [
+    #   ['move', 0, 2, 1]
+    #   ['move', 1, 0, 1]
+    #   ['move', 3, 4, 1]
+    # ]
 
   it 'detects move both ways from start to middle & middle to end overlapping', -> test
     before: [0, 1, 2, 3, 4]
     after:  [2, 1, 4, 3, 0]
-    expect: [
-      ['move', 0, 4, 1]
-      ['move', 1, 0, 1]
-      ['move', 2, 3, 1]
-    ]
+    # expect: [
+    #   ['move', 0, 4, 1]
+    #   ['move', 1, 0, 1]
+    #   ['move', 2, 3, 1]
+    # ]
+
+    [0, 1, 2, 3, 4]
+    []
+
 
   it 'detects move from start to middle & both ways', -> test
     before: [0, 1, 2, 3, 4]
     after:  [1, 3, 0, 4, 2]
-    expect: [
-      ['move', 0, 2, 1]
-      ['move', 1, 4, 1]
-      ['move', 2, 1, 1]
-    ]
+    # expect: [
+    #   ['move', 0, 2, 1]
+    #   ['move', 1, 4, 1]
+    #   ['move', 2, 1, 1]
+    # ]
 
   it 'detects insert within forward move', -> test
     before: [0, 1, 2]
@@ -362,23 +366,30 @@ describe 'diffArrays', ->
   it 't8', -> test
     before: [0, 1, 1, 2]
     after:  [2, 3, 0, 0]
-  
+
   it 't9', -> test
     before: [0, 1, 2, 3]
     after:  [2, 0, 0, 4]
-  
+
   it 't10', -> test
     before: [0, 1, 2, 0]
     after:  [2, 0, 3, 1]
-  
+
   it 't11', -> test
     before: [0, 1, 2, 3]
     after:  [3, 4, 0, 2]
-  
-    # [0, 1, 2, 3]
-    # [0, 2, 3] -> 2, 0, 1
-    # [3, 0, 2]
-    # [3, 4, 0, 2]
+
+  it 't12', -> test
+    before: [0, 1, 2, 3, 4]
+    after:  [5, 2, 2, 1, 4]
+
+  # it 't13', -> test
+  #   before: [0, 1, 2, 3, 4]
+  #   after:  [3, 4, 1, 0, 2]
+
+  #   [0, 1, 2, 3, 4]
+  #   [1, 0, 2, 3, 4] # 0, 1, 1
+  #   [3, 4, 1, 0, 2] # 3, 0, 2
 
   it 'works on random arrays', ->
     randomArray = ->
