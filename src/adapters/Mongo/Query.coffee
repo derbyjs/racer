@@ -5,15 +5,13 @@ module.exports = MongoQuery = ->
   return
 
 MongoQuery::=
-  from: (@_namespace) ->
-    return this
+  from: (@_namespace) -> return this
 
   byKey: (keyVal) ->
     @_conds._id = keyVal
     return this
 
-  where: (@_currProp) ->
-    return this
+  where: (@_currProp) -> return this
 
   equals: (val) ->
     @_conds[@_currProp] = val

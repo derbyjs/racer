@@ -8,11 +8,10 @@ module.exports = LiveQuery = ->
   return
 
 LiveQuery::=
-  from: (namespace) ->
-    @_namespace = namespace
+  from: (@_namespace) ->
     @_predicates.push (doc, channel) ->
       docNs = channel.substring 0, channel.indexOf '.'
-      return namespace == docNs
+      return _namespace == docNs
     return this
 
   testWithoutPaging: (doc, channel) ->
@@ -27,8 +26,7 @@ LiveQuery::=
       return id == keyVal
     return this
 
-  where: (@_currProp) ->
-    return this
+  where: (@_currProp) -> return this
 
   equals: (val) ->
     currProp = @_currProp
