@@ -138,12 +138,18 @@ Store:: =
       if !(--rem) || err
         callback err if callback
         return callback = null
-    @_adapter.flush cb
+    @flushJournal cb
+    @flushDb cb
+
+  flushJournal: (callback) ->
     self = this
     @_redisClient.flushdb (err) ->
-      return cb err if err
-      redisInfo.onStart self._redisClient, cb
-      self._model = self._createStoreModel()
+      return callback err if err
+      redisInfo.onStart self._redisClient, (err) ->
+        self._model = self._createStoreModel()
+        callback err
+
+  flushDb: (callback) -> @_adapter.flush callback
 
   disconnect: ->
     @_redisClient.quit()
@@ -157,6 +163,7 @@ Store:: =
     args.push ver
     self = this
     @sendToDb method, args, (err, origDoc) ->
+      # TODO De-couple publish from db write
       self._pubSub.publish transaction.path(txn), {txn}, {origDoc}
       callback err, txn if callback
 
@@ -305,6 +312,19 @@ Store:: =
   # @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
   # @param {Function} callback(err, data, otData)
   subscribe: (clientId, targets, callback) ->
+    # One possible race condition:
+    # 1. ClientA sends a subscription request to pubSub
+    # 2. ClientA sends a request for data to the db
+    # 3. ClientB is mutating data. It publishes to pubSub. The message is
+    #    published to any subscribers at this time. It simultaneously sends
+    #    a write request to the db.
+    # 4. ClientA's requests to pubSub and the db occur afterwards.
+    # 5. ClientB's write to the db succeeds
+    # 6. However, now we're in a state where ClientA has a copy of the data
+    #    without the mutation.
+    # Solution: We take care of this after the replicated data is sent to the
+    # browser. The browser model asks the server for any updates like this it
+    # may have missed.
     rem = 2
     _data = null
     _otData = null
@@ -452,26 +472,31 @@ allOtPaths = (obj, prefix = '') ->
       results.push allOtPaths(v, k + '.')...
   return results
 
-setupRedis = (self, redisOptions = {}) ->
+maybeHandleErr = (err) -> throw err if err
+
+setupRedis = (store, redisOptions = {}) ->
   {port, host, db, password} = redisOptions
   # Client for data access and event publishing
-  self._redisClient = redisClient = redis.createClient(port, host, redisOptions)
+  store._redisClient = redisClient = redis.createClient(port, host, redisOptions)
+
+  # TODO Use only one subscription client, and leverage multi-plexing
+
   # Client for internal Racer event subscriptions
-  self._subClient = subClient = redis.createClient(port, host, redisOptions)
+  store._subClient = subClient = redis.createClient(port, host, redisOptions)
   # Client for event subscriptions of txns only
-  self._txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+  store._txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+
   if password
-    authCallback = (err) -> throw err if err
-    redisClient.auth password, authCallback
-    subClient.auth password, authCallback
-    txnSubClient.auth password, authCallback
+    redisClient.auth password, maybeHandleErr
+    subClient.auth password, maybeHandleErr
+    txnSubClient.auth password, maybeHandleErr
 
   # TODO: Make sure there are no weird race conditions here, since we are
   # caching the value of starts and it could potentially be stale when a
   # transaction is received
   # TODO: Make sure this works when redis crashes and is restarted
   redisStarts = null
-  self._startIdPromise = startIdPromise = new Promise
+  store._startIdPromise = startIdPromise = new Promise
   # Calling select right away queues the command before any commands that
   # a client might add before connect happens. If select is not queued first,
   # the subsequent commands could happen on the wrong db
@@ -494,7 +519,7 @@ setupRedis = (self, redisOptions = {}) ->
     redisStarts = null
     startIdPromise.clearValue()
 
-  self._hasInvalidVer = (socket, ver, clientStartId) ->
+  store._hasInvalidVer = (socket, ver, clientStartId) ->
     # Don't allow a client to connect unless there is a valid startId to
     # compare the model's against
     unless startIdPromise.value

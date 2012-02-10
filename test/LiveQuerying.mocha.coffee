@@ -6,8 +6,9 @@ async = require 'async'
 {fullSetup} = require './util/model'
 query = require '../src/query'
 
+
 describe 'Live Querying', ->
-  describe 'hasing', ->
+  describe 'hashing', ->
     it 'should create the same hash for 2 equivalent queries that exhibit different method call ordering', ->
       q1 = query('users').where('name').equals('brian').where('age').equals(26)
       q2 = query('users').where('age').equals(26).where('name').equals('brian')
@@ -34,16 +35,24 @@ describe 'Live Querying', ->
 
   for adapterName, adapterBuilder of adapters
     do (adapterName, adapterBuilder) ->
+      currCollectionIndex = 0
+      nsBase = 'users_'
+      currNs = null
+
       describe "with #{adapterName}", ->
-        store = null
+        adapter = adapterBuilder()
+        store = new Store {adapter}
 
         beforeEach ->
-          adapter = adapterBuilder()
           # Can't make this a `before` callback because redis pub/sub
           # may bleed from one test into the next
-          store = new Store {adapter}
+          currNs = nsBase + currCollectionIndex++
 
         afterEach (done) ->
+          store._adapter.version = 0
+          store.flushJournal done
+
+        after (done) ->
           store.flush ->
             store.disconnect()
             done()
@@ -58,139 +67,111 @@ describe 'Live Querying', ->
           beforeEach (done) ->
             async.forEach users
             , (user, callback) ->
-              store.set "users.#{user.id}", user, null, callback
+              store.set "#{currNs}.#{user.id}", user, null, ->
+                callback()
             , done
 
           it 'should work for one parameter `equals` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('name').equals('brian')
+            query = model.query(currNs).where('name').equals('brian')
             model.subscribe query, ->
-              model.get('users.0').should.eql users[0]
-              should.equal undefined, model.get('users.1')
-              should.equal undefined, model.get('users.2')
+              model.get("#{currNs}.0").should.eql users[0]
+              should.equal undefined, model.get("#{currNs}.1")
+              should.equal undefined, model.get("#{currNs}.2")
               done()
 
           it 'should work for one parameter `gt` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').gt(25)
+            query = model.query(currNs).where('age').gt(25)
             model.subscribe query, ->
-              should.equal undefined, model.get('users.0')
+              should.equal undefined, model.get("#{currNs}.0")
               for i in [1, 2]
-                model.get('users.' + i).should.eql users[i]
+                model.get(currNs + '.' + i).should.eql users[i]
               done()
 
           it 'should work for one parameter `gte` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').gte(26)
+            query = model.query(currNs).where('age').gte(26)
             model.subscribe query, ->
-              should.equal undefined, model.get('users.0')
+              should.equal undefined, model.get("#{currNs}.0")
               for i in [1, 2]
-                model.get('users.' + i).should.eql users[i]
+                model.get(currNs + '.' + i).should.eql users[i]
               done()
 
           it 'should work for one parameter `lt` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').lt(27)
+            query = model.query(currNs).where('age').lt(27)
             model.subscribe query, ->
               for i in [0, 1]
-                model.get('users.' + i).should.eql users[i]
-              should.equal undefined, model.get('users.2')
+                model.get(currNs + '.' + i).should.eql users[i]
+              should.equal undefined, model.get("#{currNs}.2")
               done()
 
           it 'should work for one parameter `lte` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').lte(26)
+            query = model.query(currNs).where('age').lte(26)
             model.subscribe query, ->
               for i in [0, 1]
-                model.get('users.' + i).should.eql users[i]
-              should.equal undefined, model.get('users.2')
+                model.get(currNs + '.' + i).should.eql users[i]
+              should.equal undefined, model.get("#{currNs}.2")
               done()
 
           it 'should work for one parameter `within` queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('name').within(['brian', 'x'])
+            query = model.query(currNs).where('name').within(['brian', 'x'])
             model.subscribe query, ->
               for i in [0, 2]
-                model.get('users.' + i).should.eql users[i]
-              should.equal undefined, model.get('users.1')
+                model.get(currNs + '.' + i).should.eql users[i]
+              should.equal undefined, model.get("#{currNs}.1")
               done()
 
           it 'should work for one parameter `contains` scalar queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('workdays').contains(['mon', 'wed'])
+            query = model.query(currNs).where('workdays').contains(['mon', 'wed'])
             model.subscribe query, ->
               for i in [0, 1]
-                model.get('users.' + i).should.eql users[i]
-              should.equal undefined, model.get('users.2')
+                model.get(currNs + '.' + i).should.eql users[i]
+              should.equal undefined, model.get("#{currNs}.2")
               done()
 
           it 'should work for compound queries', (done) ->
             model = store.createModel()
-            query = model.query('users').where('workdays').contains(['wed']).where('age').gt(25)
+            query = model.query(currNs).where('workdays').contains(['wed']).where('age').gt(25)
             model.subscribe query, ->
               for i in [0, 2]
-                should.equal undefined, model.get('users.' + i)
-              model.get('users.1').should.eql users[1]
+                should.equal undefined, model.get(currNs + '.' + i)
+              model.get("#{currNs}.1").should.eql users[1]
               done()
 
           it 'should only retrieve paths specified in `only`', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').gt(20).only('name', 'age')
+            query = model.query(currNs).where('age').gt(20).only('name', 'age')
             model.subscribe query, ->
               for i in [0..2]
-                model.get('users.' + i + '.id').should.equal users[i].id
-                model.get('users.' + i + '.name').should.equal users[i].name
-                model.get('users.' + i + '.age').should.equal users[i].age
-                should.equal undefined, model.get('users.' + i + '.workdays')
+                model.get(currNs + '.' + i + '.id').should.equal users[i].id
+                model.get(currNs + '.' + i + '.name').should.equal users[i].name
+                model.get(currNs + '.' + i + '.age').should.equal users[i].age
+                should.equal undefined, model.get(currNs + '.' + i + '.workdays')
               done()
 
           it 'should exclude paths specified in `except`', (done) ->
             model = store.createModel()
-            query = model.query('users').where('age').gt(20).except('name', 'workdays')
+            query = model.query(currNs).where('age').gt(20).except('name', 'workdays')
             model.subscribe query, ->
               for i in [0..2]
-                model.get('users.' + i + '.id').should.equal users[i].id
-                model.get('users.' + i + '.age').should.equal users[i].age
-                should.equal undefined, model.get('users.' + i + '.name')
-                should.equal undefined, model.get('users.' + i + '.workdays')
+                model.get(currNs + '.' + i + '.id').should.equal users[i].id
+                model.get(currNs + '.' + i + '.age').should.equal users[i].age
+                should.equal undefined, model.get(currNs + '.' + i + '.name')
+                should.equal undefined, model.get(currNs + '.' + i + '.workdays')
               done()
 
         describe 'receiving proper publishes', ->
-          describe 'set <namespace>.<id>', ->
-            it 'should publish the txn *only* to relevant live `equals` queries', calls 2, (done) ->
-              modelLeo = store.createModel()
-              queryLeo = modelLeo.query('users').where('name').equals('leo')
-
-              modelBill = store.createModel()
-              queryBill = modelBill.query('users').where('name').equals('bill')
-
-              modelLeo.subscribe queryLeo, ->
-                modelLeo.on 'set', 'users.*', (id, user) ->
-                  id.should.equal '1'
-                  user.should.eql userLeo
-                  done()
-
-              modelBill.subscribe queryBill, ->
-                modelBill.on 'set', 'users.*', (id, user) ->
-                  id.should.equal '2'
-                  user.should.eql userBill
-                  done()
-
-              userLeo  = id: '1', name: 'leo'
-              userBill = id: '2', name: 'bill'
-              userSue  = id: '3', name: 'sue'
-              ver = 0
-              modelSue = store.createModel()
-              modelSue.set 'users.1', userLeo
-              modelSue.set 'users.2', userBill
-              modelSue.set 'users.3', userSue
-
           test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
             return (done) ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    [key, doc] = initialDoc
+                    [key, doc] = initialDoc()
                     store.set key, doc, null, ->
                       modelHello.subscribe queries(modelHello.query)..., ->
                         preCondition(modelHello)
@@ -210,64 +191,101 @@ describe 'Live Querying', ->
                     finish()
               , done
 
+          describe 'set <namespace>.<id>', ->
+            it 'should publish the txn *only* to relevant live `equals` queries', (done) ->
+              userLeo  = id: '1', name: 'leo'
+              userBill = id: '2', name: 'bill'
+              userSue  = id: '3', name: 'sue'
+
+              fullSetup {store},
+                modelLeo:
+                  server: (modelLeo, finish) ->
+                    queryLeo = modelLeo.query(currNs).where('name').equals('leo')
+                    modelLeo.subscribe queryLeo, ->
+                      finish()
+                  browser: (modelLeo, finish) ->
+                    modelLeo.on 'set', "#{currNs}.*", (id, user) ->
+                      id.should.equal '1'
+                      user.should.eql userLeo
+                      finish()
+                modelBill:
+                  server: (modelBill, finish) ->
+                    queryBill = modelBill.query(currNs).where('name').equals('bill')
+                    modelBill.subscribe queryBill, ->
+                      finish()
+                  browser: (modelBill, finish) ->
+                    modelBill.on 'set', "#{currNs}.*", (id, user) ->
+                      id.should.equal '2'
+                      user.should.eql userBill
+                      finish()
+                modelSue:
+                  server: (modelSue, finish) -> finish()
+                  browser: (modelSue, finish) ->
+                    modelSue = store.createModel()
+                    modelSue.set "#{currNs}.1", userLeo
+                    modelSue.set "#{currNs}.2", userBill
+                    modelSue.set "#{currNs}.3", userSue
+                    finish()
+              , done
+
           describe 'set <namespace>.<id>.*', ->
             describe 'for equals queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', greeting: 'foo'}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', greeting: 'foo'}]
                 queries: (query) ->
                   return [
-                    query('users').where('greeting').equals('hello')
+                    query(currNs).where('greeting').equals('hello')
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get 'users.1'
+                  should.equal undefined, subscriberModel.get "#{currNs}.1"
                 postCondition: (subscriberBrowserModel) ->
-                   subscriberBrowserModel.get('users.1').should.eql {id: '1', greeting: 'hello'}
+                   subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'hello'}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.greeting', 'hello'
+                  publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
 
               it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', greeting: 'foo'}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', greeting: 'foo'}]
                 queries: (query) ->
-                  return [query('users').where('greeting').equals('foo')]
+                  return [query(currNs).where('greeting').equals('foo')]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', greeting: 'foo'}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'foo'}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.greeting', 'hello'
+                  publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', greeting: 'foo', age: 21}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', greeting: 'foo', age: 21}]
                 queries: (query) ->
                   return [
-                    query('users').where('greeting').equals('foo')
-                    query('users').where('age').equals(21)
+                    query(currNs).where('greeting').equals('foo')
+                    query(currNs).where('age').equals(21)
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'setPost', ([path, val]) ->
-                    if path == 'users.1.greeting' && val == 'hello' then onMutation()
+                    if path == "#{currNs}.1.greeting" && val == 'hello' then onMutation()
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', greeting: 'foo', age: 21}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'foo', age: 21}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', greeting: 'hello', age: 21}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'hello', age: 21}
                   subscriberBrowserModel.on 'rmDoc', ->
                     # This should never get called. Keep it here to detect if we call > 1
                     throw new Error 'Should not rmDoc'
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.greeting', 'hello'
+                  publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
                 queries: (query) ->
                   return [
-                    query('users').where('age').equals(27)
-                    query('users').where('age').equals(28)
+                    query(currNs).where('age').equals(27)
+                    query(currNs).where('age').equals(28)
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', ->
@@ -275,107 +293,107 @@ describe 'Live Querying', ->
                     throw new Error 'Should not rmDoc'
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel, finish) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 28}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 28
+                  publisherBrowserModel.set "#{currNs}.1.age", 28
 
             describe 'for gt queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
-                queries: (query) -> [query('users').where('age').gt(27)]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
+                queries: (query) -> [query(currNs).where('age').gt(27)]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get 'users.1'
+                  should.equal undefined, subscriberModel.get "#{currNs}.1"
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 28}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 28
+                  publisherBrowserModel.set "#{currNs}.1.age", 28
 
               it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 28}]
-                queries: (query) -> [query('users').where('age').gt(27)]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 28}]
+                queries: (query) -> [query(currNs).where('age').gt(27)]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 28}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 27
+                  publisherBrowserModel.set "#{currNs}.1.age", 27
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 23}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 23}]
                 queries: (query) ->
                   return [
-                    query('users').where('age').gt(21)
-                    query('users').where('age').gt(22)
+                    query(currNs).where('age').gt(21)
+                    query(currNs).where('age').gt(22)
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation, finish) ->
                   subscriberBrowserModel.on 'setPost', onMutation
                   subscriberBrowserModel.on 'rmDoc', ->
                     throw new Error 'Should not rmDoc'
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 23}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 23}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 22}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 22}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 22
+                  publisherBrowserModel.set "#{currNs}.1.age", 22
 
           # TODO gte, lt, lte queries testing
 
             describe 'for within queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
-                queries: (query) -> [query('users').where('age').within([28, 29, 30])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
+                queries: (query) -> [query(currNs).where('age').within([28, 29, 30])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get 'users.1'
+                  should.equal undefined, subscriberModel.get "#{currNs}.1"
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 30}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 30}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 30
+                  publisherBrowserModel.set "#{currNs}.1.age", 30
 
               it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
-                queries: (query) -> [query('users').where('age').within([27, 28])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
+                queries: (query) -> [query(currNs).where('age').within([27, 28])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 29
+                  publisherBrowserModel.set "#{currNs}.1.age", 29
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation'+
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
                 queries: (query) ->
                   return [
-                    query('users').where('age').within([27, 28])
-                    query('users').where('age').within([27, 30])
+                    query(currNs).where('age').within([27, 28])
+                    query(currNs).where('age').within([27, 30])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 30}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 30}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 30
+                  publisherBrowserModel.set "#{currNs}.1.age", 30
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', age: 27}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
                 queries: (query) ->
                   return [
-                    query('users').where('age').within([27, 29])
-                    query('users').where('age').within([28, 29])
+                    query(currNs).where('age').within([27, 29])
+                    query(currNs).where('age').within([28, 29])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', ->
@@ -383,76 +401,76 @@ describe 'Live Querying', ->
                     throw new Error 'Should not rmDoc'
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', age: 27}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel, finish) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', age: 28}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.set 'users.1.age', 28
+                  publisherBrowserModel.set "#{currNs}.1.age", 28
 
           describe 'del <namespace>.<id>', ->
             it 'should remove the modified doc from any models subscribed to a query matching the doc pre-del', test
-              initialDoc: ['users.1', {id: '1', age: 28}]
-              queries: (query) -> [query('users').where('age').equals(28)]
+              initialDoc: -> ["#{currNs}.1", {id: '1', age: 28}]
+              queries: (query) -> [query(currNs).where('age').equals(28)]
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get('users.1').should.eql {id: '1', age: 28}
+                subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
               postCondition: (subscriberBrowserModel) ->
-                should.equal undefined, subscriberBrowserModel.get 'users.1'
+                should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
               mutate: (publisherBrowserModel) ->
-                publisherBrowserModel.del 'users.1'
+                publisherBrowserModel.del "#{currNs}.1"
 
           describe 'del <namespace>.<id>.*', ->
             it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-              initialDoc: ['users.1', {id: '1', name: 'Brian'}]
-              queries: (query) -> [query('users').where('name').notEquals('Brian')]
+              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian'}]
+              queries: (query) -> [query(currNs).where('name').notEquals('Brian')]
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'addDoc', onMutation
               preCondition: (subscriberModel) ->
-                should.equal undefined, subscriberModel.get 'users.1'
+                should.equal undefined, subscriberModel.get "#{currNs}.1"
               postCondition: (subscriberBrowserModel) ->
-                subscriberBrowserModel.get 'users.1', {id: '1'}
+                subscriberBrowserModel.get "#{currNs}.1", {id: '1'}
               mutate: (publisherBrowserModel) ->
-                publisherBrowserModel.del 'users.1.name'
+                publisherBrowserModel.del "#{currNs}.1.name"
 
             it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-              initialDoc: ['users.1', {id: '1', name: 'Brian'}]
-              queries: (query) -> [query('users').where('name').equals('Brian')]
+              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian'}]
+              queries: (query) -> [query(currNs).where('name').equals('Brian')]
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get('users.1').should.eql {id: '1', name: 'Brian'}
+                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
               postCondition: (subscriberBrowserModel) ->
-                should.equal undefined, subscriberBrowserModel.get 'users.1'
+                should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
               mutate: (publisherBrowserModel) ->
-                publisherBrowserModel.del 'users.1.name'
+                publisherBrowserModel.del "#{currNs}.1.name"
 
             it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' + 
                'and (2) a query matching the doc both pre- and post-mutation', test
-              initialDoc: ['users.1', {id: '1', name: 'Brian', age: 27}]
+              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian', age: 27}]
               queries: (query) ->
                 return [
-                  query('users').where('name').equals('Brian')
-                  query('users').where('age').equals(27)
+                  query(currNs).where('name').equals('Brian')
+                  query(currNs).where('age').equals(27)
                 ]
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', ->
                   throw new Error 'Should not rmDoc'
                 subscriberBrowserModel.on 'delPost', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get('users.1').should.eql {id: '1', name: 'Brian', age: 27}
+                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian', age: 27}
               postCondition: (subscriberBrowserModel) ->
-                subscriberBrowserModel.get('users.1').should.eql {id: '1', name: 'Brian'}
+                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
               mutate: (publisherBrowserModel) ->
-                publisherBrowserModel.del 'users.1.age'
+                publisherBrowserModel.del "#{currNs}.1.age"
 
             it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-              initialDoc: ['users.1', {id: '1', name: 'Brian'}]
+              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian'}]
               queries: (query) ->
                 return [
-                  query('users').where('name').equals('Brian')
-                  query('users').where('name').notEquals('Brian')
+                  query(currNs).where('name').equals('Brian')
+                  query(currNs).where('name').notEquals('Brian')
                 ]
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', ->
@@ -461,398 +479,398 @@ describe 'Live Querying', ->
                   throw new Error 'Should not addDoc'
                 subscriberBrowserModel.on 'delPost', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get('users.1').should.eql {id: '1', name: 'Brian'}
+                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
               postCondition: (subscriberBrowserModel) ->
-                subscriberBrowserModel.get('users.1').should.eql {id: '1'}
+                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1'}
               mutate: (publisherBrowserModel) ->
-                publisherBrowserModel.del 'users.1.name'
+                publisherBrowserModel.del "#{currNs}.1.name"
 
           describe 'incr', ->
 
           describe 'push', ->
             describe 'for contains queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['hi', 'ho']}]
-                queries: (query) -> [query('users').where('tags').contains(['hi', 'there'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'ho']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi', 'there'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi', 'ho', 'there']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'ho', 'there']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'there'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'there'
 
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
-                initialDoc: ['users.1', {id: '1'}]
-                queries: (query) -> [query('users').where('tags').contains(['hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1'}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'hi'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'hi'
 
               it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['hi', 'there']}]
-                queries: (query) -> [query('users').where('tags').contains(['there', 'hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['hi', 'there']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi', 'there', 'yo']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there', 'yo']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'yo'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'yo'
 
             describe 'for equals queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red']}]
-                queries: (query) -> [query('users').where('tags').equals(['red', 'alert'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red']}]
+                queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get 'users.1'
+                  should.equal undefined, subscriberModel.get "#{currNs}.1"
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['red', 'alert']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'alert'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
 
               it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red']}]
-                queries: (query) -> [query('users').where('tags').equals(['red'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red']}]
+                queries: (query) -> [query(currNs).where('tags').equals(['red'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['red']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'alert'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['command']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['command']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').equals(['command', 'and', 'conquer'])
-                    query('users').where('tags').contains(['command'])
+                    query(currNs).where('tags').equals(['command', 'and', 'conquer'])
+                    query(currNs).where('tags').contains(['command'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['command']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['command', 'and', 'conquer']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command', 'and', 'conquer']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 'and', 'conquer'
+                  publisherBrowserModel.push "#{currNs}.1.tags", 'and', 'conquer'
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: [{a: 1, b: 2}]}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: [{a: 1, b: 2}]}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').equals [{a: 1, b: 2}]
-                    query('users').where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
+                    query(currNs).where('tags').equals [{a: 1, b: 2}]
+                    query(currNs).where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: [{a: 1, b: 2}]}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1, b: 2}]}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', {c: 10, d: 11}
+                  publisherBrowserModel.push "#{currNs}.1.tags", {c: 10, d: 11}
 
           describe 'unshift', ->
             describe 'for contains queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['ho', 'there']}]
-                queries: (query) -> [query('users').where('tags').contains(['hi', 'ho'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['ho', 'there']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi', 'ho'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi', 'ho', 'there']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'ho', 'there']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.unshift 'users.1.tags', 'hi'
+                  publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
 
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
-                initialDoc: ['users.1', {id: '1'}]
-                queries: (query) -> [query('users').where('tags').contains(['hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1'}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.unshift 'users.1.tags', 'hi'
+                  publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
 
               it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['hi', 'there']}]
-                queries: (query) -> [query('users').where('tags').contains(['there', 'hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'unshiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['hi', 'there']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['yo', 'hi', 'there']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['yo', 'hi', 'there']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.unshift 'users.1.tags', 'yo'
+                  publisherBrowserModel.unshift "#{currNs}.1.tags", 'yo'
 
             describe 'for equals queries', ->
 
           describe 'insert', ->
             describe 'for contains queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['ho', 'there']}]
-                queries: (query) -> [query('users').where('tags').contains(['hi', 'ho'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['ho', 'there']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi', 'ho'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['ho', 'hi', 'there']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['ho', 'hi', 'there']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.insert 'users.1.tags', 1, 'hi'
+                  publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'hi'
 
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
-                initialDoc: ['users.1', {id: '1'}]
-                queries: (query) -> [query('users').where('tags').contains(['hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1'}]
+                queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get('users.1')
+                  should.equal undefined, subscriberModel.get("#{currNs}.1")
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.insert 'users.1.tags', 0, 'hi'
+                  publisherBrowserModel.insert "#{currNs}.1.tags", 0, 'hi'
 
               it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['hi', 'there']}]
-                queries: (query) -> [query('users').where('tags').contains(['there', 'hi'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'insertPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['hi', 'there']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['hi', 'yo', 'there']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'yo', 'there']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.insert 'users.1.tags', 1, 'yo'
+                  publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'yo'
 
             describe 'for equals queries', ->
 
           describe 'pop', ->
             describe 'for contains queries', ->
               it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red', 'orange']}]
-                queries: (query) -> [query('users').where('tags').contains(['red', 'orange'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['red', 'orange']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.pop 'users.1.tags'
+                  publisherBrowserModel.pop "#{currNs}.1.tags"
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['venti', 'grande']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['venti', 'grande']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['venti', 'grande'])
-                    query('users').where('tags').contains(['venti'])
+                    query(currNs).where('tags').contains(['venti', 'grande'])
+                    query(currNs).where('tags').contains(['venti'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'popPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['venti', 'grande']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['venti']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.pop 'users.1.tags'
+                  publisherBrowserModel.pop "#{currNs}.1.tags"
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['walter', 'white']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['walter', 'white']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['walter', 'white'])
-                    query('users').where('tags').equals(['walter'])
+                    query(currNs).where('tags').contains(['walter', 'white'])
+                    query(currNs).where('tags').equals(['walter'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'popPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['walter', 'white']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['walter']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.pop 'users.1.tags'
+                  publisherBrowserModel.pop "#{currNs}.1.tags"
 
             describe 'for equals queries', ->
 
           describe 'shift', ->
             describe 'for contains queries', ->
               it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red', 'orange']}]
-                queries: (query) -> [query('users').where('tags').contains(['red', 'orange'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['red', 'orange']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.shift 'users.1.tags'
+                  publisherBrowserModel.shift "#{currNs}.1.tags"
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['venti', 'grande']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['venti', 'grande']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['venti', 'grande'])
-                    query('users').where('tags').contains(['grande'])
+                    query(currNs).where('tags').contains(['venti', 'grande'])
+                    query(currNs).where('tags').contains(['grande'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'shiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['venti', 'grande']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['grande']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['grande']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.shift 'users.1.tags'
+                  publisherBrowserModel.shift "#{currNs}.1.tags"
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['walter', 'white']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['walter', 'white']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['walter', 'white'])
-                    query('users').where('tags').equals(['white'])
+                    query(currNs).where('tags').contains(['walter', 'white'])
+                    query(currNs).where('tags').equals(['white'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'shiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['walter', 'white']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['white']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['white']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.shift 'users.1.tags'
+                  publisherBrowserModel.shift "#{currNs}.1.tags"
 
             describe 'for equals queries', ->
 
           describe 'remove', ->
             describe 'for contains queries', ->
               it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red', 'orange', 'yellow']}]
-                queries: (query) -> [query('users').where('tags').contains(['red', 'orange'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange', 'yellow']}]
+                queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['red', 'orange', 'yellow']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange', 'yellow']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.remove 'users.1.tags', 1, 1
+                  publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['piquito', 'venti', 'grande']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['piquito', 'venti', 'grande']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['venti', 'grande'])
-                    query('users').where('tags').contains(['grande'])
+                    query(currNs).where('tags').contains(['venti', 'grande'])
+                    query(currNs).where('tags').contains(['grande'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'removePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['piquito', 'grande']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['piquito', 'grande']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.remove 'users.1.tags', 1, 1
+                  publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['walter', 'jesse', 'white']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['walter', 'jesse', 'white']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').contains(['walter', 'white'])
-                    query('users').where('tags').equals(['white', 'white'])
+                    query(currNs).where('tags').contains(['walter', 'white'])
+                    query(currNs).where('tags').equals(['white', 'white'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'removePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['walter', 'jesse', 'white']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'jesse', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['walter', 'white']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.remove 'users.1.tags', 1, 1
+                  publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
           describe 'move', ->
             describe 'for equals queries', ->
               it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['alert', 'red']}]
-                queries: (query) -> [query('users').where('tags').equals(['red', 'alert'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['alert', 'red']}]
+                queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get 'users.1'
+                  should.equal undefined, subscriberModel.get "#{currNs}.1"
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['red', 'alert']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.move 'users.1.tags', 0, 1
+                  publisherBrowserModel.move "#{currNs}.1.tags", 0, 1
 
               it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['red', 'alert']}]
-                queries: (query) -> [query('users').where('tags').equals(['red', 'alert'])]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'alert']}]
+                queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['red', 'alert']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get 'users.1'
+                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.push 'users.1.tags', 1, 0
+                  publisherBrowserModel.push "#{currNs}.1.tags", 1, 0
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  'and (2) a query matching the doc both pre- and post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: ['command', 'and', 'conquer']}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['command', 'and', 'conquer']}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').equals(['command', 'and', 'conquer'])
-                    query('users').where('tags').contains(['conquer', 'command', 'and'])
+                    query(currNs).where('tags').equals(['command', 'and', 'conquer'])
+                    query(currNs).where('tags').contains(['conquer', 'command', 'and'])
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'movePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: ['command', 'and', 'conquer']}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command', 'and', 'conquer']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: ['conquer', 'command', 'and']}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['conquer', 'command', 'and']}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.move 'users.1.tags', 2, 0
+                  publisherBrowserModel.move "#{currNs}.1.tags", 2, 0
 
               it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
                  ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
-                initialDoc: ['users.1', {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}]
+                initialDoc: -> ["#{currNs}.1", {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}]
                 queries: (query) ->
                   return [
-                    query('users').where('tags').equals [{a: 1}, {b: 2}, {c: 3}]
-                    query('users').where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
+                    query(currNs).where('tags').equals [{a: 1}, {b: 2}, {c: 3}]
+                    query(currNs).where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
                   ]
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'movePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get('users.1').should.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
+                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get('users.1').should.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
+                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
                 mutate: (publisherBrowserModel) ->
-                  publisherBrowserModel.move 'users.1.tags', 2, 1
+                  publisherBrowserModel.move "#{currNs}.1.tags", 2, 1
 
           describe 'only queries', ->
             # TODO
@@ -860,16 +878,16 @@ describe 'Live Querying', ->
 #              # TODO Note this is a stronger requirement than "should not
 #              # assign properties" because we want to hide data for security
 #              # reasons
-#              initialDoc: ['users.1', {id: '1', name: 'brian', age: 26, city: 'sf'}]
-#              queries: (query) -> [query('users').where('name').equals('bri').only('name', 'city')]
+#              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'brian', age: 26, city: 'sf'}]
+#              queries: (query) -> [query(currNs).where('name').equals('bri').only('name', 'city')]
 #              listenForMutation: (subscriberBrowserModel, onMutation) ->
 #                subscriberBrowserModel.on 'addDoc', onMutation
 #              preCondition: (subscriberModel) ->
-#                should.equal undefined, subscriberModel.get('users.1')
+#                should.equal undefined, subscriberModel.get("#{currNs}.1")
 #              postCondition: (subscriberBrowserModel) ->
-#                subscriberBrowserModel.get('users.1').should.eql {id: '1', name: 'bri', city: 'sf'}
+#                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', name: 'bri', city: 'sf'}
 #              mutate: (publisherBrowserModel) ->
-#                publisherBrowserModel.set 'users.1.name', 'bri'
+#                publisherBrowserModel.set "#{currNs}.1.name", 'bri'
 
             # TODO
             it 'should not propagate transactions that involve paths outside of the `only` query param'
@@ -894,7 +912,7 @@ describe 'Live Querying', ->
               ]
               async.forEach players
               , (player, callback) ->
-                store.set "players.#{player.id}", player, null, callback
+                store.set "#{currNs}.#{player.id}", player, null, callback
               , done
 
             describe 'for non-saturated result sets (e.g., limit=10, sizeof(resultSet) < 10)', ->
@@ -902,22 +920,22 @@ describe 'Live Querying', ->
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
-                      query = modelHello.query('players').where('ranking').gte(3).limit(2)
+                      query = modelHello.query(currNs).where('ranking').gte(3).limit(2)
                       modelHello.subscribe query, ->
-                        should.equal    undefined, modelHello.get('players.1')
-                        should.notEqual undefined, modelHello.get('players.2')
-                        should.equal    undefined, modelHello.get('players.3')
+                        should.equal    undefined, modelHello.get("#{currNs}.1")
+                        should.notEqual undefined, modelHello.get("#{currNs}.2")
+                        should.equal    undefined, modelHello.get("#{currNs}.3")
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'addDoc', ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.notEqual undefined, modelHello.get('players.2')
-                        should.equal    undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.notEqual undefined, modelHello.get("#{currNs}.2")
+                        should.equal    undefined, modelHello.get("#{currNs}.3")
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
-                      modelFoo.set 'players.1.ranking', 4
+                      modelFoo.set "#{currNs}.1.ranking", 4
                       finish()
                 , done
 
@@ -925,22 +943,22 @@ describe 'Live Querying', ->
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
-                      query = modelHello.query('players').where('ranking').lt(2).limit(2)
+                      query = modelHello.query(currNs).where('ranking').lt(2).limit(2)
                       modelHello.subscribe query, ->
-                        should.equal    undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.notEqual undefined, modelHello.get('players.3')
+                        should.equal    undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.notEqual undefined, modelHello.get("#{currNs}.3")
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'rmDoc', ->
-                        should.equal    undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.equal    undefined, modelHello.get('players.3')
+                        should.equal    undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.equal    undefined, modelHello.get("#{currNs}.3")
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
-                      modelFoo.set 'players.3.ranking', 2
+                      modelFoo.set "#{currNs}.3.ranking", 2
                       finish()
                 , done
 
@@ -958,32 +976,32 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.1.ranking', 6
+                        modelFoo.set "#{currNs}.1.ranking", 6
                         finish()
                   , done
 
@@ -998,18 +1016,18 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -1017,14 +1035,14 @@ describe 'Live Querying', ->
                           modelHello.on event, ->
                             callback()
                         , ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.1.ranking', 5
+                        modelFoo.set "#{currNs}.1.ranking", 5
                         finish()
                   , done
 
@@ -1039,32 +1057,32 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.1.ranking', 6
+                        modelFoo.set "#{currNs}.1.ranking", 6
                         finish()
                   , done
 
@@ -1079,32 +1097,32 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.6', {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
+                        modelFoo.set "#{currNs}.6", {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
                         finish()
                   , done
 
@@ -1118,32 +1136,32 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
                         , (event, callback) ->
                           modelHello.on event, -> callback()
                         , ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.5.ranking', 0
+                        modelFoo.set "#{currNs}.5.ranking", 0
                         finish()
                   , done
 
@@ -1157,26 +1175,26 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         setTimeout ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                         , 200
                         modelHello.on 'addDoc', -> finish() # Should never be called
@@ -1184,7 +1202,7 @@ describe 'Live Querying', ->
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.4.ranking', 5
+                        modelFoo.set "#{currNs}.4.ranking", 5
                         finish()
                   , done
 
@@ -1198,22 +1216,22 @@ describe 'Live Querying', ->
                 allPlayers = players.concat newPlayers
                 async.forEach newPlayers
                 , (player, callback) ->
-                  store.set "players.#{player.id}", player, null, callback
+                  store.set "#{currNs}.#{player.id}", player, null, callback
                 , ->
                   fullSetup {store},
                     modelHello:
                       server: (modelHello, finish) ->
-                        query = modelHello.query('players').where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+                        query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get('players.' + player.id)
+                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
                             else
-                              modelHello.get('players.' + player.id).should.eql player
+                              modelHello.get("#{currNs}." + player.id).should.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         setTimeout ->
-                          modelPlayers = modelHello.get 'players'
+                          modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
                             player.ranking.should.be.within 3, 4
                           finish()
@@ -1223,7 +1241,7 @@ describe 'Live Querying', ->
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
                       browser: (modelFoo, finish) ->
-                        modelFoo.set 'players.4.ranking', 10
+                        modelFoo.set "#{currNs}.4.ranking", 10
                         finish()
                   , done
 
@@ -1233,25 +1251,25 @@ describe 'Live Querying', ->
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
-                      query = modelHello.query('players').where('ranking').lt(5).sort('ranking', 'asc').limit(2)
+                      query = modelHello.query(currNs).where('ranking').lt(5).sort('ranking', 'asc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.notEqual undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.notEqual undefined, modelHello.get("#{currNs}.3")
                         finish()
                     browser: (modelHello, finish) ->
                       async.forEach ['rmDoc', 'addDoc']
                       , (event, callback) ->
                         modelHello.on event, -> callback()
                       , ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.notEqual undefined, modelHello.get('players.2')
-                        should.equal    undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.notEqual undefined, modelHello.get("#{currNs}.2")
+                        should.equal    undefined, modelHello.get("#{currNs}.3")
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
-                      modelFoo.set 'players.3.ranking', 6
+                      modelFoo.set "#{currNs}.3.ranking", 6
                       finish()
                 , done
 
@@ -1261,22 +1279,22 @@ describe 'Live Querying', ->
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
-                      query = modelHello.query('players').where('ranking').lt(3).sort('name.first', 'desc').limit(2)
+                      query = modelHello.query(currNs).where('ranking').lt(3).sort('name.first', 'desc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.notEqual undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.notEqual undefined, modelHello.get("#{currNs}.3")
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'rmDoc', ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.notEqual undefined, modelHello.get('players.2')
-                        should.equal    undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.notEqual undefined, modelHello.get("#{currNs}.2")
+                        should.equal    undefined, modelHello.get("#{currNs}.3")
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
-                      modelFoo.set 'players.2.ranking', 2
+                      modelFoo.set "#{currNs}.2.ranking", 2
                       finish()
                 , done
 
@@ -1286,23 +1304,23 @@ describe 'Live Querying', ->
                 fullSetup {store},
                   modelHello:
                     server: (modelHello, finish) ->
-                      query = modelHello.query('players').where('ranking').lt(10).sort('ranking', 'asc').limit(2)
+                      query = modelHello.query(currNs).where('ranking').lt(10).sort('ranking', 'asc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.notEqual undefined, modelHello.get('players.3')
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.notEqual undefined, modelHello.get("#{currNs}.3")
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'setPost', ->
-                        should.notEqual undefined, modelHello.get('players.1')
-                        should.equal    undefined, modelHello.get('players.2')
-                        should.notEqual undefined, modelHello.get('players.3')
-                        modelHello.get('players.1.ranking').should.equal 0
+                        should.notEqual undefined, modelHello.get("#{currNs}.1")
+                        should.equal    undefined, modelHello.get("#{currNs}.2")
+                        should.notEqual undefined, modelHello.get("#{currNs}.3")
+                        modelHello.get("#{currNs}.1.ranking").should.equal 0
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
                     browser: (modelFoo, finish) ->
-                      modelFoo.set 'players.1.ranking', 0
+                      modelFoo.set "#{currNs}.1.ranking", 0
                       finish()
                 , done
 
@@ -1316,7 +1334,7 @@ describe 'Live Querying', ->
               ]
               async.forEach players
               , (player, callback) ->
-                store.set "players.#{player.id}", player, null, callback
+                store.set "#{currNs}.#{player.id}", player, null, callback
               , done
 
             it 'should update the version when the doc is removed from a model because it no longer matches subscriptions', (done) ->
@@ -1324,7 +1342,7 @@ describe 'Live Querying', ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    query = modelHello.query('players').where('ranking').lt(10)
+                    query = modelHello.query(currNs).where('ranking').lt(10)
                     modelHello.subscribe query, ->
                       oldVer = modelHello.getVer()
                       finish()
@@ -1335,7 +1353,7 @@ describe 'Live Querying', ->
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
                   browser: (modelFoo, finish) ->
-                    modelFoo.set 'players.1.ranking', 11
+                    modelFoo.set "#{currNs}.1.ranking", 11
                     finish()
               , done
 
@@ -1344,7 +1362,7 @@ describe 'Live Querying', ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    query = modelHello.query('players').where('ranking').gt(2)
+                    query = modelHello.query(currNs).where('ranking').gt(2)
                     modelHello.subscribe query, ->
                       oldVer = modelHello.getVer()
                       finish()
@@ -1355,7 +1373,7 @@ describe 'Live Querying', ->
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
                   browser: (modelFoo, finish) ->
-                    modelFoo.set 'players.1.ranking', 11
+                    modelFoo.set "#{currNs}.1.ranking", 11
                     finish()
               , done
 
@@ -1369,29 +1387,29 @@ describe 'Live Querying', ->
               ]
               async.forEach players
               , (player, callback) ->
-                store.set "players.#{player.id}", player, null, callback
+                store.set "#{currNs}.#{player.id}", player, null, callback
               , done
 
             it 'should apply a txn if a document is still in a query result set after a mutation', (done) ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    query = modelHello.query('players').where('ranking').equals(1)
+                    query = modelHello.query(currNs).where('ranking').equals(1)
                     modelHello.subscribe query, ->
                       for player in players
                         if player.ranking == 1
-                          modelHello.get("players.#{player.id}").should.eql player
+                          modelHello.get("#{currNs}.#{player.id}").should.eql player
                         else
-                          should.equal undefined, modelHello.get("players.#{player.id}")
+                          should.equal undefined, modelHello.get("#{currNs}.#{player.id}")
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'setPost', ->
-                      modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                       finish()
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
                   browser: (modelFoo, finish) ->
-                    modelFoo.set 'players.3.name.last', 'Djokovic'
+                    modelFoo.set "#{currNs}.3.name.last", 'Djokovic'
                     finish()
               , done
 
@@ -1399,22 +1417,22 @@ describe 'Live Querying', ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    query = modelHello.query('players').where('name.last').equals('Djokovic')
+                    query = modelHello.query(currNs).where('name.last').equals('Djokovic')
                     modelHello.subscribe query, ->
                       for player in players
-                        should.equal undefined, modelHello.get("players.#{player.id}")
+                        should.equal undefined, modelHello.get("#{currNs}.#{player.id}")
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'setPost', ([path, val], ver) ->
-                      if path == 'players.3'
-                        modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      if path == "#{currNs}.3"
+                        modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                         finish()
                       else
                         throw new Error "Should not be setting #{path}"
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
                   browser: (modelFoo, finish) ->
-                    modelFoo.set 'players.3.name.last', 'Djokovic'
+                    modelFoo.set "#{currNs}.3.name.last", 'Djokovic'
                     finish()
               , done
 
@@ -1428,7 +1446,7 @@ describe 'Live Querying', ->
               ]
               async.forEach players
               , (player, callback) ->
-                store.set "players.#{player.id}", player, null, callback
+                store.set "#{currNs}.#{player.id}", player, null, callback
               , done
 
             # The following is true because we only pass along transactions
@@ -1441,14 +1459,14 @@ describe 'Live Querying', ->
               fullSetup {store},
                 modelHello:
                   server: (modelHello, finish) ->
-                    queryZoo    = modelHello.query('players').where('ranking').lt(10)
-                    queryLander = modelHello.query('players').where('ranking').lt(9)
+                    queryZoo    = modelHello.query(currNs).where('ranking').lt(10)
+                    queryLander = modelHello.query(currNs).where('ranking').lt(9)
                     modelHello.subscribe queryZoo, queryLander, ->
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'set', ([path, val], ver) ->
-                      if path == 'players.3.name.last'
-                        modelHello.get('players.3').should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      if path == "#{currNs}.3.name.last"
+                        modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                       else
                         throw new Error "Should not be setting #{path}"
                     modelHello.socket.on 'txn', (txn, num) ->
@@ -1457,7 +1475,7 @@ describe 'Live Querying', ->
                   server: (modelFoo, finish) -> finish()
                   browser: (modelFoo, finish) ->
                     setTimeout ->
-                      modelFoo.set 'players.3.name.last', 'Djokovic'
+                      modelFoo.set "#{currNs}.3.name.last", 'Djokovic'
                     , 400
                     finish()
               , done

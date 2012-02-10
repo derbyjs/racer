@@ -91,9 +91,7 @@ MongoAdapter:: =
 
   flush: (callback) ->
     return @_pending.push ['flush', arguments] if @_state != CONNECTED
-    @_db.dropDatabase (err, done) ->
-      throw err if err
-      callback()
+    @_db.dropDatabase (err, done) -> callback err, done
 
   # Mutator methods called via CustomDataSource::applyOps
   update: (collection, conds, op, opts, callback) ->

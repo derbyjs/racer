@@ -83,7 +83,7 @@ journal = module.exports =
         # Increment version and store the transaction with a
         # score of the new version
         redisClient.eval LWW_COMMIT, 0, JSON.stringify(txn), (err, ver) ->
-          throw err if err
+          return callback err if err
           store._finishCommit txn, ver, callback
 
     ## Ensure Serialization of Transactions to the DB ##
@@ -98,7 +98,7 @@ journal = module.exports =
       ver = transaction.base txn
       if ver && typeof ver isnt 'number'
         # In case of something like @set(path, value, callback)
-        throw new Error 'Version must be null or a number'
+        return callback new Error 'Version must be null or a number'
       stmCommit redisClient, lockQueue, txn, (err, ver) ->
         return callback && callback err, txn if err
         txnApplier.add txn, ver, callback
