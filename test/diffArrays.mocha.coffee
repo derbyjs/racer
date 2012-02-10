@@ -192,7 +192,7 @@ describe 'diffArrays', ->
   it 'detects multiple overlapping moves', -> test
     before: [0, 1, 2, 3, 4, 5, 6, 7]
     after:  [1, 6, 2, 7, 3, 4, 0, 5]
-
+  
   it 't0', -> test
     before: [1, 0, 1]
     after:  [0, 1, 0]
@@ -248,7 +248,7 @@ describe 'diffArrays', ->
   it 't13', -> test
     before: [0, 1, 2, 3, 4]
     after:  [3, 4, 1, 0, 2]
-  
+
   it 't14', -> test
     before: [0, 1, 2, 0, 3]
     after:  [4, 5, 2, 6, 0, 3]
@@ -260,7 +260,7 @@ describe 'diffArrays', ->
   it 'works on random arrays', ->
     randomArray = ->
       arr = []
-      i = 6
+      i = 50
       while i--
         if ~(random = Math.floor(Math.random() * 11) - 1)
           arr.push random
