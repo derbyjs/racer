@@ -36,11 +36,9 @@ module.exports =
       @_adapter.get path, data = @_specModel()
       return derefPath data, path
 
-    ref: (from, to, key) ->
-      return @_createRef Ref, from, to, key
+    ref: (from, to, key) -> @_createRef Ref, from, to, key
 
-    refList: (from, to, key) ->
-      return @_createRef RefList, from, to, key
+    refList: (from, to, key) -> @_createRef RefList, from, to, key
 
     fn: (inputs..., callback) ->
       path = if @_at then @_at else inputs.shift()
@@ -73,7 +71,7 @@ module.exports =
   createFn: createFn = (model, path, inputs, callback, destroy) ->
     modelPassFn = model.pass('fn')
     run = ->
-      value = callback (model.get input for input, i in inputs)...
+      value = callback (model.get input for input in inputs)...
       modelPassFn.set path, value
       return value
     out = run()
