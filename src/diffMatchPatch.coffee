@@ -8,6 +8,7 @@ module.exports =
     skipB = {}
     inserts = []
     moves = []
+    directions = []
     removes = []
 
     while a < afterLen
@@ -67,7 +68,6 @@ module.exports =
 
       moves.push ['move', b, indexBefore, numForward, indexAfter, a, numBackward]
 
-
     # Removes are all emitted first. Offset the indices of removes after other removes
     # and the indicies of moves by removes
     offset = 0
@@ -75,31 +75,32 @@ module.exports =
       index = op[1] += offset
       num = op[2]
       offset -= num
-      for op in moves
-        op[1] -= num  if index < op[1]
-        op[4] -= num  if index < op[4]
+      for move in moves
+        move[1] -= num  if index < move[1]
+        move[4] -= num  if index < move[4]
 
-    # Inserts are all emitted last. Offset the indices of moves by inserts 
-    for op in inserts
+    # Inserts are all emitted last. Offset the indices of moves by inserts
+    i = inserts.length
+    while op = inserts[--i]
       num = op.length - 2
       index = op[1]
-      for op in moves
-        op[2] -= num  if index <= op[2]
-        op[5] -= num  if index <= op[5]
+      for move in moves
+        move[2] -= num  if index <= move[2]
+        move[5] -= num  if index <= move[5]
 
     directions = {}
     offset = 0
     i = -1
     while op = moves[++i]
-      fromForward = op[1]
+      _fromForward = fromForward = op[1]
       toForward = op[2]
       numForward = op[3]
       fromBackward = op[4]
       toBackward = op[5]
       numBackward = op[6]
 
-      fromForward += offsetByMoves moves, directions, i, fromForward, offset
-      fromBackward += offsetByMoves moves, directions, i, fromBackward, offset
+      fromForward = fromOffset moves, directions, i, fromForward, offset
+      fromBackward = fromOffset moves, directions, i, fromBackward, offset
 
       if numForward == -1
         singleMove = true
@@ -122,52 +123,55 @@ module.exports =
           offset -= numForward
           moves[i] = ['move', fromForward, toForward, numForward]
           directions[i] = 1
+          offsetMoves moves, directions, i, fromForward, toForward, numForward
         else
           offset += numBackward
           moves[i] = ['move', fromBackward, toBackward, numBackward]
           directions[i] = 0
+          offsetMoves moves, directions, i, fromBackward, toBackward, numBackward
 
       else
-        offset += numBackward - numForward
-        moves[i] = ['move', fromForward, toForward, numForward]
-        directions[i] = 1
-        fromBackward -= numForward  if toForward >= fromBackward
-        moves.splice ++i, 0, ['move', fromBackward, toBackward, numBackward]
+        offset += numBackward
+        moves[i] = ['move', fromBackward, toBackward, numBackward]
         directions[i] = 0
-    
-    i = moves.length
-    while op = moves[--i]
-      if directions[i]
-        start = op[1]
-        end = op[2]
-        offset = op[3]
-      else
-        start = op[2]
-        end = op[1]
-        offset = -op[3]
+        offsetMoves moves, directions, i, fromBackward, toBackward, numBackward
 
-      j = i
-      while op = moves[--j]
-        if directions[j]
-          op[2] += offset if start <= op[2] <= end
-        else
-          op[1] -= offset if start < op[1] < end
+        fromForward = fromOffset moves, directions, i, _fromForward, offset
+        offset -= numForward
+        moves.splice ++i, 0, ['move', fromForward, toForward, numForward]
+        directions[i] = 1
+        offsetMoves moves, directions, i, fromForward, toForward, numForward
 
     # Remove any no-op moves
     i = moves.length
-    while op = moves[--i]
-      if op[0] is 'move' && op[1] == op[2]
-        moves.splice i, 1
+    while move = moves[--i]
+      moves.splice i, 1  if move[1] == move[2]
 
     return removes.concat moves, inserts
 
-offsetByMoves = (moves, directions, i, index, offset) ->
+offsetMoves = (moves, directions, i, from, to, num) ->
+  if directions[i]
+    while op = moves[--i]
+      if directions[i]
+        op[2] += num if from <= op[2] <= to
+    return
+
   while op = moves[--i]
     if directions[i]
-      offset += op[3] if op[2] < index
+      op[2] -= num if to <= op[2] <= from
     else
-      offset -= op[3] if op[1] < index
-  return offset
+      if to < op[1] < from
+        nextFrom = op[1] += num
+        offsetMoves moves, directions, i, nextFrom, op[2], op[3]
+  return
+
+fromOffset = (moves, directions, i, from, offset) ->
+  while move = moves[--i]
+    if directions[i]
+      offset += move[3] if move[2] < from
+    else
+      offset -= move[3] if move[1] < from
+  return from + offset
 
 moveLookAhead = (before, after, skipA, skipB, afterLen, from, to, otherItem) ->
   num = 1
