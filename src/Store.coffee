@@ -529,6 +529,6 @@ setupRedis = (store, redisOptions = {}) ->
     # with the new startId unless the client's version includes versions that
     # can't be mapped
     unless clientStartId && clientStartId == startIdPromise.value
-      socket.emit 'fatalErr'
+      socket.emit 'fatalErr', "clientStartId != startId (#{clientStartId} != #{startIdPromise.value}"
       return true
     return false

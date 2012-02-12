@@ -12,6 +12,7 @@ Model = module.exports = (@_clientId = '', Adapter = MemorySync) ->
   return
 
 Model:: =
+  constructor: Model
 
   ## Socket.io communication ##
 
@@ -22,9 +23,10 @@ Model:: =
     self = this
 
     self.canConnect = true
-    socket.on 'fatalErr', ->
+    socket.on 'fatalErr', (msg) ->
       self.canConnect = false
       self.emit 'canConnect', false
+      console.log err
       socket.disconnect()
 
     self.connected = false
@@ -143,7 +145,7 @@ Model::addListener = Model::on
 # setupSocket: invoked inside Model::_setSocket with fn signature (socket) -> ...
 # accessors:   getters
 # mutators:    setters
-# onMixin:     called with mutators and accessors after every mixin 
+# onMixin:     called with the Klass for potential decoration
 
 # NOTE: Order of mixins may be important because of dependencies.
 
@@ -165,8 +167,7 @@ makeMixable = (Klass) ->
           fn[key] = value
 
     onMixins.push onMixin  if onMixin = mixin.onMixin
-    for onMixin in onMixins
-      onMixin Klass.mutators, Klass.accessors
+    onMixin Klass for onMixin in onMixins
 
     return Klass
 

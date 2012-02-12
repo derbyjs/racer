@@ -40,12 +40,15 @@ BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
   @_serverSocket = new ServerSocketMock @_serverSockets, this
   @socket = connected: false
   return
+
 BrowserSocketMock:: =
-  _disconnect: ->
+  __proto__: EventEmitter::
+
+  _disconnect: disconnect = ->
     @socket.connected = false
     EventEmitter::emit.call this, 'disconnect'
+  disconnect: disconnect
   _connect: ->
     EventEmitter::emit.call @_serverSockets, 'connection', @_serverSocket
   emit: (name, args...) ->
     callEmit @_serverSocket, name, args, 'async'
-  __proto__: EventEmitter::
