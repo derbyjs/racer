@@ -1,5 +1,5 @@
 should = require 'should'
-redisInfo = require '../src/redisInfo'
+redisInfo = require '../src/Journal/adapters/Redis/redisInfo'
 redis = require 'redis'
 
 describe 'redisInfo', ->

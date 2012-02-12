@@ -7,6 +7,10 @@ transaction = require '../src/transaction'
 describe 'Store', ->
 
   store = null
+  redisClient = redis.createClient()
+
+  after ->
+    redisClient.end()
 
   # TODO: Add tests for all store modes
   beforeEach (done) ->
@@ -16,18 +20,16 @@ describe 'Store', ->
 
   afterEach (done) ->
     store.flush ->
-      store._redisClient.end()
-      store._subClient.end()
-      store._txnSubClient.end()
+      store.disconnect()
       done()
 
   it 'flush should delete everything in the adapter and redisClient', (done) ->
     callbackCount = 0
     store._adapter.set 'color', 'green', 1, ->
-      store._redisClient.set 'color', 'green', ->
+      redisClient.set 'color', 'green', ->
         store._adapter.get null, (err, value) ->
           value.should.specEql color: 'green'
-          store._redisClient.keys '*', (err, value) ->
+          redisClient.keys '*', (err, value) ->
             # Note that flush calls redisInfo.onStart immediately after
             # flushing, so the key 'starts' should exist
             # Also note that the store will create a new model for use in store
@@ -38,7 +40,7 @@ describe 'Store', ->
               (++callbackCount).should.eql 1
               store._adapter.get null, (err, value) ->
                 value.should.eql {}
-                store._redisClient.keys '*', (err, value) ->
+                redisClient.keys '*', (err, value) ->
                   # Once again, 'clientClock' and 'starts' should exist after the flush
                   value.should.eql ['clientClock', 'starts']
                   done()
@@ -51,18 +53,18 @@ describe 'Store', ->
       (++callbackCount).should.eql 1
       done()
 
-  it 'flush should return an error if the redisClient fails to flush', (done) ->
+  it 'flush should return an error if the journal fails to flush', (done) ->
     callbackCount = 0
-    store._redisClient.flushdb = (callback) -> callback new Error
+    store.journal.flush = (callback) -> callback new Error
     store.flush (err) ->
       err.should.be.instanceof Error
       (++callbackCount).should.eql 1
       done()
 
-  it 'flush should return an error if the adapter and redisClient fail to flush', (done) ->
+  it 'flush should return an error if the adapter and journal fail to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
-    store._redisClient.flushdb = (callback) -> callback new Error
+    store.journal.flushdb = (callback) -> callback new Error
     store.flush (err) ->
       err.should.be.instanceof Error
       (++callbackCount).should.eql 1

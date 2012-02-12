@@ -10,9 +10,7 @@ describe 'Model.async', ->
 
   afterEach (done) ->
     store.flush ->
-      store._redisClient.end()
-      store._subClient.end()
-      store._txnSubClient.end()
+      store.disconnect()
       done()
 
   it 'test model.async.retry', (done) ->

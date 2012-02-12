@@ -1,3 +1,4 @@
+# TODO Remove this
 setStarts = (client, startsLength, ver, callback) ->
   client.multi()
     .lpush('starts', "#{+new Date}.#{startsLength},#{ver}")

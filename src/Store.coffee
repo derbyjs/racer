@@ -1,16 +1,17 @@
 redis = require 'redis'
 PubSub = require './PubSub'
-redisInfo = require './redisInfo'
-journal = require './journal'
 MemoryAdapter = require './adapters/Memory'
 Model = require './Model.server'
 transaction = require './transaction'
 {split: splitPath, lookup, eventRegExp} = require './pathParser'
-Promise = require './Promise'
 Field = require './mixin.ot/Field.server'
 {bufferify} = require './util'
 {deserialize: deserializeQuery} = require './query'
 PubSubRedisAdapter = require './PubSub/adapters/Redis'
+Promise = require './Promise'
+
+Journal = require './Journal'
+JournalRedisAdapter = require './Journal/adapters/Redis'
 
 # store = new Store
 #   mode: 'lww' || 'stm' || 'ot'
@@ -22,11 +23,16 @@ PubSubRedisAdapter = require './PubSub/adapters/Redis'
 Store = module.exports = (options = {}) ->
   self = this
 
-  setupRedis self, options.redis
+  [redisClient, subClient, txnSubClient] = setupRedis self, options.redis
+  self.disconnect = ->
+    redisClient.end()
+    subClient.end()
+    txnSubClient.end()
 
-  pubSubAdapter = options.pubSub?.adapter || new PubSubRedisAdapter
-                                 pubClient: @_redisClient
-                                 subClient: @_txnSubClient
+  pubSubAdapter = options.pubSub?.adapter ||
+                  new PubSubRedisAdapter
+                    pubClient: redisClient
+                    subClient: txnSubClient
 
   @_pubSub = new PubSub
     store: @
@@ -37,21 +43,24 @@ Store = module.exports = (options = {}) ->
       return self._onOtMsg clientId, ot if ot
 
       # Live Query Channels
-      # These following 2 channels are for
-      # informing a client about changes to their
-      # data set based on mutations that add/rm
-      # docs to/from the data set enclosed by the
-      # live queries the client subscribes to
+      # These following 2 channels are for informing a client about
+      # changes to their data set based on mutations that add/rm docs
+      # to/from the data set enclosed by the live queries the client
+      # subscribes to.
       if socket = self._clientSockets[clientId]
         if rmDoc
-          return self._nextTxnNum clientId, (num) ->
+          return journal.nextTxnNum clientId, (err, num) ->
+            throw err if err
             return socket.emit 'rmDoc', rmDoc, num
         if addDoc
-          return self._nextTxnNum clientId, (num) ->
+          return journal.nextTxnNum clientId, (err, num) ->
+            throw err if err
             return socket.emit 'addDoc', addDoc, num
       throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
   # Add a @commit method to this store based on the conflict resolution mode
+  journalAdapter = options.journal?.adapter || new JournalRedisAdapter redisClient, subClient
+  journal = @journal = new Journal journalAdapter
   @commit = journal.commitFn self, options.mode
 
   # Maps path -> { listener: fn, queue: [msg], busy: bool }
@@ -66,6 +75,7 @@ Store = module.exports = (options = {}) ->
   # prefixed with '#', so we handle store's async mutations
   # differently than regular models' sync mutations
   @_model = @_createStoreModel()
+  # TODO Figure out a way to not have a whole @_model around
 
   @_persistenceRoutes = {}
   @_defaultPersistenceRoutes = {}
@@ -77,7 +87,6 @@ Store = module.exports = (options = {}) ->
 
   return
 
-# TODO Do we even use/need @_model from a Store instance?
 Store:: =
 
   _createStoreModel: ->
@@ -123,12 +132,12 @@ Store:: =
     model = new Model
     model.store = this
     model._ioUri = @_ioUri
-    model.startIdPromise = startIdPromise = @_startIdPromise
-    startIdPromise.on (startId) ->
+    startIdPromise = model.startIdPromise = new Promise
+    @journal.startId (startId) ->
       model._startId = startId
-    @_redisClient.incr 'clientClock', (err, value) ->
+      startIdPromise.fulfill startId
+    @journal.genClientId (err, clientId) ->
       throw err if err
-      clientId = value.toString(36)
       model.clientIdPromise.fulfill clientId
     return model
 
@@ -143,19 +152,12 @@ Store:: =
 
   flushJournal: (callback) ->
     self = this
-    self._redisClient.flushdb (err) ->
+    @journal.flush (err) ->
       return callback err if err
-      redisInfo.onStart self._redisClient, (err) ->
-        self._startIdPromise.clearValue() if self._startIdPromise?.fulfilled
-        self._model = self._createStoreModel()
-        callback err
+      self._model = self._createStoreModel()
+      callback null
 
   flushDb: (callback) -> @_adapter.flush callback
-
-  disconnect: ->
-    @_redisClient.quit()
-    @_subClient.quit()
-    @_txnSubClient.quit()
 
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
@@ -173,26 +175,25 @@ Store:: =
 
     @_clientSockets = clientSockets = {}
     pubSub = @_pubSub
-    redisClient = @_redisClient
+    journal = @journal
 
     # TODO: These are for OT, which is hacky. Clean up
     otFields = @_otFields
     adapter = @_adapter
-    hasInvalidVer = @_hasInvalidVer
 
     # TODO Once socket.io supports query params in the
     # socket.io urls, then we can remove this. Instead,
     # we can add the socket <-> clientId assoc in the
     # `sockets.on 'connection'...` callback.
     sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
-      return if hasInvalidVer socket, ver, clientStartId
+      return if journal.hasInvalidVer socket, ver, clientStartId
 
       # TODO Map the clientId to a nickname (e.g., via session?),
       # and broadcast presence
       socket.on 'disconnect', ->
         pubSub.unsubscribe clientId
         delete clientSockets[clientId]
-        redisClient.del 'txnClock.' + clientId, (err, value) ->
+        journal.unregisterClient clientId, (err, val) ->
           throw err if err
 
       # TODO WHEN IS THIS CALLED?
@@ -244,22 +245,25 @@ Store:: =
       # Handling transaction messages
       socket.on 'txn', (txn, clientStartId) ->
         base = transaction.base txn
-        return if hasInvalidVer socket, base, clientStartId
+        return if journal.hasInvalidVer socket, base, clientStartId
         self.commit txn, (err, txn) ->
           txnId = transaction.id txn
           base = transaction.base txn
           # Return errors to client, with the exeption of duplicates, which
           # may need to be sent to the model again
           return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-          self._nextTxnNum clientId, (num) ->
+          journal.nextTxnNum clientId, (err, num) ->
+            throw err if err
             socket.emit 'txnOk', txnId, base, num
 
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
-        return if hasInvalidVer socket, ver, clientStartId
-        txnsSince pubSub, redisClient, ver, clientId, (txns) ->
-          self._nextTxnNum clientId, (num) ->
+        return if journal.hasInvalidVer socket, ver, clientStartId
+        journal.txnsSince ver, clientId, pubSub, (err, txns) ->
+          return callback err if err
+          journal.nextTxnNum clientId, (err, num) ->
+            throw err if err
             if len = txns.length
-              socket.__base = transaction.base txns[len - 1]
+              socket.__base = transaction.base txns[len-1]
             callback txns, num
 
       # This is used to prevent emitting duplicate transactions
@@ -276,11 +280,6 @@ Store:: =
       # broadcast to Window 2.
       pubSub.subscribe clientId, targets, ->
 
-  _nextTxnNum: (clientId, callback) ->
-    @_redisClient.incr 'txnClock.' + clientId, (err, value) ->
-      throw err if err
-      callback value
-
   _onTxnMsg: (clientId, txn) ->
     # Don't send transactions back to the model that created them.
     # On the server, the model directly handles the store.commit callback.
@@ -295,7 +294,8 @@ Store:: =
       base = transaction.base txn
       if base > socket.__base
         socket.__base = base
-        @_nextTxnNum clientId, (num) ->
+        @journal.nextTxnNum clientId, (err, num) ->
+          throw err if err
           socket.emit 'txn', txn, num
 
   _onOtMsg: (clientId, ot) ->
@@ -396,7 +396,7 @@ Store:: =
       await: (done) ->
         adapter = @_adapter
         return done() if adapter.version isnt undefined
-        @_redisClient.get 'ver', (err, ver) ->
+        @journal.getVer (err, ver) ->
           throw err if err
           adapter.version = parseInt(ver, 10)
           return done()
@@ -420,23 +420,6 @@ Store:: =
             else
               [match[0]]
           return fn.apply null, captures.concat(rest, [done, next])
-
-txnsSince = (pubSub, redisClient, ver, clientId, callback) ->
-  return callback [] unless pubSub.hasSubscriptions clientId
-
-  # TODO Replace with a LUA script that does filtering?
-  redisClient.zrangebyscore 'txns', ver, '+inf', 'withscores', (err, vals) ->
-    throw err if err
-    txn = null
-    txns = []
-    for val, i in vals
-      if i % 2
-        continue unless pubSub.subscribedToTxn clientId, txn
-        transaction.base txn, +val
-        txns.push txn
-      else
-        txn = JSON.parse val
-    callback txns
 
 # Accumulates an array of tuples to set [path, value, ver]
 #
@@ -475,65 +458,21 @@ allOtPaths = (obj, prefix = '') ->
 
 maybeHandleErr = (err) -> throw err if err
 
-setupRedis = (store, redisOptions = {}) ->
+setupRedis = (redisOptions = {}) ->
   {port, host, db, password} = redisOptions
   # Client for data access and event publishing
-  store._redisClient = redisClient = redis.createClient(port, host, redisOptions)
+  redisClient = redis.createClient(port, host, redisOptions)
 
   # TODO Use only one subscription client, and leverage multi-plexing
 
   # Client for internal Racer event subscriptions
-  store._subClient = subClient = redis.createClient(port, host, redisOptions)
+  subClient = redis.createClient(port, host, redisOptions)
   # Client for event subscriptions of txns only
-  store._txnSubClient = txnSubClient = redis.createClient(port, host, redisOptions)
+  txnSubClient = redis.createClient(port, host, redisOptions)
 
   if password
     redisClient.auth password, maybeHandleErr
     subClient.auth password, maybeHandleErr
     txnSubClient.auth password, maybeHandleErr
 
-  # TODO: Make sure there are no weird race conditions here, since we are
-  # caching the value of starts and it could potentially be stale when a
-  # transaction is received
-  # TODO: Make sure this works when redis crashes and is restarted
-  redisStarts = null
-  store._startIdPromise = startIdPromise = new Promise
-  ignoreSubscribe = false
-  do subscribeToStarts = (db) ->
-    return ignoreSubscribe = false if ignoreSubscribe
-
-    # Calling select right away queues the command before any commands that
-    # a client might add before connect happens. If select is not queued first,
-    # the subsequent commands could happen on the wrong db
-    if db isnt undefined
-      return redisClient.select db, (err) ->
-        throw err if err
-        subscribeToStarts()
-
-    redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
-      redisStarts = starts
-      startIdPromise.clearValue() if startIdPromise.value
-      {0: firstStart} = starts
-      [startId] = firstStart
-      startIdPromise.fulfill startId
-
-  # Ignore the first connect event
-  ignoreSubscribe = true
-  redisClient.on 'connect', subscribeToStarts
-  redisClient.on 'end', ->
-    redisStarts = null
-    startIdPromise.clearValue()
-
-  store._hasInvalidVer = (socket, ver, clientStartId) ->
-    # Don't allow a client to connect unless there is a valid startId to
-    # compare the model's against
-    unless startIdPromise.value
-      socket.disconnect()
-      return true
-    # TODO: Map the client's version number to the Stm's and update the client
-    # with the new startId unless the client's version includes versions that
-    # can't be mapped
-    unless clientStartId && clientStartId == startIdPromise.value
-      socket.emit 'fatalErr', "clientStartId != startId (#{clientStartId} != #{startIdPromise.value})"
-      return true
-    return false
+  return [redisClient, subClient, txnSubClient]
