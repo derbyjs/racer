@@ -12,7 +12,6 @@ Serializer = require './Serializer'
 
 
 journal = module.exports =
-
   _getLocks: getLocks = (path) ->
     # Example output: getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
     lockPath = ''
@@ -102,7 +101,6 @@ journal = module.exports =
       stmCommit redisClient, lockQueue, txn, (err, ver) ->
         return callback && callback err, txn if err
         txnApplier.add txn, ver, callback
-
 
 journal._MAX_RETRIES = MAX_RETRIES = 10
 # Initial delay in milliseconds. Exponentially increases

@@ -7,7 +7,6 @@ setStarts = (client, startsLength, ver, callback) ->
       callback null if callback
 
 module.exports =
-
   # This function should be called once when the Redis server restarts.
   # It is meant to be called by the process that starts the Redis server,
   # and it is not meant to be called by Store instances in production.
@@ -17,10 +16,11 @@ module.exports =
       .llen('starts')
       .get('ver')
       .exec (err, values) ->
-        throw err if err
-        startsLength = values[0]
-        ver = values[1] || 0
-        setStarts client, startsLength, ver, callback
+        if err
+          return callback err if callback
+          throw err
+        [startsLength, ver] = values
+        setStarts client, startsLength, ver || 0, callback
 
   _getStarts: getStarts = (client, callback) ->
     client.lrange 'starts', 0, -1, (err, starts) ->

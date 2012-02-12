@@ -26,7 +26,7 @@ Model:: =
     socket.on 'fatalErr', (msg) ->
       self.canConnect = false
       self.emit 'canConnect', false
-      console.log err
+      console.log msg
       socket.disconnect()
 
     self.connected = false

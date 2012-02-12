@@ -143,9 +143,10 @@ Store:: =
 
   flushJournal: (callback) ->
     self = this
-    @_redisClient.flushdb (err) ->
+    self._redisClient.flushdb (err) ->
       return callback err if err
       redisInfo.onStart self._redisClient, (err) ->
+        self._startIdPromise.clearValue() if self._startIdPromise?.fulfilled
         self._model = self._createStoreModel()
         callback err
 
@@ -497,20 +498,24 @@ setupRedis = (store, redisOptions = {}) ->
   # TODO: Make sure this works when redis crashes and is restarted
   redisStarts = null
   store._startIdPromise = startIdPromise = new Promise
-  # Calling select right away queues the command before any commands that
-  # a client might add before connect happens. If select is not queued first,
-  # the subsequent commands could happen on the wrong db
   ignoreSubscribe = false
-  do subscribeToStarts = (selected) ->
+  do subscribeToStarts = (db) ->
     return ignoreSubscribe = false if ignoreSubscribe
-    if db isnt undefined && !selected
+
+    # Calling select right away queues the command before any commands that
+    # a client might add before connect happens. If select is not queued first,
+    # the subsequent commands could happen on the wrong db
+    if db isnt undefined
       return redisClient.select db, (err) ->
         throw err if err
-        subscribeToStarts true
+        subscribeToStarts()
+
     redisInfo.subscribeToStarts subClient, redisClient, (starts) ->
       redisStarts = starts
       startIdPromise.clearValue() if startIdPromise.value
-      startIdPromise.fulfill starts[0][0]
+      {0: firstStart} = starts
+      [startId] = firstStart
+      startIdPromise.fulfill startId
 
   # Ignore the first connect event
   ignoreSubscribe = true
@@ -529,6 +534,6 @@ setupRedis = (store, redisOptions = {}) ->
     # with the new startId unless the client's version includes versions that
     # can't be mapped
     unless clientStartId && clientStartId == startIdPromise.value
-      socket.emit 'fatalErr', "clientStartId != startId (#{clientStartId} != #{startIdPromise.value}"
+      socket.emit 'fatalErr', "clientStartId != startId (#{clientStartId} != #{startIdPromise.value})"
       return true
     return false
