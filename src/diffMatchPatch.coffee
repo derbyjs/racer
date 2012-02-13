@@ -1,4 +1,3 @@
-
 module.exports =
 
   diffArrays: (before, after) ->
@@ -51,7 +50,7 @@ diffArrays = (before, after, removes, moves, inserts) ->
       addInsertOrRemove inserts, removes, after, insert, numInsert, remove, numRemove
       insert = remove = null
       continue
-    
+
     indexAfter = before.indexOf itemAfter, b
     while skipB[indexAfter]
       indexAfter = before.indexOf itemAfter, indexAfter + 1
