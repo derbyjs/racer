@@ -73,9 +73,9 @@ assignExcept = (to, from, exceptions) ->
     hasNextExceptions = false
     for except of exceptions
       periodPos = except.indexOf '.'
-      if except.substring(0, periodPos) == key
+      if except[0...periodPos] == key
         hasNextExceptions = true
-        nextExceptions[except.substring(periodPos + 1)] = 0
+        nextExceptions[excep[0..periodPos]] = 0
 
     if hasNextExceptions
       nextTo = to[key] = if Array.isArray from[key] then [] else {}

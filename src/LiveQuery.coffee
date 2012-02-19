@@ -10,7 +10,7 @@ module.exports = LiveQuery = ->
 LiveQuery::=
   from: (@_namespace) ->
     @_predicates.push (doc, channel) ->
-      docNs = channel.substring 0, channel.indexOf '.'
+      docNs = channel[0...channel.indexOf '.']
       return _namespace == docNs
     return this
 

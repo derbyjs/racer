@@ -59,8 +59,8 @@ module.exports =
     pathBLen = pathB.length
     return false if pathALen == pathBLen
     if pathALen > pathBLen
-      return pathA.charAt(pathBLen) == '.' && pathA.substring(0, pathBLen) == pathB && 'child'
-    return pathB.charAt(pathALen) == '.' && pathB.substring(0, pathALen) == pathA && 'parent'
+      return pathA.charAt(pathBLen) == '.' && pathA[0...pathBLen] == pathB && 'child'
+    return pathB.charAt(pathALen) == '.' && pathB[0...pathALen] == pathA && 'parent'
 
 
   ops: (txn, ops) ->

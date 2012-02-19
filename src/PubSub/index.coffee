@@ -31,7 +31,7 @@ PubSub:: =
       , method
 
   publish: (path, message, meta = {}) ->
-    unless path.substring(0,8) == 'queries.'
+    unless path[0..7] == 'queries.'
       if origDoc = meta.origDoc
         {txn} = message
         if origDoc
