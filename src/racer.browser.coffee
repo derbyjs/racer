@@ -35,11 +35,13 @@ racer = module.exports =
         model.liveQueries[hash] = query.deserialize q, LiveQuery
     for [method, args] in options.onLoad
       model[method] args...
-    model.emit 'initialized'
     # options.socket makes it easier to test - see text/util/model fullyWiredModels
-    model._setSocket options.socket || io.connect options.ioUri,
+    model.socket = socket = options.socket || io.connect options.ioUri,
       'reconnection delay': 50
       'max reconnection attempts': 20
+    model.emit 'initialized'
+    model._setSocket socket
+
     isReady = true
     racer.onready()
     return racer
