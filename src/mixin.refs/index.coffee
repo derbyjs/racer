@@ -4,7 +4,7 @@ Ref = require './types/Ref'
 RefList = require './types/RefList'
 {derefPath} = require './util'
 
-module.exports =
+refs = module.exports =
 
   onMixin: (Klass) ->
     mutators = Klass.mutators
@@ -61,14 +61,22 @@ module.exports =
         key = to
         to = from
         from = @_at
+      else if from._at
+        from = from._at
+      if to._at
+        to = to._at
       model = @_root
       model._checkRefPath from, 'ref'
-      {get} = new RefType model, from, to, key
-      @set from, get
-      return get
+      {get, modelMethod} = new RefType model, from, to, key
+      # Overridden on server; does nothing in browser
+      refs.onCreateRef model, from, to, key, get, modelMethod
+      model.set from, get
+      return model.at from
 
     _getRef: (path) -> @_adapter.get path, @_specModel(), true
 
+
+  onCreateRef: ->
 
   createFn: createFn = (model, path, inputs, callback, destroy) ->
     modelPassFn = model.pass('fn')

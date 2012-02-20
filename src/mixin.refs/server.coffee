@@ -2,21 +2,11 @@
 {createFn} = refs = require './index'
 uglify = require 'uglify-js'
 
-refs.proto._createRef = (RefType, from, to, key) ->
-  if @_at
-    key = to
-    to = from
-    from = @_at
-  model = @_root
-  model._checkRefPath from, 'ref'
-  {get, modelMethod} = new RefType model, from, to, key
-
+refs.onCreateRef = (model, from, to, key, get, modelMethod) ->
   model.on 'bundle', ->
     return unless model._getRef(from) == get
     args = if key then [from, to, key] else [from, to]
     model._onLoad.push [modelMethod, args]
-  model.set from, get
-  return get
 
 cbs = {}
 refs.proto.fn = (inputs..., callback) ->

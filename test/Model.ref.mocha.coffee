@@ -34,7 +34,8 @@ describe 'Model.ref', ->
   it 'should support setting', ->
     model = new Model
     
-    ref = model.ref '_color', 'colors', 'selected'
+    model.ref '_color', 'colors', 'selected'
+    ref = model._getRef '_color'
     model.get().should.specEql
       _color: ref
     
@@ -55,7 +56,8 @@ describe 'Model.ref', ->
 
     # Creating a ref on a path that is currently a reference should modify
     # the reference, similar to setting an object reference in Javascript
-    ref2 = model.ref '_color', 'colors.blue'
+    model.ref '_color', 'colors.blue'
+    ref2 = model._getRef '_color'
     model.get().should.specEql
       colors:
         blue:
@@ -111,13 +113,14 @@ describe 'Model.ref', ->
 
   it 'adds a model._getRef method', ->
     model = new Model
-    ref = model.ref '_firstNumber', 'numbers.first'
+    model.ref '_firstNumber', 'numbers.first'
     should.equal model.get('_firstNumber'), undefined
-    should.equal model._getRef('_firstNumber'), ref
+    model._getRef('_firstNumber').should.be.a 'function'
 
   it 'does not have an effect after being deleted', ->
     model = new Model
-    ref = model.ref '_color', 'colors.green'
+    model.ref '_color', 'colors.green'
+    ref = model._getRef '_color'
     model.set '_color.hex', '#0f0'
     model.get().should.specEql
       colors:
@@ -313,10 +316,11 @@ describe 'Model.ref', ->
     model.on 'set', '_session.user.name', cb
     model.set '_session.user.name', 'Bob'
 
-  it 'supports specifying path via model.at', ->
+  it 'supports specifying from path via scoped model', ->
     model = new Model
     color = model.at '_color'
-    ref = color.at('favorite').ref 'green'
+    color.at('favorite').ref 'green'
+    ref = model._getRef '_color.favorite'
     color.set 'favorite.hex', '#0f0'
     color.get('favorite').should.specEql hex: '#0f0'
     model.get().should.specEql
@@ -324,3 +328,52 @@ describe 'Model.ref', ->
         favorite: ref
       green:
         hex: '#0f0'
+
+  it 'supports a scoped model as the from argument', ->
+    model = new Model
+    favoriteColor = model.at('_color').at('favorite')
+    model.ref favoriteColor, 'green'
+    ref = model._getRef '_color.favorite'
+    favoriteColor.set 'hex', '#0f0'
+    favoriteColor.get().should.specEql hex: '#0f0'
+    model.get().should.specEql
+      _color:
+        favorite: ref
+      green:
+        hex: '#0f0'
+
+  it 'supports a scoped model as the to argument', ->
+    model = new Model
+    color = model.at('green')
+    model.ref '_color.favorite', color
+    ref = model._getRef '_color.favorite'
+    model.set '_color.favorite.hex', '#0f0'
+    model.get('_color.favorite').should.specEql hex: '#0f0'
+    model.get().should.specEql
+      _color:
+        favorite: ref
+      green:
+        hex: '#0f0'
+
+  it 'supports a scoped model as the from and to argument', ->
+    model = new Model
+    color = model.at('green')
+    favoriteColor = model.at('_color').at('favorite')
+    model.ref favoriteColor, color
+    ref = model._getRef '_color.favorite'
+    favoriteColor.set 'hex', '#0f0'
+    favoriteColor.get().should.specEql hex: '#0f0'
+    model.get().should.specEql
+      _color:
+        favorite: ref
+      green:
+        hex: '#0f0'
+
+  it 'returns a scoped model for the from argument', ->
+    model = new Model
+    color = model.ref '_color', 'colors.green'
+    color.path().should.equal '_color'
+    color.set 'hex', '#0f0'
+    color.get('hex').should.equal '#0f0'
+    model.get('colors.green').should.specEql hex: '#0f0'
+
