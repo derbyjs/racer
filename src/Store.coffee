@@ -65,8 +65,8 @@ Store = module.exports = (options = {}) ->
   if clientIdGenConf = options.generateClientId
     {strategy, opts} = clientIdGenConf
   else
-    strategy = 'redis'
-    opts = {redisClient: redisClient}
+    strategy = 'rfc4122.v4'
+    opts = {}
   createFn = require "./clientIdGenerators/#{strategy}"
   @_generateClientId = createFn opts
 
