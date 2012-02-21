@@ -10,3 +10,10 @@ where callback has a function signature of
 
     function callback (err, clientId) {
     }
+
+## Client Id Generator Strategies
+
+- rfc4122.v4 delegates to broofa's node-uuid module. It is the default setting in
+             racer
+- mongo      delegates to the npm mongodb module's BSON UUID generation
+- redis      uses an atomically incrementing `clientClock` key
