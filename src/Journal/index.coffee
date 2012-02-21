@@ -21,8 +21,6 @@ Journal:: =
   hasInvalidVer: (socket, ver, clientStartId) ->
     @_adapter.hasInvalidVer socket, ver, clientStartId
 
-  genClientId: (callback) -> @_adapter.genClientId callback
-
   unregisterClient: (clientId, callback) ->
     @_adapter.unregisterClient clientId, callback
 

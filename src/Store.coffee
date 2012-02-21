@@ -15,11 +15,15 @@ JournalRedisAdapter = require './Journal/adapters/Redis'
 
 # store = new Store
 #   mode: 'lww' || 'stm' || 'ot'
-#   redis:
-#     port: xxxx
-#     host: xxxx
-#     db: xxxx
-#     password: xxxx
+#   pubSub:
+#     adapter: new PubSubRedisAdapter({ pubClient: clientA, subClient:
+#              clientB})
+#   generateClientId:
+#     strategy: 'redis'
+#     opts:
+#       redisClient: redisClient
+#   journal:
+#     adapter: new JournalRedisAdapter(redisClient, subClient)
 Store = module.exports = (options = {}) ->
   self = this
 
@@ -57,6 +61,14 @@ Store = module.exports = (options = {}) ->
             throw err if err
             return socket.emit 'addDoc', addDoc, num
       throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
+
+  if clientIdGenConf = options.generateClientId
+    {strategy, opts} = clientIdGenConf
+  else
+    strategy = 'redis'
+    opts = {redisClient: redisClient}
+  createFn = require "./clientIdGenerators/#{strategy}"
+  @_generateClientId = createFn opts
 
   # Add a @commit method to this store based on the conflict resolution mode
   journalAdapter = options.journal?.adapter || new JournalRedisAdapter redisClient, subClient
@@ -136,7 +148,7 @@ Store:: =
     @journal.startId (startId) ->
       model._startId = startId
       startIdPromise.fulfill startId
-    @journal.genClientId (err, clientId) ->
+    @_generateClientId (err, clientId) ->
       throw err if err
       model.clientIdPromise.fulfill clientId
     return model

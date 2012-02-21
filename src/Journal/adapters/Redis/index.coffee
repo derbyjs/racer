@@ -72,12 +72,6 @@ JournalRedisAdapter::=
       return true
     return false
 
-  genClientId: (callback) ->
-    @_redisClient.incr 'clientClock', (err, val) ->
-      return callback err if err
-      clientId = val.toString(36)
-      callback null, clientId
-
   unregisterClient: (clientId, callback) ->
     @_redisClient.del 'txnClock.' + clientId, (err, val) ->
       callback err
