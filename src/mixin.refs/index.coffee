@@ -63,8 +63,8 @@ refs = module.exports =
         from = @_at
       else if from._at
         from = from._at
-      if to._at
-        to = to._at
+      to = to._at  if to._at
+      key = key._at  if key && key._at
       model = @_root
       model._checkRefPath from, 'ref'
       {get, modelMethod} = new RefType model, from, to, key
