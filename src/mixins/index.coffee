@@ -1,3 +1,5 @@
+{mergeAll} = require '../util'
+
 # A mixin is an object literal with:
 # proto:       methods to add to Model.prototype
 # static:      class/static methods to add to Model
