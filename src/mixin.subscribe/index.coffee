@@ -41,24 +41,19 @@ module.exports =
         querySubs[queryHash] = 1
         channels.push query
 
-      for targ in targets
-        if targ.isQuery
-          query = targ
-          addQuery query
+      out = []
+      for target in targets
+        if target.isQuery
+          addQuery target
         else
-          path = targ
-          # `subscribe({_a: 'b.c.d'}, fn)` is a shortcut to subscribe to
-          # 'b.c.d' and to create a ref named '_a' pointing to 'b.c.d'
-          if typeof path is 'object'
-            for key, value of path
-              root = pathParser.split(value)[0]
-              @ref key, root
-              addPath value
-          else addPath path
+          target = target._at  if target._at
+          root = pathParser.split(target)[0]
+          out.push @at root, true
+          addPath target
 
       # Callback immediately if already subscribed
-      return callback() unless channels.length
-      @_addSub channels, callback
+      return callback out... unless channels.length
+      @_addSub channels, -> callback out...
 
     unsubscribe: (paths..., callback) ->
       # For unsubscribe(paths...)

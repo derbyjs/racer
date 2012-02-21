@@ -22,11 +22,12 @@ racer.js require: __dirname + '/shared', entry: __dirname + '/client.js', (js) -
 app.get '/', (req, res) ->
   res.redirect '/racer'
 
-app.get '/:group', (req, res) ->
-  group = req.params.group
+app.get '/:groupName', (req, res) ->
+  groupName = req.params.groupName
   model = store.createModel()
-  model.subscribe _group: "groups.#{group}", ->
-    model.setNull "groups.#{group}",
+  model.subscribe "groups.#{groupName}", (group) ->
+    model.ref '_group', group
+    group.setNull
       todos:
         0: {id: 0, completed: true, text: 'This one is done already'}
         1: {id: 1, completed: false, text: 'Example todo'}

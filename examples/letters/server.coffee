@@ -34,18 +34,19 @@ for row in [0..4]
 # Use JSON serialization to create a deep clone
 defaultLetters = JSON.stringify defaultLetters
 
-app.get '/:room?', (req, res) ->
+app.get '/:roomName?', (req, res) ->
   # Redirect users to URLs that only contain letters, numbers, and hyphens
-  room = req.params.room
-  return res.redirect '/lobby' unless room && /^[-\w ]+$/.test room
-  _room = room.toLowerCase().replace /[_ ]/g, '-'
-  return res.redirect "/#{_room}" if _room != room
-  
+  roomName = req.params.roomName
+  return res.redirect '/lobby' unless roomName && /^[-\w ]+$/.test roomName
+  normalizedName = roomName.toLowerCase().replace /[_ ]/g, '-'
+  return res.redirect "/#{normalizedName}" if normalizedName != roomName
+
   model = store.createModel()
-  model.subscribe _room: "rooms.#{room}", 'rooms.*.players', ->
-    unless model.get '_room.letters'
-      model.set '_room.letters', JSON.parse defaultLetters
-    model.set '_roomName', room
+  model.subscribe "rooms.#{roomName}", 'rooms.*.players', (room) ->
+    model.ref '_room', room
+    model.set '_roomName', roomName
+    unless room.get 'letters'
+      room.set 'letters', JSON.parse defaultLetters
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
     model.bundle (bundle) ->
@@ -57,7 +58,7 @@ app.get '/:room?', (req, res) ->
       else
         open = '<span'
         close = '</span>'
-      for id, letter of model.get "_room.letters"
+      for id, letter of room.get "letters"
         boardHtml += """#{open} draggable=true class="#{letter.color} letter" id=#{id}
         style=left:#{letter.position.left}px;top:#{letter.position.top}px>#{letter.value}#{close}"""
       res.send """

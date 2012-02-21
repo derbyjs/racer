@@ -17,7 +17,7 @@ $ racer.ready ->
   todoList = $ '#todos'
   content = $ '#content'
   overlay = $ '#overlay'
-  listPath = '_todoList'
+  list = model.at '_todoList'
 
 
   ## Update the DOM when the model changes ##
@@ -31,20 +31,20 @@ $ racer.ready ->
       '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
     )
 
-  model.on 'push', listPath, (value) ->
+  list.on 'push', (value) ->
     todoList.append todoHtml(value)
 
-  model.on 'insert', listPath, (index, value) ->
+  list.on 'insert', (index, value) ->
     todoList.children().eq(index).before todoHtml(value)
 
   model.on 'set', '_group.todos.*.completed', (id, value) ->
     $("##{id}").toggleClass 'completed', value
     $("#check#{id}").prop 'checked', value
 
-  model.on 'remove', listPath, (index, howMany, [id]) ->
+  list.on 'remove', (index, howMany, [id]) ->
     $("##{id}").remove()
 
-  model.on 'move', listPath, (from, to, id) ->
+  list.on 'move', (from, to, howMany, [id]) ->
     target = todoList.children().get to
     # Don't move if the item is already in the right position
     return if id.toString() is target.id
@@ -76,25 +76,26 @@ $ racer.ready ->
       return unless text = htmlEscape newTodo.val()
       newTodo.val ''
       # Insert the new todo before the first completed item in the list
-      for todo, i in list = model.get listPath
+      items = list.get()
+      for todo, i in items
         break if todo.completed
       todo = 
         id: model.incr '_group.nextId'
         completed: false
         text: text
-      if i == list.length
+      if i == items.length
         # Append to the end if there are no completed items
-        model.push listPath, todo
+        list.push todo
       else
-        model.insert listPath, i, todo
+        list.insert i, todo
 
     check: (checkbox, id) ->
       model.set "_group.todos.#{id}.completed", checkbox.checked
       # Move the item to the bottom if it was checked off
-      model.move listPath, {id}, -1 if checkbox.checked
+      list.move {id}, -1 if checkbox.checked
 
     del: (id) ->
-      model.remove listPath, id: id
+      list.remove id: id
 
   todoList.sortable
     handle: '.handle'
@@ -103,7 +104,7 @@ $ racer.ready ->
     update: (e, ui) ->
       item = ui.item[0]
       to = todoList.children().index(item)
-      model.move listPath, {id: item.id}, to
+      list.move {id: item.id}, to
 
   # Watch for changes to the contenteditable fields
   lastHtml = ''

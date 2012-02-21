@@ -23,7 +23,8 @@ app.get '/', (req, res) ->
 
 app.get '/:group', (req, res) ->
   model = store.createModel()
-  model.subscribe _room: "groups.#{req.params.group}", ->
+  model.subscribe "groups.#{req.params.group}", (room) ->
+    model.ref '_room', room
     model.setNull '_room.text', model.ot 'Edit this with friends.'
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
