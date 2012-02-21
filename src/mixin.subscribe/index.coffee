@@ -46,6 +46,7 @@ module.exports =
         if target.isQuery
           addQuery target
         else
+          target = target._at  if target._at
           root = pathParser.split(target)[0]
           out.push @at root, true
           addPath target
