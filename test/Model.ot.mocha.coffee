@@ -162,7 +162,8 @@ describe 'Model.ot', ->
       createModelB = ->
         modelB = store.createModel()
         path = modelC.dereference('_test')
-        modelB.subscribe _test: path, ->
+        modelB.subscribe path, ->
+          modelB.ref '_test', path
           modelB.get('_test.text').should.equal 'axyzbcdefg'
           sockets._disconnect()
           store.disconnect()
@@ -189,7 +190,8 @@ describe 'Model.ot', ->
       createModelB = ->
         serverModelB = store.createModel()
         path = modelC.dereference('_test')
-        serverModelB.subscribe _test: path, ->
+        serverModelB.subscribe path, ->
+          serverModelB.ref '_test', path
           serverModelB.bundle (bundle) ->
             bundle = JSON.parse bundle
             bundle.socket = new BrowserSocketMock sockets
