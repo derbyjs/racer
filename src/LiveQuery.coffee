@@ -8,10 +8,10 @@ module.exports = LiveQuery = ->
   return
 
 LiveQuery::=
-  from: (@_namespace) ->
+  from: (@namespace) ->
     @_predicates.push (doc, channel) ->
       docNs = channel[0...channel.indexOf '.']
-      return _namespace == docNs
+      return namespace == docNs
     return this
 
   testWithoutPaging: (doc, channel) ->
@@ -154,7 +154,7 @@ LiveQuery::=
 
   isCacheImpactedByTxn: (txn) ->
     [ns, id] = transaction.path(txn).split '.'
-    return false if ns != @_namespace
+    return false if ns != @namespace
     cache = @_paginatedCache
     for x in cache
       return true if x.id == id

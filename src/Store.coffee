@@ -362,7 +362,7 @@ Store:: =
         self.query query, (err, found, ver) ->
           return callback err if err
           queryResultAsDatum = (doc, ver, query) ->
-            path = query._namespace + '.' + doc.id
+            path = query.namespace + '.' + doc.id
             [path, doc, ver]
           if Array.isArray found
             for doc in found
