@@ -334,57 +334,17 @@ Store:: =
     count = 2
     data = null
     otData = null
-    finish = (err) ->
+    err = null
+    finish = (_err) ->
+      err ||= _err
       --count || callback err, data, otData
     @_pubSub.subscribe clientId, targets, finish
-    @_fetchSubData targets, (err, _data, _otData) ->
+    fetchSubData this, targets, (err, _data, _otData) ->
       data = _data
       otData = _otData
       finish err
 
   unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
-
-  _fetchSubData: (targets, callback) ->
-    data = []
-    otData = {}
-
-    finish = ->
-      unless --finish.remainingFetches
-        callback null, data, otData
-
-    finish.remainingFetches = targets.length
-
-    otFields = @_otFields
-    for targ in targets
-      self = this
-      if targ.isQuery then do (targ) ->
-        query = targ
-        self.query query, (err, found, ver) ->
-          return callback err if err
-          queryResultAsDatum = (doc, ver, query) ->
-            path = query.namespace + '.' + doc.id
-            [path, doc, ver]
-          if Array.isArray found
-            for doc in found
-              data.push queryResultAsDatum(doc, ver, query)
-          else
-            data.push queryResultAsDatum(found, ver, query)
-          finish()
-      else
-        [root, remainder] = splitPath targ
-
-        @get root, do (root, remainder) -> (err, value, ver) ->
-          return callback err if err
-          # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
-          # TODO Convert the following to work beyond MemoryStore
-          otPaths = allOtPaths value, root + '.'
-          for otPath in otPaths
-            otData[otPath] = otField if otField = otFields[otPath]
-
-          # addSubDatum mutates data argument
-          addSubDatum data, root, remainder, value, ver, finish
-          finish()
-    return
 
   ## PERSISTENCE ROUTER ##
   route: (method, path, fn) ->
@@ -434,7 +394,7 @@ Store:: =
 # @param {String} remainder is the part of the path after "*"
 # @param {Object} value is the lookup value of the rooth path
 # @param {Number} ver is the lookup ver of the root path
-addSubDatum = (data, root, remainder, value, ver, finish) ->
+addSubDatum = (data, root, remainder, value, ver) ->
   # Set the entire object
   return data.push [root, value, ver]  unless remainder?
 
@@ -448,7 +408,7 @@ addSubDatum = (data, root, remainder, value, ver, finish) ->
       nextRoot += '.' + appendRoot
       nextValue = lookup appendRoot, nextValue
 
-    addSubDatum data, nextRoot, remainder, nextValue, ver, finish
+    addSubDatum data, nextRoot, remainder, nextValue, ver
   return
 
 allOtPaths = (obj, prefix = '') ->
@@ -461,6 +421,50 @@ allOtPaths = (obj, prefix = '') ->
         continue
       results.push allOtPaths(v, k + '.')...
   return results
+
+fetchPathData = (store, data, otData, root, remainder, otFields, finish) ->
+  store.get root, (err, value, ver) ->
+    # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
+    # TODO Convert the following to work beyond MemoryStore
+    otPaths = allOtPaths value, root + '.'
+    for otPath in otPaths
+      otData[otPath] = otField if otField = otFields[otPath]
+
+    # addSubDatum mutates data argument
+    addSubDatum data, root, remainder, value, ver
+    finish err
+
+queryResultAsDatum = (doc, ver, query) ->
+  path = query.namespace + '.' + doc.id
+  return [path, doc, ver]
+
+fetchQueryData = (store, data, query, finish) ->
+  store.query query, (err, found, ver) ->
+    if Array.isArray found
+      for doc in found
+        data.push queryResultAsDatum(doc, ver, query)
+    else
+      data.push queryResultAsDatum(found, ver, query)
+    finish err
+
+fetchSubData = (store, targets, callback) ->
+  data = []
+  otData = {}
+
+  count = targets.length
+  err = null
+  finish = (_err) ->
+    err ||= _err
+    --count || callback err, data, otData
+
+  otFields = store._otFields
+  for target in targets
+    if target.isQuery
+      fetchQueryData store, data, target, finish
+    else
+      [root, remainder] = splitPath target
+      fetchPathData store, data, otData, root, remainder, otFields, finish
+  return
 
 maybeHandleErr = (err) -> throw err if err
 
