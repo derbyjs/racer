@@ -1,74 +1,75 @@
-should = require 'should'
+expect = require 'expect.js'
 {isPrivate, regExp, eventRegExp, split, expand} = require '../src/pathParser'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList
-    re.source.should.equal sources[i]
+    expect(re.source).to.equal sources[i]
     for obj in matches[i]
       for match, captures of obj
-        re.exec(match).slice(1).should.eql captures
-    re.test(nonMatch).should.be.false for nonMatch in nonMatches[i]
+        expect(re.exec(match).slice 1).to.eql captures
+    expect(re.test nonMatch).to.be.false for nonMatch in nonMatches[i]
 
 describe 'pathParser', ->
 
   it 'paths containing a segment starting with an underscore should be private', ->
-    isPrivate('_stuff').should.be.true
-    isPrivate('item._stu_ff').should.be.true
-    isPrivate('a.b.c.d._e.f.g').should.be.true
-    isPrivate('a').should.be.false
-    isPrivate('item.stuff').should.be.false
-    isPrivate('item_.stuff').should.be.false
-    isPrivate('item.stuff_').should.be.false
-    isPrivate('item_sdf.s_tuff').should.be.false
+    expect(isPrivate '_stuff').to.be.true
+    expect(isPrivate 'item._stu_ff').to.be.true
+    expect(isPrivate 'a.b.c.d._e.f.g').to.be.true
+    expect(isPrivate 'a').to.be.false
+    expect(isPrivate 'item.stuff').to.be.false
+    expect(isPrivate 'item_.stuff').to.be.false
+    expect(isPrivate 'item.stuff_').to.be.false
+    expect(isPrivate 'item_sdf.s_tuff').to.be.false
 
   it 'test split', ->
-    split('colors.green').should.eql ['colors.green']
-    split('*.colors').should.eql ['', 'colors']
-    split('colors.(green,red)').should.eql ['colors', 'green,red)']
-    split('colors.*.hex').should.eql ['colors', 'hex']
+    expect(split 'colors.green').to.eql ['colors.green']
+    expect(split '*.colors').to.eql ['', 'colors']
+    expect(split 'colors.(green,red)').to.eql ['colors', 'green,red)']
+    expect(split 'colors.*.hex').to.eql ['colors', 'hex']
   
   it 'test expand', ->
-    expand('colors.green').should.eql [
+    expect(expand 'colors.green').to.eql [
       'colors.green'
     ]
-    expand('colors.(green,red)').should.eql [
+    expect(expand 'colors.(green,red)').to.eql [
       'colors.green'
       'colors.red'
     ]
-    expand('colors.(green.(hex,name),red.*)').should.eql [
+    expect(expand 'colors.(green.(hex,name),red.*)').to.eql [
       'colors.green.hex'
       'colors.green.name'
       'colors.red.*'
     ]
-    expand('colors.((hex,name).green,*.red)').should.eql [
+    expect(expand 'colors.((hex,name).green,*.red)').to.eql [
       'colors.hex.green'
       'colors.name.green'
       'colors.*.red'
     ]
-    expand('colors.(green.(hex,name),red.*).stuff').should.eql [
+    expect(expand 'colors.(green.(hex,name),red.*).stuff').to.eql [
       'colors.green.hex.stuff'
       'colors.green.name.stuff'
       'colors.red.*.stuff'
     ]
-    expand('colors.(green(,.name))').should.eql [
+    expect(expand 'colors.(green(,.name))').to.eql [
       'colors.green'
       'colors.green.name'
     ]
-    expand( 'colors.(
-              green.(
-                hex,
-                name
-              ),
-              red.*,
-              a.(
-                more,
-                over,
-                here
-              ).fun
-            ).stuff.(
-              and,
-              here
-            )').sort().should.eql [
+    expect(expand(
+      'colors.(
+        green.(
+          hex,
+          name
+        ),
+        red.*,
+        a.(
+          more,
+          over,
+          here
+        ).fun
+      ).stuff.(
+        and,
+        here
+      )').sort()).to.eql [
       'colors.green.hex.stuff.and'
       'colors.green.hex.stuff.here'
       'colors.green.name.stuff.and'
@@ -82,10 +83,11 @@ describe 'pathParser', ->
       'colors.a.here.fun.stuff.and'
       'colors.a.here.fun.stuff.here'
     ].sort()
-    expand( '(
-              green.(hex,name),
-              (more,over,here).fun
-            ).stuff').sort().should.eql [
+    expect(expand(
+      '(
+        green.(hex,name),
+        (more,over,here).fun
+      ).stuff').sort()).to.eql [
       'green.hex.stuff'
       'green.name.stuff'
       'more.fun.stuff'

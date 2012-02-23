@@ -1,5 +1,5 @@
 # Tests for Op(erations)
-should = require 'should'
+expect = require 'expect.js'
 transaction = require '../src/transaction'
 pathParser = require '../src/pathParser'
 require '../src/transaction.server'
@@ -9,97 +9,97 @@ describe 'transaction', ->
 
   it 'test transaction.base', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.base(txn).should.eql 2
+    expect(transaction.base txn).to.eql 2
 
   it 'test transaction.id', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.id(txn).should.eql '4.0'
+    expect(transaction.id txn).to.eql '4.0'
 
   it 'test transaction.method', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.method(txn).should.eql 'set'
+    expect(transaction.method txn).to.eql 'set'
 
   it 'test transaction.args', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.args(txn).should.eql ['count', 1]
+    expect(transaction.args txn).to.eql ['count', 1]
 
   it 'test transaction.path', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.path(txn).should.eql 'count'
+    expect(transaction.path txn).to.eql 'count'
 
   it 'test transaction.ops', ->
     compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
-    transaction.ops(compoundTxn).should.eql [transaction.op.create(method: 'set', args: ['count', 1])]
+    expect(transaction.ops compoundTxn).to.eql [transaction.op.create(method: 'set', args: ['count', 1])]
 
   it 'test transaction.op.method', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
-    transaction.op.method(op).should.equal 'set'
+    expect(transaction.op.method op).to.equal 'set'
 
   it 'test transaction.op.args', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
-    transaction.op.args(op).should.eql ['count', 1]
+    expect(transaction.op.args op).to.eql ['count', 1]
 
   # Property setters
 
   it 'test transaction.base setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.base(txn).should.equal 2
+    expect(transaction.base txn).to.equal 2
     transaction.base txn, 3
-    transaction.base(txn).should.equal 3
+    expect(transaction.base txn).to.equal 3
 
   it 'test transaction.id setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.id(txn).should.equal '4.0'
+    expect(transaction.id txn).to.equal '4.0'
     transaction.id txn, '4.1'
-    transaction.id(txn).should.equal '4.1'
+    expect(transaction.id txn).to.equal '4.1'
 
   it 'test transaction.method setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.method(txn).should.equal 'set'
+    expect(transaction.method txn).to.equal 'set'
     transaction.method txn, 'del'
-    transaction.method(txn).should.equal 'del'
+    expect(transaction.method txn).to.equal 'del'
 
   it 'test transaction.args setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.args(txn).should.eql ['count', 1]
+    expect(transaction.args txn).to.eql ['count', 1]
     transaction.args txn, ['count', 9]
-    transaction.args(txn).should.eql ['count', 9]
+    expect(transaction.args txn).to.eql ['count', 9]
 
   it 'test transaction.path setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.path(txn).should.equal 'count'
+    expect(transaction.path txn).to.equal 'count'
     transaction.path txn, 'age'
-    transaction.path(txn).should.equal 'age'
+    expect(transaction.path txn).to.equal 'age'
 
   it 'test transaction.ops setter', ->
     firstOps = [transaction.op.create(method: 'set', args: ['count', 1])]
     txn = transaction.create base: 3, id: '4.1', ops: firstOps
-    transaction.ops(txn).should.eql firstOps
+    expect(transaction.ops txn).to.eql firstOps
     secondOps = [transaction.op.create(method: 'push', args: ['a', 'b'])]
     transaction.ops txn, secondOps
-    transaction.ops(txn).should.eql secondOps
+    expect(transaction.ops txn).to.eql secondOps
 
   it 'test transaction.op.method setter', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.op.method(op).should.equal 'set'
+    expect(transaction.op.method op).to.equal 'set'
     transaction.op.method op, 'del'
-    transaction.op.method(op).should.equal 'del'
+    expect(transaction.op.method op).to.equal 'del'
 
   it 'test transaction.op.args setter', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.op.args(op).should.eql ['count', 1]
+    expect(transaction.op.args op).to.eql ['count', 1]
     transaction.op.args op, ['count', 2]
-    transaction.op.args(op).should.eql ['count', 2]
+    expect(transaction.op.args op).to.eql ['count', 2]
 
   '''transaction.compound should return true if the txn
   has several ops''': ->
     txn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
-    transaction.isCompound(txn).should.be.true
+    expect(transaction.isCompound txn).to.be.true
 
   '''transaction.compound should return false if the txn
   has only one op''': ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    transaction.isCompound(txn).should.be.false
+    expect(transaction.isCompound txn).to.be.false
 
   # Evaluating (but not applying) transactions
 
@@ -108,15 +108,15 @@ describe 'transaction', ->
   # Path Conflict Detection
 
   it 'paths where neither is a sub-path of the other should not conflict', ->
-    transaction.pathConflict('abc', 'def').should.be.false
-    transaction.pathConflict('def', 'abc').should.be.false
-    transaction.pathConflict('abc.de', 'abc.def').should.be.false
-    transaction.pathConflict('abc.def', 'abc.de').should.be.false
+    expect(transaction.pathConflict 'abc', 'def').to.be.false
+    expect(transaction.pathConflict 'def', 'abc').to.be.false
+    expect(transaction.pathConflict 'abc.de', 'abc.def').to.be.false
+    expect(transaction.pathConflict 'abc.def', 'abc.de').to.be.false
 
   it 'paths where one is a sub-path of the other should conflict', ->
-    transaction.pathConflict('abc', 'abc.def').should.equal 'parent'
-    transaction.pathConflict('abc.def', 'abc').should.equal 'child'
-    transaction.pathConflict('abc', 'abc').should.equal 'equal'
+    expect(transaction.pathConflict 'abc', 'abc.def').to.equal 'parent'
+    expect(transaction.pathConflict 'abc.def', 'abc').to.equal 'child'
+    expect(transaction.pathConflict 'abc', 'abc').to.equal 'equal'
 
   # Transaction Conflict Detection
   
@@ -135,18 +135,18 @@ describe 'transaction', ->
     txn7 = transaction.create base: 0, id: '1.0', method: 'set', args: ['obj.nested', 0]
     txn8 = transaction.create base: 0, id: '2.0', method: 'set', args: ['obj.nested.a', 0]
     
-    transaction.conflict(txn1, txn2).should.eql 'conflict' # Different arguments
-    transaction.conflict(txn1, txn3).should.eql 'conflict' # Different method
-    transaction.conflict(txn1, txn4).should.eql 'conflict' # Different number of arguments
+    expect(transaction.conflict txn1, txn2).to.eql 'conflict' # Different arguments
+    expect(transaction.conflict txn1, txn3).to.eql 'conflict' # Different method
+    expect(transaction.conflict txn1, txn4).to.eql 'conflict' # Different number of arguments
     
-    transaction.conflict(txn2, txn5).should.eql 'conflict' # Same client, wrong order
-    transaction.conflict(txn5, txn2).should.be.false # Same client, correct order
-    transaction.conflict(txn2s, txn5s).should.eql 'conflict' # Same store, wrong order
-    transaction.conflict(txn5s, txn2s).should.eql 'conflict' # Same store, correct order
+    expect(transaction.conflict txn2, txn5).to.eql 'conflict' # Same client, wrong order
+    expect(transaction.conflict txn5, txn2).to.be.false # Same client, correct order
+    expect(transaction.conflict txn2s, txn5s).to.eql 'conflict' # Same store, wrong order
+    expect(transaction.conflict txn5s, txn2s).to.eql 'conflict' # Same store, correct order
     
-    transaction.conflict(txn1, txn6).should.be.false # Non-conflicting paths
+    expect(transaction.conflict txn1, txn6).to.be.false # Non-conflicting paths
     
-    transaction.conflict(txn7, txn8).should.eql 'conflict' # Conflicting nested paths
-    transaction.conflict(txn8, txn7).should.eql 'conflict' # Conflicting nested paths
+    expect(transaction.conflict txn7, txn8).to.eql 'conflict' # Conflicting nested paths
+    expect(transaction.conflict txn8, txn7).to.eql 'conflict' # Conflicting nested paths
     
-    transaction.conflict(txn0, txn1).should.eql 'duplicate' # Same transaction ID
+    expect(transaction.conflict txn0, txn1).to.eql 'duplicate' # Same transaction ID

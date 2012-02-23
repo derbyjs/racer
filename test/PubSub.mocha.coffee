@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 redis = require 'redis'
 PubSub = require '../src/PubSub'
 adapters =
@@ -27,8 +27,8 @@ describe 'PubSub', ->
 
   it 'a published transaction to the same path should be received if subscribed to', (done) ->
     pubSub = newPubSub (subscriberId, message) ->
-      subscriberId.should.equal '1'
-      message.should.equal 'value'
+      expect(subscriberId).to.equal '1'
+      expect(message).to.equal 'value'
       done()
 
     pubSub.subscribe '1', ['channel'], ->
@@ -36,8 +36,8 @@ describe 'PubSub', ->
   
   it 'a published transaction to a subpath should be received if subscribed to', (done) ->
     pubSub = newPubSub (subscriberId, message) ->
-      subscriberId.should.equal '1'
-      message.should.equal 'value'
+      expect(subscriberId).to.equal '1'
+      expect(message).to.equal 'value'
       done()
 
     pubSub.subscribe '1', ['channel'], ->
@@ -50,8 +50,8 @@ describe 'PubSub', ->
     counter = 0
     expected = ['valueA1', 'valueA2']
     pubSub = newPubSub (subscriberId, message) ->
-      subscriberId.should.equal '1'
-      message.should.equal expected[counter++]
+      expect(subscriberId).to.equal '1'
+      expect(message).to.equal expected[counter++]
       done() if counter == 2
 
     pubSub.subscribe '1', ['channel.*.suffix'], ->
@@ -64,7 +64,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
-        counter.should.equal 3
+        expect(counter).to.equal 3
         done()
 
     pubSub.subscribe '1', ['a', 'b'], ->
@@ -86,7 +86,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
-        counter.should.equal 3
+        expect(counter).to.equal 3
         done()
 
     pubSub.subscribe '1', ['a.*', 'b.*'], ->
@@ -103,7 +103,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
-        counter.should.equal 2
+        expect(counter).to.equal 2
         done()
 
     pubSub.subscribe '1', ['channel'], ->
@@ -116,7 +116,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'last'
-        counter.should.equal 2
+        expect(counter).to.equal 2
         done()
 
     pubSub.subscribe '1', ['channel'], ->
@@ -129,7 +129,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       counter++
       if message == 'two'
-        counter.should.equal 3
+        expect(counter).to.equal 3
         done()
 
     pubSub.subscribe '1', ['channel'], ->
@@ -143,7 +143,7 @@ describe 'PubSub', ->
     pubSub = newPubSub (subscriberId, message) ->
       subscribersWithReceipt[subscriberId] = true
       return if --counter
-      subscribersWithReceipt.should.eql '1': true, '2': true
+      expect(subscribersWithReceipt).to.eql '1': true, '2': true
       done()
 
     pubSub.subscribe '1', ['channel.*'], ->
@@ -157,6 +157,6 @@ describe 'PubSub', ->
       txnOne = [0, '1.0', 'set', 'a.b.c', 1]
       txnTwo = [0, '1.0', 'set', 'b', 1]
       txnThree = [0, '1.0', 'set', 'b.c.d', 1]
-      pubSub.subscribedToTxn(subscriber, txnOne).should.be.false
-      pubSub.subscribedToTxn(subscriber, txnTwo).should.be.true
-      pubSub.subscribedToTxn(subscriber, txnThree).should.be.true
+      expect(pubSub.subscribedToTxn subscriber, txnOne).to.be.false
+      expect(pubSub.subscribedToTxn subscriber, txnTwo).to.be.true
+      expect(pubSub.subscribedToTxn subscriber, txnThree).to.be.true

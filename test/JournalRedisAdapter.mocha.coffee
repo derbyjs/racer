@@ -1,5 +1,5 @@
 expect = require 'expect.js'
-should = require 'should'
+expect = require 'expect.js'
 {
   getLocks
   LOCK
@@ -52,114 +52,114 @@ describe 'JournalRedisAdapter', ->
 
     it 'Lua lock script should return valid timeout and transaction count', (done) ->
       luaLock 'one', 0, (err, values, timeout, lockClock) ->
-        should.equal null, err
+        expect(err).to.be.null()
 
         now = +Date.now() / 1000
         timeDiff = now + LOCK_TIMEOUT - timeout
-        timeDiff.should.be.within 0, 2
+        expect(timeDiff).to.be.within 0, 2
 
-        lockClock.should.be.equal 1
+        expect(lockClock).to.be.equal 1
 
       luaLock 'two', 0, (err, values, timeout, lockClock) ->
-        should.equal null, err
-        lockClock.should.be.equal 2
+        expect(err).to.be.null()
+        expect(lockClock).to.be.equal 2
         done()
 
     it 'Lua lock script should truncate transaction count to 12 bits', (done) ->
       client.set 'lockClock', 0xdffffe
       luaLock 'color', 0, (err, values, timeout, lockClock) ->
-        should.equal null, err
-        lockClock.should.be.equal 0xfffff
+        expect(err).to.be.null()
+        expect(lockClock).to.be.equal 0xfffff
         done()
 
     it 'Lua lock script should detect conflicts properly', (done) ->
       luaLock 'colors.0', 0, (err, values) ->
-        should.equal null, err
-        values[0].should.be.above 0
+        expect(err).to.be.null()
+        expect(values[0]).to.be.above 0
       luaLock 'colors.1', 0, (err, values) ->
         # Same parent but different leaf should not conflict
-        should.equal null, err
-        values[0].should.be.above 0
+        expect(err).to.be.null()
+        expect(values[0]).to.be.above 0
       luaLock 'colors.0', 0, (err, values) ->
         # Same path should conflict
-        should.equal null, err
-        values.should.equal 0
+        expect(err).to.be.null()
+        expect(values).to.equal 0
       luaLock 'colors', 0, (err, values) ->
         # Parent path should conflict
-        should.equal null, err
-        values.should.equal 0
+        expect(err).to.be.null()
+        expect(values).to.equal 0
       luaLock 'colors.0.name', 0, (err, values) ->
         # Child path should conflict
-        should.equal null, err
-        values.should.equal 0
+        expect(err).to.be.null()
+        expect(values).to.equal 0
         done()
 
     it 'Lua unlock script should remove locking conflict', (done) ->
       luaLock 'color', 0, (err, values) ->
-        should.equal null, err
+        expect(err).to.be.null()
         lockVal = values[0]
-        lockVal.should.be.above 0
+        expect(lockVal).to.be.above 0
 
         luaUnlock 'color', lockVal, (err) ->
-          should.equal null, err
+          expect(err).to.be.null()
         luaLock 'color', 0, (err, values) ->
-          should.equal null, err
-          values[0].should.be.above 0
+          expect(err).to.be.null()
+          expect(values[0]).to.be.above 0
           done()
 
     it 'Lua commit script should add transaction to journal, increment version, and release locks', (done) ->
       txnOne = [0, '1.0', 'set', 'color', 'green']
       luaLock 'color', 0, (err, values) ->
-        should.equal null, err
+        expect(err).to.be.null()
         lockVal = values[0]
-        lockVal.should.be.above 0
+        expect(lockVal).to.be.above 0
 
         luaCommit 'color', lockVal, txnOne, (err, ver) ->
-          should.equal null, err
-          ver.should.equal 1
+          expect(err).to.be.null()
+          expect(ver).to.equal 1
           client.zrange 'txns', 0, -1, (err, val) ->
-            should.equal null, err
-            val.should.eql [JSON.stringify txnOne]
+            expect(err).to.be.null()
+            expect(val).to.eql [JSON.stringify txnOne]
           client.get 'ver', (err, val) ->
-            should.equal null, err
-            val.should.eql '1'
+            expect(err).to.be.null()
+            expect(val).to.eql '1'
           luaLock 'color', 0, (err, values) ->
-            should.equal null, err
-            values[0].should.be.above 0
+            expect(err).to.be.null()
+            expect(values[0]).to.be.above 0
             done()
 
     it 'Lua commit script should abort if locks are no longer held', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       luaLock 'color', 0, (err, values) ->
-        should.equal null, err
+        expect(err).to.be.null()
         lockVal = values[0]
-        lockVal.should.be.above 0
+        expect(lockVal).to.be.above 0
 
         luaUnlock 'color', lockVal, (err) ->
-          should.equal null, err
+          expect(err).to.be.null()
         luaCommit 'color', lockVal, txnOne, (err, ver) ->
-          should.equal null, err
-          ver.should.equal 0
+          expect(err).to.be.null()
+          expect(ver).to.equal 0
           client.get 'txns', (err, val) ->
-            should.equal null, err
-            should.equal null, val
+            expect(err).to.be.null()
+            expect(val).to.equal null
           client.get 'ver', (err, val) ->
-            should.equal null, err
-            should.equal null, val
+            expect(err).to.be.null()
+            expect(val).to.equal null
             done()
 
     it 'Lua lock script should replaced timed out locks @slow', (done) ->
       @timeout 5000
       luaLock 'color', 0, (err, values) ->
-        should.equal null, err
-        values[0].should.be.above 0
+        expect(err).to.be.null()
+        expect(values[0]).to.be.above 0
       luaLock 'color', 0, (err, values) ->
-        should.equal null, err
-        values.should.equal 0
+        expect(err).to.be.null()
+        expect(values).to.equal 0
       timeoutFn = ->
         luaLock 'color', 0, (err, values) ->
-          should.equal null, err
-          values[0].should.be.above 0
+          expect(err).to.be.null()
+          expect(values[0]).to.be.above 0
           done()
       setTimeout timeoutFn, (LOCK_TIMEOUT + 1) * 1000
 
@@ -167,13 +167,13 @@ describe 'JournalRedisAdapter', ->
       client.set 'lockClock', 0xffffe
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       luaLock 'color', 0, (err, values, timeout, lockClock) ->
-        should.equal null, err
+        expect(err).to.be.null()
         lockVal = values[0]
-        lockVal.should.be.above 0
-        lockClock.should.be.equal 0xfffff
+        expect(lockVal).to.be.above 0
+        expect(lockClock).to.be.equal 0xfffff
         luaCommit 'color', lockVal, txnOne, (err, ver) ->
-          should.equal null, err
-          ver.should.equal 1
+          expect(err).to.be.null()
+          expect(ver).to.equal 1
           done()
 
   describe 'STM commit', ->
@@ -193,81 +193,81 @@ describe 'JournalRedisAdapter', ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['favorite-skittle', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
         done()
 
     it 'different-client, same-path, simultaneous transaction should fail', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['color', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        err.should.eql 'conflict'
+        expect(err).to.eql 'conflict'
         done()
 
     it 'different-client, same-path, sequential transaction should succeed', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 1, id: '2.0', method: 'set', args: ['color', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
         done()
 
     it 'same-client, same-path transaction should succeed in order', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 0, id: '1.1', method: 'set', args: ['color', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
         done()
 
     it 'same-client, same-path store transaction should fail in order', (done) ->
       txnOne = transaction.create base: 0, id: '#1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 0, id: '#1.1', method: 'set', args: ['color', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        err.should.eql 'conflict'
+        expect(err).to.eql 'conflict'
         done()
 
     it 'same-client, same-path transaction should fail out of order', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = transaction.create base: 0, id: '1.1', method: 'set', args: ['color', 'red']
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        err.should.eql 'conflict'
+        expect(err).to.eql 'conflict'
         done()
 
     it 'setting a child path should conflict', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['colors', ['green']]
       txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['colors.0', 'red']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        err.should.eql 'conflict'
+        expect(err).to.eql 'conflict'
         done()
 
     it 'setting a parent path should conflict', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['colors', ['green']]
       txnTwo = transaction.create base: 0, id: '2.0', method: 'set', args: ['colors.0', 'red']
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        err.should.eql 'conflict'
+        expect(err).to.eql 'conflict'
         done()
 
     it 'sending a duplicate transaction should be detected', (done) ->
       txnOne = transaction.create base: 0, id: '1.0', method: 'set', args: ['color', 'green']
       txnTwo = txnOne.slice()
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        err.should.eql 'duplicate'
+        expect(err).to.eql 'duplicate'
         done()
 
     it 'a conflicting transaction with base of null or undefined should succeed', (done) ->
@@ -275,9 +275,9 @@ describe 'JournalRedisAdapter', ->
       txnTwo = transaction.create base: null, id: '2.0', method: 'set', args: ['color', 'red']
       txnThree = transaction.create base: undefined, id: '3.0', method: 'set', args: ['color', 'blue']
       adapter._stmCommit lockQueue, txnOne, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnTwo, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
       adapter._stmCommit lockQueue, txnThree, (err) ->
-        should.equal null, err
+        expect(err).to.be.null()
         done()

@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 Store = require '../src/Store'
 
 describe 'Model.async', ->
@@ -27,6 +27,6 @@ describe 'Model.async', ->
         unless --cbCount
           setTimeout ->
             model.async.get 'count', (err, value) ->
-              value.should.eql 5
+              expect(value).to.eql 5
               done()
           , 50

@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 redisInfo = require '../src/Journal/adapters/Redis/redisInfo'
 redis = require 'redis'
 
@@ -7,13 +7,13 @@ describe 'redisInfo', ->
   __consoleError = console.error
 
   checkFirstStart = (starts) ->
-    starts.length.should.eql 1
+    expect(starts.length).to.eql 1
     startId = starts[0][0]
     ver = starts[0][1]
     [startTime, startsLength] = startId.split '.'
-    (new Date - startTime).should.be.within 0, 100
-    startsLength.should.eql '0'
-    ver.should.eql '0'
+    expect(new Date - startTime).to.be.within 0, 100
+    expect(startsLength).to.eql '0'
+    expect(ver).to.eql '0'
 
   client = null
   subClient = null
@@ -36,7 +36,7 @@ describe 'redisInfo', ->
   
   it 'getStarts should log an error on an uninitialized Redis instance', (done) ->
     console.error = (message) ->
-      message.should.be.a 'string'
+      expect(message).to.be.a 'string'
       console.error = __consoleError
       done()
     redisInfo._getStarts client, ->
@@ -48,10 +48,10 @@ describe 'redisInfo', ->
         # Delay to make sure start timestamp is different if it gets reset
         setTimeout ->
           redisInfo._getStarts client, (starts2) ->
-            starts1.should.eql starts2
+            expect(starts1).to.eql starts2
             setTimeout ->
               redisInfo._getStarts client, (starts3) ->
-                starts1.should.eql starts3
+                expect(starts1).to.eql starts3
                 done()
             , 10
         , 10
@@ -62,7 +62,7 @@ describe 'redisInfo', ->
         client.set 'ver', 13, ->
           redisInfo._getStarts client, (starts) ->
             ver = starts[0][1]
-            ver.should.eql '7'
+            expect(ver).to.eql '7'
             done()
   
   it 'subscribeToStarts should return a list of starts immediately', (done) ->
@@ -76,9 +76,9 @@ describe 'redisInfo', ->
       count = 0
       redisInfo.subscribeToStarts subClient, client, (starts) ->
         return checkFirstStart starts unless count++
-        starts.length.should.eql 2
+        expect(starts.length).to.eql 2
         startId = starts[0][0]
         [startTime, startsLength] = startId.split '.'
-        startsLength.should.eql '1'
+        expect(startsLength).to.eql '1'
         done()
       redisInfo.onStart client

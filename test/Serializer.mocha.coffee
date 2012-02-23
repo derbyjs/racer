@@ -1,5 +1,5 @@
 Serializer = require '../src/Serializer'
-should = require 'should'
+expect = require 'expect.js'
 
 describe 'Serializer', ->
   
@@ -9,7 +9,7 @@ describe 'Serializer', ->
       withEach: (txn) -> applied.push txn
     
     txnApplier.add [2, '0.1', 'set', 'foo', 'bar'], 2
-    applied.should.eql []
+    expect(applied).to.eql []
   
   it 'should immediately apply a transaction that matches the next index', ->
     applied = []
@@ -18,7 +18,7 @@ describe 'Serializer', ->
     
     txn = [1, '0.1', 'set', 'foo', 'bar']
     txnApplier.add txn, 1
-    applied.should.eql [txn]
+    expect(applied).to.eql [txn]
   
   it 'out of order transactions should be applied in the correct order', ->
     applied = []
@@ -31,6 +31,6 @@ describe 'Serializer', ->
     txnApplier.add txn3, 3
     txnApplier.add txn2, 2
     txnApplier.add txn1, 1
-    applied.should.eql [txn1, txn2, txn3]
+    expect(applied).to.eql [txn1, txn2, txn3]
 
 # TODO: Add tests for timeout waiter, setIndex, clearPending

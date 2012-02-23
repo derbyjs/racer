@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 inspect = require('util').inspect
 specHelper = require '../../src/specHelper'
 
@@ -10,9 +10,6 @@ exports.calls = (num, fn) ->
   (done) ->
     done() if num == n = 0
     fn -> done() if ++n >= num
-
-exports.shouldEqualNaN = (value) ->
-  (value != value).should.be.true
 
 flatten = (a) ->
   if typeof a is 'object'
@@ -56,7 +53,7 @@ protoSubset = (a, b, exception) ->
 
 protoEql = (a, b) -> protoSubset(a, b) && protoSubset(b, a)
 
-should.Assertion::protoEql = (val) ->
+expect.Assertion::protoEql = (val) ->
   @assert protoEql(val, @obj),
     """expected \n
     #{protoInspect @obj} \n
@@ -73,7 +70,7 @@ specEql = (a, b) ->
   exception = (objA, objB, prop) -> ignore[prop]
   protoSubset(a, b, exception) && protoSubset(b, a, exception)
 
-should.Assertion::specEql = (val) ->
+expect.Assertion::specEql = (val) ->
   @assert specEql(val, @obj),
     """expected \n
     #{specInspect @obj} \n
@@ -84,3 +81,15 @@ should.Assertion::specEql = (val) ->
     to not speculatively equal \n
     #{specInspect val} \n"""
   return this
+
+expect.Assertion::NaN = ->
+  @assert @obj != @obj,
+    'expected ' + inspect(@obj) + ' to be NaN',
+    'expected ' + inspect(@obj) + ' to not be NaN'
+  return
+
+expect.Assertion::null = ->
+  @assert `this.obj == null`,
+    'expected ' + inspect(@obj) + ' to be null or undefined',
+    'expected ' + inspect(@obj) + ' to not be null or undefined'
+  return

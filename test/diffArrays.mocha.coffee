@@ -1,5 +1,5 @@
 {diffArrays} = require '../src/diffMatchPatch'
-should = require 'should'
+expect = require 'expect.js'
 {calls} = require './util'
 {inspect} = require 'util'
 
@@ -18,12 +18,12 @@ describe 'diffArrays', ->
           arr.splice op[2], 0, items...
     return arr
 
-  test = ({before, after, expect}) ->
+  test = ({before, after, expected}) ->
     diff = diffArrays before, after
-    diff.should.eql expect if expect
+    expect(diff).to.eql expected if expected
     try
       result = apply before, diff
-      result.should.eql after
+      expect(result).to.eql after
     catch e
       throw new Error """failure diffing
 

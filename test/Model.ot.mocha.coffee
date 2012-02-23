@@ -1,5 +1,5 @@
 Model = require '../src/Model'
-should = require 'should'
+expect = require 'expect.js'
 {mockSocketModels, fullyWiredModels} = require './util/model'
 {BrowserSocketMock} = require './util/mocks'
 
@@ -24,9 +24,9 @@ describe 'Model.ot', ->
   it 'model.set(path, model.ot(val)) should initialize the doc version to 0 and the initial value to val if the path is undefined', ->
     model = new Model
     model.set 'some.ot.path', model.ot('hi')
-    model.get('some.ot.path').should.equal 'hi'
-    model.isOtPath('some.ot.path').should.be.true
-    model._otField('some.ot.path').version.should.equal 0
+    expect(model.get 'some.ot.path').to.equal 'hi'
+    expect(model.isOtPath 'some.ot.path').to.be.true
+    expect(model._otField('some.ot.path').version).to.equal 0
 
 #  'model.subscribe(OTpath) should get the latest OT version doc if
 #  the path is specified before-hand as being OT': -> # TODO
@@ -37,26 +37,26 @@ describe 'Model.ot', ->
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot()
     model.insertOT 'some.ot.path', 0, 'abcdef'
-    model.get('some.ot.path').should.equal 'abcdef'
+    expect(model.get 'some.ot.path').to.equal 'abcdef'
     out = model.insertOT 'some.ot.path', 1, 'xyz'
-    should.equal undefined, out
-    model.get('some.ot.path').should.equal 'axyzbcdef'
+    expect(out).to.equal undefined
+    expect(model.get 'some.ot.path').to.equal 'axyzbcdef'
 
   it 'model.delOT(path, len, pos, callback) should result in a new string with str removed at pos', ->
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     out = model.delOT 'some.ot.path', 1, 3
-    out.should.eql 'bcd'
-    model.get('some.ot.path').should.equal 'aef'
+    expect(out).to.eql 'bcd'
+    expect(model.get 'some.ot.path').to.equal 'aef'
 
   it 'model should emit an insertOT event when it calls model.insertOT locally', (done) ->
     model = new Model
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
-      insertedStr.should.equal 'xyz'
-      pos.should.equal 1
+      expect(insertedStr).to.equal 'xyz'
+      expect(pos).to.equal 1
       done()
     model.insertOT 'some.ot.path', 1, 'xyz'
 
@@ -65,8 +65,8 @@ describe 'Model.ot', ->
     model.socket = emit: -> # Stub
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'delOT', 'some.ot.path', (pos, deletedStr) ->
-      deletedStr.should.equal 'bcd'
-      pos.should.equal 1
+      expect(deletedStr).to.equal 'bcd'
+      expect(pos).to.equal 1
       done()
     model.delOT 'some.ot.path', 1, 3
 
@@ -75,8 +75,8 @@ describe 'Model.ot', ->
     [sockets, model] = mockSocketModels 'model'
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
-      insertedStr.should.equal 'try'
-      pos.should.equal 1
+      expect(insertedStr).to.equal 'try'
+      expect(pos).to.equal 1
       sockets._disconnect()
       done()
     sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
@@ -85,8 +85,8 @@ describe 'Model.ot', ->
     [sockets, model] = mockSocketModels 'model'
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'delOT', 'some.ot.path', (pos, strToDel) ->
-      strToDel.should.equal 'bcd'
-      pos.should.equal 1
+      expect(strToDel).to.equal 'bcd'
+      expect(pos).to.equal 1
       sockets._disconnect()
       done()
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
@@ -96,9 +96,9 @@ describe 'Model.ot', ->
     fullyWiredModels numModels, (sockets, store, modelA, modelB) ->
       modelA.set '_test.text', modelA.ot('abcdef')
       modelB.on 'insertOT', '_test.text', (pos, insertedStr) ->
-        insertedStr.should.equal 'xyz'
-        pos.should.equal 1
-        modelB.get('_test.text').should.equal 'axyzbcdef'
+        expect(insertedStr).to.equal 'xyz'
+        expect(pos).to.equal 1
+        expect(modelB.get '_test.text').to.equal 'axyzbcdef'
         sockets._disconnect()
         store.disconnect()
         done()
@@ -121,7 +121,7 @@ describe 'Model.ot', ->
           return if ++model.__events__ < 2
           model.__final__ = model.get '_test.text'
           if model.__events__ == otherModel.__events__
-            model.__final__.should.equal otherModel.__final__
+            expect(model.__final__).to.equal otherModel.__final__
             sockets._disconnect()
             store.disconnect()
             done()
@@ -136,7 +136,7 @@ describe 'Model.ot', ->
 
       modelA.delOT '_test.text', 1, 3
       setTimeout ->
-        modelB.get('_test.text').should.equal modelA.get('_test.text')
+        expect(modelB.get '_test.text').to.equal modelA.get('_test.text')
         sockets._disconnect()
         store.disconnect()
         done()
@@ -150,7 +150,7 @@ describe 'Model.ot', ->
       modelA.set '_test.text', modelA.ot('abcdefghijk')
       modelA.delOT '_test.text', 1, 3
       setTimeout ->
-        modelB.get('_test.text').should.equal modelA.get('_test.text')
+        expect(modelB.get '_test.text').to.equal modelA.get('_test.text')
         sockets._disconnect()
         store.disconnect()
         done()
@@ -164,7 +164,7 @@ describe 'Model.ot', ->
         path = modelC.dereference('_test')
         modelB.subscribe path, ->
           modelB.ref '_test', path
-          modelB.get('_test.text').should.equal 'axyzbcdefg'
+          expect(modelB.get '_test.text').to.equal 'axyzbcdefg'
           sockets._disconnect()
           store.disconnect()
           done()
@@ -197,7 +197,7 @@ describe 'Model.ot', ->
             bundle.socket = new BrowserSocketMock sockets
             browserModelB = new Model
             browserRacer.init.call model: browserModelB, bundle
-            browserModelB.get('_test.text').should.equal 'axyzbcdefg'
+            expect(browserModelB.get '_test.text').to.equal 'axyzbcdefg'
 
             sockets._disconnect()
             store.disconnect()

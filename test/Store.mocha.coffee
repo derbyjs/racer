@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 util = require './util'
 Store = require '../src/Store'
 redis = require 'redis'
@@ -28,7 +28,7 @@ describe 'Store', ->
     store._adapter.set 'color', 'green', 1, ->
       redisClient.set 'color', 'green', ->
         store._adapter.get null, (err, value) ->
-          value.should.specEql color: 'green'
+          expect(value).to.specEql color: 'green'
           redisClient.keys '*', (err, value) ->
             # Note that flush calls redisInfo.onStart immediately after
             # flushing, so the key 'starts' should exist
@@ -37,36 +37,36 @@ describe 'Store', ->
             if ~value.indexOf 'clientClock'
               # This will be true when we configure Store to use the redis
               # clientIdGenerator
-              value.should.eql ['color', 'clientClock', 'starts']
+              expect(value).to.eql ['color', 'clientClock', 'starts']
             else
-              value.should.eql ['color', 'starts']
+              expect(value).to.eql ['color', 'starts']
             store.flush (err) ->
-              should.equal null, err
-              (++callbackCount).should.eql 1
+              expect(err).to.be.null()
+              expect(++callbackCount).to.eql 1
               store._adapter.get null, (err, value) ->
-                value.should.eql {}
+                expect(value).to.eql {}
                 redisClient.keys '*', (err, value) ->
                   if ~value.indexOf 'clientClock'
                     # Once again, 'clientClock' and 'starts' should exist after the flush
-                    value.should.eql ['clientClock', 'starts']
+                    expect(value).to.eql ['clientClock', 'starts']
                   else
-                    value.should.eql ['starts']
+                    expect(value).to.eql ['starts']
                   done()
 
   it 'flush should return an error if the adapter fails to flush', (done) ->
     callbackCount = 0
     store._adapter.flush = (callback) -> callback new Error
     store.flush (err) ->
-      err.should.be.instanceof Error
-      (++callbackCount).should.eql 1
+      expect(err).to.be.an Error
+      expect(++callbackCount).to.eql 1
       done()
 
   it 'flush should return an error if the journal fails to flush', (done) ->
     callbackCount = 0
     store.journal.flush = (callback) -> callback new Error
     store.flush (err) ->
-      err.should.be.instanceof Error
-      (++callbackCount).should.eql 1
+      expect(err).to.be.an Error
+      expect(++callbackCount).to.eql 1
       done()
 
   it 'flush should return an error if the adapter and journal fail to flush', (done) ->
@@ -74,8 +74,8 @@ describe 'Store', ->
     store._adapter.flush = (callback) -> callback new Error
     store.journal.flushdb = (callback) -> callback new Error
     store.flush (err) ->
-      err.should.be.instanceof Error
-      (++callbackCount).should.eql 1
+      expect(err).to.be.an Error
+      expect(++callbackCount).to.eql 1
       done()
 
   it 'subscribe should only copy the appropriate properties', (done) ->
@@ -95,7 +95,7 @@ describe 'Store', ->
           expected = tests[pattern]
           model = store.createModel()
           model.subscribe pattern, ->
-            model.get().should.specEql expected
+            expect(model.get()).to.specEql expected
             finish()
 
   it 'store.commit should apply transactions in order', (done) ->
@@ -108,7 +108,7 @@ describe 'Store', ->
         idOut.push transaction.id txn
         finish() if idOut.length is 10
     finish = ->
-      idIn.should.eql idOut
+      expect(idIn).to.eql idOut
       done()
   
   # TODO tests:

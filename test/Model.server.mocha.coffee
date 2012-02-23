@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 Store = require '../src/Store'
 
 run = (options) ->
@@ -20,9 +20,9 @@ run = (options) ->
       model.bundle (bundle) ->
         {data} = JSON.parse bundle
         # transactions committed
-        model._txnQueue.should.be.empty
+        expect(model._txnQueue).to.be.empty
         # and applied
-        data.presos.racer.should.eql { slides: [] }
+        expect(data.presos.racer).to.eql { slides: [] }
         done()
 
   it 'bundle should not pass anything speculative to the data key when using 2 speculative sets  with a shared path (aka lazy speculative marking of an object that was the value of a set  should not modify the object itself)', (done) ->
@@ -32,7 +32,7 @@ run = (options) ->
       presos.set 'role', 'presenter'
       model.bundle (bundle) ->
         obj = JSON.parse bundle
-        should.equal undefined, obj.data.presos.racer._proto
+        expect(obj.data.presos.racer._proto).to.equal undefined
         done()
 
 

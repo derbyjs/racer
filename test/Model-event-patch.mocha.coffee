@@ -1,6 +1,6 @@
 transaction = require '../src/transaction'
 Model = require '../src/Model'
-should = require 'should'
+expect = require 'expect.js'
 {calls} = require './util'
 {mockSocketEcho, mockSocketModel} = require './util/model'
 
@@ -27,7 +27,7 @@ mirrorTest = (done, init, callback) ->
   process.nextTick ->
     model.socket._connect()
   setTimeout ->
-    mirror.get().should.specEql model.get()
+    expect(mirror.get()).to.specEql model.get()
     done()
   , 10
 
@@ -41,7 +41,7 @@ describe 'Model event patch', ->
 
     model.socket._connect()
     setTimeout ->
-      model.get().should.eql
+      expect(model.get()).to.eql
         color: 'green'
         name: 'John'
       done()
@@ -55,7 +55,7 @@ describe 'Model event patch', ->
 
     model.socket._connect()
     setTimeout ->
-      model.get().should.eql name: 'John'
+      expect(model.get()).to.eql name: 'John'
       done()
     , 10
 

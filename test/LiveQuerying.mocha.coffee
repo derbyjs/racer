@@ -1,4 +1,4 @@
-should = require 'should'
+expect = require 'expect.js'
 Store = require '../src/Store'
 redis = require 'redis'
 async = require 'async'
@@ -12,16 +12,16 @@ describe 'Live Querying', ->
     it 'should create the same hash for 2 equivalent queries that exhibit different method call ordering', ->
       q1 = query('users').where('name').equals('brian').where('age').equals(26)
       q2 = query('users').where('age').equals(26).where('name').equals('brian')
-      q1.hash().should.eql q2.hash()
+      expect(q1.hash()).to.eql q2.hash()
 
       q1 = query('users').where('votes').lt(20).gt(10).where('followers').gt(100).lt(200)
       q2 = query('users').where('followers').lt(200).gt(100).where('votes').gt(10).lt(20)
-      q1.hash().should.eql q2.hash()
+      expect(q1.hash()).to.eql q2.hash()
 
     it 'should create different hashes for different queries', ->
       q1 = query('users').where('name').equals('brian')
       q2 = query('users').where('name').equals('nate')
-      q1.hash().should.not.eql q2.hash()
+      expect(q1.hash()).to.not.eql q2.hash()
 
   adapters =
     Mongo: ->
@@ -75,27 +75,27 @@ describe 'Live Querying', ->
             model = store.createModel()
             query = model.query(currNs).where('name').equals('brian')
             model.subscribe query, ->
-              model.get("#{currNs}.0").should.eql users[0]
-              should.equal undefined, model.get("#{currNs}.1")
-              should.equal undefined, model.get("#{currNs}.2")
+              expect(model.get "#{currNs}.0").to.eql users[0]
+              expect(model.get "#{currNs}.1").to.equal undefined
+              expect(model.get "#{currNs}.2").to.equal undefined
               done()
 
           it 'should work for one parameter `gt` queries', (done) ->
             model = store.createModel()
             query = model.query(currNs).where('age').gt(25)
             model.subscribe query, ->
-              should.equal undefined, model.get("#{currNs}.0")
+              expect(model.get "#{currNs}.0").to.equal undefined
               for i in [1, 2]
-                model.get(currNs + '.' + i).should.eql users[i]
+                expect(model.get currNs + '.' + i).to.eql users[i]
               done()
 
           it 'should work for one parameter `gte` queries', (done) ->
             model = store.createModel()
             query = model.query(currNs).where('age').gte(26)
             model.subscribe query, ->
-              should.equal undefined, model.get("#{currNs}.0")
+              expect(model.get "#{currNs}.0").to.equal undefined
               for i in [1, 2]
-                model.get(currNs + '.' + i).should.eql users[i]
+                expect(model.get currNs + '.' + i).to.eql users[i]
               done()
 
           it 'should work for one parameter `lt` queries', (done) ->
@@ -103,8 +103,8 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('age').lt(27)
             model.subscribe query, ->
               for i in [0, 1]
-                model.get(currNs + '.' + i).should.eql users[i]
-              should.equal undefined, model.get("#{currNs}.2")
+                expect(model.get currNs + '.' + i).to.eql users[i]
+              expect(model.get "#{currNs}.2").to.equal undefined
               done()
 
           it 'should work for one parameter `lte` queries', (done) ->
@@ -112,8 +112,8 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('age').lte(26)
             model.subscribe query, ->
               for i in [0, 1]
-                model.get(currNs + '.' + i).should.eql users[i]
-              should.equal undefined, model.get("#{currNs}.2")
+                expect(model.get currNs + '.' + i).to.eql users[i]
+              expect(model.get "#{currNs}.2").to.equal undefined
               done()
 
           it 'should work for one parameter `within` queries', (done) ->
@@ -121,8 +121,8 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('name').within(['brian', 'x'])
             model.subscribe query, ->
               for i in [0, 2]
-                model.get(currNs + '.' + i).should.eql users[i]
-              should.equal undefined, model.get("#{currNs}.1")
+                expect(model.get currNs + '.' + i).to.eql users[i]
+              expect(model.get "#{currNs}.1").to.equal undefined
               done()
 
           it 'should work for one parameter `contains` scalar queries', (done) ->
@@ -130,8 +130,8 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('workdays').contains(['mon', 'wed'])
             model.subscribe query, ->
               for i in [0, 1]
-                model.get(currNs + '.' + i).should.eql users[i]
-              should.equal undefined, model.get("#{currNs}.2")
+                expect(model.get currNs + '.' + i).to.eql users[i]
+              expect(model.get "#{currNs}.2").to.equal undefined
               done()
 
           it 'should work for compound queries', (done) ->
@@ -139,8 +139,8 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('workdays').contains(['wed']).where('age').gt(25)
             model.subscribe query, ->
               for i in [0, 2]
-                should.equal undefined, model.get(currNs + '.' + i)
-              model.get("#{currNs}.1").should.eql users[1]
+                expect(model.get currNs + '.' + i).to.equal undefined
+              expect(model.get "#{currNs}.1").to.eql users[1]
               done()
 
           it 'should only retrieve paths specified in `only`', (done) ->
@@ -148,10 +148,10 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('age').gt(20).only('name', 'age')
             model.subscribe query, ->
               for i in [0..2]
-                model.get(currNs + '.' + i + '.id').should.equal users[i].id
-                model.get(currNs + '.' + i + '.name').should.equal users[i].name
-                model.get(currNs + '.' + i + '.age').should.equal users[i].age
-                should.equal undefined, model.get(currNs + '.' + i + '.workdays')
+                expect(model.get currNs + '.' + i + '.id').to.equal users[i].id
+                expect(model.get currNs + '.' + i + '.name').to.equal users[i].name
+                expect(model.get currNs + '.' + i + '.age').to.equal users[i].age
+                expect(model.get currNs + '.' + i + '.workdays').to.equal undefined
               done()
 
           it 'should exclude paths specified in `except`', (done) ->
@@ -159,10 +159,10 @@ describe 'Live Querying', ->
             query = model.query(currNs).where('age').gt(20).except('name', 'workdays')
             model.subscribe query, ->
               for i in [0..2]
-                model.get(currNs + '.' + i + '.id').should.equal users[i].id
-                model.get(currNs + '.' + i + '.age').should.equal users[i].age
-                should.equal undefined, model.get(currNs + '.' + i + '.name')
-                should.equal undefined, model.get(currNs + '.' + i + '.workdays')
+                expect(model.get currNs + '.' + i + '.id').to.equal users[i].id
+                expect(model.get currNs + '.' + i + '.age').to.equal users[i].age
+                expect(model.get currNs + '.' + i + '.name').to.equal undefined
+                expect(model.get currNs + '.' + i + '.workdays').to.equal undefined
               done()
 
         describe 'receiving proper publishes', ->
@@ -205,8 +205,8 @@ describe 'Live Querying', ->
                       finish()
                   browser: (modelLeo, finish) ->
                     modelLeo.on 'set', "#{currNs}.*", (id, user) ->
-                      id.should.equal '1'
-                      user.should.eql userLeo
+                      expect(id).to.equal '1'
+                      expect(user).to.eql userLeo
                       finish()
                 modelBill:
                   server: (modelBill, finish) ->
@@ -215,8 +215,8 @@ describe 'Live Querying', ->
                       finish()
                   browser: (modelBill, finish) ->
                     modelBill.on 'set', "#{currNs}.*", (id, user) ->
-                      id.should.equal '2'
-                      user.should.eql userBill
+                      expect(id).to.equal '2'
+                      expect(user).to.eql userBill
                       finish()
                 modelSue:
                   server: (modelSue, finish) -> finish()
@@ -239,9 +239,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get "#{currNs}.1"
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                   subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'hello'}
+                   expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello'}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
 
@@ -252,9 +252,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'foo'}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo'}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
 
@@ -270,9 +270,9 @@ describe 'Live Querying', ->
                   subscriberBrowserModel.on 'setPost', ([path, val]) ->
                     if path == "#{currNs}.1.greeting" && val == 'hello' then onMutation()
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'foo', age: 21}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo', age: 21}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', greeting: 'hello', age: 21}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello', age: 21}
                   subscriberBrowserModel.on 'rmDoc', ->
                     # This should never get called. Keep it here to detect if we call > 1
                     throw new Error 'Should not rmDoc'
@@ -293,9 +293,9 @@ describe 'Live Querying', ->
                     throw new Error 'Should not rmDoc'
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel, finish) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 28
 
@@ -306,9 +306,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get "#{currNs}.1"
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 28
 
@@ -318,9 +318,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 27
 
@@ -337,9 +337,9 @@ describe 'Live Querying', ->
                   subscriberBrowserModel.on 'rmDoc', ->
                     throw new Error 'Should not rmDoc'
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 23}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 23}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 22}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 22}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 22
 
@@ -352,9 +352,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get "#{currNs}.1"
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 30}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 30}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 30
 
@@ -364,9 +364,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 29
 
@@ -381,9 +381,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 30}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 30}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 30
 
@@ -401,9 +401,9 @@ describe 'Live Querying', ->
                     throw new Error 'Should not rmDoc'
                   subscriberBrowserModel.on 'setPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 27}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
                 postCondition: (subscriberBrowserModel, finish) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.set "#{currNs}.1.age", 28
 
@@ -414,9 +414,9 @@ describe 'Live Querying', ->
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get("#{currNs}.1").should.eql {id: '1', age: 28}
+                expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
               postCondition: (subscriberBrowserModel) ->
-                should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
               mutate: (publisherBrowserModel) ->
                 publisherBrowserModel.del "#{currNs}.1"
 
@@ -427,7 +427,7 @@ describe 'Live Querying', ->
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'addDoc', onMutation
               preCondition: (subscriberModel) ->
-                should.equal undefined, subscriberModel.get "#{currNs}.1"
+                expect(subscriberModel.get "#{currNs}.1").to.equal undefined
               postCondition: (subscriberBrowserModel) ->
                 subscriberBrowserModel.get "#{currNs}.1", {id: '1'}
               mutate: (publisherBrowserModel) ->
@@ -439,9 +439,9 @@ describe 'Live Querying', ->
               listenForMutation: (subscriberBrowserModel, onMutation) ->
                 subscriberBrowserModel.on 'rmDoc', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
+                expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
               postCondition: (subscriberBrowserModel) ->
-                should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
               mutate: (publisherBrowserModel) ->
                 publisherBrowserModel.del "#{currNs}.1.name"
 
@@ -458,9 +458,9 @@ describe 'Live Querying', ->
                   throw new Error 'Should not rmDoc'
                 subscriberBrowserModel.on 'delPost', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian', age: 27}
+                expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian', age: 27}
               postCondition: (subscriberBrowserModel) ->
-                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
+                expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
               mutate: (publisherBrowserModel) ->
                 publisherBrowserModel.del "#{currNs}.1.age"
 
@@ -479,9 +479,9 @@ describe 'Live Querying', ->
                   throw new Error 'Should not addDoc'
                 subscriberBrowserModel.on 'delPost', onMutation
               preCondition: (subscriberModel) ->
-                subscriberModel.get("#{currNs}.1").should.eql {id: '1', name: 'Brian'}
+                expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
               postCondition: (subscriberBrowserModel) ->
-                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1'}
+                expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1'}
               mutate: (publisherBrowserModel) ->
                 publisherBrowserModel.del "#{currNs}.1.name"
 
@@ -495,9 +495,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'ho', 'there']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'there'
 
@@ -507,9 +507,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'hi'
 
@@ -519,9 +519,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there', 'yo']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there', 'yo']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'yo'
 
@@ -532,9 +532,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get "#{currNs}.1"
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
 
@@ -544,9 +544,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
 
@@ -561,9 +561,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command', 'and', 'conquer']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 'and', 'conquer'
 
@@ -578,9 +578,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'pushPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1, b: 2}]}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}]}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", {c: 10, d: 11}
 
@@ -592,9 +592,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'ho', 'there']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
 
@@ -604,9 +604,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
 
@@ -616,9 +616,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'unshiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['yo', 'hi', 'there']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['yo', 'hi', 'there']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.unshift "#{currNs}.1.tags", 'yo'
 
@@ -632,9 +632,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['ho', 'hi', 'there']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['ho', 'hi', 'there']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'hi'
 
@@ -644,9 +644,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get("#{currNs}.1")
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.insert "#{currNs}.1.tags", 0, 'hi'
 
@@ -656,9 +656,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'insertPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'there']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['hi', 'yo', 'there']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'yo', 'there']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'yo'
 
@@ -672,9 +672,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.pop "#{currNs}.1.tags"
 
@@ -689,9 +689,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'popPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti', 'grande']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.pop "#{currNs}.1.tags"
 
@@ -706,9 +706,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'popPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.pop "#{currNs}.1.tags"
 
@@ -722,9 +722,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.shift "#{currNs}.1.tags"
 
@@ -739,9 +739,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'shiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['venti', 'grande']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['grande']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['grande']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.shift "#{currNs}.1.tags"
 
@@ -756,9 +756,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'shiftPost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['white']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['white']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.shift "#{currNs}.1.tags"
 
@@ -772,9 +772,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'orange', 'yellow']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange', 'yellow']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
@@ -789,9 +789,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'removePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['piquito', 'grande']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'grande']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
@@ -806,9 +806,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'removePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'jesse', 'white']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'jesse', 'white']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['walter', 'white']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
 
@@ -820,9 +820,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'addDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  should.equal undefined, subscriberModel.get "#{currNs}.1"
+                  expect(subscriberModel.get "#{currNs}.1").to.equal undefined
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.move "#{currNs}.1.tags", 0, 1
 
@@ -832,9 +832,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'rmDoc', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['red', 'alert']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
                 postCondition: (subscriberBrowserModel) ->
-                  should.equal undefined, subscriberBrowserModel.get "#{currNs}.1"
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.push "#{currNs}.1.tags", 1, 0
 
@@ -849,9 +849,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'movePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: ['command', 'and', 'conquer']}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: ['conquer', 'command', 'and']}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['conquer', 'command', 'and']}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.move "#{currNs}.1.tags", 2, 0
 
@@ -866,9 +866,9 @@ describe 'Live Querying', ->
                 listenForMutation: (subscriberBrowserModel, onMutation) ->
                   subscriberBrowserModel.on 'movePost', onMutation
                 preCondition: (subscriberModel) ->
-                  subscriberModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
+                  expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
                 postCondition: (subscriberBrowserModel) ->
-                  subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
+                  expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
                 mutate: (publisherBrowserModel) ->
                   publisherBrowserModel.move "#{currNs}.1.tags", 2, 1
 
@@ -883,9 +883,9 @@ describe 'Live Querying', ->
 #              listenForMutation: (subscriberBrowserModel, onMutation) ->
 #                subscriberBrowserModel.on 'addDoc', onMutation
 #              preCondition: (subscriberModel) ->
-#                should.equal undefined, subscriberModel.get("#{currNs}.1")
+#                expect(subscriberModel.get "#{currNs}.1").to.equal undefined
 #              postCondition: (subscriberBrowserModel) ->
-#                subscriberBrowserModel.get("#{currNs}.1").should.eql {id: '1', name: 'bri', city: 'sf'}
+#                expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', name: 'bri', city: 'sf'}
 #              mutate: (publisherBrowserModel) ->
 #                publisherBrowserModel.set "#{currNs}.1.name", 'bri'
 
@@ -922,15 +922,15 @@ describe 'Live Querying', ->
                     server: (modelHello, finish) ->
                       query = modelHello.query(currNs).where('ranking').gte(3).limit(2)
                       modelHello.subscribe query, ->
-                        should.equal    undefined, modelHello.get("#{currNs}.1")
-                        should.notEqual undefined, modelHello.get("#{currNs}.2")
-                        should.equal    undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.equal undefined
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'addDoc', ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.notEqual undefined, modelHello.get("#{currNs}.2")
-                        should.equal    undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.equal undefined
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
@@ -945,15 +945,15 @@ describe 'Live Querying', ->
                     server: (modelHello, finish) ->
                       query = modelHello.query(currNs).where('ranking').lt(2).limit(2)
                       modelHello.subscribe query, ->
-                        should.equal    undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.notEqual undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'rmDoc', ->
-                        should.equal    undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.equal    undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.equal undefined
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
@@ -985,9 +985,9 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -996,7 +996,7 @@ describe 'Live Querying', ->
                         , ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 4, 5
+                            expect(player.ranking).to.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1025,9 +1025,9 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -1037,7 +1037,7 @@ describe 'Live Querying', ->
                         , ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 4, 5
+                            expect(player.ranking).to.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1066,9 +1066,9 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -1077,7 +1077,7 @@ describe 'Live Querying', ->
                         , ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 4, 5
+                            expect(player.ranking).to.be.within 4, 5
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1106,9 +1106,9 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -1117,7 +1117,7 @@ describe 'Live Querying', ->
                         , ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 2, 3
+                            expect(player.ranking).to.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1145,9 +1145,9 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         async.forEach ['rmDoc', 'addDoc']
@@ -1156,7 +1156,7 @@ describe 'Live Querying', ->
                         , ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 2, 3
+                            expect(player.ranking).to.be.within 2, 3
                           finish()
                     modelFoo:
                       server: (modelFoo, finish) -> finish()
@@ -1184,17 +1184,17 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         setTimeout ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                         , 200
                         modelHello.on 'addDoc', -> finish() # Should never be called
@@ -1225,15 +1225,15 @@ describe 'Live Querying', ->
                         modelHello.subscribe query, ->
                           for player in allPlayers
                             if player.ranking not in [3, 4]
-                              should.equal undefined, modelHello.get("#{currNs}." + player.id)
+                              expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
                             else
-                              modelHello.get("#{currNs}." + player.id).should.eql player
+                              expect(modelHello.get "#{currNs}." + player.id).to.eql player
                           finish()
                       browser: (modelHello, finish) ->
                         setTimeout ->
                           modelPlayers = modelHello.get currNs
                           for _, player of modelPlayers
-                            player.ranking.should.be.within 3, 4
+                            expect(player.ranking).to.be.within 3, 4
                           finish()
                         , 200
                         modelHello.on 'addDoc', -> finish() # Should never be called
@@ -1253,18 +1253,18 @@ describe 'Live Querying', ->
                     server: (modelHello, finish) ->
                       query = modelHello.query(currNs).where('ranking').lt(5).sort('ranking', 'asc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.notEqual undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                         finish()
                     browser: (modelHello, finish) ->
                       async.forEach ['rmDoc', 'addDoc']
                       , (event, callback) ->
                         modelHello.on event, -> callback()
                       , ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.notEqual undefined, modelHello.get("#{currNs}.2")
-                        should.equal    undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.equal undefined
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
@@ -1281,15 +1281,15 @@ describe 'Live Querying', ->
                     server: (modelHello, finish) ->
                       query = modelHello.query(currNs).where('ranking').lt(3).sort('name.first', 'desc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.notEqual undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'rmDoc', ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.notEqual undefined, modelHello.get("#{currNs}.2")
-                        should.equal    undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.equal undefined
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
@@ -1306,16 +1306,16 @@ describe 'Live Querying', ->
                     server: (modelHello, finish) ->
                       query = modelHello.query(currNs).where('ranking').lt(10).sort('ranking', 'asc').limit(2)
                       modelHello.subscribe query, ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.notEqual undefined, modelHello.get("#{currNs}.3")
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                         finish()
                     browser: (modelHello, finish) ->
                       modelHello.on 'setPost', ->
-                        should.notEqual undefined, modelHello.get("#{currNs}.1")
-                        should.equal    undefined, modelHello.get("#{currNs}.2")
-                        should.notEqual undefined, modelHello.get("#{currNs}.3")
-                        modelHello.get("#{currNs}.1.ranking").should.equal 0
+                        expect(modelHello.get "#{currNs}.1").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.2").to.equal undefined
+                        expect(modelHello.get "#{currNs}.3").to.not.equal undefined
+                        expect(modelHello.get "#{currNs}.1.ranking").to.equal 0
                         finish()
                   modelFoo:
                     server: (modelFoo, finish) -> finish()
@@ -1348,7 +1348,7 @@ describe 'Live Querying', ->
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'rmDoc', ->
-                      modelHello.getVer().should.equal(oldVer + 1)
+                      expect(modelHello.getVer()).to.equal(oldVer + 1)
                       finish()
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
@@ -1368,7 +1368,7 @@ describe 'Live Querying', ->
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'addDoc', ->
-                      modelHello.getVer().should.equal(oldVer + 1)
+                      expect(modelHello.getVer()).to.equal(oldVer + 1)
                       finish()
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
@@ -1398,13 +1398,13 @@ describe 'Live Querying', ->
                     modelHello.subscribe query, ->
                       for player in players
                         if player.ranking == 1
-                          modelHello.get("#{currNs}.#{player.id}").should.eql player
+                          expect(modelHello.get "#{currNs}.#{player.id}").to.eql player
                         else
-                          should.equal undefined, modelHello.get("#{currNs}.#{player.id}")
+                          expect(modelHello.get "#{currNs}.#{player.id}").to.equal undefined
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'setPost', ->
-                      modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                      expect(modelHello.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                       finish()
                 modelFoo:
                   server: (modelFoo, finish) -> finish()
@@ -1420,12 +1420,12 @@ describe 'Live Querying', ->
                     query = modelHello.query(currNs).where('name.last').equals('Djokovic')
                     modelHello.subscribe query, ->
                       for player in players
-                        should.equal undefined, modelHello.get("#{currNs}.#{player.id}")
+                        expect(modelHello.get "#{currNs}.#{player.id}").to.equal undefined
                       finish()
                   browser: (modelHello, finish) ->
                     modelHello.on 'setPost', ([path, val], ver) ->
                       if path == "#{currNs}.3"
-                        modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                        expect(modelHello.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                         finish()
                       else
                         throw new Error "Should not be setting #{path}"
@@ -1466,7 +1466,7 @@ describe 'Live Querying', ->
                   browser: (modelHello, finish) ->
                     modelHello.on 'set', ([path, val], ver) ->
                       if path == "#{currNs}.3.name.last"
-                        modelHello.get("#{currNs}.3").should.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+                        expect(modelHello.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
                       else
                         throw new Error "Should not be setting #{path}"
                     modelHello.socket.on 'txn', (txn, num) ->

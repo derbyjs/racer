@@ -1,5 +1,5 @@
 Promise = require '../src/Promise'
-should = require 'should'
+expect = require 'expect.js'
 {calls} = require './util'
 
 describe 'Promise', ->
@@ -8,30 +8,30 @@ describe 'Promise', ->
     p = new Promise
     p.fulfill true
     p.on (val) ->
-      val.should.be.true
+      expect(val).to.be.true
       done()
 
   it 'should execute immediately using the appropriate scope if the Promise is already fulfilled', (done) ->
     p = new Promise
     p.fulfill true
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'bar'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'bar'
       done()
     , foo: 'bar'
 
   it 'should wait to execute a callback until the Promise is fulfilled', (done) ->
     p = new Promise
     p.on (val) ->
-      val.should.be.true
+      expect(val).to.be.true
       done()
     p.fulfill true
 
   it 'should wait to execute a callback using the appropriate scope until the Promise is fulfilled', (done) ->
     p = new Promise
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'bar'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'bar'
       done()
     , foo: 'bar'
     p.fulfill true
@@ -39,14 +39,14 @@ describe 'Promise', ->
   it 'should wait to execute multiple callbacks until the Promise is fulfilled', calls 2, (done) ->
     p = new Promise
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'bar'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'bar'
       done()
     , foo: 'bar'
 
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'fighters'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'fighters'
       done()
     , foo: 'fighters'
 
@@ -56,28 +56,28 @@ describe 'Promise', ->
     p = new Promise
     p.fulfill true
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'bar'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'bar'
       done()
     , foo: 'bar'
 
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'fighters'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'fighters'
       done()
     , foo: 'fighters'
 
   it 'should execute a callback decalared before fulfillment and then declare a subsequent callback immediately after fulfillment', calls 2, (done) ->
     p = new Promise
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'bar'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'bar'
       done()
     , foo: 'bar'
     p.fulfill true
     p.on (val) ->
-      val.should.be.true
-      @foo.should.equal 'fighters'
+      expect(val).to.be.true
+      expect(@foo).to.equal 'fighters'
       done()
     , foo: 'fighters'
 
@@ -85,14 +85,14 @@ describe 'Promise', ->
     p = new Promise
     counter = 0
     p.on (val) ->
-      val.should.equal 'first'
-      (++counter).should.equal 1
+      expect(val).to.equal 'first'
+      expect(++counter).to.equal 1
       done()
     p.fulfill 'first'
     p.clearValue()
     p.on (val) ->
-      val.should.equal 'second'
-      (++counter).should.equal 2
+      expect(val).to.equal 'second'
+      expect(++counter).to.equal 2
       done()
     p.fulfill 'second'
 
@@ -107,10 +107,10 @@ describe 'Promise', ->
       p2Val = val
     p = Promise.parallel [p1, p2]
     p.on ([val1], [val2]) ->
-      val1.should.eql 'hello'
-      val2.should.eql 'world'
-      p1Val.should.equal 'hello'
-      p2Val.should.equal 'world'
+      expect(val1).to.eql 'hello'
+      expect(val2).to.eql 'world'
+      expect(p1Val).to.equal 'hello'
+      expect(p2Val).to.equal 'world'
       done()
     p1.fulfill 'hello'
     p2.fulfill 'world'
@@ -121,8 +121,8 @@ describe 'Promise', ->
     p = Promise.parallel [p1, p2]
     counter = 0
     p.on (val) ->
-      val.should.equal 'first'
-      (++counter).should.equal 1
+      expect(val).to.equal 'first'
+      expect(++counter).to.equal 1
       done()
 
     p.fulfill 'first'
@@ -130,8 +130,8 @@ describe 'Promise', ->
     p1.clearValue()
 
     p.on (val) ->
-      val.should.equal 'second'
-      (++counter).should.equal 2
+      expect(val).to.equal 'second'
+      expect(++counter).to.equal 2
       done()
 
     p.fulfill 'second'
