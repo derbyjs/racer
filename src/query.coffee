@@ -25,7 +25,9 @@ Query = ->
 Query::=
   isQuery: true
 
-  serialize: -> @_calls
+  serialize: serialize = -> @_calls
+
+  toJSON: serialize
 
   hash: ->
     sep = ':'
@@ -51,14 +53,14 @@ Query::=
           for path, i in args by 2
             sortHash += path + sep
             sortHash += switch args[i+1]
-                          when 'asc'  then '^'
-                          when 'desc' then 'v'
+              when 'asc'  then '^'
+              when 'desc' then 'v'
         when 'skip'
           skipHash = '$sk' + sep + args[0]
         when 'limit'
           limitHash = '$L' + sep + args[0]
 
-    hash = @_namespace
+    hash = @namespace
     hash += sep + sortHash if sortHash
     hash += sep + selectHash if selectHash
     hash += sep + skipHash if skipHash
@@ -85,8 +87,8 @@ Query::=
 
     return hash
 
-  from: (@_namespace) ->
-    @_calls.push ['from', [@_namespace]]
+  from: (@namespace) ->
+    @_calls.push ['from', [@namespace]]
     return this
 
   skip: (args...) ->

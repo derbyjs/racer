@@ -18,42 +18,49 @@ module.exports =
       socket.emit 'sub', self._clientId, storeSubs, self._adapter.version, self._startId
 
   proto:
-    subscribe: (targets..., callback) ->
-      # For subscribe(paths...)
-      unless typeof callback is 'function'
-        targets.push callback
-        callback = empty
+    subscribe: (targets...) ->
+      # For subscribe(targets..., callback)
+      last = targets[targets.length - 1]
+      callback = if typeof last is 'function' then targets.pop() else empty
 
-      # TODO: Support all path wildcards, references, and functions
-      channels = []
-      storeSubs = @_storeSubs
-      addPath = (path) ->
-        for path in pathParser.expand path
-          return if storeSubs[path]
-          # These subscriptions are reestablished when the client connects
-          storeSubs[path] = 1
-          channels.push path
-
+      # These subscriptions are reestablished when the client connects
       querySubs = @_querySubs
+      storeSubs = @_storeSubs
+
+      channels = []
       addQuery = (query) ->
         queryHash = query.hash()
         return if querySubs[queryHash]
         querySubs[queryHash] = 1
         channels.push query
+      addPath = (path) ->
+        for path in pathParser.expand path
+          continue if storeSubs[path]
+          storeSubs[path] = 1
+          channels.push path
 
       out = []
       for target in targets
         if target.isQuery
           addQuery target
+          root = target.namespace
         else
           target = target._at  if target._at
-          root = pathParser.split(target)[0]
-          out.push @at root, true
           addPath target
+          root = pathParser.split(target)[0]
+        out.push @at root, true
 
       # Callback immediately if already subscribed
       return callback out... unless channels.length
-      @_addSub channels, -> callback out...
+
+      self = this
+      @_addSub channels, (err, data, otData) ->
+        self._initSubData data
+        self._initSubOtData otData
+        for channel in channels
+          if channel.isQuery
+            self.liveQueries[channel.hash()] = channel.serialize()
+        callback out...
 
     unsubscribe: (paths..., callback) ->
       # For unsubscribe(paths...)
@@ -65,12 +72,8 @@ module.exports =
 
     # This method is over-written in Model.server
     _addSub: (paths, callback) ->
-      self = this
       return callback() unless @connected
-      @socket.emit 'subAdd', @_clientId, paths, (data, otData) ->
-        self._initSubData data
-        self._initSubOtData otData
-        callback()
+      @socket.emit 'subAdd', @_clientId, paths, callback
 
     _initSubData: (data) ->
       adapter = @_adapter

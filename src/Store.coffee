@@ -34,9 +34,7 @@ Store = module.exports = (options = {}) ->
     txnSubClient.end()
 
   pubSubAdapter = options.pubSub?.adapter ||
-                  new PubSubRedisAdapter
-                    pubClient: redisClient
-                    subClient: txnSubClient
+    new PubSubRedisAdapter pubClient: redisClient, subClient: txnSubClient
 
   @_pubSub = new PubSub
     store: @
@@ -208,19 +206,14 @@ Store:: =
         journal.unregisterClient clientId, (err, val) ->
           throw err if err
 
-      # TODO WHEN IS THIS CALLED?
+      # Called when subscribing from an already connected client
       socket.on 'subAdd', (clientId, targets, callback) ->
-        for targ, i in targets
-          if Array.isArray targ
-            # Deserialize targ into a Query instance
-            targets[i] = deserializeQuery targ
-        rem = 2
-        pubSub.subscribe clientId, targets, (err, data) ->
-          # TODO Handle err
-          --rem || callback data
-        self._fetchSubData targets, (err, data) ->
-          # TODO Handle err
-          --rem || callback data
+        for target, i in targets
+          if Array.isArray target
+            # Deserialize query JSON into a Query instance
+            targets[i] = deserializeQuery target
+
+        self.subscribe clientId, targets, callback
 
       socket.on 'subRemove', (clientId, targets) ->
         throw 'Unimplemented: subRemove'
@@ -338,15 +331,16 @@ Store:: =
     # Solution: We take care of this after the replicated data is sent to the
     # browser. The browser model asks the server for any updates like this it
     # may have missed.
-    rem = 2
-    _data = null
-    _otData = null
-    @_pubSub.subscribe clientId, targets, (err) ->
-      --rem || callback err, _data, _otData
-    @_fetchSubData targets, (err, data, otData) ->
-      _data = data
-      _otData = otData
-      --rem || callback err, _data, _otData
+    count = 2
+    data = null
+    otData = null
+    finish = (err) ->
+      --count || callback err, data, otData
+    @_pubSub.subscribe clientId, targets, finish
+    @_fetchSubData targets, (err, _data, _otData) ->
+      data = _data
+      otData = _otData
+      finish err
 
   unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
 

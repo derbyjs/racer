@@ -73,16 +73,7 @@ ServerModel::_addSub = (channels, callback) ->
   model = this
   store = model.store
   @clientIdPromise.on (clientId) ->
-    store.registerLocalModel model
     # Subscribe while the model still only resides on the server
     # The model is unsubscribed before sending to the browser
-    store.subscribe model._clientId, channels, (err, data, otData) ->
-      # TODO: This is a quick fix to make sure that subscribed items
-      # get copied on the server. Implement something that does this
-      # just for the memory store instead of doing it here
-      model._initSubData data
-      model._initSubOtData otData
-      for chan in channels
-        if chan.isQuery
-          model.liveQueries[chan.hash()] = chan.serialize()
-      callback()
+    store.registerLocalModel model
+    store.subscribe model._clientId, channels, callback
