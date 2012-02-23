@@ -36,8 +36,7 @@ MemoryQuery::= mergeAll {}, LiveQuery::,
     matches = memoryAdapter.filter (doc, namespacePlusId) ->
       self.testWithoutPaging doc, namespacePlusId
 
-    matches = matches.map (doc) ->
-      deepCopy doc
+    matches = (deepCopy doc for doc in matches)
 
     if @_comparator
       matches.sort @_comparator
@@ -48,7 +47,7 @@ MemoryQuery::= mergeAll {}, LiveQuery::,
       matches = matches.slice(skip, skip + limit)
 
     if selectType = @_selectType
-      matches = matches.map (doc) ->
+      matches = for doc in matches
         projectedDoc = {}
         switch selectType
           when 'only'
