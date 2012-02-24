@@ -11,8 +11,7 @@ module.exports = Journal = (@_adapter) ->
 #      which will eventually happen in the multi-path transaction scenario
 
 Journal:: =
-  flush: (callback) ->
-    @_adapter.flush callback
+  flush: (callback) -> @_adapter.flush callback
 
   startId: (callback) -> @_adapter.startId callback
 
@@ -30,8 +29,4 @@ Journal:: =
   nextTxnNum: (clientId, callback) -> @_adapter.nextTxnNum clientId, callback
 
   # TODO: Default mode should be 'ot'
-  # TODO Use polymorphism instead of conditionals
-  commitFn: (store, mode = 'lww') ->
-    if mode is 'lww'
-      return @_adapter.lwwCommitFn store
-    return @_adapter.stmCommitFn store
+  commitFn: (store, mode = 'lww') -> @_adapter.commitFn store, mode

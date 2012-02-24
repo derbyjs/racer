@@ -3,7 +3,7 @@ Serializer = require '../../../Serializer'
 redisInfo = require './redisInfo'
 Promise = require '../../../Promise'
 
-exports = module.exports = JournalRedisAdapter = (@_redisClient, @_subClient) ->
+module.exports = JournalRedis = (@_redisClient, @_subClient) ->
   startIdPromise = @_startIdPromise = new Promise
 
   # TODO: Make sure there are no weird race conditions here, since we are
@@ -39,7 +39,7 @@ exports = module.exports = JournalRedisAdapter = (@_redisClient, @_subClient) ->
 
   return
 
-JournalRedisAdapter::=
+JournalRedis::=
   flush: (callback) ->
     self = this
     redisClient = self._redisClient
@@ -98,7 +98,7 @@ JournalRedisAdapter::=
       return callback err if err
       callback null, value
 
-  lwwCommitFn: (store) ->
+  _lwwCommitFn: (store) ->
     redisClient = @_redisClient
 
     return (txn, callback) ->
@@ -108,7 +108,7 @@ JournalRedisAdapter::=
         return callback err if err
         store._finishCommit txn, ver, callback
 
-  stmCommitFn: (store) ->
+  _stmCommitFn: (store) ->
     ## Ensure Serialization of Transactions to the DB ##
     # TODO: This algorithm will need to change when we go multi-process,
     # because we can't count on the version to increase sequentially
@@ -126,6 +126,8 @@ JournalRedisAdapter::=
       self._stmCommit lockQueue, txn, (err, ver) ->
         return callback && callback err, txn if err
         txnApplier.add txn, ver, callback
+
+  commitFn: (store, mode) -> @["_#{mode}CommitFn"] store
 
   _stmCommit: (lockQueue, txn, callback) ->
     self = this
@@ -188,20 +190,20 @@ JournalRedisAdapter::=
 
 # Example output:
 # getLocks("a.b.c") => [".a.b.c", ".a.b", ".a"]
-exports.getLocks = getLocks = (path) ->
+JournalRedis.getLocks = getLocks = (path) ->
   lockPath = ''
   return (lockPath += '.' + segment for segment in path.split '.').reverse()
 
-exports.MAX_RETRIES = MAX_RETRIES = 10
+JournalRedis.MAX_RETRIES = MAX_RETRIES = 10
 # Initial delay in milliseconds. Exponentially increases
-exports.RETRY_DELAY = RETRY_DELAY = 5
+JournalRedis.RETRY_DELAY = RETRY_DELAY = 5
 
 # Lock timeout in seconds. Could be +/- one second
-exports.LOCK_TIMEOUT = LOCK_TIMEOUT = 3
+JournalRedis.LOCK_TIMEOUT = LOCK_TIMEOUT = 3
 # Use 32 bits for timeout
-exports.LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000
+JournalRedis.LOCK_TIMEOUT_MASK = LOCK_TIMEOUT_MASK = 0x100000000
 # Use 20 bits for lock clock
-exports.LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000
+JournalRedis.LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000
 
 # Each node/path has
 # - A SET keyed by path containing a lock
@@ -214,7 +216,7 @@ exports.LOCK_CLOCK_MASK = LOCK_CLOCK_MASK = 0x100000
 # 4. For each path and subpath, add this single lock string to the SETs associated with the paths and subpaths.
 # 5. Fetch the transaction log since the incoming txn ver.
 # 6. Return [lock string, truncated since transaction log]
-exports.LOCK = LOCK = """
+JournalRedis.LOCK = LOCK = """
 local now = os.time()
 local path = KEYS[1]
 for i, lock in pairs(redis.call('smembers', path)) do
@@ -247,7 +249,7 @@ if ARGV[1] ~= '' then txns = redis.call('zrangebyscore', 'txns', ARGV[1], '+inf'
 return {lock, txns}
 """
 
-exports.UNLOCK = UNLOCK = """
+JournalRedis.UNLOCK = UNLOCK = """
 local val = ARGV[1]
 local path = 'l' .. KEYS[1]
 if redis.call('get', path) == val then redis.call('del', path) end
@@ -256,7 +258,7 @@ for i, path in pairs(KEYS) do
 end
 """
 
-exports.LOCKED_COMMIT = LOCKED_COMMIT = """
+JournalRedis.LOCKED_COMMIT = LOCKED_COMMIT = """
 local val = ARGV[1]
 local path = 'l' .. KEYS[1]
 local fail = false
@@ -270,7 +272,7 @@ redis.call('zadd', 'txns', ver, ARGV[2])
 return ver
 """
 
-exports.LWW_COMMIT = LWW_COMMIT = """
+JournalRedis.LWW_COMMIT = LWW_COMMIT = """
 local ver = redis.call('incr', 'ver')
 redis.call('zadd', 'txns', ver, ARGV[1])
 return ver
