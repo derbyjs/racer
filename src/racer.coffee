@@ -25,7 +25,6 @@ Store::listen = (to, namespace) ->
 
 
 racer = module.exports =
-  version: JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
 
   createStore: (options) ->
     # TODO: Provide full configuration for socket.io
@@ -36,15 +35,14 @@ racer = module.exports =
       store.listen options.listen, options.namespace
     return store
 
+  createJournal: ->
+    #TODO
+
+  createDb: ->
+    #TODO
+
   # Returns a string of javascript representing a browserify bundle
-  # of the racer client-side code and the socket.io client-side code
-  # as well as any additional browserify options.
-  #
-  # Method signature 1:
-  #   racer.js(callback)
-  #
-  # Method signature 2:
-  #   racer.js(options, callback)
+  # and the socket.io client-side code
   #
   #   Options include:
   #   Options passed to browserify:
@@ -54,8 +52,11 @@ racer = module.exports =
   #   Racer-specific options:
   #   - minify: true/false
   js: (options, callback) ->
-    [callback, options] = [options, {}] if typeof options is 'function'
-    if ({minify} = options) is undefined then minify = isProduction
+    if typeof options is 'function'
+      callback = options
+      options = {}
+    {minify} = options
+    minify = isProduction unless minify?
     options.filter = uglify if minify
 
     ioClient.builder DEFAULT_TRANSPORTS, {minify}, (err, value) ->
@@ -67,3 +68,6 @@ racer = module.exports =
 
   # Returns Middleware adapter for Connect sessions
   session: session
+
+Object.defineProperty racer, 'version',
+  get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
