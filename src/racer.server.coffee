@@ -51,11 +51,10 @@ module.exports = (racer) ->
         callback = options
         options = {}
       {minify} = options
-      minify = isProduction unless minify?
-      options.filter = uglify if minify
-
-      # TODO: Browserify debug mode silently breaks something. Investigate
-      # options.debug = true unless isProduction
+      minify = isProduction  unless minify?
+      options.filter = uglify  if minify && !options.filter
+      # Adds pseudo filenames and line numbers in browser debugging
+      options.debug = true  unless isProduction || options.debug?
 
       # TODO: Browserify logs a warning when including the plugin module.
       # Suppress this, since it is intentional
