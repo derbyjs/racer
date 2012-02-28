@@ -6,6 +6,7 @@ module.exports =
     if typeof plugin is 'string'
       return unless isServer
       plugin = require plugin
+
     plugin this, options
     return this
 
