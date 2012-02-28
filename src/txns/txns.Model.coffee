@@ -124,9 +124,7 @@ module.exports =
         onTimeout: fetchNewTxns
 
       socket.on 'connect', ->
-        # This small delay is added to make sure the store has time to setup listeners
-        # TODO: Implement a more robust solution
-        setTimeout fetchNewTxns, 20
+        fetchNewTxns()
 
         # Set an interval to check for transactions that have been in the queue
         # for too long and resend them

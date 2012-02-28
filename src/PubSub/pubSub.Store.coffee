@@ -41,13 +41,15 @@ module.exports =
       # Called when a client first connects
       socket.on 'sub', (clientId, targets, ver, clientStartId) ->
         return if journal.hasInvalidVer socket, ver, clientStartId
-        store.mixinEmit 'socketSub', store, socket, clientId
 
         clientSockets[clientId] = socket
         socket.on 'disconnect', ->
           store.unsubscribe clientId
           journal.unregisterClient clientId
           delete clientSockets[clientId]
+
+        # This promise is created in the txns.Store mixin
+        socket._clientIdPromise.fulfill clientId
 
         socket.on 'fetch', (clientId, targets, callback) ->
           store.fetch clientId, deserialize(targets), callback

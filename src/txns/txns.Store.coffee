@@ -1,37 +1,43 @@
+Promise = require '../Promise'
 transaction = require '../transaction'
 
 module.exports =
   type: 'Store'
 
   events:
-    socketSub: (store, socket, clientId) ->
+    socket: (store, socket) ->
       journal = store._journal
       pubSub = store._pubSub
       # This is used to prevent emitting duplicate transactions
       socket.__base = 0
 
+      # This promise is fulfilled in the pubSub.Store mixin
+      socket._clientIdPromise = clientIdPromise = new Promise
+
       socket.on 'txn', (txn, clientStartId) ->
         ver = transaction.base txn
         return if journal.hasInvalidVer socket, ver, clientStartId
-        store._commit txn, (err, txn) ->
-          txnId = transaction.id txn
-          ver = transaction.base txn
-          # Return errors to client, with the exeption of duplicates, which
-          # may need to be sent to the model again
-          return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-          journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            socket.emit 'txnOk', txnId, ver, num
+        clientIdPromise.on (clientId) ->
+          store._commit txn, (err, txn) ->
+            txnId = transaction.id txn
+            ver = transaction.base txn
+            # Return errors to client, with the exeption of duplicates, which
+            # may need to be sent to the model again
+            return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
+            journal.nextTxnNum clientId, (err, num) ->
+              throw err if err
+              socket.emit 'txnOk', txnId, ver, num
 
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
         return if journal.hasInvalidVer socket, ver, clientStartId
-        journal.txnsSince ver, clientId, pubSub, (err, txns) ->
-          return callback err if err
-          journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            if len = txns.length
-              socket.__base = transaction.base txns[len-1]
-            callback txns, num
+        clientIdPromise.on (clientId) ->
+          journal.txnsSince ver, clientId, pubSub, (err, txns) ->
+            return callback err if err
+            journal.nextTxnNum clientId, (err, num) ->
+              throw err if err
+              if len = txns.length
+                socket.__base = transaction.base txns[len-1]
+              callback txns, num
 
   proto:
     _onTxnMsg: (clientId, txn) ->
