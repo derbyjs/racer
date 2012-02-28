@@ -1,17 +1,7 @@
-expect = require 'expect.js'
-Store = require '../src/Store'
+{expect} = require './util'
+{run} = require './util/store'
 
-describe 'Model.async', ->
-  store = null
-
-  beforeEach (done) ->
-    store = new Store mode: 'stm'
-    store.flush done
-
-  afterEach (done) ->
-    store.flush ->
-      store.disconnect()
-      done()
+run 'Model.async', {mode: 'stm'}, (store) ->
 
   it 'test model.async.retry', (done) ->
     model = store.createModel()

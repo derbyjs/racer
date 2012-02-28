@@ -1,13 +1,7 @@
-expect = require 'expect.js'
-redis = require 'redis'
-PubSub = require '../src/PubSub'
-adapters =
-  Redis: require '../src/PubSub/adapters/Redis'
+{expect} = require './util'
+racer = require '../src/racer'
 
 describe 'PubSub', ->
-
-  pubClient = null
-  subClient = null
 
   debug = false
   newPubSub = (onMessage) -> new PubSub
@@ -15,14 +9,11 @@ describe 'PubSub', ->
     adapter: new adapters.Redis {pubClient, subClient, debug}
 
   beforeEach (done) ->
-    pubClient = redis.createClient()
-    subClient = redis.createClient()
-    pubClient.flushdb done
+    store = racer.createStore()
 
   afterEach (done) ->
-    subClient.end()
-    pubClient.flushdb ->
-      pubClient.end()
+    store.flush ->
+      store.disconnect()
       done()
 
   it 'a published transaction to the same path should be received if subscribed to', (done) ->
@@ -33,7 +24,7 @@ describe 'PubSub', ->
 
     pubSub.subscribe '1', ['channel'], ->
       pubSub.publish 'channel', 'value'
-  
+
   it 'a published transaction to a subpath should be received if subscribed to', (done) ->
     pubSub = newPubSub (subscriberId, message) ->
       expect(subscriberId).to.equal '1'

@@ -1,7 +1,6 @@
-{diffArrays} = require '../src/diffMatchPatch'
-expect = require 'expect.js'
-{calls} = require './util'
 {inspect} = require 'util'
+{expect, calls} = require './util'
+{diffArrays} = require '../src/diffMatchPatch'
 
 describe 'diffArrays', ->
 
@@ -84,7 +83,7 @@ describe 'diffArrays', ->
   it 'detects insert and remove at same position', -> test
     before: [0, 5, 6, 1, 2]
     after:  [0, 3, 4, 1, 2]
-  
+
   it 'detects insert and remove all', -> test
     before: [1, 2, 3]
     after:  [4, 5]
@@ -192,7 +191,7 @@ describe 'diffArrays', ->
   it 'detects multiple overlapping moves', -> test
     before: [0, 1, 2, 3, 4, 5, 6, 7]
     after:  [1, 6, 2, 7, 3, 4, 0, 5]
-  
+
   it 't0', -> test
     before: [1, 0, 1]
     after:  [0, 1, 0]

@@ -1,7 +1,11 @@
+toString = Object::toString
+
 module.exports =
 
   isServer: isServer = typeof window is 'undefined'
   isProduction: isServer && process.env.NODE_ENV is 'production'
+
+  isArguments: isArguments = (obj) -> toString.call(obj) == '[object Arguments]'
 
   mergeAll: (to, froms...) ->
     for from in froms
@@ -19,7 +23,13 @@ module.exports =
       return true
     return false
 
-  bufferify: (methodName, {origFn, await}) ->
+  finishAfter: (count, callback) ->
+    err = null
+    return (_err) ->
+      err ||= _err
+      --count || callback? err
+
+  bufferify: (methodName, {fn, await}) ->
     buffer = null
     return ->
       self = this
@@ -31,7 +41,7 @@ module.exports =
 
         # When we call flush, we no longer need to buffer,
         # so replace this method with the original method
-        self[methodName] = origFn
+        self[methodName] = fn
 
         # Call the method with the first invocation arguments
         # if this is during the first call to methodName, 
@@ -41,7 +51,7 @@ module.exports =
 
         # Otherwise, invoke the buffered method calls
         for args in buffer
-          origFn.apply self, args
+          fn.apply self, args
         buffer = null
         return
       # The first time we call methodName, run await
@@ -155,6 +165,3 @@ module.exports =
     for v, i in list
       return i if isEqual obj, v
     return -1
-
-isArguments = (object) ->
-  Object::toString.call(object) == '[object Arguments]'

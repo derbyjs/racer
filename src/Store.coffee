@@ -1,173 +1,94 @@
-redis = require 'redis'
-PubSub = require './PubSub'
-MemoryAdapter = require './adapters/Memory'
-Model = require './Model.server'
-transaction = require './transaction'
-{split: splitPath, lookup, eventRegExp} = require './pathParser'
-Field = require './mixin.ot/Field.server'
-{bufferify} = require './util'
-{deserialize: deserializeQuery} = require './query'
-PubSubRedisAdapter = require './PubSub/adapters/Redis'
+socketio = require 'socket.io'
+racer = require './racer'
 Promise = require './Promise'
-
-Journal = require './Journal'
-JournalRedisAdapter = require './Journal/adapters/Redis'
+Model = require './Model.server'
+transaction = require './transaction.server'
+{eventRegExp} = require './path'
+{bufferify, finishAfter} = require './util'
 
 # store = new Store
-#   mode: 'lww' || 'stm' || 'ot'
-#   pubSub:
-#     adapter: new PubSubRedisAdapter({ pubClient: clientA, subClient:
-#              clientB})
-#   generateClientId:
-#     strategy: 'redis'
-#     opts:
-#       redisClient: redisClient
-#   journal:
-#     adapter: new JournalRedisAdapter(redisClient, subClient)
+#   mode:      'lww' || 'stm' || 'ot'
+#   journal:   options literal or journal adapter instance
+#   pubSub:    options literal or pubSub adapter instance
+#   db:        options literal or db adapter instance
+#   clientId:  options literal or clientId adapter instance
+#
+# If an options literal is passed for journal, pubSub, db, or clientId,
+# it must contain a `type` property with the name of the adapter under
+# `racer.adapters`. If the adapter has a `connect` method, it will be
+# immediately called after instantiation.
+
 Store = module.exports = (options = {}) ->
   self = this
-
-  [redisClient, subClient, txnSubClient] = setupRedis self, options.redis
-  self.disconnect = ->
-    redisClient.end()
-    subClient.end()
-    txnSubClient.end()
-
-  pubSubAdapter = options.pubSub?.adapter ||
-    new PubSubRedisAdapter pubClient: redisClient, subClient: txnSubClient
-
-  @_pubSub = new PubSub
-    store: @
-    adapter: pubSubAdapter
-    onMessage: (clientId, msg) ->
-      {txn, ot, rmDoc, addDoc} = msg
-      return self._onTxnMsg clientId, txn if txn
-      return self._onOtMsg clientId, ot if ot
-
-      # Live Query Channels
-      # These following 2 channels are for informing a client about
-      # changes to their data set based on mutations that add/rm docs
-      # to/from the data set enclosed by the live queries the client
-      # subscribes to.
-      if socket = self._clientSockets[clientId]
-        if rmDoc
-          return journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            return socket.emit 'rmDoc', rmDoc, num
-        if addDoc
-          return journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            return socket.emit 'addDoc', addDoc, num
-      throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
-
-  if clientIdGenConf = options.generateClientId
-    {strategy, opts} = clientIdGenConf
-  else
-    strategy = 'rfc4122.v4'
-    opts = {}
-  createFn = require "./clientIdGenerators/#{strategy}"
-  @_generateClientId = createFn opts
-
-  # Add a @commit method to this store based on the conflict resolution mode
-  journalAdapter = options.journal?.adapter || new JournalRedisAdapter redisClient, subClient
-  journal = @journal = new Journal journalAdapter
-  @commit = journal.commitFn self, options.mode
-
-  # Maps path -> { listener: fn, queue: [msg], busy: bool }
-  # TODO Encapsulate this at a lower level of abstraction
-  @_otFields = {}
-
   @_localModels = {}
 
-  @_adapter = options.adapter || new MemoryAdapter
+  # TODO: Default type should be Memory for journal and pubSub once implemented
+  @_journal = journal = createAdapter options, 'journal', type: 'Redis'
+  @_pubSub = pubSub = createAdapter options, 'pubSub', type: 'Redis'
+  @_db = db = createAdapter options, 'db', type: 'Memory'
+  @_clientId = clientId = createAdapter options, 'clientId', type: 'Rfc4122_v4'
 
-  # This model is used to create transactions with id's
-  # prefixed with '#', so we handle store's async mutations
-  # differently than regular models' sync mutations
-  @_model = @_createStoreModel()
-  # TODO Figure out a way to not have a whole @_model around
+  # Add a @_commit method to this store based on the conflict resolution mode
+  # TODO: Default mode should be 'ot' once supported
+  @_commit = journal.commitFn self, options.mode || 'lww'
 
-  @_persistenceRoutes = {}
-  @_defaultPersistenceRoutes = {}
-  for method in ['get', 'set', 'del', 'setNull', 'incr', 'push',
-    'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
-    @_persistenceRoutes[method] = []
-    @_defaultPersistenceRoutes[method] = []
-  @_adapter.setupDefaultPersistenceRoutes this
+  @_generateClientId = clientId.generateFn()
+
+  @mixinEmit 'init', this
+
+  @_persistenceRoutes = persistenceRoutes = {}
+  @_defaultPersistenceRoutes = defaultPersistenceRoutes = {}
+  for type in ['accessor', 'mutator']
+    for method of Store[type]
+      persistenceRoutes[method] = []
+      defaultPersistenceRoutes[method] = []
+  db.setupDefaultPersistenceRoutes this
 
   return
 
 Store:: =
 
-  _createStoreModel: ->
-    model = @createModel()
-    for key, val of model.async
-      continue if key == 'get'
-      # TODO Beware: mixing in has danger of naming conflicts; better to
-      #      delegate to @_model.async instead.
-      # TODO Define store mutators here instead of copying from Async because
-      #      using Async from here ends up making a hop back to here before
-      #      accessing store again (e.g., async.model.store._adapter). Instead
-      #      we can be more direct (e.g., @_adapter)
-      @[key] = val
-    return model
+  listen: (to, namespace) ->
+    io = socketio.listen to
+    io.configure ->
+      io.set 'browser client', false
+      io.set 'transports', racer.transports
+    io.configure 'production', ->
+      io.set 'log level', 1
+    socketUri = if typeof to is 'number' then ':' + to else ''
+    if namespace
+      @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
+    else
+      @setSockets io.sockets, socketUri
 
-  query: (query, callback) ->
+  setSockets: (@sockets, @_ioUri = '') ->
     self = this
+    sockets.on 'connection', (socket) ->
+      self.mixinEmit 'socket', self, socket
 
-    # TODO Add in an optimization later since query._paginatedCache
-    # can be read instead of going to the db. However, we must make
-    # sure that the cache is a consistent snapshot of a given moment
-    # in time. i.e., no versions of the cache should exist between
-    # an add/remove combined action that should be atomic but currently
-    # isn't
+  flushJournal: (callback) -> @_journal.flush callback
+  flushDb: (callback) -> @_db.flush callback
+  flush: (callback) ->
+    finish = finishAfter 2, callback
+    @flushJournal finish
+    @flushDb finish
 
-    # TODO Improve this de/serialize API
-    dbQuery = deserializeQuery query.serialize(), self._adapter.Query
-    dbQuery.run self._adapter, (err, found, xf) ->
-      # TODO Get version consistency right in face of concurrent writes during
-      # query
-      if Array.isArray found
-        if xf then for doc in found
-          xf doc
-        if query.isPaginated
-          self._pubSub.setQueryCache(query, found)
-      else if xf
-        xf found
-      callback err, found, self._adapter.version
+  disconnect: ->
+    @_journal.disconnect?()
+    @_pubSub.disconnect?()
+    @_db.disconnect?()
+    @_clientId.disconnect?()
 
-  get: (path, callback) -> @sendToDb 'get', [path], callback
-
-  createModel: ->
-    model = new Model
-    model.store = this
-    model._ioUri = @_ioUri
-    startIdPromise = model.startIdPromise = new Promise
-    @journal.startId (startId) ->
-      model._startId = startId
-      startIdPromise.fulfill startId
+  # This method is used by mutators on Store::
+  _nextTxnId: (callback) ->
+    self = this
+    @_txnCount = 0
     @_generateClientId (err, clientId) ->
       throw err if err
-      model.clientIdPromise.fulfill clientId
-    return model
-
-  flush: (callback) ->
-    rem = 2
-    cb = (err) ->
-      if !(--rem) || err
-        callback err if callback
-        return callback = null
-    @flushJournal cb
-    @flushDb cb
-
-  flushJournal: (callback) ->
-    self = this
-    @journal.flush (err) ->
-      return callback err if err
-      self._model = self._createStoreModel()
-      callback null
-
-  flushDb: (callback) -> @_adapter.flush callback
+      self._clientId = clientId
+      self._nextTxnId = (callback) ->
+        callback '#' + @_clientId + '.' + @_txnCount++
+      self._nextTxnId callback
 
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
@@ -175,178 +96,40 @@ Store:: =
     method = transaction.method txn
     args.push ver
     self = this
-    @sendToDb method, args, (err, origDoc) ->
+    @_sendToDb method, args, (err, origDoc) ->
       # TODO De-couple publish from db write
-      self._pubSub.publish transaction.path(txn), {txn}, {origDoc}
+      self.publish transaction.path(txn), {txn}, {origDoc}
       callback err, txn if callback
 
-  setSockets: (@sockets, @_ioUri = '') ->
-    self = this
+  createModel: ->
+    model = new Model
+    model.store = this
+    model._ioUri = @_ioUri
 
-    @_clientSockets = clientSockets = {}
-    pubSub = @_pubSub
-    journal = @journal
+    model._startIdPromise = startIdPromise = new Promise
+    @_journal.startId (startId) ->
+      model._startId = startId
+      startIdPromise.fulfill startId
 
-    # TODO: These are for OT, which is hacky. Clean up
-    otFields = @_otFields
-    adapter = @_adapter
+    localModels = @_localModels
+    model._clientIdPromise = clientIdPromise = new Promise
+    @_generateClientId (err, clientId) ->
+      throw err if err
+      model._clientId = clientId
+      localModels[clientId] = model
+      clientIdPromise.fulfill clientId
 
-    # TODO Once socket.io supports query params in the
-    # socket.io urls, then we can remove this. Instead,
-    # we can add the socket <-> clientId assoc in the
-    # `sockets.on 'connection'...` callback.
-    sockets.on 'connection', (socket) -> socket.on 'sub', (clientId, targets, ver, clientStartId) ->
-      return if journal.hasInvalidVer socket, ver, clientStartId
+    model._bundlePromises.push startIdPromise, clientIdPromise
+    return model
 
-      # TODO Map the clientId to a nickname (e.g., via session?),
-      # and broadcast presence
-      socket.on 'disconnect', ->
-        pubSub.unsubscribe clientId
-        delete clientSockets[clientId]
-        journal.unregisterClient clientId, (err, val) ->
-          throw err if err
-
-      # Called when subscribing from an already connected client
-      socket.on 'subAdd', (clientId, targets, callback) ->
-        for target, i in targets
-          if Array.isArray target
-            # Deserialize query JSON into a Query instance
-            targets[i] = deserializeQuery target
-
-        self.subscribe clientId, targets, callback
-
-      socket.on 'subRemove', (clientId, targets) ->
-        throw 'Unimplemented: subRemove'
-
-      # Handling OT messages
-      socket.on 'otSnapshot', (setNull, fn) ->
-        # Lazy create/snapshot the OT doc
-        if field = otFields[path]
-          # TODO
-          TODO = 'TODO'
-
-      socket.on 'otOp', (msg, fn) ->
-        {path, op, v} = msg
-
-        flushViaFieldClient = ->
-          unless fieldClient = field.client socket.id
-            fieldClient = field.registerSocket socket
-            # TODO Cleanup with field.unregisterSocket
-          fieldClient.queue.push [msg, fn]
-          fieldClient.flush()
-
-        # Lazy create the OT doc
-        unless field = otFields[path]
-          field = otFields[path] =
-            new Field self, pubSub, path, v
-          # TODO Replace with sendToDb
-          adapter.get path, (err, val, ver) ->
-            # Lazy snapshot initialization
-            snapshot = field.snapshot = val?.$ot || ''
-            flushViaFieldClient()
-        else
-          flushViaFieldClient()
-
-      # Handling transaction messages
-      socket.on 'txn', (txn, clientStartId) ->
-        base = transaction.base txn
-        return if journal.hasInvalidVer socket, base, clientStartId
-        self.commit txn, (err, txn) ->
-          txnId = transaction.id txn
-          base = transaction.base txn
-          # Return errors to client, with the exeption of duplicates, which
-          # may need to be sent to the model again
-          return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-          journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            socket.emit 'txnOk', txnId, base, num
-
-      socket.on 'txnsSince', (ver, clientStartId, callback) ->
-        return if journal.hasInvalidVer socket, ver, clientStartId
-        journal.txnsSince ver, clientId, pubSub, (err, txns) ->
-          return callback err if err
-          journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            if len = txns.length
-              socket.__base = transaction.base txns[len-1]
-            callback txns, num
-
-      # This is used to prevent emitting duplicate transactions
-      socket.__base = 0
-      # Set up subscriptions to the store for the model
-      clientSockets[clientId] = socket
-
-      # We guard against the following race condition:
-      # Window 1 and Window 2 are both snapshotted at the same ver.
-      # Window 1 commits a txn A. Window 1 subscribes.
-      # Window 2 subscribes, but before the server can publish the
-      # txn A that it missed, Window 1 publishes txn B that
-      # is immediately broadcast to Window 2 just before txn A is
-      # broadcast to Window 2.
-      pubSub.subscribe clientId, targets, ->
-
-  _onTxnMsg: (clientId, txn) ->
-    # Don't send transactions back to the model that created them.
-    # On the server, the model directly handles the store.commit callback.
-    # Over Socket.io, a 'txnOk' message is sent below.
-    return if clientId == transaction.clientId txn
-    # For models only present on the server, process the transaction
-    # directly in the model
-    return model._onTxn txn if model = @_localModels[clientId]
-    # Otherwise, send the transaction over Socket.io
-    if socket = @_clientSockets[clientId]
-      # Prevent sending duplicate transactions by only sending new versions
-      base = transaction.base txn
-      if base > socket.__base
-        socket.__base = base
-        @journal.nextTxnNum clientId, (err, num) ->
-          throw err if err
-          socket.emit 'txn', txn, num
-
-  _onOtMsg: (clientId, ot) ->
-    if socket = @_clientSockets[clientId]
-      return if socket.id == ot.meta.src
-      socket.emit 'otOp', ot
-
-  registerLocalModel: (model) -> @_localModels[model._clientId] = model
-
-  unregisterLocalModel: (model) -> delete @_localModels[model._clientId]
-
-  # Fetch the set of data represented by `targets` and subscribe to future
-  # changes to this set of data.
-  # @param {String} clientId representing the subscriber
-  # @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
-  # @param {Function} callback(err, data, otData)
-  subscribe: (clientId, targets, callback) ->
-    # One possible race condition:
-    # 1. ClientA sends a subscription request to pubSub
-    # 2. ClientA sends a request for data to the db
-    # 3. ClientB is mutating data. It publishes to pubSub. The message is
-    #    published to any subscribers at this time. It simultaneously sends
-    #    a write request to the db.
-    # 4. ClientA's requests to pubSub and the db occur afterwards.
-    # 5. ClientB's write to the db succeeds
-    # 6. However, now we're in a state where ClientA has a copy of the data
-    #    without the mutation.
-    # Solution: We take care of this after the replicated data is sent to the
-    # browser. The browser model asks the server for any updates like this it
-    # may have missed.
-    count = 2
-    data = null
-    otData = null
-    err = null
-    finish = (_err) ->
-      err ||= _err
-      --count || callback err, data, otData
-    @_pubSub.subscribe clientId, targets, finish
-    fetchSubData this, targets, (err, _data, _otData) ->
-      data = _data
-      otData = _otData
-      finish err
-
-  unsubscribe: (clientId) -> @_pubSub.unsubscribe clientId
+  _unregisterLocalModel: (clientId) ->
+    # Unsubscribe the model from PubSub events. It will be resubscribed
+    # when the model connects over socket.io
+    @unsubscribe clientId
+    delete @_localModels[clientId]
 
   ## PERSISTENCE ROUTER ##
+
   route: (method, path, fn) ->
     re = eventRegExp path
     @_persistenceRoutes[method].push [re, fn]
@@ -357,19 +140,17 @@ Store:: =
     @_defaultPersistenceRoutes[method].push [re, fn]
     return this
 
-  sendToDb:
-    bufferify 'sendToDb',
+  _sendToDb:
+    bufferify '_sendToDb',
       await: (done) ->
-        adapter = @_adapter
-        return done() if adapter.version isnt undefined
-        @journal.getVer (err, ver) ->
+        db = @_db
+        return done() if db.version isnt undefined
+        @_journal.getVer (err, ver) ->
           throw err if err
-          adapter.version = parseInt(ver, 10)
+          db.version = parseInt(ver, 10)
           return done()
-      origFn: (method, args, done) ->
-        perRoutes = @_persistenceRoutes
-        defPerRoutes = @_defaultPersistenceRoutes
-        routes = perRoutes[method].concat defPerRoutes[method]
+      fn: (method, args, done) ->
+        routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
         [path, rest...] = args
         done ||= (err) ->
           throw err if err
@@ -387,102 +168,10 @@ Store:: =
               [match[0]]
           return fn.apply null, captures.concat(rest, [done, next])
 
-# Accumulates an array of tuples to set [path, value, ver]
-#
-# @param {Array} data is an array that gets mutated
-# @param {String} root is the part of the path up to ".*"
-# @param {String} remainder is the part of the path after "*"
-# @param {Object} value is the lookup value of the rooth path
-# @param {Number} ver is the lookup ver of the root path
-addSubDatum = (data, root, remainder, value, ver) ->
-  # Set the entire object
-  return data.push [root, value, ver]  unless remainder?
-
-  # Set each property one level down, since the path had a '*'
-  # following the current root
-  [appendRoot, remainder] = splitPath remainder
-  for prop of value
-    nextRoot = if root then root + '.' + prop else prop
-    nextValue = value[prop]
-    if appendRoot
-      nextRoot += '.' + appendRoot
-      nextValue = lookup appendRoot, nextValue
-
-    addSubDatum data, nextRoot, remainder, nextValue, ver
-  return
-
-allOtPaths = (obj, prefix = '') ->
-  results = []
-  return results unless obj && obj.constructor is Object
-  for k, v of obj
-    if v && v.constructor is Object
-      if v.$ot
-        results.push prefix + k
-        continue
-      results.push allOtPaths(v, k + '.')...
-  return results
-
-fetchPathData = (store, data, otData, root, remainder, otFields, finish) ->
-  store.get root, (err, value, ver) ->
-    # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
-    # TODO Convert the following to work beyond MemoryStore
-    otPaths = allOtPaths value, root + '.'
-    for otPath in otPaths
-      otData[otPath] = otField if otField = otFields[otPath]
-
-    # addSubDatum mutates data argument
-    addSubDatum data, root, remainder, value, ver
-    finish err
-
-queryResultAsDatum = (doc, ver, query) ->
-  path = query.namespace + '.' + doc.id
-  return [path, doc, ver]
-
-fetchQueryData = (store, data, query, finish) ->
-  store.query query, (err, found, ver) ->
-    if Array.isArray found
-      for doc in found
-        data.push queryResultAsDatum(doc, ver, query)
-    else
-      data.push queryResultAsDatum(found, ver, query)
-    finish err
-
-fetchSubData = (store, targets, callback) ->
-  data = []
-  otData = {}
-
-  count = targets.length
-  err = null
-  finish = (_err) ->
-    err ||= _err
-    --count || callback err, data, otData
-
-  otFields = store._otFields
-  for target in targets
-    if target.isQuery
-      fetchQueryData store, data, target, finish
-    else
-      [root, remainder] = splitPath target
-      fetchPathData store, data, otData, root, remainder, otFields, finish
-  return
-
-maybeHandleErr = (err) -> throw err if err
-
-setupRedis = (redisOptions = {}) ->
-  {port, host, db, password} = redisOptions
-  # Client for data access and event publishing
-  redisClient = redis.createClient(port, host, redisOptions)
-
-  # TODO Use only one subscription client, and leverage multi-plexing
-
-  # Client for internal Racer event subscriptions
-  subClient = redis.createClient(port, host, redisOptions)
-  # Client for event subscriptions of txns only
-  txnSubClient = redis.createClient(port, host, redisOptions)
-
-  if password
-    redisClient.auth password, maybeHandleErr
-    subClient.auth password, maybeHandleErr
-    txnSubClient.auth password, maybeHandleErr
-
-  return [redisClient, subClient, txnSubClient]
+createAdapter = (storeOptions, adapterType, defaultOptions) ->
+  options = storeOptions[adapterType] || defaultOptions
+  if options.type
+    adapter = racer.createAdapter adapterType, options
+    adapter.connect?()
+    return adapter
+  return options

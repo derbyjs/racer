@@ -27,7 +27,6 @@ module.exports =
 
     return out
 
-
 diffArrays = (before, after, removes, moves, inserts) ->
 
   afterLen = after.length

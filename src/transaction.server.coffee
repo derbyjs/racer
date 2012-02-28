@@ -1,11 +1,10 @@
-transaction = require './transaction'
-pathParser = require './pathParser'
+transaction = module.exports = require './transaction'
 
 transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
 
   # There is no conflict if the paths don't conflict
-  return false unless @pathConflict transaction.path(txnA), transaction.path(txnB)
+  return false unless transaction.pathConflict transaction.path(txnA), transaction.path(txnB)
 
   # There is no conflict if the transactions are from the same model client
   # and the new transaction was from a later client version.
@@ -21,15 +20,3 @@ transaction.conflict = (txnA, txnB) ->
   return 'duplicate' if txnAId == transaction.id txnB
 
   return 'conflict'
-
-transaction.journalConflict = (txn, txns) ->
-  i = txns.length
-  while i--
-    return conflict if conflict = @conflict txn, JSON.parse(txns[i])
-  return false
-
-transaction.subscribed = (txn, subs) ->
-  path = transaction.path txn
-  return pathParser.matchesAnyPattern path, subs
-
-module.exports = transaction

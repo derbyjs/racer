@@ -1,5 +1,5 @@
+{expect} = require './util'
 util = require '../src/util'
-expect = require 'expect.js'
 
 describe 'util', ->
 
@@ -9,7 +9,7 @@ describe 'util', ->
       a = {}
       b = {}
       expect(util.merge a, b).to.eql {}
-    
+
     it 'merges an empty object with a populated object', ->
       fn = (x) -> x++
       a = {}

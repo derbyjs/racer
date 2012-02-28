@@ -1,6 +1,5 @@
+{expect, calls} = require './util'
 Promise = require '../src/Promise'
-expect = require 'expect.js'
-{calls} = require './util'
 
 describe 'Promise', ->
 

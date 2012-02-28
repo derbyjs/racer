@@ -1,6 +1,5 @@
-Model = require '../src/Model'
-expect = require 'expect.js'
-{calls} = require './util'
+{expect} = require './util'
+{Model} = require '../src/racer'
 
 describe 'Model.fn', ->
 
@@ -55,7 +54,7 @@ describe 'Model.fn', ->
     ]
     model.fn '_sorted', 'items', (items) ->
       items.slice().sort (a, b) -> a.score - b.score
-  
+
     expect(model.get 'items').to.specEql [
       {score: 0, name: 'x'}
       {score: 2, name: 'y'}
@@ -90,7 +89,7 @@ describe 'Model.fn', ->
       expect(previous).to.equal 15
       expect(isLocal).to.equal true
       done()
-    
+
     model.set 'arg1', 1
 
   it 'has no effect after being deleted', ->

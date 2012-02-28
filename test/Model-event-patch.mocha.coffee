@@ -1,7 +1,5 @@
-transaction = require '../src/transaction'
-Model = require '../src/Model'
-expect = require 'expect.js'
-{calls} = require './util'
+{expect, calls} = require './util'
+{Model, transaction} = require '../src/racer'
 {mockSocketEcho, mockSocketModel} = require './util/model'
 
 mirrorTest = (done, init, callback) ->
@@ -68,7 +66,7 @@ describe 'Model event patch', ->
     mirrorTest done, (model, remote) ->
       remote.set 'user.name', 'John'
       model.set 'user', {}
-  
+
   it 'set on child', (done) ->
     mirrorTest done, (model, remote) ->
       remote.set 'user', {}
@@ -121,7 +119,7 @@ describe 'Model event patch', ->
     ], (model, remote) ->
       remote.move 'items', 0, 3
       model.move 'items', 3, 0
-  
+
   it 'moves on same path reverse', (done) ->
     mirrorTest done, items: [
       {a: 0}
@@ -157,17 +155,17 @@ describe 'Model event patch', ->
       remote.push 'items', 1
       model.push 'items', 0
       model.set 'items.0', 'x'
-  
+
   it 'remote set & local push on array child', (done) ->
     mirrorTest done, {items: []}, (model, remote) ->
       remote.set 'items.0.name', 'x'
       model.push 'items', {name: 2}
-  
+
   it 'remote push & local set on array child', (done) ->
     mirrorTest done, {items: []}, (model, remote) ->
       remote.push 'items', {name: 2}
       model.set 'items.0.name', 'x'
-  
+
   it 'remote del & local move on array child', (done) ->
     mirrorTest done, {items: [1, 2, 3]}, (model, remote) ->
       remote.remove 'items', 0
@@ -196,7 +194,7 @@ describe 'Model event patch', ->
       remote.push 'items', {name: 1}
       model.push 'items', {name: 0}
       model.del 'items.0.name'
-  
+
   it 'local push & nested del on array child', (done) ->
     mirrorTest done, {items: [{stuff: {name: 2}}]}, (model, remote) ->
       remote.unshift 'items', {name: 1}

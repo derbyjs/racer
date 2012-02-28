@@ -1,0 +1,167 @@
+{clone, create, createObject, createArray} = require './speculative'
+
+Memory = module.exports = ->
+  @flush()
+  return
+
+Memory:: =
+
+  flush: ->
+    @_data = world: {}
+    @version = 0
+
+  init: (obj) ->
+    @_data = world: obj.data
+    @version = obj.ver
+
+  toJSON: -> data: @_data.world, ver: @version
+
+  setVersion: (ver) ->
+    @version = Math.max @version, ver
+
+  get: (path, data, getRef) ->
+    data ||= @_data
+    # Note that $deref is set to null instead of being deleted; deleting a
+    # value in a speculative model would not override the underlying value
+    data.$deref = null
+    if path then lookup(path, data, getRef) else data.world
+
+  set: (path, value, ver, data) ->
+    @setVersion ver
+    [obj, parent, prop] = lookupSet path, data || @_data, `ver == null`, 'object'
+    parent[prop] = value
+    return obj
+
+  del: (path, ver, data) ->
+    @setVersion ver
+    data ||= @_data
+    speculative = `ver == null`
+    [obj, parent, prop] = lookupSet path, data, speculative
+    if ver?
+      delete parent[prop]  if parent
+      return obj
+    # If speculatiave, replace the parent object with a clone that
+    # has the desired item deleted
+    return obj unless parent
+    if ~(index = path.lastIndexOf '.')
+      parentPath = path.substr 0, index
+      [parent, grandparent, parentProp] =
+        lookupSet parentPath, data, speculative
+    else
+      parent = data.world
+      grandparent = data
+      parentProp = 'world'
+    parentClone = clone parent
+    delete parentClone[prop]
+    grandparent[parentProp] = parentClone
+    return obj
+
+  #for PUSH UNSHIFT INSERT POP SHIFT REMOVE MOVE
+
+  #if PUSH
+  push: (path, args..., ver, data) ->
+  #elseif UNSHIFT
+  unshift: (path, args..., ver, data) ->
+  #elseif INSERT
+  insert: (path, index, args..., ver, data) ->
+  #elseif POP
+  pop: (path, ver, data) ->
+  #elseif SHIFT
+  shift: (path, ver, data) ->
+  #elseif REMOVE
+  remove: (path, index, howMany, ver, data) ->
+  #elseif MOVE
+  move: (path, from, to, howMany, ver, data) ->
+  #end
+    @setVersion ver
+    [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
+    throw new Error 'Not an Array' unless Array.isArray arr
+    #if PUSH
+    return arr.push args...
+    #elseif UNSHIFT
+    return arr.unshift args...
+    #elseif POP
+    return arr.pop()
+    #elseif SHIFT
+    return arr.shift()
+    #else
+    len = arr.length
+    #if INSERT
+    arr.splice index, 0, args...
+    return arr.length
+    #elseif REMOVE
+    return arr.splice index, howMany
+    #elseif MOVE
+    from = +from
+    to = +to
+    from += len if from < 0
+    to += len if to < 0
+    values = arr.splice from, howMany  # Remove from old location
+    arr.splice to, 0, values...  # Insert in new location
+    return values
+    #end
+    #end
+  #end
+
+#for LOOKUP SET
+
+#if LOOKUP
+# Returns value
+# Used by getters
+# Does not dereference the final item if getRef is truthy
+lookup = (path, data, getRef) ->
+#end
+#if SET
+# Returns [value, parent, prop]
+# Used by mutators
+lookupSet = (path, data, speculative, pathType) ->
+#end
+  props = path.split '.'
+  len = props.length
+  i = 0
+  #if SET
+  curr = data.world = if speculative then create data.world else data.world
+  #else
+  curr = data.world
+  path = ''
+  #end
+
+  while i < len
+    prop = props[i++]
+    #if SET
+    parent = curr
+    #end
+    curr = curr[prop]
+
+    #if SET
+    # Create empty objects implied by the path
+    if curr?
+      curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
+    else
+      unless pathType
+        parent = curr = undefined  unless i == len
+        break
+      # If pathType is truthy, create empty parent objects implied by path
+      if i == len
+        if pathType is 'array'
+          curr = parent[prop] = if speculative then createArray() else []
+        break
+      curr = parent[prop] = if speculative then createObject() else {}
+    #else
+    # The absolute path traversed so far
+    path = if path then path + '.' + prop else prop
+
+    if typeof curr is 'function'
+      break if getRef && i == len
+
+      [curr, path, i] = refOut = curr lookup, data, path, props, len, i
+
+    break unless curr?
+    #end
+
+  #if SET
+  return [curr, parent, prop]
+  #else
+  return curr
+  #end
+#end

@@ -1,9 +1,9 @@
-expect = require 'expect.js'
-inspect = require('util').inspect
-specHelper = require '../../src/specHelper'
+exports.expect = expect = require 'expect.js'
+{inspect} = require 'util'
+speculative = require '../../src/speculative'
 
 ignore = '$out': 1, '$deref': 1
-ignore[specHelper.identifier] = 1
+ignore[speculative.identifier] = 1
 
 # For Mocha
 exports.calls = (num, fn) ->
@@ -64,7 +64,6 @@ expect.Assertion::protoEql = (val) ->
     to not prototypically equal \n
     #{protoInspect val} \n"""
   return this
-
 
 specEql = (a, b) ->
   exception = (objA, objB, prop) -> ignore[prop]

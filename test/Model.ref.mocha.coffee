@@ -1,8 +1,5 @@
-Model = require '../src/Model'
-expect = require 'expect.js'
-{calls} = require './util'
-
-transaction = require '../src/transaction'
+{expect, calls} = require './util'
+{Model, transaction} = require '../src/racer'
 {mockSocketModel} = require './util/model'
 
 describe 'Model.ref', ->
@@ -30,15 +27,15 @@ describe 'Model.ref', ->
     # Test changing referenced object wtih speculative set
     model.set 'info', numbers: {first: 3, second: 7}
     expect(model.get '_number').to.eql 7
-  
+
   it 'should support setting', ->
     model = new Model
-    
+
     model.ref '_color', 'colors', 'selected'
     ref = model._getRef '_color'
     expect(model.get()).to.specEql
       _color: ref
-    
+
     # Set a key value
     model.set 'selected', 'blue'
     expect(model.get()).to.specEql
@@ -376,4 +373,3 @@ describe 'Model.ref', ->
     color.set 'hex', '#0f0'
     expect(color.get 'hex').to.equal '#0f0'
     expect(model.get 'colors.green').to.specEql hex: '#0f0'
-

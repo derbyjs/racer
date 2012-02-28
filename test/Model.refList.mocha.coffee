@@ -1,6 +1,5 @@
-Model = require '../src/Model'
-expect = require 'expect.js'
-{calls} = require './util'
+{expect, calls} = require './util'
+{Model} = require '../src/racer'
 
 describe 'Model.refList', ->
 

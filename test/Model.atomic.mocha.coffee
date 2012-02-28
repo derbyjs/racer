@@ -1,7 +1,5 @@
-Model = require '../src/Model'
-expect = require 'expect.js'
-transaction = require '../src/transaction'
-
+{expect} = require './util'
+{Model, transaction} = require '../src/racer'
 {mockSocketModels} = require './util/model'
 
 describe 'Model.atomic', ->
@@ -64,7 +62,6 @@ describe 'Model.atomic', ->
         done()
       , 50
     expect(model.get()).to.specEql direction: 'west'
-
 
   it 'Model::atomic(lambda, callback) should invoke its callback once it receives a successful response for the txn from the upstream repo', (done) ->
     # stub out appropriate methods/callbacks in model

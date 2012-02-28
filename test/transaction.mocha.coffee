@@ -1,8 +1,5 @@
-# Tests for Op(erations)
-expect = require 'expect.js'
-transaction = require '../src/transaction'
-pathParser = require '../src/pathParser'
-require '../src/transaction.server'
+{expect} = require './util'
+transaction = require '../src/transaction.server'
 
 describe 'transaction', ->
   # Property getters
@@ -119,7 +116,7 @@ describe 'transaction', ->
     expect(transaction.pathConflict 'abc', 'abc').to.equal 'equal'
 
   # Transaction Conflict Detection
-  
+
   it 'test conflict detection between transactions', ->
     txn0 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
     txn1 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
@@ -128,25 +125,25 @@ describe 'transaction', ->
     txn4 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 1, 0]
     txn5 = transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 1]
     txn6 = transaction.create base: 0, id: '0.1', method: 'set', args: ['name', 'drago']
-    
+
     txn2s = transaction.create base: 0, id: '#0.0', method: 'set', args: ['count', 1]
     txn5s = transaction.create base: 0, id: '#0.1', method: 'set', args: ['count', 1]
-    
+
     txn7 = transaction.create base: 0, id: '1.0', method: 'set', args: ['obj.nested', 0]
     txn8 = transaction.create base: 0, id: '2.0', method: 'set', args: ['obj.nested.a', 0]
-    
+
     expect(transaction.conflict txn1, txn2).to.eql 'conflict' # Different arguments
     expect(transaction.conflict txn1, txn3).to.eql 'conflict' # Different method
     expect(transaction.conflict txn1, txn4).to.eql 'conflict' # Different number of arguments
-    
+
     expect(transaction.conflict txn2, txn5).to.eql 'conflict' # Same client, wrong order
     expect(transaction.conflict txn5, txn2).to.be.false # Same client, correct order
     expect(transaction.conflict txn2s, txn5s).to.eql 'conflict' # Same store, wrong order
     expect(transaction.conflict txn5s, txn2s).to.eql 'conflict' # Same store, correct order
-    
+
     expect(transaction.conflict txn1, txn6).to.be.false # Non-conflicting paths
-    
+
     expect(transaction.conflict txn7, txn8).to.eql 'conflict' # Conflicting nested paths
     expect(transaction.conflict txn8, txn7).to.eql 'conflict' # Conflicting nested paths
-    
+
     expect(transaction.conflict txn0, txn1).to.eql 'duplicate' # Same transaction ID

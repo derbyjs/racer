@@ -3,6 +3,7 @@
 # , transaction id
 # , method
 # , arguments]
+
 module.exports =
   create: (obj) ->
     if obj.ops
@@ -10,10 +11,6 @@ module.exports =
     else
       txn = [obj.base, obj.id, obj.method, obj.args]
     return txn
-
-  createNull: -> @create base: -1
-
-  isNull: (txn) -> @base(txn) == -1
 
   base: (txn, val) ->
     txn[0] = val if val isnt undefined
@@ -61,7 +58,6 @@ module.exports =
     if pathALen > pathBLen
       return pathA.charAt(pathBLen) == '.' && pathA[0...pathBLen] == pathB && 'child'
     return pathB.charAt(pathALen) == '.' && pathB[0...pathALen] == pathA && 'parent'
-
 
   ops: (txn, ops) ->
     txn[2] = ops unless ops is undefined

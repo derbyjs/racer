@@ -8,7 +8,7 @@ condition = (s) ->
 require.extensions['.macro'] = compileMacro = (module, filename) ->
   console.log 'Compiling macro: ' + filename
   content = fs.readFileSync filename, 'utf8'
-  
+
   warn = "##  WARNING:\\n" +
          "##  ========\\n" +
          "##  This file was compiled from a macro.\\n" +

@@ -6,7 +6,7 @@ macro:
 	node ./lib/util/macro.js
 
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
-MOCHA := $(shell which mocha)
+MOCHA := ./node_modules/mocha/bin/mocha
 OUT_FILE = "test-output.tmp"
 
 g = "."

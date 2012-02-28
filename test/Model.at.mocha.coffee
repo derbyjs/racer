@@ -1,5 +1,5 @@
+{expect} = require './util'
 Model = require '../src/Model'
-expect = require 'expect.js'
 
 describe 'Model.at', ->
 
@@ -30,7 +30,7 @@ describe 'Model.at', ->
       green: {hex: '#0f0'}
 
     colors = model.at('colors')
-  
+
     expect(colors.get()).to.specEql green: {hex: '#0f0'}
     expect(colors.at('green').at('hex').get()).to.equal '#0f0'
     expect(colors.get 'green.hex').to.equal '#0f0'
@@ -42,11 +42,11 @@ describe 'Model.at', ->
   it 'supports set', ->
     model = new Model
     colors = model.at 'colors'
-  
+
     colors.set 'green', '#0f0'
     expect(colors.get 'green').to.equal '#0f0'
     expect(model.get 'colors').to.specEql green: '#0f0'
-    
+
     colors.set red: '#f00'
     expect(colors.get 'red').to.equal '#f00'
     expect(model.get 'colors').to.specEql red: '#f00'
@@ -189,7 +189,7 @@ describe 'Model.at', ->
     stuff.insert 0, 'green', 'red'
     expect(model.get()).to.specEql
       stuff: ['green', 'red']
-    
+
     stuff.insert '1', 'yellow'
     expect(model.get()).to.specEql
       stuff: ['green', 'yellow', 'red']

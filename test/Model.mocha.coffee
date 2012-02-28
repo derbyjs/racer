@@ -1,8 +1,8 @@
-transaction = require '../src/transaction'
-Model = require '../src/Model'
-expect = require 'expect.js'
-{calls} = require './util'
+{expect, calls} = require './util'
+{Model, transaction} = require '../src/racer'
 {mockSocketModel, mockSocketEcho} = require './util/model'
+
+# TODO: This should be broken up into appropraitely organized files
 
 describe 'Model', ->
 
@@ -10,14 +10,14 @@ describe 'Model', ->
     model = new Model
     model._adapter._data = world: {a: 1}
     expect(model.get()).to.eql {a: 1}
-  
+
   it 'test internal creation of client transactions on set', ->
     model = new Model '0'
-    
+
     model.set 'color', 'green'
     expect(model._txnQueue).to.eql ['0.0']
     expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-    
+
     model.set 'count', 0
     expect(model._txnQueue).to.eql ['0.0', '0.1']
     expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
@@ -39,7 +39,7 @@ describe 'Model', ->
       expect(model._txns).to.eql {}
       sockets._disconnect()
       done()
-    
+
     model.set 'color', 'green'
     expect(model._txnQueue).to.eql ['0.0']
 
@@ -84,30 +84,30 @@ describe 'Model', ->
       expect(model._txns).to.eql {}
       sockets._disconnect()
       done()
-    
+
     model.set 'color', 'green'
     expect(model._txnQueue).to.eql ['0.0']
-  
+
   it 'transactions received out of order should be applied in order', ->
     [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'set', args: ['color', 'green']), 1
     expect(model.get 'color').to.eql 'green'
-    
+
     sockets.emit 'txn', transaction.create(base: 3, id: '_.0', method: 'set', args: ['color', 'red']), 3
     expect(model.get 'color').to.eql 'green'
-    
+
     sockets.emit 'txn', transaction.create(base: 2, id: '_.0', method: 'set', args: ['number', 7]), 2
     expect(model.get 'color').to.eql 'red'
     expect(model.get 'number').to.eql 7
     sockets._disconnect()
-  
+
   it 'duplicate transaction versions should not be applied', ->
     [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
     sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
     expect(model.get 'colors').to.specEql ['green']
     sockets._disconnect()
-  
+
   it 'transactions should be requested if pending longer than timeout @slow', (done) ->
     @timeout 2000
     ignoreFirst = true
@@ -134,7 +134,7 @@ describe 'Model', ->
     sockets.emit 'txn', transaction.create(base: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3
     sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
     setTimeout sockets._disconnect, 50
-  
+
   it 'sub event should be sent on socket.io connect', (done) ->
     [model, sockets] = mockSocketModel '0', 'sub', (clientId, storeSubs, ver) ->
       expect(clientId).to.eql '0'
@@ -142,18 +142,18 @@ describe 'Model', ->
       expect(ver).to.eql 0
       sockets._disconnect()
       done()
-  
+
   it 'test speculative value of set', ->
     model = new Model '0'
-    
+
     previous = model.set 'color', 'green'
     expect(previous).to.equal undefined
     expect(model.get 'color').to.eql 'green'
-    
+
     previous = model.set 'color', 'red'
     expect(previous).to.equal 'green'
     expect(model.get 'color').to.eql 'red'
-    
+
     model.set 'info.numbers', first: 2, second: 10
     expect(model.get()).to.specEql
       color: 'red'
@@ -162,7 +162,7 @@ describe 'Model', ->
           first: 2
           second: 10
     expect(model._adapter._data).to.specEql world: {}
-    
+
     model.set 'info.numbers.third', 13
     expect(model.get()).to.specEql
       color: 'red'
@@ -172,7 +172,7 @@ describe 'Model', ->
           second: 10
           third: 13
     expect(model._adapter._data).to.specEql world: {}
-    
+
     model._removeTxn '0.1'
     model._removeTxn '0.2'
     expect(model.get()).to.specEql
@@ -198,7 +198,7 @@ describe 'Model', ->
           numbers:
             first: 2
             second: 10
-  
+
     previous = model.del 'color'
     expect(previous).to.eql 'green'
     expect(model.get()).to.specEql
@@ -214,7 +214,7 @@ describe 'Model', ->
           numbers:
             first: 2
             second: 10
-    
+
     model.set 'color', 'red'
     expect(model.get()).to.specEql
       color: 'red'
@@ -222,18 +222,18 @@ describe 'Model', ->
         numbers:
           first: 2
           second: 10
-    
+
     model.del 'color'
     expect(model.get()).to.specEql
       info:
         numbers:
           first: 2
           second: 10
-    
+
     model.del 'info.numbers'
     expect(model.get()).to.specEql
       info: {}
-    
+
     expect(model._adapter._data).to.specEql
       world:
         color: 'green'
@@ -241,7 +241,7 @@ describe 'Model', ->
           numbers:
             first: 2
             second: 10
-    
+
     # Make sure deleting something that doesn't exist isn't a problem
     model.del 'a.b.c'
     expected = [
@@ -262,22 +262,22 @@ describe 'Model', ->
 
   it 'test speculative incr', ->
     model = new Model
-    
+
     # Should be able to increment unset path
     val = model.incr 'count'
     expect(model.get 'count').to.eql 1
     expect(val).to.eql 1
-    
+
     # Default increment should be 1
     val = model.incr 'count'
     expect(model.get 'count').to.eql 2
     expect(val).to.eql 2
-    
+
     # Should be able to increment by another number
     val = model.incr 'count', -2
     expect(model.get 'count').to.eql 0
     expect(val).to.eql 0
-    
+
     # Incrementing by zero should work
     val = model.incr 'count', 0
     expect(model.get 'count').to.eql 0
@@ -285,7 +285,7 @@ describe 'Model', ->
 
   it 'test speculative push', ->
     model = new Model
-    
+
     model.push 'colors', 'green'
     expect(model.get 'colors').to.specEql ['green']
     expect(model._adapter._data).to.specEql world: {}
@@ -379,7 +379,7 @@ describe 'Model', ->
       sockets._disconnect()
       done()
     , 50
-  
+
   it 'forcing a model method should create a transaction with a null version', ->
     model = new Model '0'
     model.set 'color', 'green'
@@ -395,7 +395,7 @@ describe 'Model', ->
     model.force.set 'color', 'red'
     expect(model._adapter.version).to.not.be.null
     expect(model._adapter.version).to.not.be.undefined
-  
+
   it 'model mutator methods should callback on completion', calls 2, (done) ->
     ver = 0
     [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
@@ -411,7 +411,7 @@ describe 'Model', ->
       expect(err).to.be.null()
       expect(path).to.equal 'color'
       done()
-  
+
   it 'model mutator methods should callback with error on confict', calls 2, (done) ->
     ver = 0
     [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
@@ -480,7 +480,7 @@ describe 'Model', ->
     out = model.insert 'colors', 0, 'red', 'yellow'
     expect(out).to.eql 3
     expect(model.get 'colors').to.specEql ['red', 'yellow', 'green']
-  
+
   it 'insert should work on an array index path', ->
     model = new Model '0'
     model.push 'colors', 'green'
@@ -494,7 +494,7 @@ describe 'Model', ->
     out = model.remove 'colors', 1, 4
     expect(out).to.specEql ['orange', 'yellow', 'green', 'blue']
     expect(model.get 'colors').to.specEql ['red', 'violet']
-  
+
   it 'remove should work on an array index path', ->
     model = new Model '0'
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
@@ -514,7 +514,7 @@ describe 'Model', ->
     out = model.move 'colors', 0, 0
     expect(out).to.eql ['yellow']
     expect(model.get 'colors').to.specEql ['yellow', 'orange', 'green', 'red']
-  
+
   it 'move should work on an array index path', ->
     model = new Model '0'
     model.push 'colors', 'red', 'orange', 'yellow', 'green'

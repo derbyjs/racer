@@ -1,5 +1,5 @@
-Model = require '../src/Model'
-expect = require 'expect.js'
+{expect} = require './util'
+{Model} = require '../src/racer'
 {mockSocketModels, fullyWiredModels} = require './util/model'
 {BrowserSocketMock} = require './util/mocks'
 
@@ -30,7 +30,7 @@ describe 'Model.ot', ->
 
 #  'model.subscribe(OTpath) should get the latest OT version doc if
 #  the path is specified before-hand as being OT': -> # TODO
-  
+
   ## Client-side OT ##
   it 'model.insertOT(path, str, pos, callback) should result in a new string with str inserted at pos', ->
     model = new Model
@@ -180,7 +180,6 @@ describe 'Model.ot', ->
       modelA.set '_test.text', modelA.ot 'abcdefg'
       modelA.insertOT '_test.text', 1, 'xyz'
 
-
   # TODO: Get this passing again!!!
 
   it 'an OT op in window A should be reflected in the data of a window Bs browser model that loads after window A and its OT op', (done) ->
@@ -213,7 +212,6 @@ describe 'Model.ot', ->
         createModelB() if didSet
       modelA.set '_test.text', modelA.ot 'abcdefg'
       modelA.insertOT '_test.text', 1, 'xyz'
-
 
 #  # TODO ## Realtime mode conflicts (w/STM) ##
 #

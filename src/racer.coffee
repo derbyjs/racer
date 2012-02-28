@@ -1,73 +1,32 @@
-fs = require 'fs'
-Model = require './Model.server'
-Store = require './Store'
-socketio = require 'socket.io'
-ioClient = require 'socket.io-client'
-browserify = require 'browserify'
-uglify = require 'uglify-js'
-{isProduction} = util = require './util'
-session = require './session'
+{EventEmitter} = require 'events'
+plugin = require './plugin'
+{mergeAll, isServer} = util = require './util'
 
-DEFAULT_TRANSPORTS = ['websocket', 'xhr-polling']
+racer = module.exports = new EventEmitter
+mergeAll racer, plugin,
 
-Store::listen = (to, namespace) ->
-  io = socketio.listen to
-  io.configure ->
-    io.set 'browser client', false
-    io.set 'transports', DEFAULT_TRANSPORTS
-  io.configure 'production', ->
-    io.set 'log level', 1
-  socketUri = if typeof to is 'number' then ':' + to else ''
-  if namespace
-    @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
-  else
-    @setSockets io.sockets, socketUri
-
-
-racer = module.exports =
-
-  createStore: (options) ->
-    # TODO: Provide full configuration for socket.io
-    store = new Store options
-    if options.sockets
-      store.setSockets options.sockets, options.socketUri
-    else if options.listen
-      store.listen options.listen, options.namespace
-    return store
-
-  createJournal: ->
-    #TODO
-
-  createDb: ->
-    #TODO
-
-  # Returns a string of javascript representing a browserify bundle
-  # and the socket.io client-side code
-  #
-  #   Options include:
-  #   Options passed to browserify:
-  #   - require: e.g., __dirname + '/shared'
-  #   - entry:   e.g., __dirname + '/client.js'
-  #   - filter: defaults to uglify if minify is true
-  #   Racer-specific options:
-  #   - minify: true/false
-  js: (options, callback) ->
-    if typeof options is 'function'
-      callback = options
-      options = {}
-    {minify} = options
-    minify = isProduction unless minify?
-    options.filter = uglify if minify
-
-    ioClient.builder DEFAULT_TRANSPORTS, {minify}, (err, value) ->
-      throw err if err
-      callback value + ';' + browserify.bundle options
-
+  diffMatchPatch: require './diffMatchPatch'
+  Memory: require './Memory'
+  Model: require './Model'
+  path: require './path'
+  plugin: plugin
+  Promise: require './Promise'
+  Serializer: require './Serializer'
+  speculative: require './speculative'
+  transaction: require './transaction'
   util: util
-  Model: Model
 
-  # Returns Middleware adapter for Connect sessions
-  session: session
+# Note that this plugin is passed by string to prevent
+# Browserify from including it
+racer.use './racer.server'  if isServer
 
-Object.defineProperty racer, 'version',
-  get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
+racer
+  .use(require './mutators')
+  .use(require './refs')
+  .use(require './txns')
+  .use(require './pubSub')
+  .use(require './ot')
+
+# The browser module must be included last, since it creates a
+# model instance, before which all plugins should be included
+racer.use(require './racer.browser')  unless isServer

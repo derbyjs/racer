@@ -64,7 +64,6 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
     return model
   return [serverSockets, models...]
 
-
 browserRacer = require '../../src/racer.browser'
 serverRacer = require '../../src/racer'
 nextNs = 1
