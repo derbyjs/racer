@@ -35,35 +35,35 @@ module.exports =
         throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
 
     socket: (store, socket) ->
-      journal = store._journal
-      clientSockets = store._clientSockets
 
       # Called when a client first connects
       socket.on 'sub', (clientId, targets, ver, clientStartId) ->
-        return if journal.hasInvalidVer socket, ver, clientStartId
 
-        clientSockets[clientId] = socket
+        store._clientSockets[clientId] = socket
         socket.on 'disconnect', ->
           store.unsubscribe clientId
-          journal.unregisterClient clientId
-          delete clientSockets[clientId]
+          store._journal.unregisterClient clientId
+          delete store._clientSockets[clientId]
 
         # This promise is created in the txns.Store mixin
         socket._clientIdPromise.fulfill clientId
 
-        socket.on 'fetch', (clientId, targets, callback) ->
-          store.fetch clientId, deserialize(targets), callback
+        store._checkVer socket, ver, clientStartId, (err) ->
+          return if err
 
-        # Called from already connected clients
-        socket.on 'subAdd', (clientId, targets, callback) ->
-          # Setup subscriptions and fetch data
-          store.subscribe clientId, deserialize(targets), callback
+          socket.on 'fetch', (clientId, targets, callback) ->
+            store.fetch clientId, deserialize(targets), callback
 
-        socket.on 'subRemove', (clientId, targets, callback) ->
-          store.unsubscribe clientId, deserialize(targets), callback
+          # Called from already connected clients
+          socket.on 'subAdd', (clientId, targets, callback) ->
+            # Setup subscriptions and fetch data
+            store.subscribe clientId, deserialize(targets), callback
 
-        # Setup subscriptions only
-        subscribe store, clientId, targets, empty
+          socket.on 'subRemove', (clientId, targets, callback) ->
+            store.unsubscribe clientId, deserialize(targets), callback
+
+          # Setup subscriptions only
+          subscribe store, clientId, targets, empty
 
   proto:
     fetch: (targets, callback) ->

@@ -26,7 +26,6 @@ mergeAll Model::, EventEmitter::,
     socket.on 'fatalErr', (msg) ->
       self.canConnect = false
       self.emit 'canConnect', false
-      console.log msg
       socket.disconnect()
 
     self.connected = false

@@ -79,6 +79,15 @@ Store:: =
     @_db.disconnect?()
     @_clientId.disconnect?()
 
+  _checkVer: (socket, ver, clientStartId, callback) ->
+    # TODO: Map the client's version number to the journal's and update
+    # the client with the new startId & version when possible
+    @_journal.checkVer ver, clientStartId, (err) ->
+      if err
+        if {fatalErr} = err
+          socket.emit 'fatalErr', fatalErr
+      callback err
+
   # This method is used by mutators on Store::
   _nextTxnId: (callback) ->
     self = this

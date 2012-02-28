@@ -16,28 +16,30 @@ module.exports =
 
       socket.on 'txn', (txn, clientStartId) ->
         ver = transaction.base txn
-        return if journal.hasInvalidVer socket, ver, clientStartId
-        clientIdPromise.on (clientId) ->
+        store._checkVer socket, ver, clientStartId, (err) ->
+          return if err
           store._commit txn, (err, txn) ->
             txnId = transaction.id txn
             ver = transaction.base txn
             # Return errors to client, with the exeption of duplicates, which
             # may need to be sent to the model again
             return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-            journal.nextTxnNum clientId, (err, num) ->
-              throw err if err
-              socket.emit 'txnOk', txnId, ver, num
+            clientIdPromise.on (clientId) ->
+              journal.nextTxnNum clientId, (err, num) ->
+                throw err if err
+                socket.emit 'txnOk', txnId, ver, num
 
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
-        return if journal.hasInvalidVer socket, ver, clientStartId
-        clientIdPromise.on (clientId) ->
-          journal.txnsSince ver, clientId, pubSub, (err, txns) ->
-            return callback err if err
-            journal.nextTxnNum clientId, (err, num) ->
-              throw err if err
-              if len = txns.length
-                socket.__base = transaction.base txns[len-1]
-              callback txns, num
+        store._checkVer socket, ver, clientStartId, (err) ->
+          return if err
+          clientIdPromise.on (clientId) ->
+            journal.txnsSince ver, clientId, pubSub, (err, txns) ->
+              return callback err if err
+              journal.nextTxnNum clientId, (err, num) ->
+                throw err if err
+                if len = txns.length
+                  socket.__base = transaction.base txns[len - 1]
+                callback txns, num
 
   proto:
     _onTxnMsg: (clientId, txn) ->

@@ -1,5 +1,8 @@
 require 'es5-shim'
 
+# All racer modules for the browser should be included in racer.coffe
+require = null
+
 # Static isReady and model variables are used, so that the ready function
 # can be called anonymously. This assumes that only one instace of Racer
 # is running, which should be the case in the browser.

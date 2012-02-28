@@ -39,13 +39,13 @@ module.exports = (racer) ->
     # Returns a string of javascript representing a browserify bundle
     # and the socket.io client-side code
     #
-    #   Options include:
-    #   Options passed to browserify:
-    #   - require: e.g., __dirname + '/shared'
-    #   - entry:   e.g., __dirname + '/client.js'
-    #   - filter: defaults to uglify if minify is true
-    #   Racer-specific options:
-    #   - minify: true/false
+    # Options:
+    #   Racer-specific:
+    #     minify:  true/false
+    #   Passed to browserify:
+    #     entry:   e.g., __dirname + '/client.js'
+    #     filter:  defaults to uglify if minify is true
+    #     debug:   true unless in production
     js: (options, callback) ->
       if typeof options is 'function'
         callback = options
@@ -53,15 +53,18 @@ module.exports = (racer) ->
       {minify} = options
       minify = isProduction  unless minify?
       options.filter = uglify  if minify && !options.filter
-      # Adds pseudo filenames and line numbers in browser debugging
+
+      # Add pseudo filenames and line numbers in browser debugging
       options.debug = true  unless isProduction || options.debug?
 
-      # TODO: Browserify logs a warning when including the plugin module.
-      # Suppress this, since it is intentional
+      # Browserify logs a warning when including the plugin module. Suppress the
+      # warning, since server-side plugins intentionally require via a string
+      # TODO
+      bundle = browserify.bundle options
 
       socketioClient.builder racer.transports, {minify}, (err, value) ->
         throw err if err
-        callback value + ';' + browserify.bundle options
+        callback value + ';' + bundle
 
   Object.defineProperty racer, 'version',
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version

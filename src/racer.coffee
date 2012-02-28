@@ -18,7 +18,7 @@ mergeAll racer, plugin,
 
 # Note that this plugin is passed by string to prevent
 # Browserify from including it
-racer.use './racer.server'  if isServer
+racer.use(__dirname + '/racer.server')  if isServer
 
 racer
   .use(require './mutators')
