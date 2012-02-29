@@ -24,13 +24,7 @@ module.exports =
     else
       channels = null
 
-    store._pubSub.unsubscribe subscriberId, channels, (err, subsciberCounts) ->
-      for channel, count of subsciberCounts
-        continue if count
-        hash = channel[8..]
-        delete store._liveQueries[hash]
-      callback? err
-    , true
+    store._pubSub.unsubscribe subscriberId, channels, callback, true
 
   publish: (store, path, message, meta) ->
     return if path[0..7] == 'queries.'

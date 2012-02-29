@@ -11,7 +11,10 @@ module.exports =
       store._liveQueries = {}
       store._clientSockets = {}
 
-      store._pubSub.onMessage = (clientId, msg) ->
+      store._pubSub.on 'noSubscribers', (path) ->
+        delete store._liveQueries[path]
+
+      store._pubSub.on 'message', (clientId, msg) ->
         {txn, ot, rmDoc, addDoc} = msg
         return store._onTxnMsg clientId, txn if txn
         return store._onOtMsg clientId, ot if ot
