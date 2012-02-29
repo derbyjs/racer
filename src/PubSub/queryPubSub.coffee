@@ -9,20 +9,28 @@ module.exports =
     liveQueries = store._liveQueries
     channels = []
     for query in queries
-      liveQuery = deserialize query.serialize(), LiveQuery
-      queryHash = query.hash()
-      liveQueries[queryHash] = liveQuery
-      channels.push "queries.#{queryHash}"
-    store._pubSub.subscribe subscriberId, channels, callback, 'subscribe'
+      hash = query.hash()
+      channels.push "queries.#{hash}"
+      liveQueries[hash] ||= deserialize query.serialize(), LiveQuery
+
+    store._pubSub.subscribe subscriberId, channels, callback, true
 
   unsubscribe: (store, subscriberId, queries, callback) ->
-    liveQueries = store._liveQueries
-    channels = []
-    for query in queries
-      hash = query.hash()
-      delete liveQueries[hash]
-      channels.push hash
-    store._pubSub.unsubscribe subscriberId, channels, callback
+    if queries
+      channels = []
+      for query in queries
+        hash = query.hash()
+        channels.push "queries.#{hash}"
+    else
+      channels = null
+
+    store._pubSub.unsubscribe subscriberId, channels, (err, subsciberCounts) ->
+      for channel, count of subsciberCounts
+        continue if count
+        hash = channel[8..]
+        delete store._liveQueries[hash]
+      callback? err
+    , true
 
   publish: (store, path, message, meta) ->
     return if path[0..7] == 'queries.'
@@ -71,7 +79,7 @@ publish = (store, message, origDoc, newDoc) ->
     if query.isPaginated
       if (query.testWithoutPaging(origDoc, nsPlusId) || query.testWithoutPaging(newDoc, nsPlusId))
         # TODO Optimize for non-saturated case
-        query.updateCache pubSub.store ,(err, newMembers, oldMembers, ver) ->
+        query.updateCache pubSub.store, (err, newMembers, oldMembers, ver) ->
           throw err if err
           for mem in newMembers
             pubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}

@@ -2,7 +2,6 @@ queryPubSub = require './queryPubSub'
 {deserialize: deserializeQuery} = require './Query'
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util'
-empty = ->
 
 module.exports =
   type: 'Store'
@@ -63,27 +62,22 @@ module.exports =
             store.unsubscribe clientId, deserialize(targets), callback
 
           # Setup subscriptions only
-          subscribe store, clientId, targets, empty
+          send 'subscribe', store, clientId, deserialize(targets)
 
   proto:
     fetch: (targets, callback) ->
-      store = this
       data = []
       otData = {}
+      finish = finishAfter targets.length, (err) ->
+        callback err, data, otData
 
-      count = targets.length
-      err = null
-      finish = (_err) ->
-        err ||= _err
-        --count || callback err, data, otData
-
-      otFields = store._otFields
+      otFields = @_otFields
       for target in targets
         if target.isQuery
-          fetchQueryData store, data, target, finish
+          fetchQueryData this, data, target, finish
         else
           [root, remainder] = splitPath target
-          fetchPathData store, data, otData, root, remainder, otFields, finish
+          fetchPathData this, data, otData, root, remainder, otFields, finish
       return
 
     # Fetch the set of data represented by `targets` and subscribe to future
@@ -95,14 +89,14 @@ module.exports =
       data = otData = null
       finish = finishAfter 2, (err) ->
         callback err, data, otData
-      subscribe this, clientId, targets, finish
       @fetch targets, (err, _data, _otData) ->
         data = _data
         otData = _otData
         finish err
+      send 'subscribe', this, clientId, targets, finish
 
     unsubscribe: (clientId, targets, callback) ->
-      @_pubSub.unsubscribe clientId, targets, callback
+      send 'unsubscribe', this, clientId, targets, callback
 
     publish: (path, message, meta) ->
       queryPubSub.publish this, path, message, meta
@@ -130,22 +124,6 @@ module.exports =
           xf found
         callback err, found, self._db.version
 
-subscribe = (store, clientId, targets, callback) ->
-  channels = []
-  queries = []
-  for target in targets
-    if target.isQuery
-      queries.push target
-    else channels.push target
-  numChannels = channels.length
-  numQueries = queries.length
-  count = if numChannels && numQueries then 2 else 1
-  finish = finishAfter count, callback
-  if numQueries
-    queryPubSub.subscribe store, clientId, queries, finish
-  if numChannels
-    store._pubSub.subscribe clientId, channels, finish
-  return
 
 deserialize = (targets) ->
   for target, i in targets
@@ -153,6 +131,29 @@ deserialize = (targets) ->
       # Deserialize query literal into a Query instance
       targets[i] = deserializeQuery target
   return targets
+
+send = (method, store, clientId, targets, callback) ->
+  if targets
+    channels = []
+    queries = []
+    for target in targets
+      queue = if target.isQuery then queries else channels
+      queue.push target
+    numChannels = channels.length
+    numQueries = queries.length
+    count = if numChannels && numQueries then 2 else 1
+    finish = finishAfter count, callback
+    if numQueries
+      queryPubSub[method] store, clientId, queries, finish
+    if numChannels
+      store._pubSub[method] clientId, channels, finish
+    return
+
+  # Unsubscribing without any targets removes all subscriptions
+  # for a given clientId
+  finish = finishAfter 2, callback
+  queryPubSub[method] store, clientId, null, finish
+  store._pubSub[method] clientId, null, finish
 
 # Accumulates an array of tuples to set [path, value, ver]
 #
