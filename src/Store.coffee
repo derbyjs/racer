@@ -79,10 +79,10 @@ Store:: =
     @_db.disconnect?()
     @_clientId.disconnect?()
 
-  _checkVer: (socket, ver, clientStartId, callback) ->
+  _checkVersion: (socket, ver, clientStartId, callback) ->
     # TODO: Map the client's version number to the journal's and update
     # the client with the new startId & version when possible
-    @_journal.checkVer ver, clientStartId, (err) ->
+    @_journal.checkVersion ver, clientStartId, (err) ->
       if err
         if {fatalErr} = err
           socket.emit 'fatalErr', fatalErr
@@ -137,6 +137,7 @@ Store:: =
     @unsubscribe clientId
     delete @_localModels[clientId]
 
+
   ## PERSISTENCE ROUTER ##
 
   route: (method, path, fn) ->
@@ -154,7 +155,7 @@ Store:: =
       await: (done) ->
         db = @_db
         return done() if db.version isnt undefined
-        @_journal.getVer (err, ver) ->
+        @_journal.version (err, ver) ->
           throw err if err
           db.version = parseInt(ver, 10)
           return done()
@@ -176,6 +177,7 @@ Store:: =
             else
               [match[0]]
           return fn.apply null, captures.concat(rest, [done, next])
+
 
 createAdapter = (storeOptions, adapterType, defaultOptions) ->
   options = storeOptions[adapterType] || defaultOptions

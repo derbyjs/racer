@@ -16,7 +16,7 @@ module.exports =
 
       socket.on 'txn', (txn, clientStartId) ->
         ver = transaction.base txn
-        store._checkVer socket, ver, clientStartId, (err) ->
+        store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
           store._commit txn, (err, txn) ->
             txnId = transaction.id txn
@@ -30,7 +30,7 @@ module.exports =
                 socket.emit 'txnOk', txnId, ver, num
 
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
-        store._checkVer socket, ver, clientStartId, (err) ->
+        store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
           clientIdPromise.on (clientId) ->
             journal.txnsSince ver, clientId, pubSub, (err, txns) ->

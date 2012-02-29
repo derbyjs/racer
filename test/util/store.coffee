@@ -6,17 +6,23 @@ defaultRunOptions = [mode: 'lww']
 
 module.exports =
   run: (name, optionsList, callback) ->
-    if typeof optionsList is 'function'
-      callback = optionsList
-      optionsList = defaultRunOptions
-    else if !optionsList
-      optionsList = defaultRunOptions
+    switch typeof optionsList
+      when 'array'
+        showOptions = true
+      when 'function'
+        callback = optionsList
+        optionsList = defaultRunOptions
+      when 'object'
+        optionsList = [optionsList]
+      else
+        optionsList = defaultRunOptions
 
     for options in optionsList
-      run name, options, callback
+      run name, options, showOptions, callback
 
-run = (name, options, callback) ->
-  describe name + ' ' + inspect(options), ->
+run = (name, options, showOptions, callback) ->
+  name += ' ' + inspect(options)  if showOptions
+  describe name, ->
     store = null
 
     beforeEach (done) ->

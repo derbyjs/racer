@@ -1,7 +1,7 @@
 {expect} = require './index'
 racer = require '../../src/racer'
 
-module.exports = (options) -> describe "db adapter #{options.type}", ->
+module.exports = (options) -> describe "#{options.type} db adapter", ->
 
   it 'test get and set', (done) ->
     adapter = racer.createAdapter 'db', options

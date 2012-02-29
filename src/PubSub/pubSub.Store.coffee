@@ -50,7 +50,7 @@ module.exports =
         # This promise is created in the txns.Store mixin
         socket._clientIdPromise.fulfill clientId
 
-        store._checkVer socket, ver, clientStartId, (err) ->
+        store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
 
           socket.on 'fetch', (clientId, targets, callback) ->
