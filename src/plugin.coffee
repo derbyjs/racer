@@ -1,11 +1,14 @@
 {mergeAll, isServer} = require './util'
 
+# This tricks Browserify into not logging an error when bundling this file
+_require = require
+
 module.exports =
 
   use: (plugin, options) ->
     if typeof plugin is 'string'
       return unless isServer
-      plugin = require plugin
+      plugin = _require plugin
 
     plugin this, options
     return this
@@ -26,7 +29,7 @@ module.exports =
     for mixin in arguments
       if typeof mixin is 'string'
         continue unless isServer
-        mixin = require mixin
+        mixin = _require mixin
 
       {type} = mixin
       Klass = @[type]
@@ -62,7 +65,7 @@ module.exports =
 
       if isServer && (server = mixin.server)
         if typeof server is 'string'
-          mergeProto require server
+          mergeProto _require server
         else
           mergeProto mixin.server
 

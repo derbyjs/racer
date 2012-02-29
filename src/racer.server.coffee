@@ -57,31 +57,9 @@ module.exports = (racer) ->
       # Add pseudo filenames and line numbers in browser debugging
       options.debug = true  unless isProduction || options.debug?
 
-      # Browserify logs a warning when including the plugin module. Suppress the
-      # warning, since server-side plugins intentionally require via a string
-      # TODO: This is hacky; fix browserify to make this simpler
-      console.__error = console.error
-      buffer = []
-      isExpected = ->
-        for expected, i in expectedError
-          return false if expected != buffer[i]
-        return true
-      flush = ->
-        unless isExpected()
-          for item in buffer
-            console.__error item
-        buffer = []
-      console.error = (err) ->
-        flush() if err == expectedError[0]
-        buffer.push err
-
-      bundle = browserify.bundle options
-      flush()
-      console.error = console.__error
-
       socketioClient.builder racer.transports, {minify}, (err, value) ->
         throw err if err
-        callback value + ';' + bundle
+        callback value + ';' + browserify.bundle options
 
   Object.defineProperty racer, 'version',
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
@@ -95,10 +73,3 @@ module.exports = (racer) ->
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')
     .use(require './adapters/clientid-rfc4122_v4')
-
-expectedError = [
-  'Expressions in require() statements:'
-  '    require(plugin)'
-  '    require(mixin)'
-  '    require(server)'
-]
