@@ -74,9 +74,9 @@ module.exports =
       model._specModel()
       # Wait for all pending transactions to complete before returning
       if model._txnQueue.length
-        model.__onTxn = model._onTxn
-        model._onTxn = (txn) ->
-          model.__onTxn txn
+        model.__removeTxn = model._removeTxn
+        model._removeTxn = (txnId) ->
+          model.__removeTxn txnId
           model._specModel()
           return if model._txnQueue.length
           model._txnsPromise.fulfill()
@@ -169,7 +169,7 @@ module.exports =
       return if txn.isPrivate
       self = this
       @store._commit txn, (err, txn) ->
-        return self._removeTxn transaction.id txn if err
+        return self._removeTxn transaction.id txn  if err
         self._onTxn txn
 
   proto:

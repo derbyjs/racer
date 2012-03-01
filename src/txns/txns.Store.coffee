@@ -45,7 +45,7 @@ module.exports =
     _onTxnMsg: (clientId, txn) ->
       # Don't send transactions back to the model that created them.
       # On the server, the model directly handles the store._commit callback.
-      # Over Socket.io, a 'txnOk' message is sent below.
+      # Over Socket.io, a 'txnOk' message is sent instead.
       return if clientId == transaction.clientId txn
       # For models only present on the server, process the transaction
       # directly in the model

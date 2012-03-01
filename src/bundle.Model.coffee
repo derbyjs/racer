@@ -6,6 +6,9 @@ module.exports = (racer) ->
 mixin =
   type: "Model"
 
+  static:
+    BUNDLE_TIMEOUT: BUNDLE_TIMEOUT = 1000
+
   events:
     init: (model) ->
       model._bundlePromises = []
@@ -16,10 +19,15 @@ mixin =
       self = this
       # This event can be used by Model mixins to add items to onLoad before bundling
       @mixinEmit 'bundle', self
+      timeout = setTimeout BUNDLE_TIMEOUT, onBundleTimeout
       Promise.parallel(@_bundlePromises).on ->
+        clearTimeout timeout
         self._bundle callback
 
     _bundle: (callback) ->
       clientId = @_clientId
       @store._unregisterLocalModel clientId
       callback JSON.stringify [clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
+
+onBundleTimeout = ->
+  throw new Error 'Model bundling took longer than #{BUNDLE_TIMEOUT} ms'

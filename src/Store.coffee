@@ -107,7 +107,7 @@ Store:: =
     @_sendToDb method, args, (err, origDoc) ->
       # TODO De-couple publish from db write
       self.publish transaction.path(txn), {txn}, {origDoc}
-      callback err  if callback
+      callback err, txn  if callback
 
   createModel: ->
     model = new Model
@@ -134,7 +134,9 @@ Store:: =
     # Unsubscribe the model from PubSub events. It will be resubscribed
     # when the model connects over socket.io
     @unsubscribe clientId
-    delete @_localModels[clientId]
+    localModels = @_localModels
+    delete localModels[clientId].store
+    delete localModels[clientId]
 
 
   ## PERSISTENCE ROUTER ##
