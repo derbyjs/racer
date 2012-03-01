@@ -308,7 +308,7 @@ module.exports =
       @_atomicModels[model.id] = model
       self = this
       commit = (_callback) ->
-        model.commit (err) ->
+        model._commit (err) ->
           delete self._atomicModels[model.id] unless err
           _callback.apply null, arguments if _callback ||= callback
       abort = ->

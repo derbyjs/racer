@@ -73,14 +73,14 @@ MUTATORS.forEach (method) ->
         @[alias] path, ver, null
       catch err
         return callback err
-      callback null
+      callback()
     when 4 then (path, arg0, ver, callback) ->
       try
         arg0 = deepCopy arg0
         @[alias] path, arg0, ver, null
       catch err
         return callback err
-      callback null, arg0
+      callback()
     when 5 then (path, arg0, arg1, ver, callback) ->
       try
         arg0 = deepCopy arg0
@@ -88,7 +88,7 @@ MUTATORS.forEach (method) ->
         @[alias] path, arg0, arg1, ver, null
       catch err
         return callback err
-      callback null, arg0, arg1
+      callback()
     when 6 then (path, arg0, arg1, arg2, ver, callback) ->
       try
         arg0 = deepCopy arg0
@@ -97,11 +97,11 @@ MUTATORS.forEach (method) ->
         @[alias] path, arg0, arg1, arg2, ver, null
       catch err
         return callback err
-      callback null, arg0, arg1, arg2
+      callback()
     else (path, args..., ver, callback) ->
       try
         args = deepCopy args
         @[alias] path, args..., ver, null
       catch err
         return callback err
-      callback null, args...
+      callback()

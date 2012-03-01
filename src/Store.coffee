@@ -1,7 +1,6 @@
 socketio = require 'socket.io'
-racer = require './racer'
+{Model} = racer = require './racer'
 Promise = require './Promise'
-Model = require './Model.server'
 transaction = require './transaction.server'
 {eventRegExp} = require './path'
 {bufferify, finishAfter} = require './util'
@@ -108,7 +107,7 @@ Store:: =
     @_sendToDb method, args, (err, origDoc) ->
       # TODO De-couple publish from db write
       self.publish transaction.path(txn), {txn}, {origDoc}
-      callback err, txn if callback
+      callback err  if callback
 
   createModel: ->
     model = new Model

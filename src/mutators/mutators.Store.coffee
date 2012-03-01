@@ -4,7 +4,7 @@ Async = require './Async'
 proto =
   get:
     type: 'accessor'
-    fn: (path, callback) -> @_sendToDb 'get', [path], callback
+    fn: (path, callback) -> @_sendToDb 'get', [path || ''], callback
 
 for name, fn of Async::
   proto[name] =

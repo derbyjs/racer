@@ -122,5 +122,7 @@ applyTxn = (txn, doc) ->
   world[ns] = {}
   world[ns][id] = doc
   data = {world}
-  memory[method] args..., 0, data
+  try
+    memory[method] args..., 0, data
+  catch err then
   return doc

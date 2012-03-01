@@ -9,7 +9,6 @@ module.exports = (racer) ->
 
   mergeAll racer,
 
-    Model: require './Model.server'
     session: require './session'
     Store: Store = require './Store'
     transaction: require './transaction.server'
@@ -66,7 +65,8 @@ module.exports = (racer) ->
 
   # TODO: Redis journal and pubsub should not be included by default once
   # the memory versions are written
-  racer  
+  racer
+    .use(require './bundle.Model')  
     .use(require 'racer-journal-redis')
     .use(require 'racer-pubsub-redis')
     .use(require './adapters/db-memory')

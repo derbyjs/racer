@@ -96,15 +96,5 @@ MUTATORS.forEach (method) ->
         #end
       catch err
         return callback err
-      #if NONE
-      callback null
-      #elseif ONE
-      callback null, arg0
-      #elseif TWO
-      callback null, arg0, arg1
-      #elseif THREE
-      callback null, arg0, arg1, arg2
-      #else
-      callback null, args...
-      #end
+      callback()
     #end

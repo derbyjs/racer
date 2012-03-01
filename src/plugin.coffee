@@ -34,6 +34,7 @@ module.exports =
       {type} = mixin
       Klass = @[type]
       unless Klass
+        throw new Error "Mixins require a type parameter"  unless type
         throw new Error "Cannot find racer.#{type}"
 
       if Klass.mixins

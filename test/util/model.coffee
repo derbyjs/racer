@@ -1,6 +1,5 @@
-Model = require '../../src/Model'
+{Model, transaction} = require '../../src/racer'
 mocks = require './mocks'
-transaction = require '../../src/transaction'
 require 'console.color'
 
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
@@ -9,7 +8,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
     socket.on name, onName
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
       callback [], 1
-  browserSocket = new mocks.BrowserSocketMock(serverSockets)
+  browserSocket = new mocks.BrowserSocketMock serverSockets
   model = new Model clientId
   model._setSocket browserSocket
   browserSocket._connect()

@@ -18,7 +18,7 @@ module.exports =
         ver = transaction.base txn
         store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
-          store._commit txn, (err, txn) ->
+          store._commit txn, (err) ->
             txnId = transaction.id txn
             ver = transaction.base txn
             # Return errors to client, with the exeption of duplicates, which

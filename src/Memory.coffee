@@ -61,6 +61,7 @@ Memory:: =
     grandparent[parentProp] = parentClone
     return obj
 
+
   push: (path, args..., ver, data) ->
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
@@ -112,6 +113,7 @@ Memory:: =
     values = arr.splice from, howMany  # Remove from old location
     arr.splice to, 0, values...  # Insert in new location
     return values
+
 
 # Returns value
 # Used by getters

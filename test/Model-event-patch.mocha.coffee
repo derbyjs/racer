@@ -1,9 +1,10 @@
-{expect, calls} = require './util'
+{expect} = require './util'
 {Model, transaction} = require '../src/racer'
 {mockSocketEcho, mockSocketModel} = require './util/model'
 
 mirrorTest = (done, init, callback) ->
   mirror = new Model
+  mirror._commit = ->
   [model, sockets] = mockSocketEcho 0, true
 
   model.on 'mutator', (method, path, {0: args}) ->
@@ -14,9 +15,9 @@ mirrorTest = (done, init, callback) ->
     sockets._queue JSON.parse JSON.stringify txn
 
   if arguments.length == 3
-    mirror._adapter._data.world =
-      model._adapter._data.world =
-        remoteModel._adapter._data.world = init
+    mirror._memory._data.world =
+      model._memory._data.world =
+        remoteModel._memory._data.world = init
   else
     callback = init
 
