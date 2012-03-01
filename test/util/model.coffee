@@ -1,15 +1,16 @@
 {Model, transaction} = require '../../src/racer'
-mocks = require './mocks'
+{ServerSocketsMock, BrowserSocketMock} = require './sockets'
 require 'console.color'
 
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
-  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets = new ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->
     socket.on name, onName
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback [], 1
-  browserSocket = new mocks.BrowserSocketMock serverSockets
-  model = new Model clientId
+      callback null, [], 1
+  browserSocket = new BrowserSocketMock serverSockets
+  model = new Model
+  model._clientId = clientId
   model._setSocket browserSocket
   browserSocket._connect()
   return [model, serverSockets]
@@ -19,18 +20,19 @@ exports.mockSocketEcho = (clientId = '', unconnected) ->
   num = 0
   ver = 0
   newTxns = []
-  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets = new ServerSocketsMock()
   serverSockets._queue = (txn) ->
     transaction.base txn, ++ver
     newTxns.push txn
   serverSockets.on 'connection', (socket) ->
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback newTxns, ++num
+      callback null, newTxns, ++num
       newTxns = []
     socket.on 'txn', (txn) ->
       socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
-  browserSocket = new mocks.BrowserSocketMock(serverSockets)
-  model = new Model clientId
+  browserSocket = new BrowserSocketMock(serverSockets)
+  model = new Model
+  model._clientId = clientId
   model._setSocket browserSocket
   browserSocket._connect() unless unconnected
   return [model, serverSockets]
@@ -39,13 +41,13 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
   if Object != options.constructor
     clientIds.push options
     options = txnOk: true
-  serverSockets = new mocks.ServerSocketsMock
+  serverSockets = new ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
     socket.num = 1
     ver = 0
     txnNum = 1
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback [], socket.num
+      callback null, [], socket.num
     socket.on 'txn', (txn) ->
       txn = JSON.parse JSON.stringify txn
       transaction.base txn, ++ver
@@ -56,8 +58,9 @@ exports.mockSocketModels = (clientIds..., options = {}) ->
         socket.emit 'txnErr', err, transaction.id(txn)
 
   models = clientIds.map (clientId) ->
-    model = new Model clientId
-    browserSocket = new mocks.BrowserSocketMock serverSockets
+    model = new Model
+    model._clientId = clientId
+    browserSocket = new BrowserSocketMock serverSockets
     model._setSocket browserSocket
     browserSocket._connect()
     return model
@@ -68,7 +71,7 @@ serverRacer = require '../../src/racer'
 nextNs = 1
 exports.fullyWiredModels = (numWindows, callback, options = {}) ->
   sandboxPath = "tests.#{nextNs++}"
-  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets = new ServerSocketsMock()
   options.sockets = serverSockets
   store = options.store || serverRacer.createStore options
 
@@ -77,7 +80,7 @@ exports.fullyWiredModels = (numWindows, callback, options = {}) ->
   while i--
     serverModel = store.createModel()
     browserModel = new Model
-    browserSocket = new mocks.BrowserSocketMock serverSockets
+    browserSocket = new BrowserSocketMock serverSockets
     do (serverModel, browserModel, browserSocket) ->
       serverModel.subscribe sandboxPath, (sandbox) ->
         serverModel.ref '_test', sandbox
@@ -92,7 +95,7 @@ exports.fullyWiredModels = (numWindows, callback, options = {}) ->
             callback serverSockets, store, browserModels...
 
 exports.fullSetup = (options, clients, done) ->
-  serverSockets = new mocks.ServerSocketsMock()
+  serverSockets = new ServerSocketsMock()
   if store = options.store
     store.setSockets serverSockets
   else
@@ -118,6 +121,7 @@ exports.fullSetup = (options, clients, done) ->
 
   for clientId, {server, browser} of clients
     browserModels[clientId] = browserModel = new Model
+    browserModel._clientId = clientId
     browserFns[clientId] = browser
     browserFinishes[clientId] = do (clientId) ->
       return ->
@@ -133,7 +137,7 @@ exports.fullSetup = (options, clients, done) ->
           delete serverFinishes[clientId]
           serverModel.bundle (bundle) ->
             bundle = JSON.parse bundle
-            bundle.socket = browserSocket = new mocks.BrowserSocketMock serverSockets
+            bundle.socket = browserSocket = new BrowserSocketMock serverSockets
             browserRacer.init.call model: browserModel, bundle
             browserSocket._connect()
             return if --remServerModels

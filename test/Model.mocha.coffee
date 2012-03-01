@@ -2,17 +2,18 @@
 {Model, transaction} = require '../src/racer'
 {mockSocketModel, mockSocketEcho} = require './util/model'
 
-# TODO: This should be broken up into appropraitely organized files
+Model::_commit = ->
 
 describe 'Model', ->
 
   it 'get should return the adapter data when there are no pending transactions', ->
     model = new Model
-    model._adapter._data = world: {a: 1}
+    model._memory._data = world: {a: 1}
     expect(model.get()).to.eql {a: 1}
 
   it 'test internal creation of client transactions on set', ->
-    model = new Model '0'
+    model = new Model
+    model._clientId = '0'
 
     model.set 'color', 'green'
     expect(model._txnQueue).to.eql ['0.0']
@@ -27,7 +28,7 @@ describe 'Model', ->
     [model, sockets] = mockSocketModel()
     sockets.emit 'txn', transaction.create(base: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
     expect(model.get 'color').to.eql 'green'
-    expect(model._adapter.version).to.eql 1
+    expect(model._memory.version).to.eql 1
     sockets._disconnect()
 
   it 'test client set roundtrip with server echoing transaction', (done) ->
@@ -53,7 +54,7 @@ describe 'Model', ->
       sockets._disconnect()
       done()
 
-    model._adapter._data = world: {color: 'green'}
+    model._memory._data = world: {color: 'green'}
     model.del 'color'
     expect(model._txnQueue).to.eql ['0.0']
 
@@ -144,7 +145,8 @@ describe 'Model', ->
       done()
 
   it 'test speculative value of set', ->
-    model = new Model '0'
+    model = new Model
+    model._clientId = '0'
 
     previous = model.set 'color', 'green'
     expect(previous).to.equal undefined
@@ -161,7 +163,7 @@ describe 'Model', ->
         numbers:
           first: 2
           second: 10
-    expect(model._adapter._data).to.specEql world: {}
+    expect(model._memory._data).to.specEql world: {}
 
     model.set 'info.numbers.third', 13
     expect(model.get()).to.specEql
@@ -171,7 +173,7 @@ describe 'Model', ->
           first: 2
           second: 10
           third: 13
-    expect(model._adapter._data).to.specEql world: {}
+    expect(model._memory._data).to.specEql world: {}
 
     model._removeTxn '0.1'
     model._removeTxn '0.2'
@@ -180,18 +182,19 @@ describe 'Model', ->
       info:
         numbers:
           third: 13
-    expect(model._adapter._data).to.specEql world: {}
+    expect(model._memory._data).to.specEql world: {}
 
   "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
-    model = new Model '0'
-    model._adapter._data = world: {obj: {}}
-    expect(model._adapter._data).to.specEql world: {obj: {}}
+    model = new Model
+    model._memory._data = world: {obj: {}}
+    expect(model._memory._data).to.specEql world: {obj: {}}
     model.set 'obj.a', 'b'
-    expect(model._adapter._data).to.specEql world: {obj: {}}
+    expect(model._memory._data).to.specEql world: {obj: {}}
 
   it 'test speculative value of del', ->
-    model = new Model '0'
-    model._adapter._data =
+    model = new Model
+    model._clientId = '0'
+    model._memory._data =
       world:
         color: 'green'
         info:
@@ -207,7 +210,7 @@ describe 'Model', ->
           first: 2
           second: 10
 
-    expect(model._adapter._data).to.specEql
+    expect(model._memory._data).to.specEql
       world:
         color: 'green'
         info:
@@ -234,7 +237,7 @@ describe 'Model', ->
     expect(model.get()).to.specEql
       info: {}
 
-    expect(model._adapter._data).to.specEql
+    expect(model._memory._data).to.specEql
       world:
         color: 'green'
         info:
@@ -288,7 +291,7 @@ describe 'Model', ->
 
     model.push 'colors', 'green'
     expect(model.get 'colors').to.specEql ['green']
-    expect(model._adapter._data).to.specEql world: {}
+    expect(model._memory._data).to.specEql world: {}
 
   it 'model events should get emitted properly', (done) ->
     ver = 0
@@ -301,10 +304,10 @@ describe 'Model', ->
       expect(value).to.equal 'green'
       if count is 0
         expect(model._txnQueue.length).to.eql 1
-        expect(model._adapter._data).to.specEql world: {}
+        expect(model._memory._data).to.specEql world: {}
       else
         expect(model._txnQueue.length).to.eql 0
-        expect(model._adapter._data).to.specEql world: {color: 'green'}
+        expect(model._memory._data).to.specEql world: {color: 'green'}
       expect(model.get 'color').to.equal 'green'
       count++
       sockets._disconnect()
@@ -381,20 +384,21 @@ describe 'Model', ->
     , 50
 
   it 'forcing a model method should create a transaction with a null version', ->
-    model = new Model '0'
+    model = new Model
+    model._clientId = '0'
     model.set 'color', 'green'
-    model.force.set 'color', 'red'
-    model.force.del 'color'
+    model.force().set 'color', 'red'
+    model.force().del 'color'
     expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
     expect(model._txns['0.1'].slice()).to.eql transaction.create base: null, id: '0.1', method: 'set', args: ['color', 'red']
     expect(model._txns['0.2'].slice()).to.eql transaction.create base: null, id: '0.2', method: 'del', args: ['color']
 
   it 'a forced model mutation should not result in an adapter ver of null or undefined', ->
-    model = new Model '0'
+    model = new Model
     model.set 'color', 'green'
-    model.force.set 'color', 'red'
-    expect(model._adapter.version).to.not.be.null
-    expect(model._adapter.version).to.not.be.undefined
+    model.force().set 'color', 'red'
+    expect(model._memory.version).to.not.be.null
+    expect(model._memory.version).to.not.be.undefined
 
   it 'model mutator methods should callback on completion', calls 2, (done) ->
     ver = 0
@@ -428,7 +432,7 @@ describe 'Model', ->
       done()
 
   it 'model push should instantiate an undefined path to a new array and insert new members at the end', ->
-    model = new Model '0'
+    model = new Model
     init = model.get 'colors'
     expect(init).to.equal undefined
     out = model.push 'colors', 'green'
@@ -437,7 +441,7 @@ describe 'Model', ->
     expect(final).to.specEql ['green']
 
   it 'model pop should remove a member from an array', ->
-    model = new Model '0'
+    model = new Model
     init = model.get 'colors'
     expect(init).to.equal undefined
     model.push 'colors', 'green'
@@ -449,7 +453,7 @@ describe 'Model', ->
     expect(final).to.specEql []
 
   it 'model unshift should instantiate an undefined path to a new array and insert new members at the beginning', ->
-    model = new Model '0'
+    model = new Model
     init = model.get 'colors'
     expect(init).to.equal undefined
     out = model.unshift 'colors', 'green'
@@ -462,7 +466,7 @@ describe 'Model', ->
     expect(final).to.specEql ['red', 'orange', 'green']
 
   it 'model shift should remove the first member from an array', ->
-    model = new Model '0'
+    model = new Model
     init = model.get 'colors'
     expect(init).to.equal undefined
     out = model.unshift 'colors', 'green', 'blue'
@@ -475,35 +479,35 @@ describe 'Model', ->
     expect(final).to.specEql ['blue']
 
   it 'insert should work on an array, with a valid index', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'green'
     out = model.insert 'colors', 0, 'red', 'yellow'
     expect(out).to.eql 3
     expect(model.get 'colors').to.specEql ['red', 'yellow', 'green']
 
   it 'insert should work on an array index path', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'green'
     out = model.insert 'colors.0', 'red', 'yellow'
     expect(out).to.eql 3
     expect(model.get 'colors').to.specEql ['red', 'yellow', 'green']
 
   it 'remove should work on an array, with a valid index', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     out = model.remove 'colors', 1, 4
     expect(out).to.specEql ['orange', 'yellow', 'green', 'blue']
     expect(model.get 'colors').to.specEql ['red', 'violet']
 
   it 'remove should work on an array index path', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'red', 'orange', 'yellow', 'green', 'blue', 'violet'
     out = model.remove 'colors.1', 4
     expect(out).to.specEql ['orange', 'yellow', 'green', 'blue']
     expect(model.get 'colors').to.specEql ['red', 'violet']
 
   it 'move should work on an array, with a valid index', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'red', 'orange', 'yellow', 'green'
     out = model.move 'colors', 1, 2
     expect(out).to.eql ['orange']
@@ -516,7 +520,7 @@ describe 'Model', ->
     expect(model.get 'colors').to.specEql ['yellow', 'orange', 'green', 'red']
 
   it 'move should work on an array index path', ->
-    model = new Model '0'
+    model = new Model
     model.push 'colors', 'red', 'orange', 'yellow', 'green'
     out = model.move 'colors.1', 2
     expect(out).to.eql ['orange']
@@ -529,11 +533,13 @@ describe 'Model', ->
     expect(model.get 'colors').to.specEql ['yellow', 'orange', 'green', 'red']
 
   it 'supports an id method for creating a guid', ->
-    model = new Model '0'
+    model = new Model
+    model._clientId = '0'
     id00 = model.id()
     id01 = model.id()
 
-    model = new Model '1'
+    model = new Model
+    model._clientId = '1'
     id10 = model.id()
 
     expect(id00).to.be.a 'string'
