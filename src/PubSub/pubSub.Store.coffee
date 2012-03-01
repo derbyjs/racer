@@ -68,7 +68,7 @@ module.exports =
           send 'subscribe', store, clientId, deserialize(targets)
 
   proto:
-    fetch: (targets, callback) ->
+    fetch: (clientId, targets, callback) ->
       data = []
       otData = {}
       finish = finishAfter targets.length, (err) ->
@@ -92,7 +92,7 @@ module.exports =
       data = otData = null
       finish = finishAfter 2, (err) ->
         callback err, data, otData
-      @fetch targets, (err, _data, _otData) ->
+      @fetch clientId, targets, (err, _data, _otData) ->
         data = _data
         otData = _otData
         finish err

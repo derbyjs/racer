@@ -90,7 +90,7 @@ module.exports =
         out.push @at root, true
 
       self = this
-      @_subAdd newTargets, (err, data, otData) ->
+      @_fetch newTargets, (err, data, otData) ->
         self._initSubData data
         self._initSubOtData otData
         callback out...
@@ -197,21 +197,18 @@ module.exports =
   server:
 
     _fetch: (targets, callback) ->
-      model = this
-      store = model.store
+      store = @store
       @_clientIdPromise.on (clientId) ->
         store.fetch clientId, targets, callback
 
     _subAdd: (targets, callback) ->
-      model = this
-      store = model.store
+      store = @store
       @_clientIdPromise.on (clientId) ->
         # Subscribe while the model still only resides on the server
         # The model is unsubscribed before sending to the browser
         store.subscribe clientId, targets, callback
 
     _subRemove: (targets, callback) ->
-      model = this
-      store = model.store
+      store = @store
       @_clientIdPromise.on (clientId) ->
         store.unsubscribe clientId, targets, callback

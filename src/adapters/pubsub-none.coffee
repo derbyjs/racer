@@ -6,7 +6,7 @@ module.exports = (racer) ->
 PubSubNone = ->
   return
 
-PubSubMemory:: =
+PubSubNone:: =
   __proto__: EventEmitter::
 
   publish: ->

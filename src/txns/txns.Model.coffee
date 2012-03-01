@@ -64,7 +64,8 @@ module.exports =
         unless isLocal = 'callback' of txn
           mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
 
-        if transaction.base(txn) > memory.version
+        base = transaction.base txn
+        if base > memory.version || base == null
           model._applyTxn txn, isLocal
         return
 
@@ -113,7 +114,7 @@ module.exports =
 
           # Reset the number used to keep track of pending transactions
           txnApplier.clearPending()
-          txnApplier.setIndex num + 1
+          txnApplier.setIndex num + 1  if num?
           notReady = false
 
           # Resend all transactions in the queue
@@ -138,7 +139,11 @@ module.exports =
         clearInterval resendInterval if resendInterval
         resendInterval = null
 
-      model._addRemoteTxn = addRemoteTxn = (txn, num) -> txnApplier.add txn, num
+      model._addRemoteTxn = addRemoteTxn = (txn, num) ->
+        if num?
+          txnApplier.add txn, num
+        else
+          onTxn txn
       socket.on 'txn', addRemoteTxn
 
       # The model receives 'txnOk' from the server/store after the server/store
@@ -146,7 +151,7 @@ module.exports =
       socket.on 'txnOk', (txnId, base, num) ->
         return unless txn = txns[txnId]
         transaction.base txn, base
-        txnApplier.add txn, num
+        addRemoteTxn txn, num
 
       socket.on 'txnErr', (err, txnId) ->
         txn = txns[txnId]
@@ -167,10 +172,9 @@ module.exports =
   server:
     _commit: (txn) ->
       return if txn.isPrivate
-      self = this
-      @store._commit txn, (err, txn) ->
-        return self._removeTxn transaction.id txn  if err
-        self._onTxn txn
+      @store._commit txn, (err, txn) =>
+        return @_removeTxn transaction.id txn  if err
+        @_onTxn txn
 
   proto:
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
