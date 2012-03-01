@@ -11,7 +11,7 @@ mixin =
       model._bundlePromises = []
       model._onLoad = []
 
-  proto:
+  server:
     bundle: (callback) ->
       self = this
       # This event can be used by Model mixins to add items to onLoad before bundling
