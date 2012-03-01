@@ -1,12 +1,9 @@
-##  WARNING:
-##  ========
-##  This file was compiled from a macro.
-##  Do not edit it directly.
-
 Memory = require '../../Memory'
-{deepCopy} = require '../../util'
+{mergeAll, deepCopy} = require '../../util'
 Query = require './Query'
+
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
+routePattern = /^[^.]+\\.[^.]+(?=\\.|$)/
 
 module.exports = (racer) ->
   racer.adapters.db.Memory = DbMemory
@@ -15,7 +12,7 @@ DbMemory = ->
   @_flush()
   return
 
-DbMemory:: =
+mergeAll DbMemory::, Memory::,
   Query: Query
 
   _flush: Memory::flush
@@ -46,62 +43,20 @@ DbMemory:: =
     return results
 
   setupDefaultPersistenceRoutes: (store) ->
-    adapter = this
+    self = this
     MUTATORS.forEach (method) ->
-      store.defaultRoute method, '*', (args..., done, next) ->
-        path = args[0]
-        match = /^[^.]+\.[^.]+(?=\.|$)/.exec path
+      store.defaultRoute method, '*', (path, args..., ver, done, next) ->
+        args = deepCopy args
+        match = routePattern.exec path
         docPath = if match then match[0] else path
-        adapter.get docPath, (err, doc) ->
+        self.get docPath, (err, doc) ->
           return done err if err
           doc = deepCopy doc
-          adapter[method] args..., (err) ->
-            done err, doc
-
-    store.defaultRoute 'get', '*', (path, done, next) ->
-      adapter.get path, done
-    store.defaultRoute 'get', '', (path, done, next) ->
-      adapter.get '', done
-    return
-
-MUTATORS.forEach (method) ->
-  alias = '_' + method
-  DbMemory::[alias] = fn = Memory::[method]
-  DbMemory::[method] = switch fn.length
-    when 3 then (path, ver, callback) ->
-      try
-        @[alias] path, ver, null
-      catch err
-        return callback err
-      callback()
-    when 4 then (path, arg0, ver, callback) ->
-      try
-        arg0 = deepCopy arg0
-        @[alias] path, arg0, ver, null
-      catch err
-        return callback err
-      callback()
-    when 5 then (path, arg0, arg1, ver, callback) ->
-      try
-        arg0 = deepCopy arg0
-        arg1 = deepCopy arg1
-        @[alias] path, arg0, arg1, ver, null
-      catch err
-        return callback err
-      callback()
-    when 6 then (path, arg0, arg1, arg2, ver, callback) ->
-      try
-        arg0 = deepCopy arg0
-        arg1 = deepCopy arg1
-        arg2 = deepCopy arg2
-        @[alias] path, arg0, arg1, arg2, ver, null
-      catch err
-        return callback err
-      callback()
-    else (path, args..., ver, callback) ->
-      try
-        args = deepCopy args
-        @[alias] path, args..., ver, null
-      catch err
-        return callback err
-      callback()
+          try
+            self[method] path, args..., ver, null
+          catch err
+            return done err, doc
+          done null, doc
+    getFn = (path, done, next) -> self.get path, done
+    store.defaultRoute 'get', '*', getFn
+    store.defaultRoute 'get', '', getFn

@@ -104,7 +104,9 @@ module.exports =
           commit txn
 
       fetchNewTxns = ->
-        socket.emit 'txnsSince', memory.version + 1, model._startId, (newTxns, num) ->
+        socket.emit 'txnsSince', memory.version + 1, model._startId, (err, newTxns, num) ->
+          throw err if err
+
           # Apply any missed transactions first
           for txn in newTxns
             onTxn txn

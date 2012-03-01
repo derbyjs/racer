@@ -36,10 +36,10 @@ module.exports =
             journal.txnsSince ver, clientId, pubSub, (err, txns) ->
               return callback err if err
               journal.nextTxnNum clientId, (err, num) ->
-                throw err if err
+                return callback err if err
                 if len = txns.length
                   socket.__base = transaction.base txns[len - 1]
-                callback txns, num
+                callback null, txns, num
 
   proto:
     _onTxnMsg: (clientId, txn) ->

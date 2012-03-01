@@ -22,29 +22,28 @@ JournalMemory::=
 
   unregisterClient: (clientId, callback) ->
     delete @_txnClock[clientId]
-    callback()
+    callback?()
 
   txnsSince: (ver, clientId, pubSub, callback) ->
     since = []
-    return callback since unless pubSub.hasSubscriptions clientId
+    return callback null, since unless pubSub.hasSubscriptions clientId
 
     txns = @_txns
-    i = ver
-    while txn = txns[i++]
+    while txn = txns[ver++]
       if pubSub.subscribedTo clientId, transaction.path(txn)
         since.push txn
-    callback since
+    callback null, since
 
   nextTxnNum: (clientId, callback) ->
     txnClock = @_txnClock
     num = txnClock[clientId] = (txnClock[clientId] || 0) + 1
-    callback num
+    callback null, num
 
   commitFn: (store, mode) -> commitFns[mode] this, store
 
 
 commit = (txns, store, txn, callback) ->
-  journalTxn = deepCopy txn
+  journalTxn = JSON.parse JSON.stringify txn
   ver = txns.push journalTxn
   transaction.base journalTxn, ver
   store._finishCommit txn, ver, callback
@@ -59,10 +58,10 @@ commitFns =
     if ver?
       if typeof ver isnt 'number'
         # In case of something like store.set(path, value, callback)
-        return callback new Error 'Version must be null or a number'
+        return callback? new Error 'Version must be null or a number'
 
       while item = txns[ver++]
         if err = transaction.conflict txn, item
-          return callback err
+          return callback? err
 
     commit txns, store, txn, callback

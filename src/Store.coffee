@@ -82,8 +82,9 @@ Store:: =
     # the client with the new startId & version when possible
     @_journal.startId (startId) ->
       if clientStartId != startId
-        return callback fatalErr:
-          "clientStartId != startId (#{clientStartId} != #{startId})"
+        err = "clientStartId != startId (#{clientStartId} != #{startId})"
+        socket.emit 'fatalErr', err
+        return callback err
       callback null
 
   # This method is used by mutators on Store::

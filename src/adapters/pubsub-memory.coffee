@@ -27,7 +27,7 @@ PubSubMemory:: =
         @emit 'message', subscriberId, message
 
   subscribe: (subscriberId, paths, callback, isLiteral) ->
-    return if subscriberId is undefined
+    throw new Error 'undefined subscriberId'  unless subscriberId?
 
     if isLiteral
       subs = @_pathSubs
@@ -42,10 +42,10 @@ PubSubMemory:: =
       s = subs[path] ||= {}
       s[subscriberId] = ss[path] = value
 
-    callback()
+    callback?()
 
   unsubscribe: (subscriberId, paths, callback, isLiteral) ->
-    return if subscriberId is undefined
+    throw new Error 'undefined subscriberId'  unless subscriberId?
 
     if isLiteral
       subs = @_pathSubs
@@ -65,7 +65,7 @@ PubSubMemory:: =
           delete subs[path]
           @emit 'noSubscribers', path
 
-    callback()
+    callback?()
 
   hasSubscriptions: (subscriberId) ->
     (subscriberId of @_subscriberPatternSubs) || (subscriberId of @_subscriberPathSubs)
