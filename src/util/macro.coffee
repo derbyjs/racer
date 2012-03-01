@@ -1,11 +1,26 @@
 fs = require 'fs'
-path = require 'path'
-coffee = require 'coffee-script'
+{normalize, join} = require 'path'
+
+files = (dir, extension, out = []) ->
+  fs.readdirSync(dir)
+    .forEach (p) ->
+      p = join dir, p
+      if fs.statSync(p).isDirectory()
+        files p, extension, out
+      else if extension.test p
+        out.push p
+  return out
+
+watch = (dir, extension, onChange) ->
+  options = interval: 100
+  files(dir, extension).forEach (file) ->
+    fs.watchFile file, options, (curr, prev) ->
+      onChange file  if prev.mtime < curr.mtime
 
 condition = (s) ->
   s.replace(/\s+or\s+/g, "' || def == '").replace(/\s+and\s+/g, "' && def == '")
 
-require.extensions['.macro'] = compileMacro = (module, filename) ->
+compileMacro = (filename) ->
   console.log 'Compiling macro: ' + filename
   content = fs.readFileSync filename, 'utf8'
 
@@ -32,17 +47,10 @@ require.extensions['.macro'] = compileMacro = (module, filename) ->
   script += "return out;})()"
   content = eval script
 
-  filename = filename.substr(0, filename.length - 6) + '.coffee'
+  filename = filename[0..-7] + '.coffee'
   fs.writeFileSync filename, content, 'utf8'
-  content = coffee.compile content, {filename}
-  module._compile content, filename
 
-require.extensions['.coffee'] = (module, filename) ->
-  macroPath = filename.substr(0, filename.length - 7) + '.macro'
-  if path.existsSync macroPath
-    return compileMacro module, macroPath
-  content = fs.readFileSync filename, 'utf8'
-  content = coffee.compile content, {filename}
-  module._compile content, filename
-
-require '../../src/racer'
+dir = normalize __dirname + '/../../src'
+extension = /\.macro$/
+files(dir, extension).forEach compileMacro
+watch dir, extension, compileMacro
