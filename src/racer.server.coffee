@@ -63,12 +63,10 @@ module.exports = (racer) ->
   Object.defineProperty racer, 'version',
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
 
-  # TODO: Redis journal and pubsub should not be included by default once
-  # the memory versions are written
   racer
     .use(require './bundle.Model')  
-    .use(require 'racer-journal-redis')
-    .use(require 'racer-pubsub-redis')
+    .use(require './adapters/journal-memory')
+    .use(require './adapters/pubsub-memory')
     .use(require './adapters/db-memory')
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')

@@ -21,9 +21,8 @@ Store = module.exports = (options = {}) ->
   self = this
   @_localModels = {}
 
-  # TODO: Default type should be Memory for journal and pubSub once implemented
-  @_journal = journal = createAdapter options, 'journal', type: 'Redis'
-  @_pubSub = pubSub = createAdapter options, 'pubSub', type: 'Redis'
+  @_journal = journal = createAdapter options, 'journal', type: 'Memory'
+  @_pubSub = pubSub = createAdapter options, 'pubSub', type: 'Memory'
   @_db = db = createAdapter options, 'db', type: 'Memory'
   @_clientId = clientId = createAdapter options, 'clientId', type: 'Rfc4122_v4'
 
@@ -81,11 +80,11 @@ Store:: =
   _checkVersion: (socket, ver, clientStartId, callback) ->
     # TODO: Map the client's version number to the journal's and update
     # the client with the new startId & version when possible
-    @_journal.checkVersion ver, clientStartId, (err) ->
-      if err
-        if {fatalErr} = err
-          socket.emit 'fatalErr', fatalErr
-      callback err
+    @_journal.startId (startId) ->
+      if clientStartId != startId
+        return callback fatalErr:
+          "clientStartId != startId (#{clientStartId} != #{startId})"
+      callback null
 
   # This method is used by mutators on Store::
   _nextTxnId: (callback) ->

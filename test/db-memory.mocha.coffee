@@ -1,1 +1,1 @@
-require('./util/dbAdapter') type: 'Memory'
+require('./dbAdapter') type: 'Memory'
