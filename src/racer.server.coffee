@@ -66,7 +66,9 @@ module.exports = (racer) ->
   racer
     .use(require './bundle.Model')  
     .use(require './adapters/journal-memory')
+    .use(require './adapters/journal-none')
     .use(require './adapters/pubsub-memory')
+    .use(require './adapters/pubsub-none')
     .use(require './adapters/db-memory')
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')
