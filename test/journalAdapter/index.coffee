@@ -1,16 +1,10 @@
 {expect} = require '../util'
-{runFn} = require '../util/store'
-racer = require '../../src/racer'
+{adapter} = require '../util/store'
 
-module.exports = (options, plugin, moreTests) -> describe "#{options.type} journal adapter", ->
-  racer.use plugin  if plugin
-  run = runFn journal: options
-  moreTests? run
+module.exports = adapter 'journal', (run) ->
 
-  allModes = ({mode, journal: options} for mode in ['lww', 'stm'])
-
-  run 'commit', allModes, require './commit'
-  run 'STM commit', {mode: 'stm', journal: options}, require './stmCommit'
+  run 'commit', run.allModes, require './commit'
+  run 'STM commit', run.stm, require './stmCommit'
 
   run 'journal flushing', (getStore) ->
     it 'should reset the version', (done) ->

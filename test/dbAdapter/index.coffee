@@ -1,11 +1,7 @@
 {expect} = require '../util'
-{runFn} = require '../util/store'
-racer = require '../../src/racer'
+{adapter} = require '../util/store'
 
-module.exports = (options, plugin, moreTests) -> describe "#{options.type} db adapter", ->
-  racer.use plugin  if plugin
-  run = runFn db: options
-  moreTests? run
+module.exports = adapter 'db', (run) ->
 
   run 'store mutators', require './storeMutators'
 

@@ -5,7 +5,7 @@ racer = require '../../src/racer'
 exports.DEFAULT_RUN_OPTIONS = DEFAULT_RUN_OPTIONS =
   mode: 'lww'
 
-run = (name, options, showOptions, callback) ->
+runFor = (name, options, showOptions, callback) ->
   name += ' ' + inspect(options)  if showOptions
   describe name, ->
     store = null
@@ -21,11 +21,11 @@ run = (name, options, showOptions, callback) ->
 
     callback -> store
 
-exports.runFn = runFn = (defaultOptions) ->
+exports.runFn = runFn = (defaultOptions, type, typeOptions) ->
   unless Array.isArray defaultOptions
     defaultOptions = [defaultOptions]
 
-  return (name, optionsList, callback) ->
+  run = (name, optionsList, callback) ->
     if typeof optionsList is 'function'
       callback = optionsList
       optionsList = defaultOptions
@@ -36,6 +36,27 @@ exports.runFn = runFn = (defaultOptions) ->
 
     showOptions = optionsList.length > 1
     for options in optionsList
-      run name, options, showOptions, callback
+      runFor name, options, showOptions, callback
+
+  run.allModes = allModes = []
+  for mode in racer.Store.MODES
+    options = {mode}
+    options[type] = typeOptions  if type
+    allModes.push options
+    run[mode] = options
+
+  return run
 
 exports.run = runFn DEFAULT_RUN_OPTIONS
+
+exports.adapter = (type, callback) ->
+  (typeOptions, plugin, moreTests) ->
+    describe "#{typeOptions.type} #{type} adapter", ->
+      racer.use plugin  if plugin
+
+      options = {}
+      options[type] = typeOptions
+      run = runFn options, type, typeOptions
+      moreTests? run
+
+      callback run

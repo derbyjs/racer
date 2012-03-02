@@ -1,12 +1,7 @@
 {expect} = require '../util'
-{runFn} = require '../util/store'
-racer = require '../../src/racer'
+{adapter} = require '../util/store'
 
-module.exports = (options, plugin, moreTests) -> describe "#{options.type} pubSub adapter", ->
-  racer.use plugin  if plugin
-  run = runFn pubSub: options
-  moreTests? run
-
+module.exports = adapter 'pubSub', (run) ->
 
   run '', (getStore) ->
 

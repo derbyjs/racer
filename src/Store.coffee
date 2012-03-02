@@ -180,6 +180,8 @@ Store:: =
           return fn.apply null, captures.concat(rest, [done, next])
 
 
+Store.MODES = ['lww', 'stm']
+
 createAdapter = (storeOptions, adapterType, defaultOptions) ->
   options = storeOptions[adapterType] || defaultOptions
   if options.type

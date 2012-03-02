@@ -1,5 +1,3 @@
 {run} = require '../util/store'
 
-allModes = ({mode} for mode in ['lww', 'stm'])
-
-run 'Store integration Memory', allModes, require('./integration')
+run 'Store integration Memory', run.allModes, require('./integration')
