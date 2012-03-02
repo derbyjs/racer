@@ -2,6 +2,8 @@
 {Model, transaction} = require '../src/racer'
 {mockSocketModels} = require './util/model'
 
+Model::_commit = ->
+
 describe 'Model.atomic', ->
 
   it 'Model::atomic should log gets', (done) ->

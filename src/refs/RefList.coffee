@@ -93,7 +93,7 @@ RefList = module.exports = (basicMutator, arrayMutator, @model, @from, to, key) 
       return [curr, currPath, i]
 
   @addListener key, (match, method, args) ->
-    if i = arrayMutator[method].insertArgs
+    if i = arrayMutator[method]?.insertArgs
       while (id = args[i])?
         args[i] = model.get(to + '.' + id)
         i++

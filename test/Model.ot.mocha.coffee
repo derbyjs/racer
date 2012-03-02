@@ -1,24 +1,11 @@
 {expect} = require './util'
 {Model} = require '../src/racer'
 {mockSocketModels, fullyWiredModels} = require './util/model'
-{BrowserSocketMock} = require './util/mocks'
+{BrowserSocketMock} = require './util/sockets'
+
+Model::_commit = ->
 
 describe 'Model.ot', ->
-
-  flushRedis = (done) ->
-    redis = require('redis').createClient()
-    redis.select 2, (err) ->
-      throw err if err
-      redis.flushdb (err) ->
-        throw err if err
-        redis.quit()
-        done()
-
-  beforeEach (done) ->
-    flushRedis done
-
-  after (done) ->
-    flushRedis done
 
   ## Server-side OT ##
   it 'model.set(path, model.ot(val)) should initialize the doc version to 0 and the initial value to val if the path is undefined', ->

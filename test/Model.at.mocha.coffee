@@ -1,5 +1,7 @@
 {expect} = require './util'
-Model = require '../src/Model'
+{Model} = require '../src/racer'
+
+Model::_commit = ->
 
 describe 'Model.at', ->
 

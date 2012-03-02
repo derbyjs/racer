@@ -1,5 +1,5 @@
 {diffArrays} = require '../diffMatchPatch'
-{eventRegExp} = require '../path'
+{eventRegExp, lookup} = require '../path'
 {deepCopy} = require '../util'
 transaction = require '../transaction'
 

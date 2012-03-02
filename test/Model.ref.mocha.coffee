@@ -2,6 +2,8 @@
 {Model, transaction} = require '../src/racer'
 {mockSocketModel} = require './util/model'
 
+Model::_commit = ->
+
 describe 'Model.ref', ->
 
   it 'should support getting', ->

@@ -1,10 +1,10 @@
 {expect} = require './util'
 {run} = require './util/store'
 
-run 'Model.async', {mode: 'stm'}, (store) ->
+run 'Model.async', {mode: 'stm'}, (getStore) ->
 
   it 'test model.async.retry', (done) ->
-    model = store.createModel()
+    model = getStore().createModel()
     incr = (path, callback) ->
       model.async.retry (atomic) ->
         atomic.get path, (count = 0) ->
