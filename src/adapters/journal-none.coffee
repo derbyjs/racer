@@ -9,7 +9,7 @@ JournalNone::=
 
   startId: (callback) -> callback null
 
-  version: (callback) -> callback -1
+  version: (callback) -> callback null, -1
 
   unregisterClient: (clientId, callback) -> callback?()
 

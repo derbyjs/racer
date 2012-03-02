@@ -14,7 +14,7 @@ module.exports = (options, plugin, moreTests) -> describe "#{options.type} journ
       store = getStore()
       store.set 'color', 'green', 1, (err) ->
         expect(err).to.be.null()
-        store._journal.version (ver) ->
+        store._journal.version (err, ver) ->
           expect(ver).to.be(1)
           store.flush (err) ->
             expect(err).to.be.null()
