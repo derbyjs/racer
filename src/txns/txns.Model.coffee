@@ -303,22 +303,23 @@ module.exports =
       data.$out = out
       return data
 
-    atomic: (block, callback) ->
-      model = new AtomicModel @_nextTxnId(), this
-      @_atomicModels[model.id] = model
-      commit = (_callback) =>
-        model._commit (err) =>
-          delete @_atomicModels[model.id] unless err
-          _callback.apply null, arguments if _callback ||= callback
-      abort = ->
-      retry = ->
-
-      if block.length == 1
-        block model
-        commit callback
-      else if block.length == 2
-        block model, commit
-      else if block.length == 3
-        block model, commit, abort
-      else if block.length == 4
-        block model, commit, abort, retry
+    # TODO Implement this completely in the future
+#    atomic: (block, callback) ->
+#      model = new AtomicModel @_nextTxnId(), this
+#      @_atomicModels[model.id] = model
+#      commit = (_callback) =>
+#        model._commit (err) =>
+#          delete @_atomicModels[model.id] unless err
+#          _callback.apply null, arguments if _callback ||= callback
+#      abort = ->
+#      retry = ->
+#
+#      if block.length == 1
+#        block model
+#        commit callback
+#      else if block.length == 2
+#        block model, commit
+#      else if block.length == 3
+#        block model, commit, abort
+#      else if block.length == 4
+#        block model, commit, abort, retry
