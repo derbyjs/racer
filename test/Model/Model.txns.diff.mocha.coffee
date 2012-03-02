@@ -30,7 +30,7 @@ mirrorTest = (done, init, callback) ->
     done()
   , 10
 
-describe 'Model event patch', ->
+describe 'Model event patching', ->
 
   it 'mock should support synching txns on connect', (done) ->
     [model, sockets] = mockSocketEcho 0, unconnected: true

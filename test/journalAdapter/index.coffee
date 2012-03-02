@@ -4,12 +4,14 @@ racer = require '../../src/racer'
 
 module.exports = (options, plugin, moreTests) -> describe "#{options.type} journal adapter", ->
   racer.use plugin if plugin
+  allModes = ({mode, journal: options} for mode in ['lww', 'stm'])
 
-  if moreTests then moreTests()
-
+  moreTests?()
+  run 'commit', allModes, require './commit'
   run 'STM commit', {mode: 'stm', journal: options}, require './stmCommit'
 
   run 'journal flushing', {mode: 'stm', journal: options}, (getStore) ->
+
     it 'should reset the version', (done) ->
       store = getStore()
       store.set 'color', 'green', 1, (err) ->

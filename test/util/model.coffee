@@ -1,3 +1,4 @@
+{calls} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
 extended = [
   racerPath = require.resolve '../../src/racer'
@@ -82,27 +83,34 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
 #
 # options:
 #   numBrowsers:  Number of browser models to create. Defaults to 1
+#   calls:        Expected number of calls to the done() function
 ns = 0
-exports.mockFullSetup = (store, options, callback) ->
-  serverSockets = new ServerSocketsMock()
-
+exports.mockFullSetup = (getStore, options, callback) ->
   if typeof options is 'function'
     callback = options
     options = {}
   options ||= {}
   numBrowsers = options.numBrowsers || 1
+  numCalls = options.calls || 1
+  serverSockets = new ServerSocketsMock()
 
-  browserModels = []
-  i = numBrowsers
-  while i-- then do ->
-    serverModel = store.createModel()
-    serverModel.subscribe "tests.#{++ns}", (sandbox) ->
-      serverModel.ref '_test', sandbox
-      sandbox.del()
-      serverModel.bundle (bundle) ->
-        browserRacer = createBrowserRacer()
-        browserSocket = new BrowserSocketMock serverSockets
-        browserRacer.init JSON.parse(bundle), browserSocket
-        browserSocket._connect()
-        browserModels.push browserRacer.model
-        --numBrowsers || callback browserModels..., serverSockets
+  test = calls numCalls, (done) ->
+    browserModels = []
+    i = numBrowsers
+    store = getStore()
+    while i-- then do ->
+      serverModel = store.createModel()
+      serverModel.subscribe "tests.#{++ns}", (sandbox) ->
+        serverModel.ref '_test', sandbox
+        sandbox.del()
+        serverModel.bundle (bundle) ->
+          browserRacer = createBrowserRacer()
+          browserSocket = new BrowserSocketMock serverSockets
+          browserRacer.init JSON.parse(bundle), browserSocket
+          browserSocket._connect()
+          browserModels.push browserRacer.model
+          --numBrowsers || callback browserModels..., done
+
+  return (done) ->
+    test done
+    serverSockets._disconnect()
