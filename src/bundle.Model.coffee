@@ -16,13 +16,12 @@ mixin =
 
   server:
     bundle: (callback) ->
-      self = this
       # This event can be used by Model mixins to add items to onLoad before bundling
-      @mixinEmit 'bundle', self
+      @mixinEmit 'bundle', this
       timeout = setTimeout BUNDLE_TIMEOUT, onBundleTimeout
-      Promise.parallel(@_bundlePromises).on ->
+      Promise.parallel(@_bundlePromises).on =>
         clearTimeout timeout
-        self._bundle callback
+        @_bundle callback
 
     _bundle: (callback) ->
       clientId = @_clientId
