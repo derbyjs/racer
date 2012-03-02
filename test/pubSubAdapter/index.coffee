@@ -1,15 +1,20 @@
-{expect} = require './index'
-{run} = require './store'
-transaction = require '../../src/transaction'
+{expect} = require '../util'
+{runFn} = require '../util/store'
 racer = require '../../src/racer'
 
-module.exports = (options, plugin) -> describe "#{options.type} pubSub adapter", ->
+module.exports = (options, plugin, moreTests) -> describe "#{options.type} pubSub adapter", ->
   racer.use plugin  if plugin
+  run = runFn pubSub: options
+  moreTests? run
 
-  run '', {mode: 'stm', pubSub: options}, (getStore) ->
+
+  run '', (getStore) ->
 
     it '', (done) ->
       
+
+
+transaction = require '../../src/transaction'
 
     # TODO: Move to subscribe tests
     it 'subscribe should only copy the appropriate properties', (done) ->

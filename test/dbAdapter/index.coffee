@@ -1,13 +1,15 @@
-{run} = require '../util/store'
 {expect} = require '../util'
+{runFn} = require '../util/store'
 racer = require '../../src/racer'
 
-module.exports = (options, plugin) -> describe "#{options.type} db adapter", ->
+module.exports = (options, plugin, moreTests) -> describe "#{options.type} db adapter", ->
   racer.use plugin  if plugin
+  run = runFn db: options
+  moreTests? run
 
-  run 'store mutators', {db: options}, require './storeMutators'
+  run 'store mutators', require './storeMutators'
 
-  run 'db flushing', {db: options}, (getStore) ->
+  run 'db flushing', (getStore) ->
     it 'should delete all db contents', (done) ->
       store = getStore()
       store.set 'color', 'green', 1, (err) ->

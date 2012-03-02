@@ -2,23 +2,8 @@
 {expect} = require './index'
 racer = require '../../src/racer'
 
-defaultRunOptions = [mode: 'lww']
-
-module.exports =
-  run: (name, optionsList, callback) ->
-    switch typeof optionsList
-      when 'array'
-        showOptions = true
-      when 'function'
-        callback = optionsList
-        optionsList = defaultRunOptions
-      when 'object'
-        optionsList = [optionsList]
-      else
-        optionsList = defaultRunOptions
-
-    for options in optionsList
-      run name, options, showOptions, callback
+exports.DEFAULT_RUN_OPTIONS = DEFAULT_RUN_OPTIONS =
+  mode: 'lww'
 
 run = (name, options, showOptions, callback) ->
   name += ' ' + inspect(options)  if showOptions
@@ -35,3 +20,22 @@ run = (name, options, showOptions, callback) ->
         done()
 
     callback -> store
+
+exports.runFn = runFn = (defaultOptions) ->
+  unless Array.isArray defaultOptions
+    defaultOptions = [defaultOptions]
+
+  return (name, optionsList, callback) ->
+    if typeof optionsList is 'function'
+      callback = optionsList
+      optionsList = defaultOptions
+    else if !optionsList
+      optionsList = defaultOptions
+    else if !Array.isArray(optionsList)
+      optionsList = [optionsList]
+
+    showOptions = optionsList.length > 1
+    for options in optionsList
+      run name, options, showOptions, callback
+
+exports.run = runFn DEFAULT_RUN_OPTIONS
