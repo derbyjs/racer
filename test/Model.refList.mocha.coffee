@@ -1,6 +1,8 @@
 {expect, calls} = require './util'
 {Model} = require '../src/racer'
 
+Model::_commit = ->
+
 describe 'Model.refList', ->
 
   it 'should support getting', ->

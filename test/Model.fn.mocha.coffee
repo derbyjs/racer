@@ -1,6 +1,8 @@
 {expect} = require './util'
 {Model} = require '../src/racer'
 
+Model::_commit = ->
+
 describe 'Model.fn', ->
 
   it 'supports get with single input', ->
