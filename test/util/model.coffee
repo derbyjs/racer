@@ -16,7 +16,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   return [model, serverSockets]
 
 # Pass all transactions back to the client immediately
-exports.mockSocketEcho = (clientId = '', unconnected) ->
+exports.mockSocketEcho = (clientId = '', options = {}) ->
   num = 0
   ver = 0
   newTxns = []
@@ -29,42 +29,17 @@ exports.mockSocketEcho = (clientId = '', unconnected) ->
       callback null, newTxns, ++num
       newTxns = []
     socket.on 'txn', (txn) ->
-      socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
+      if err = options.txnErr
+        socket.emit 'txnErr', err
+      else
+        socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
   browserSocket = new BrowserSocketMock(serverSockets)
   model = new Model
   model._clientId = clientId
   model._setSocket browserSocket
-  browserSocket._connect() unless unconnected
+  browserSocket._connect()  unless options.unconnected
   return [model, serverSockets]
 
-exports.mockSocketModels = (clientIds..., options = {}) ->
-  if Object != options.constructor
-    clientIds.push options
-    options = txnOk: true
-  serverSockets = new ServerSocketsMock
-  serverSockets.on 'connection', (socket) ->
-    socket.num = 1
-    ver = 0
-    txnNum = 1
-    socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback null, [], socket.num
-    socket.on 'txn', (txn) ->
-      txn = JSON.parse JSON.stringify txn
-      transaction.base txn, ++ver
-      if options.txnOk
-        socket.emit 'txnOk', transaction.id(txn), transaction.base(txn), ++txnNum
-        serverSockets.emit 'txn', txn, socket.num++
-      else if err = options.txnErr
-        socket.emit 'txnErr', err, transaction.id(txn)
-
-  models = clientIds.map (clientId) ->
-    model = new Model
-    model._clientId = clientId
-    browserSocket = new BrowserSocketMock serverSockets
-    model._setSocket browserSocket
-    browserSocket._connect()
-    return model
-  return [serverSockets, models...]
 
 browserRacer = require '../../src/racer.browser'
 serverRacer = require '../../src/racer'

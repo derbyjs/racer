@@ -1,42 +1,37 @@
+{EventEmitter} = require 'events'
 Serializer = require '../Serializer'
 transaction = require '../transaction'
+{mergeAll} = require '../util'
 
 # When parent model tries to write changes to atomic model,
 # then make sure to abort atomic model if any of the changes
 # modify paths.
 
-proto = null
-AtomicModel = module.exports = (id, parentModel) ->
-  AtomicModel = (id, parentModel) ->
-    self = this
-    self.id = id
-    self.parentModel = parentModel
-    memory = self._memory = parentModel._memory
-    self.ver = memory.version
+module.exports = (id, parentModel) ->
 
-    self._specCache =
+  AtomicModel = (id, parentModel) ->
+    @id = id
+    @parentModel = parentModel
+    @_memory = memory = parentModel._memory
+    @version = memory.version
+
+    @_specCache =
       invalidate: ->
         delete @data
         delete @lastTxnId
 
-    self._opCount = 0
-    self._txns = parentModel._txns
-    self._txnQueue = parentModel._txnQueue.slice 0
+    @_opCount = 0
+    @_txns = parentModel._txns
+    @_txnQueue = parentModel._txnQueue.slice 0
 
     # Proxy events to the parent model
-    ['emit', 'on', 'once'].forEach (method) ->
-      self[method] = ->
-        parentModel[method].apply parentModel, arguments
+    for method of EventEmitter::
+      do (method) =>
+        @[method] = -> parentModel[method].apply parentModel, arguments
 
     return
 
-  # TODO: This prototype copying should be based on the mixins
-  AtomicModel:: = proto
-  parentProto = Object.getPrototypeOf parentModel
-  for method in ['_addOpAsTxn', '_queueTxn', '_specModel', '_applyMutation',
-  '_dereference', '_emitModelEvent', 'set', 'setNull', 'del', 'incr',
-  'push', 'unshift', 'insert', 'pop', 'shift', 'insert', 'remove', 'move']
-    proto[method] = parentProto[method]
+  mergeAll AtomicModel::, Object.getPrototypeOf(parentModel), proto
 
   return new AtomicModel id, parentModel
 
@@ -46,20 +41,19 @@ proto =
     return extracted == @id
 
   oplog: ->
-    modelId = @id
     txns = @_txns
     txnQueue = @_txnQueue
     return (txns[id] for id in txnQueue when @isMyOp id)
 
   _oplogAsTxn: ->
-    ops = (transaction.op.create(
-      method: transaction.method txn
-      args: transaction.args txn
-    ) for txn in @oplog())
-    return transaction.create base: @ver, id: @id, ops: ops
+    ops = for txn in @oplog()
+      transaction.op.create
+        method: transaction.method txn
+        args: transaction.args txn
+    return transaction.create base: @version, id: @id, ops: ops
 
-  _getVer: -> @ver
-  _commit: ->
+  _getVersion: -> @version
+
   commit: (callback) ->
     txn = @_oplogAsTxn()
     @parentModel._queueTxn txn, callback
@@ -68,18 +62,17 @@ proto =
   get: (path) ->
     val = @_memory.get path, @_specModel()
     ver = @_memory.version
-    if ver <= @ver
+    if ver <= @version
       @_addOpAsTxn 'get', [path]
     return val
 
-  _nextTxnId: -> @id + '.' + ++@_opCount
+  _nextTxnId: -> @id + '.' + (++@_opCount)
 
   _conflictsWithMe: (txn) ->
-    modelId = @id
     txns = @_txns
-    txnQueue = @_txnQueue
-    for id in txnQueue
+    ver = @version
+    for id in @_txnQueue
       myTxn = txns[id]
-      if @isMyOp id && transaction.doesSharePath(txn, myTxn) && ver < transaction.base txn
+      if @isMyOp(id) && transaction.pathConflict(txn, myTxn) && ver < transaction.base(txn)
         return true
     return false
