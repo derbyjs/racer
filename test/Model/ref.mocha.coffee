@@ -1,6 +1,6 @@
-{expect, calls} = require './util'
-{Model, transaction} = require '../src/racer'
-{mockSocketModel, BrowserModel: Model} = require './util/model'
+{expect, calls} = require '../util'
+{transaction} = require '../../src/racer'
+{mockSocketModel, BrowserModel: Model} = require '../util/model'
 
 describe 'Model.ref', ->
 

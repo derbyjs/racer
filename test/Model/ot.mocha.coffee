@@ -1,6 +1,6 @@
-{expect} = require './util'
-{mockSocketModel, mockFullSetup, BrowserModel: Model} = require './util/model'
-{run} = require './util/store'
+{expect} = require '../util'
+{mockSocketModel, mockFullSetup, BrowserModel: Model} = require '../util/model'
+{run} = require '../util/store'
 
 describe 'Model.ot', ->
 
@@ -54,26 +54,26 @@ describe 'Model.ot', ->
       done()
     model.delOT 'some.ot.path', 1, 3
 
-  ## Client-server OT communication ##
-  # it 'client model should emit an insertOT event when it receives an OT message from the server with an insertOT op', (done) ->
-  #   [model, sockets] = mockSocketModel '0'
-  #   model.set 'some.ot.path', model.ot('abcdef')
-  #   model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
-  #     expect(insertedStr).to.equal 'try'
-  #     expect(pos).to.equal 1
-  #     sockets._disconnect()
-  #     done()
-  #   sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 1
+  # Client-server OT communication ##
+  it 'client model should emit an insertOT event when it receives an OT message from the server with an insertOT op', (done) ->
+    [model, sockets] = mockSocketModel '0'
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
+      expect(insertedStr).to.equal 'try'
+      expect(pos).to.equal 1
+      sockets._disconnect()
+      done()
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 1
 
-  # it 'client model should emit a delOT event when it receives an OT message from the server with an delOT op', (done) ->
-  #   [model, sockets] = mockSocketModel '0'
-  #   model.set 'some.ot.path', model.ot('abcdef')
-  #   model.on 'delOT', 'some.ot.path', (pos, strToDel) ->
-  #     expect(strToDel).to.equal 'bcd'
-  #     expect(pos).to.equal 1
-  #     sockets._disconnect()
-  #     done()
-  #   sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 1
+  it 'client model should emit a delOT event when it receives an OT message from the server with an delOT op', (done) ->
+    [model, sockets] = mockSocketModel '0'
+    model.set 'some.ot.path', model.ot('abcdef')
+    model.on 'delOT', 'some.ot.path', (pos, strToDel) ->
+      expect(strToDel).to.equal 'bcd'
+      expect(pos).to.equal 1
+      sockets._disconnect()
+      done()
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 1
 
 
 run 'Model.ot connected to a store', (getStore) ->

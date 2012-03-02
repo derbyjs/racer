@@ -1,5 +1,5 @@
-{expect} = require './util'
-{run} = require './util/store'
+{expect} = require '../util'
+{run} = require '../util/store'
 
 run 'Model.async', {mode: 'stm'}, (getStore) ->
 

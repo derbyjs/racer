@@ -1,6 +1,6 @@
-{expect} = require './util'
-{Model, transaction} = require '../src/racer'
-{mockSocketEcho, mockSocketModel} = require './util/model'
+{expect} = require '../util'
+{Model, transaction} = require '../../src/racer'
+{mockSocketEcho, mockSocketModel} = require '../util/model'
 
 mirrorTest = (done, init, callback) ->
   mirror = new Model

@@ -1,5 +1,5 @@
-{expect} = require './util'
-{BrowserModel: Model} = require './util/model'
+{expect} = require '../util'
+{BrowserModel: Model} = require '../util/model'
 
 describe 'Model.fn', ->
 

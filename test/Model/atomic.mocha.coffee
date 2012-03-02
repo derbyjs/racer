@@ -1,9 +1,9 @@
 # TODO: Add back once atomic transactions are implemented
 
 
-# {expect} = require './util'
-# {Model, transaction} = require '../src/racer'
-# {mockSocketEcho} = require './util/model'
+# {expect} = require '../util'
+# {Model, transaction} = require '../../src/racer'
+# {mockSocketEcho} = require '../util/model'
 
 # Model::_commit = ->
 

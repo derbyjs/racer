@@ -1,5 +1,5 @@
-{expect, calls} = require './util'
-{BrowserModel: Model} = require './util/model'
+{expect, calls} = require '../util'
+{BrowserModel: Model} = require '../util/model'
 
 describe 'Model.refList', ->
 

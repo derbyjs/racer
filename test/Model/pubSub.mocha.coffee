@@ -1,5 +1,5 @@
-{expect} = require './util'
-{mockSocketModel} = require './util/model'
+{expect} = require '../util'
+{mockSocketModel} = require '../util/model'
 
 describe 'Model pubSub', ->
 

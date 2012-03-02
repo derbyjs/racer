@@ -8,7 +8,7 @@ module.exports = (getStore) ->
     idIn = []
     idOut = []
     finish = ->
-      expect(idIn).to.eql idOut
+      expect(idOut).to.eql idIn
       done()
     for i in [0..9]
       idIn.push id = "1.#{i}"
