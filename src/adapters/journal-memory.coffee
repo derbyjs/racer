@@ -18,7 +18,7 @@ JournalMemory::=
 
   startId: (callback) -> callback @_startId
 
-  version: (callback) -> callback @_txns.length
+  version: (callback) -> callback null, @_txns.length
 
   unregisterClient: (clientId, callback) ->
     delete @_txnClock[clientId]
