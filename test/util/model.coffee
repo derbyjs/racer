@@ -1,12 +1,37 @@
-{Model, transaction} = require '../../src/racer'
-{ServerSocketsMock, BrowserSocketMock} = require './sockets'
 require 'console.color'
+{ServerSocketsMock, BrowserSocketMock} = require './sockets'
 
-exports.BrowserModel = BrowserModel = ->
-  return Model.apply this, arguments
+racerPath = require.resolve '../../src/racer'
+utilPath = require.resolve '../../src/util'
+pluginPath = require.resolve '../../src/plugin'
+modelPath = require.resolve '../../src/Model'
+transactionPath = require.resolve '../../src/transaction'
 
-BrowserModel:: = Object.create Model::
-BrowserModel::_commit = ->
+# Require the server version of racer
+{Model, transaction} = racer = require racerPath
+
+# Delete the cache of all modules extended for the server
+delete require.cache[racerPath]
+delete require.cache[utilPath]
+delete require.cache[pluginPath]
+delete require.cache[modelPath]
+delete require.cache[transactionPath]
+
+# Pretend like we are in a browser and require again
+global.window = {}
+{Model: BrowserModel} = browserRacer = require racerPath
+
+# Delete the cache again, so that the next time racer is
+# required it will be for the server
+delete require.cache[racerPath]
+delete require.cache[utilPath]
+delete require.cache[pluginPath]
+delete require.cache[modelPath]
+delete require.cache[transactionPath]
+delete global.window
+
+exports.browserRacer = browserRacer
+exports.BrowserModel = BrowserModel
 
 
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
