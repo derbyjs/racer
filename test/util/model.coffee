@@ -93,17 +93,18 @@ exports.mockFullSetup = (getStore, options, callback) ->
   numBrowsers = options.numBrowsers || 1
   numCalls = options.calls || 1
   serverSockets = new ServerSocketsMock()
+  testPath = "tests.#{++ns}"
 
   test = calls numCalls, (done) ->
     browserModels = []
     i = numBrowsers
     store = getStore()
-    while i-- then do ->
-      serverModel = store.createModel()
-      serverModel.subscribe "tests.#{++ns}", (sandbox) ->
-        serverModel.ref '_test', sandbox
-        sandbox.del()
-        serverModel.bundle (bundle) ->
+    store.setSockets serverSockets
+    while i--
+      model = store.createModel()
+      do (model) -> model.subscribe testPath, (sandbox) ->
+        model.ref '_test', sandbox
+        model.bundle (bundle) ->
           browserRacer = createBrowserRacer()
           browserSocket = new BrowserSocketMock serverSockets
           browserRacer.init JSON.parse(bundle), browserSocket

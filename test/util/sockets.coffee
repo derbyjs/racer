@@ -1,10 +1,11 @@
 {EventEmitter} = require 'events'
+{deepCopy} = require '../../src/util'
 
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
   if async then return process.nextTick ->
-    callEmit target, name, args
-  EventEmitter::emit.call target, name, args...
+    callEmit target, name, deepCopy(args)
+  EventEmitter::emit.call target, name, deepCopy(args)...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
