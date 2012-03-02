@@ -19,26 +19,25 @@ mergeAll Model::, EventEmitter::,
   canConnect: true
 
   _setSocket: (@socket) ->
-    self = this
-    @mixinEmit 'socket', self, socket
+    @mixinEmit 'socket', this, socket
 
-    self.canConnect = true
-    socket.on 'fatalErr', (msg) ->
-      self.canConnect = false
-      self.emit 'canConnect', false
+    @canConnect = true
+    socket.on 'fatalErr', (msg) =>
+      @canConnect = false
+      @emit 'canConnect', false
       socket.disconnect()
 
-    self.connected = false
-    onConnected = ->
-      self.emit 'connected', self.connected
-      self.emit 'connectionStatus', self.connected, self.canConnect
+    @connected = false
+    onConnected = =>
+      @emit 'connected', @connected
+      @emit 'connectionStatus', @connected, @canConnect
 
-    socket.on 'connect', ->
-      self.connected = true
+    socket.on 'connect', =>
+      @connected = true
       onConnected()
 
-    socket.on 'disconnect', ->
-      self.connected = false
+    socket.on 'disconnect', =>
+      @connected = false
       # Slight delay after disconnect so that offline doesn't flash on reload
       setTimeout onConnected, 400
     # Needed in case page is loaded from cache while offline
@@ -82,10 +81,9 @@ mergeAll Model::, EventEmitter::,
   _once: EventEmitter::once
   once: (type, pattern, callback) ->
     listener = eventListener type, pattern, callback, @_at
-    self = this
-    @_on type, g = ->
+    @_on type, g = =>
       matches = listener arguments...
-      self.removeListener type, g  if matches
+      @removeListener type, g  if matches
     return listener
 
   # Used to pass an additional argument to local events. This value is
