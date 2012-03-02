@@ -1,9 +1,6 @@
 {expect} = require './util'
-{Model} = require '../src/racer'
-{mockSocketModel, fullyWiredModels} = require './util/model'
+{mockSocketModel, fullyWiredModels, BrowserModel: Model} = require './util/model'
 {BrowserSocketMock} = require './util/sockets'
-
-Model::_commit = ->
 
 describe 'Model.ot', ->
 
