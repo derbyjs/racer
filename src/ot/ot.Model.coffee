@@ -11,29 +11,27 @@ module.exports =
 
   events:
     init: (model) ->
-      model.otFields = {}
+      model._otFields = {}
 
       # TODO: Get rid of mutator post events like this
       model.on 'setPost', ([path, value], ver) ->
         # ver will be null for speculative values, so this detects
         # when the OT path has been created on the server
         if ver && value && value.$ot
-          model._otField(path).specTrigger true
+          model._otFields(path).specTrigger true
 
     bundle: (model) ->
       # TODO: toJSON shouldn't be called manually like this
       fields = {}
-      for path, field of @otFields
+      for path, field of model._otFields
         # OT objects aren't serializable until after one or more OT operations
         # have occured on that object
         fields[path] = field.toJSON()  if field.toJSON
       model._onLoad.push ['_loadOt', fields]
 
     socket: (model, socket) ->
-      otFields = @otFields
-      memory = @_memory
-      model = this
-      # OT callbacks
+      otFields = model._otFields
+      memory = model._memory
       socket.on 'otOp', ({path, op, v}) ->
         unless field = otFields[path]
           field = otFields[path] = new Field model, path
@@ -75,7 +73,7 @@ module.exports =
 
     _loadOt: (fields) ->
       for path, json of fields
-        @otFields[path] = Field.fromJSON json, this
+        @_otFields[path] = Field.fromJSON json, this
 
     ot: (initVal) -> $ot: initVal || ''
 
@@ -86,8 +84,9 @@ module.exports =
 
     _otField: (path, val) ->
       path = @dereference path
-      return field if field = @otFields[path]
-      field = @otFields[path] = new Field this, path
+      return field if field = @_otFields[path]
+
+      field = @_otFields[path] = new Field this, path
       val ||= @_memory.get path, @_specModel()
       field.snapshot = val && val.$ot || ''
       # TODO field.remoteSnapshot snapshot

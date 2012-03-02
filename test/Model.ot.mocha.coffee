@@ -1,6 +1,6 @@
 {expect} = require './util'
 {Model} = require '../src/racer'
-{mockSocketModels, fullyWiredModels} = require './util/model'
+{mockSocketModel, fullyWiredModels} = require './util/model'
 {BrowserSocketMock} = require './util/sockets'
 
 Model::_commit = ->
@@ -59,24 +59,24 @@ describe 'Model.ot', ->
 
   ## Client-server OT communication ##
   it 'client model should emit an insertOT event when it receives an OT message from the server with an insertOT op', (done) ->
-    [sockets, model] = mockSocketModels 'model'
+    [model, sockets] = mockSocketModel '0'
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'insertOT', 'some.ot.path', (pos, insertedStr) ->
       expect(insertedStr).to.equal 'try'
       expect(pos).to.equal 1
       sockets._disconnect()
       done()
-    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 1
 
   it 'client model should emit a delOT event when it receives an OT message from the server with an delOT op', (done) ->
-    [sockets, model] = mockSocketModels 'model'
+    [model, sockets] = mockSocketModel '0'
     model.set 'some.ot.path', model.ot('abcdef')
     model.on 'delOT', 'some.ot.path', (pos, strToDel) ->
       expect(strToDel).to.equal 'bcd'
       expect(pos).to.equal 1
       sockets._disconnect()
       done()
-    sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
+    sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 1
 
   it 'local client model insertOTs should result in the same text in sibling windows', (done) ->
     numModels = 2

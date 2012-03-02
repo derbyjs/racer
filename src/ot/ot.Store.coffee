@@ -1,7 +1,7 @@
 Field = require './Field.server'
 
 # TODO: OT Shouldn't be storing stuff on a store instance
-# Rewrite OT to use the journal
+# Rewrite OT to use the journal or create a separate OT journal
 
 module.exports =
   type: 'Store'
@@ -16,13 +16,6 @@ module.exports =
       otFields = store._otFields
       db = store._db
 
-      # Handling OT messages
-      socket.on 'otSnapshot', (setNull, fn) ->
-        # Lazy create/snapshot the OT doc
-        if field = otFields[path]
-          # TODO
-          TODO = 'TODO'
-
       socket.on 'otOp', (msg, fn) ->
         {path, op, v} = msg
 
@@ -35,8 +28,7 @@ module.exports =
 
         # Lazy create the OT doc
         unless field = otFields[path]
-          field = otFields[path] =
-            new Field self, pubSub, path, v
+          field = otFields[path] = new Field store, pubSub, path, v
           # TODO Replace with sendToDb
           db.get path, (err, val, ver) ->
             # Lazy snapshot initialization

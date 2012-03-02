@@ -3,13 +3,12 @@ Promise = require '../Promise'
 Serializer = require '../Serializer'
 {isSpeculative} = require '../speculative'
 
-Field = module.exports = (model, @path, @version = 0, @type = text) ->
+Field = module.exports = (@model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)
   # @type.transform(op1, op2, side)
   # @type.normalize(op)
   # @type.create() -> ''
 
-  @model = model
   @snapshot = null
   @queue = []
   @pendingOp = null

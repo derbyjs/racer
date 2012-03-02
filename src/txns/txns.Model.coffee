@@ -4,7 +4,7 @@ Serializer = require '../Serializer'
 transaction = require '../transaction'
 {isPrivate} = require '../path'
 {create: specCreate} = require '../speculative'
-AtomicModel = require './AtomicModel'
+# AtomicModel = require './AtomicModel'
 {mergeTxn} = require './diff'
 arrayMutator = null
 
@@ -33,8 +33,9 @@ module.exports =
           delete @data
           delete @lastTxnId
 
+      # TODO: Finish implementation of atomic transactions
       # atomic models that have been generated stored by atomic transaction id.
-      model._atomicModels = {}
+      # model._atomicModels = {}
 
       model._count.txn = 0
       model._txns = txns = {}  # transaction id -> transaction
@@ -254,6 +255,7 @@ module.exports =
       return if method is 'get'
       args = extractor.args txn
       out = @_memory[method] args..., ver, data
+      # TODO: Remove this event?
       @emit method + 'Post', args, ver
       if doEmit
         if patch = txn.patch
@@ -303,23 +305,23 @@ module.exports =
       data.$out = out
       return data
 
-    # TODO Implement this completely in the future
-#    atomic: (block, callback) ->
-#      model = new AtomicModel @_nextTxnId(), this
-#      @_atomicModels[model.id] = model
-#      commit = (_callback) =>
-#        model._commit (err) =>
-#          delete @_atomicModels[model.id] unless err
-#          _callback.apply null, arguments if _callback ||= callback
-#      abort = ->
-#      retry = ->
-#
-#      if block.length == 1
-#        block model
-#        commit callback
-#      else if block.length == 2
-#        block model, commit
-#      else if block.length == 3
-#        block model, commit, abort
-#      else if block.length == 4
-#        block model, commit, abort, retry
+    # TODO: Finish implementation of atomic transactions
+    # atomic: (block, callback) ->
+    #   model = new AtomicModel @_nextTxnId(), this
+    #   @_atomicModels[model.id] = model
+    #   commit = (_callback) =>
+    #     model._commit (err) =>
+    #       delete @_atomicModels[model.id] unless err
+    #       _callback.apply null, arguments if _callback ||= callback
+    #   abort = ->
+    #   retry = ->
+
+    #   if block.length == 1
+    #     block model
+    #     commit callback
+    #   else if block.length == 2
+    #     block model, commit
+    #   else if block.length == 3
+    #     block model, commit, abort
+    #   else if block.length == 4
+    #     block model, commit, abort, retry
