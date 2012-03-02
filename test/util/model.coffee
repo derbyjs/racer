@@ -2,6 +2,13 @@
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
 require 'console.color'
 
+exports.BrowserModel = BrowserModel = ->
+  return Model.apply this, arguments
+
+BrowserModel:: = Object.create Model::
+BrowserModel::_commit = ->
+
+
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->

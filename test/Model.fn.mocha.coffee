@@ -1,7 +1,5 @@
 {expect} = require './util'
-{Model} = require '../src/racer'
-
-Model::_commit = ->
+{BrowserModel: Model} = require './util/model'
 
 describe 'Model.fn', ->
 

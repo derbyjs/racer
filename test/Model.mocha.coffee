@@ -1,8 +1,6 @@
 {expect, calls} = require './util'
-{Model, transaction} = require '../src/racer'
-{mockSocketModel, mockSocketEcho} = require './util/model'
-
-Model::_commit = ->
+{transaction} = require '../src/racer'
+{mockSocketModel, mockSocketEcho, BrowserModel: Model} = require './util/model'
 
 describe 'Model', ->
 
