@@ -1,6 +1,7 @@
-exports.expect = expect = require 'expect.js'
 {inspect} = require 'util'
 speculative = require '../../src/speculative'
+require 'console.color'
+exports.expect = expect = require 'expect.js'
 
 ignore = '$out': 1, '$deref': 1
 ignore[speculative.identifier] = 1

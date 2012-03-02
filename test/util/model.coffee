@@ -1,39 +1,38 @@
-require 'console.color'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
+extended = [
+  racerPath = require.resolve '../../src/racer'
+  require.resolve '../../src/util'
+  require.resolve '../../src/plugin'
+  require.resolve '../../src/Model'
+  require.resolve '../../src/transaction'
+]
+clearExtended = ->
+  for path in extended
+    delete require.cache[path]
+  return
 
-racerPath = require.resolve '../../src/racer'
-utilPath = require.resolve '../../src/util'
-pluginPath = require.resolve '../../src/plugin'
-modelPath = require.resolve '../../src/Model'
-transactionPath = require.resolve '../../src/transaction'
+exports.createBrowserRacer = createBrowserRacer = ->
+  # Delete the cache of all modules extended for the server
+  clearExtended()
+  # Pretend like we are in a browser and require again
+  global.window = {}
+  browserRacer = require racerPath
+  # Reset state and delete the cache again, so that the next
+  # time racer is required it will be for the server
+  delete global.window
+  clearExtended()
+  return browserRacer
 
-# Require the server version of racer
-{Model, transaction} = racer = require racerPath
-
-# Delete the cache of all modules extended for the server
-delete require.cache[racerPath]
-delete require.cache[utilPath]
-delete require.cache[pluginPath]
-delete require.cache[modelPath]
-delete require.cache[transactionPath]
-
-# Pretend like we are in a browser and require again
-global.window = {}
-{Model: BrowserModel} = browserRacer = require racerPath
-
-# Delete the cache again, so that the next time racer is
-# required it will be for the server
-delete require.cache[racerPath]
-delete require.cache[utilPath]
-delete require.cache[pluginPath]
-delete require.cache[modelPath]
-delete require.cache[transactionPath]
-delete global.window
-
-exports.browserRacer = browserRacer
-exports.BrowserModel = BrowserModel
+exports.BrowserModel = BrowserModel = createBrowserRacer().Model
+{transaction} = require racerPath
 
 
+# Create a model connected to a server sockets mock. Good for testing
+# that models send expected commands over Socket.IO
+#
+# clientId:       The model's clientId
+# name:           Name of browser-side socket event to handle
+# onName:         Handler function for browser-side socket event
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->
@@ -41,13 +40,19 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
       callback null, [], 1
   browserSocket = new BrowserSocketMock serverSockets
-  model = new Model
+  model = new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
   browserSocket._connect()
   return [model, serverSockets]
 
-# Pass all transactions back to the client immediately
+# Create a model connected to a server socket mock & pass all transactions
+# back to the client immediately once received.
+#
+# clientId:       The model's clientId
+# options:
+#   unconnected:  Don't immediately connect the browser over the socket mock
+#   txnErr:       Respond to transactions with a 'txnErr message' if true
 exports.mockSocketEcho = (clientId = '', options = {}) ->
   num = 0
   ver = 0
@@ -66,89 +71,38 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
       else
         socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
   browserSocket = new BrowserSocketMock(serverSockets)
-  model = new Model
+  model = new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
   browserSocket._connect()  unless options.unconnected
   return [model, serverSockets]
 
-
-browserRacer = require '../../src/racer.browser'
-serverRacer = require '../../src/racer'
-nextNs = 1
-exports.fullyWiredModels = (numWindows, callback, options = {}) ->
-  sandboxPath = "tests.#{nextNs++}"
+# Create one or more browser models that are connected to a store over a
+# mock Socket.IO connection
+#
+# options:
+#   numBrowsers:  Number of browser models to create. Defaults to 1
+ns = 0
+exports.mockFullSetup = (store, options, callback) ->
   serverSockets = new ServerSocketsMock()
-  options.sockets = serverSockets
-  store = options.store || serverRacer.createStore options
+
+  if typeof options is 'function'
+    callback = options
+    options = {}
+  options ||= {}
+  numBrowsers = options.numBrowsers || 1
 
   browserModels = []
-  i = numWindows
-  while i--
+  i = numBrowsers
+  while i-- then do ->
     serverModel = store.createModel()
-    browserModel = new Model
-    browserSocket = new BrowserSocketMock serverSockets
-    do (serverModel, browserModel, browserSocket) ->
-      serverModel.subscribe sandboxPath, (sandbox) ->
-        serverModel.ref '_test', sandbox
-        sandbox.setNull {}
-        serverModel.bundle (bundle) ->
-          bundle = JSON.parse(bundle)
-          bundle.socket = browserSocket
-          browserRacer.init.call model: browserModel, bundle
-          browserSocket._connect()
-          browserModels.push browserModel
-          if browserModels.length == numWindows
-            callback serverSockets, store, browserModels...
-
-exports.fullSetup = (options, clients, done) ->
-  serverSockets = new ServerSocketsMock()
-  if store = options.store
-    store.setSockets serverSockets
-  else
-    options.sockets = serverSockets
-    store = serverRacer.createStore options
-
-  browserModels = {}
-  browserFns = {}
-  serverFinishes = {}
-  browserFinishes = {}
-  remWindows = remServerModels = numWindows = Object.keys(clients).length
-
-  timeout = options.timeout || 2000
-  setTimeout ->
-    if remWindows + remServerModels > 0
-      console.red.log "\nThe following functions did not invoke finish within #{timeout} ms:\n"
-      for cid of serverFinishes
-        console.red.log clients[cid].server.toString() + "\n"
-      for cid of browserFinishes
-        console.red.log clients[cid].browser.toString() + "\n"
-      return
-  , timeout
-
-  for clientId, {server, browser} of clients
-    browserModels[clientId] = browserModel = new Model
-    browserModel._clientId = clientId
-    browserFns[clientId] = browser
-    browserFinishes[clientId] = do (clientId) ->
-      return ->
-        delete browserFinishes[clientId]
-        return if --remWindows
-        serverSockets._disconnect()
-        done()
-
-    serverModel = store.createModel()
-    serverFinish = serverFinishes[clientId] =
-      do (clientId, serverModel, browserModel) ->
-        return ->
-          delete serverFinishes[clientId]
-          serverModel.bundle (bundle) ->
-            bundle = JSON.parse bundle
-            bundle.socket = browserSocket = new BrowserSocketMock serverSockets
-            browserRacer.init.call model: browserModel, bundle
-            browserSocket._connect()
-            return if --remServerModels
-            for _clientId_, _browserModel_ of browserModels
-              browserFns[_clientId_] _browserModel_, browserFinishes[_clientId_]
-    server serverModel, serverFinish
-  return
+    serverModel.subscribe "tests.#{++ns}", (sandbox) ->
+      serverModel.ref '_test', sandbox
+      sandbox.del()
+      serverModel.bundle (bundle) ->
+        browserRacer = createBrowserRacer()
+        browserSocket = new BrowserSocketMock serverSockets
+        browserRacer.init JSON.parse(bundle), browserSocket
+        browserSocket._connect()
+        browserModels.push browserRacer.model
+        --numBrowsers || callback browserModels..., serverSockets
