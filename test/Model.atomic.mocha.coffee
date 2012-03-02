@@ -1,6 +1,6 @@
 {expect} = require './util'
 {Model, transaction} = require '../src/racer'
-{mockSocketModels} = require './util/model'
+{mockSocketEcho} = require './util/model'
 
 Model::_commit = ->
 
@@ -66,10 +66,7 @@ describe 'Model.atomic', ->
     expect(model.get()).to.specEql direction: 'west'
 
   it 'Model::atomic(lambda, callback) should invoke its callback once it receives a successful response for the txn from the upstream repo', (done) ->
-    # stub out appropriate methods/callbacks in model
-    # to fake a successful response without going through
-    # additional Store + Socket.IO + STM + Redis stack
-    [sockets, model] = mockSocketModels 'model', txnOk: true
+    [model, sockets] = mockSocketEcho 0
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
     , (err, num) ->
@@ -78,7 +75,7 @@ describe 'Model.atomic', ->
       done()
 
   it 'Model::atomic(lambda, callback) should callback with an error if the commit failed at some point in an upstream repo', (done) ->
-    [sockets, model] = mockSocketModels 'model', txnErr: 'conflict'
+    [model, sockets] = mockSocketEcho 0, txnErr: 'conflict'
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
     , (err) ->
@@ -87,7 +84,7 @@ describe 'Model.atomic', ->
       done()
 
   it 'AtomicModel commits should not callback if it has not yet received the status of that commit', (done) ->
-    [sockets, model] = mockSocketModels 'model', txnOk: false
+    [model, sockets] = mockSocketEcho 0, unconnected: true
     counter = 1
     model.atomic (atomicModel) ->
       atomicModel.set 'direction', 'north'
@@ -100,7 +97,7 @@ describe 'Model.atomic', ->
     , 50
 
   it 'AtomicModel should commit *all* its ops to the parent models permanent, non-speculative data upon a successful transaction response from the parent repo', (done) ->
-    [sockets, model] = mockSocketModels 'model', txnOk: true
+    [model, sockets] = mockSocketEcho 0
     model.atomic (atomicModel) ->
       atomicModel.set 'color', 'green'
       atomicModel.set 'volume', 'high'
@@ -114,7 +111,7 @@ describe 'Model.atomic', ->
       done()
 
   it 'a model should clean up its atomic model upon a successful commit of that atomic models transaction', (done) ->
-    [sockets, model] = mockSocketModels 'model', txnOk: true
+    [model, sockets] = mockSocketEcho 0
     atomicModelId = null
     model.atomic (atomicModel) ->
       atomicModelId = atomicModel.id
@@ -126,7 +123,7 @@ describe 'Model.atomic', ->
       done()
 
   it 'a model should not clean up its atomic model before the result of a commit (success or err) is known', (done) ->
-    [sockets, model] = mockSocketModels 'model', txnOk: true
+    [model, sockets] = mockSocketEcho 0
     atomicModelId = null
     model.atomic (atomicModel, commit) ->
       atomicModelId = atomicModel.id

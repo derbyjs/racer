@@ -5,7 +5,7 @@
 mirrorTest = (done, init, callback) ->
   mirror = new Model
   mirror._commit = ->
-  [model, sockets] = mockSocketEcho 0, true
+  [model, sockets] = mockSocketEcho 0, unconnected: true
 
   model.on 'mutator', (method, path, {0: args}) ->
     args = JSON.parse JSON.stringify args
@@ -33,7 +33,7 @@ mirrorTest = (done, init, callback) ->
 describe 'Model event patch', ->
 
   it 'mock should support synching txns on connect', (done) ->
-    [model, sockets] = mockSocketEcho 0, true
+    [model, sockets] = mockSocketEcho 0, unconnected: true
     model.set 'name', 'John'
     sockets._queue transaction.create
       id: '1.0', method: 'set', args: ['color', 'green']
@@ -47,7 +47,7 @@ describe 'Model event patch', ->
     , 10
 
   it 'conflicting txn from server should be applied first', (done) ->
-    [model, sockets] = mockSocketEcho 0, true
+    [model, sockets] = mockSocketEcho 0, unconnected: true
     model.set 'name', 'John'
     sockets._queue transaction.create
       id: '1.0', method: 'set', args: ['name', 'Sue']
