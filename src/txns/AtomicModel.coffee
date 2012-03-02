@@ -73,6 +73,6 @@ proto =
     ver = @version
     for id in @_txnQueue
       myTxn = txns[id]
-      if @isMyOp(id) && transaction.doesSharePath(txn, myTxn) && ver < transaction.base(txn)
+      if @isMyOp(id) && transaction.pathConflict(txn, myTxn) && ver < transaction.base(txn)
         return true
     return false
