@@ -4,7 +4,7 @@ Promise = require '../../Promise'
 LiveQuery = require '../../pubSub/LiveQuery'
 
 module.exports = MemoryQuery = ->
-  LiveQuery.apply @, arguments
+  LiveQuery.apply this, arguments
   @_conds = {}
   @_opts = {}
   return
