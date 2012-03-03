@@ -32,9 +32,8 @@ MemoryQuery::= mergeAll {}, LiveQuery::,
 
   run: (memoryAdapter, callback) ->
     promise = new Promise bothback: callback
-    self = this
-    matches = memoryAdapter.filter (doc, namespacePlusId) ->
-      self.testWithoutPaging doc, namespacePlusId
+    matches = memoryAdapter.filter (doc, namespacePlusId) =>
+      @testWithoutPaging doc, namespacePlusId
 
     matches = (deepCopy doc for doc in matches)
 

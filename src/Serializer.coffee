@@ -6,22 +6,21 @@
 DEFAULT_TIMEOUT = 1000
 
 module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
-  self = this
   if onTimeout
     timeout = DEFAULT_TIMEOUT if timeout is undefined
-    self._setWaiter = ->
+    @_setWaiter = ->
       return if @_waiter
-      @_waiter = setTimeout ->
+      @_waiter = setTimeout =>
         onTimeout()
-        self._clearWaiter()
+        @_clearWaiter()
       , timeout
-    self._clearWaiter = ->
+    @_clearWaiter = ->
       if @_waiter
         clearTimeout @_waiter
         @_waiter = null
 
-  self._pending = {}
-  self._index = init ? 1  # Corresponds to ver in Store and txnNum in Model
+  @_pending = {}
+  @_index = init ? 1  # Corresponds to ver in Store and txnNum in Model
   return
 
 Serializer::=

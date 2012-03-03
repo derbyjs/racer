@@ -32,16 +32,15 @@ module.exports =
   bufferify: (methodName, {fn, await}) ->
     buffer = null
     return ->
-      self = this
-
       _arguments = arguments
       didFlush = false
-      flush = ->
+
+      flush = =>
         didFlush = true
 
         # When we call flush, we no longer need to buffer,
         # so replace this method with the original method
-        self[methodName] = fn
+        @[methodName] = fn
 
         # Call the method with the first invocation arguments
         # if this is during the first call to methodName, 
@@ -51,25 +50,25 @@ module.exports =
 
         # Otherwise, invoke the buffered method calls
         for args in buffer
-          fn.apply self, args
+          fn.apply this, args
         buffer = null
         return
       # The first time we call methodName, run await
-      await.call self, flush
+      await.call this, flush
 
       # If await decided we need no buffering and it called
       # flush, then call the original function with the
       # arguments to this first call to methodName
       if didFlush
-        return self[methodName].apply self, _arguments
+        return @[methodName].apply this, _arguments
 
       # Otherwise, if we need to buffer calls to this method,
       # then, replace this method temporarily with code
       # that buffers the method calls until `flush` is called
-      self[methodName] = ->
+      @[methodName] = ->
         buffer ||= []
         buffer.push arguments
-      self[methodName].apply self, arguments
+      @[methodName].apply this, arguments
 
       return
 

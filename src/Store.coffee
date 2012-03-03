@@ -18,7 +18,6 @@ transaction = require './transaction.server'
 # immediately called after instantiation.
 
 Store = module.exports = (options = {}) ->
-  self = this
   @_localModels = {}
 
   @_journal = journal = createAdapter options, 'journal', type: 'Memory'
@@ -28,7 +27,7 @@ Store = module.exports = (options = {}) ->
 
   # Add a @_commit method to this store based on the conflict resolution mode
   # TODO: Default mode should be 'ot' once supported
-  @_commit = journal.commitFn self, options.mode || 'lww'
+  @_commit = journal.commitFn this, options.mode || 'lww'
 
   @_generateClientId = clientId.generateFn()
 
@@ -60,9 +59,8 @@ Store:: =
       @setSockets io.sockets, socketUri
 
   setSockets: (@sockets, @_ioUri = '') ->
-    self = this
-    sockets.on 'connection', (socket) ->
-      self.mixinEmit 'socket', self, socket
+    sockets.on 'connection', (socket) =>
+      @mixinEmit 'socket', this, socket
 
   flushJournal: (callback) -> @_journal.flush callback
   flushDb: (callback) -> @_db.flush callback
@@ -89,24 +87,22 @@ Store:: =
 
   # This method is used by mutators on Store::
   _nextTxnId: (callback) ->
-    self = this
     @_txnCount = 0
-    @_generateClientId (err, clientId) ->
+    @_generateClientId (err, clientId) =>
       throw err if err
-      self._clientId = clientId
-      self._nextTxnId = (callback) ->
+      @_clientId = clientId
+      @_nextTxnId = (callback) ->
         callback '#' + @_clientId + '.' + @_txnCount++
-      self._nextTxnId callback
+      @_nextTxnId callback
 
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
     args = transaction.args(txn).slice()
     method = transaction.method txn
     args.push ver
-    self = this
-    @_sendToDb method, args, (err, origDoc) ->
+    @_sendToDb method, args, (err, origDoc) =>
       # TODO De-couple publish from db write
-      self.publish transaction.path(txn), {txn}, {origDoc}
+      @publish transaction.path(txn), {txn}, {origDoc}
       callback err, txn  if callback
 
   createModel: ->

@@ -49,11 +49,11 @@ Ref = module.exports = (basicMutator, arrayMutator, @model, @from, to, key) ->
 Ref:: =
 
   addListener: (pattern, callback) ->
-    {model, from, get} = self = this
+    {model, from, get} = this
     re = eventRegExp pattern
-    @listeners.push listener = (mutator, path, _arguments) ->
+    @listeners.push listener = (mutator, path, _arguments) =>
       if re.test path
-        return self.destroy() if model._getRef(from) != get
+        return @destroy() if model._getRef(from) != get
         args = _arguments[0].slice()
         path = callback re.exec(path), mutator, args
         return if path is null

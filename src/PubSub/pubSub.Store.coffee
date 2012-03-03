@@ -106,8 +106,6 @@ module.exports =
       @_pubSub.publish path, message
 
     query: (query, callback) ->
-      self = this
-
       # TODO Add in an optimization later since query._paginatedCache
       # can be read instead of going to the db. However, we must make
       # sure that the cache is a consistent snapshot of a given moment
@@ -116,8 +114,8 @@ module.exports =
       # isn't
 
       # TODO Improve this de/serialize API
-      dbQuery = deserializeQuery query.serialize(), self._db.Query
-      dbQuery.run self._db, (err, found, xf) ->
+      dbQuery = deserializeQuery query.serialize(), @_db.Query
+      dbQuery.run @_db, (err, found, xf) =>
         # TODO Get version consistency right in face of concurrent writes during
         # query
         if Array.isArray found
@@ -125,7 +123,7 @@ module.exports =
             xf doc
         else if xf
           xf found
-        callback err, found, self._db.version
+        callback err, found, @_db.version
 
 
 deserialize = (targets) ->

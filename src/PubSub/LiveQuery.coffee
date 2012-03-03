@@ -106,7 +106,6 @@ LiveQuery::=
   limit: (@_limit) ->
     @isPaginated = true
     @_paginatedCache ||= []
-    self = this
     return this
 
   skip: (skip) ->
@@ -134,10 +133,9 @@ LiveQuery::=
     return 'curr'
 
   updateCache: (store, callback) ->
-    self = this
-    cache = self._paginatedCache
+    cache = @_paginatedCache
     plainQuery = deserialize @serialize()
-    store.query plainQuery, (err, found, ver) ->
+    store.query plainQuery, (err, found, ver) =>
       return callback err if err
       removed = []
       added = []
@@ -147,7 +145,7 @@ LiveQuery::=
       for x in found
         if -1 == indexOf(cache, x, (y, z) -> y.id == z.id)
           added.push x
-      self._paginatedCache = found
+      @_paginatedCache = found
       callback null, added, removed, ver
 
   isCacheImpactedByTxn: (txn) ->

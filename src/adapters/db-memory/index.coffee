@@ -43,20 +43,19 @@ mergeAll DbMemory::, Memory::,
     return results
 
   setupDefaultPersistenceRoutes: (store) ->
-    self = this
-    MUTATORS.forEach (method) ->
-      store.defaultRoute method, '*', (path, args..., ver, done, next) ->
+    MUTATORS.forEach (method) =>
+      store.defaultRoute method, '*', (path, args..., ver, done, next) =>
         args = deepCopy args
         match = routePattern.exec path
         docPath = if match then match[0] else path
-        self.get docPath, (err, doc) ->
+        @get docPath, (err, doc) =>
           return done err if err
           doc = deepCopy doc
           try
-            self[method] path, args..., ver, null
+            @[method] path, args..., ver, null
           catch err
             return done err, doc
           done null, doc
-    getFn = (path, done, next) -> self.get path, done
+    getFn = (path, done, next) => @get path, done
     store.defaultRoute 'get', '*', getFn
     store.defaultRoute 'get', '', getFn

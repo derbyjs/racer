@@ -17,20 +17,18 @@ module.exports =
 
   server:
     _createAsync: ->
-      self = this
       return new Async
-        nextTxnId: -> self._nextTxnId()
-        get: (path, callback) -> self.store.get path, callback
-        commit: (txn, callback) -> self.store._commit txn, callback
+        nextTxnId: => @_nextTxnId()
+        get: (path, callback) => @store.get path, callback
+        commit: (txn, callback) => @store._commit txn, callback
 
   proto:
     # TODO: This should send a request over socket.io for get and commit
     _createAsync: ->
-      self = this
       return new Async
-        nextTxnId: -> self._nextTxnId()
-        get: -> throw new Error 'Unimplemented'
-        commit: -> throw new Error 'Unimplemented'
+        nextTxnId: => @_nextTxnId()
+        get: => throw new Error 'Unimplemented'
+        commit: => throw new Error 'Unimplemented'
 
     get:
       type: ACCESSOR

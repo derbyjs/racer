@@ -18,7 +18,7 @@ module.exports =
         # ver will be null for speculative values, so this detects
         # when the OT path has been created on the server
         if ver && value && value.$ot
-          model._otFields(path).specTrigger true
+          model._otFields[path].specTrigger true
 
     bundle: (model) ->
       # TODO: toJSON shouldn't be called manually like this
