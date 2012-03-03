@@ -17,9 +17,7 @@ JournalNone::=
   # state upon reconnection in this mode of operation
   txnsSince: (ver, clientId, pubSub, callback) -> callback null, []
 
-  # TODO: Models should apply `null` numbered txns directly instead
-  # of going through the txnApplier.
   nextTxnNum: (clientId, callback) -> callback null, null
 
   commitFn: (store) -> (txn, callback) ->
-    store._finishCommit txn, null, callback
+    store._finishCommit txn, -1, callback

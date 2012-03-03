@@ -89,10 +89,9 @@ module.exports =
 
         out.push @at root, true
 
-      self = this
-      @_fetch newTargets, (err, data, otData) ->
-        self._initSubData data
-        self._initSubOtData otData
+      @_fetch newTargets, (err, data, otData) =>
+        @_initSubData data
+        @_initSubOtData otData
         callback out...
 
     subscribe: (targets...) ->
@@ -129,10 +128,9 @@ module.exports =
       # Callback immediately if already subscribed to everything
       return callback out... unless newTargets.length
 
-      self = this
-      @_subAdd newTargets, (err, data, otData) ->
-        self._initSubData data
-        self._initSubOtData otData
+      @_subAdd newTargets, (err, data, otData) =>
+        @_initSubData data
+        @_initSubOtData otData
         callback out...
 
     unsubscribe: (targets...) ->

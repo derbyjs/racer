@@ -66,7 +66,7 @@ module.exports =
           mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
 
         base = transaction.base txn
-        if base > memory.version || base == null
+        if base > memory.version || base == -1
           model._applyTxn txn, isLocal
         return
 

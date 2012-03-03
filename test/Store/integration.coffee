@@ -12,3 +12,5 @@ module.exports = (getStore) ->
         expect(modelA.get '_test.color').to.equal 'green'
         done()
       modelB.set '_test.color', 'green'
+
+  # TODO: Lots of tests needed

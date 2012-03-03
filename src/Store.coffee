@@ -184,6 +184,8 @@ Store.MODES = ['lww', 'stm']
 
 createAdapter = (storeOptions, adapterType, defaultOptions) ->
   options = storeOptions[adapterType] || defaultOptions
+  if typeof options is 'string'
+    options = type: options
   if options.type
     adapter = racer.createAdapter adapterType, options
     adapter.connect?()
