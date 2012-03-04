@@ -1,6 +1,7 @@
 {inspect} = require 'util'
 {expect} = require './index'
 racer = require '../../src/racer'
+integration = require '../Store/integration'
 
 exports.DEFAULT_RUN_OPTIONS = DEFAULT_RUN_OPTIONS =
   mode: 'lww'
@@ -57,6 +58,8 @@ exports.adapter = (type, callback) ->
       options = {}
       options[type] = typeOptions
       run = runFn options, type, typeOptions
-      moreTests? run
 
+      moreTests? run
       callback run
+      integration run
+
