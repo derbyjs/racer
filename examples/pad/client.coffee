@@ -24,11 +24,11 @@ racer.onready = ->
       commonEnd + commonStart < oldval.length and commonEnd + commonStart < newval.length
 
     unless oldval.length == commonStart + commonEnd
-      model.delOT '_room.text', commonStart,
+      model.otDel '_room.text', commonStart,
         oldval.length - commonStart - commonEnd
 
     unless newval.length == commonStart + commonEnd
-      model.insertOT '_room.text', commonStart,
+      model.otInsert '_room.text', commonStart,
         newval.substr commonStart, newval.length - commonEnd
 
   editor.disabled = false
@@ -44,12 +44,12 @@ racer.onready = ->
     editor.scrollTop = scrollTop if editor.scrollTop != scrollTop
     [editor.selectionStart, editor.selectionEnd] = newSelection
 
-  model.on 'insertOT', '_room.text', (pos, text, isLocal) ->
+  model.on 'otInsert', '_room.text', (pos, text, isLocal) ->
     return if isLocal
     replaceText editor.value[...pos] + text + editor.value[pos..], (cursor) ->
       if pos <= cursor then cursor + text.length else cursor
 
-  model.on 'delOT', '_room.text', (pos, text, isLocal) ->
+  model.on 'otDel', '_room.text', (pos, text, isLocal) ->
     return if isLocal
     replaceText editor.value[...pos] + editor.value[pos + text.length..], (cursor) ->
       if pos < cursor then cursor - Math.min(text.length, cursor - pos) else cursor

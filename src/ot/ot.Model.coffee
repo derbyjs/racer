@@ -82,6 +82,21 @@ module.exports =
           at + '.' + path
       return @_addOpAsTxn 'set', [path, $ot: value], callback
 
+    otNull: (path, value, callback) ->
+      len = arguments.length
+      obj = if @_at && len is 1 || len is 2 && typeof value is 'function'
+        @get()
+      else
+        @get path
+      return obj  if obj?
+
+      if len is 1
+        return @ot path
+      else if len is 2
+        return @ot path, value
+      else
+        return @ot path, value, callback
+
     isOtPath: (path) ->
       @_memory.get(path, @_specModel()).$ot isnt undefined
 
