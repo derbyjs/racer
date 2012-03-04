@@ -19,7 +19,6 @@ Field = module.exports = (store, pubSub, path, @version, @type = text) ->
 
   # Used in @applyOp
   @applyQueue = syncqueue ({op, v: opVersion, meta: opMeta}, callback) =>
-    # @getSnapshot (docData) ->
 
     opMeta ||= {}
     opMeta.ts = Date.now()
@@ -49,20 +48,9 @@ Field = module.exports = (store, pubSub, path, @version, @type = text) ->
     pubSub.publish @path, ot: newOpData
     callback null, opVersion
 
-#    memory.applyOT path, newOpData, newDocData, ->
-#      # TODO Emit to other windows (path, newOpData)
-#      @field.connections.emit 'otOp', newOpData
-#      callback null, opVersion
   return
 
 Field ::=
-  getSnapshot: (callback) ->
-    # TODO Separate memory.get version return (which is really for stm purposes) from memory.get for use with OT (See Memory)
-    otPath = 'OT.' + @path
-    @store.get otPath, (err, val, ver) ->
-      if val is undefined
-        @store.set otPath, val, ot: true, (err, val) ->
-      # TODO
 
   applyOp: (opData, callback) ->
     process.nextTick => @applyQueue opData, callback

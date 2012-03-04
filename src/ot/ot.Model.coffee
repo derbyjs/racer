@@ -55,14 +55,14 @@ module.exports =
           return @_otField(path, val).snapshot
         return val
 
-    insertOT:
+    otInsert:
       type: OT_MUTATOR
       fn: (path, pos, text, callback) ->
         op = [ { p: pos, i: text } ]
         @_otField(path).submitOp op, callback
         return
 
-    delOT:
+    otDel:
       type: OT_MUTATOR
       fn: (path, pos, len, callback) ->
         field = @_otField path
@@ -71,11 +71,16 @@ module.exports =
         field.submitOp op, callback
         return del
 
-    _loadOt: (fields) ->
-      for path, json of fields
-        @_otFields[path] = Field.fromJSON json, this
-
-    ot: (initVal) -> $ot: initVal || ''
+    ot: (path, value, callback) ->
+      if at = @_at
+        len = arguments.length
+        path = if len is 1 || len is 2 && typeof value is 'function'
+          callback = value
+          value = path
+          at
+        else
+          at + '.' + path
+      return @_addOpAsTxn 'set', [path, $ot: value], callback
 
     isOtPath: (path) ->
       @_memory.get(path, @_specModel()).$ot isnt undefined
@@ -91,3 +96,7 @@ module.exports =
       field.snapshot = val && val.$ot || ''
       # TODO field.remoteSnapshot snapshot
       return field
+
+    _loadOt: (fields) ->
+      for path, json of fields
+        @_otFields[path] = Field.fromJSON json, this

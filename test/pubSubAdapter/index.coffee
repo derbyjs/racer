@@ -2,4 +2,4 @@
 
 module.exports = adapter 'pubSub', (run) ->
 
-  run 'server-side model subscription', require './subscribe'
+  run 'pubsub adapter methods', require './subscribe'
