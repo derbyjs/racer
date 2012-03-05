@@ -176,7 +176,7 @@ module.exports =
       return
 
     _initSubOtData: (data) ->
-      fields = @otFields
+      fields = @_otFields
       fields[path] = field for path, field of data
       return
 

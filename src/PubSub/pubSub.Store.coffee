@@ -175,24 +175,27 @@ addSubDatum = (data, root, remainder, value, ver) ->
     addSubDatum data, nextRoot, remainder, nextValue, ver
   return
 
-allOtPaths = (obj, prefix = '') ->
-  results = []
-  return results unless obj && obj.constructor is Object
-  for k, v of obj
-    if v && v.constructor is Object
-      if v.$ot
-        results.push prefix + k
-        continue
-      results.push allOtPaths(v, k + '.')...
-  return results
+allOtPaths = (obj, root, results) ->
+  if obj && obj.$ot
+    results.push root
+    return
+  return unless typeof obj is 'object'
+  for key, value of obj
+    continue unless value
+    if value.$ot
+      results.push root + '.' + key
+      continue
+    allOtPaths value, key
+  return
 
 fetchPathData = (store, data, otData, root, remainder, otFields, finish) ->
   store.get root, (err, value, ver) ->
     # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
     # TODO Convert the following to work beyond MemoryStore
-    otPaths = allOtPaths value, root + '.'
+    otPaths = []
+    allOtPaths value, root, otPaths
     for otPath in otPaths
-      otData[otPath] = otField if otField = otFields[otPath]
+      otData[otPath] = otField  if otField = otFields[otPath]
 
     # addSubDatum mutates data argument
     addSubDatum data, root, remainder, value, ver
