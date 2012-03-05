@@ -27,9 +27,9 @@ module.exports =
     store._pubSub.unsubscribe subscriberId, channels, callback, true
 
   publish: (store, path, message, meta) ->
-    return if path[0..7] == 'queries.'
+    return if message[0] != 'txn' || path[0..7] == 'queries.'
     if origDoc = meta.origDoc
-      {txn} = message
+      txn = message[1]
       if origDoc
         newDoc = deepCopy origDoc
       else
@@ -41,7 +41,7 @@ module.exports =
       publish store, message, meta
 
 publish = (store, message, origDoc, newDoc) ->
-  return unless txn = message.txn # vs message.ot
+  txn = message[1]
   txnVer = transaction.base txn
   pseudoVer = -> txnVer += 0.01
   txnPath = transaction.path txn
@@ -60,9 +60,9 @@ publish = (store, message, origDoc, newDoc) ->
         query.updateCache store, (err, newMembers, oldMembers, ver) ->
           throw err if err
           for mem in newMembers
-            pubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            pubSub.publish queryChannel, ['addDoc', {ns: txnNs, doc: mem, ver: pseudoVer()}]
           for mem in oldMembers
-            pubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
+            pubSub.publish queryChannel, ['rmDoc', {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}]
       continue unless query.test doc, nsPlusId
       if !query.isPaginated || (query.isPaginated && query.isCacheImpactedByTxn txn)
         pubSub.publish queryChannel, message
@@ -76,9 +76,9 @@ publish = (store, message, origDoc, newDoc) ->
         query.updateCache pubSub.store, (err, newMembers, oldMembers, ver) ->
           throw err if err
           for mem in newMembers
-            pubSub.publish queryChannel, addDoc: {ns: txnNs, doc: mem, ver: pseudoVer()}
+            pubSub.publish queryChannel, ['addDoc', {ns: txnNs, doc: mem, ver: pseudoVer()}]
           for mem in oldMembers
-            pubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}
+            pubSub.publish queryChannel, ['rmDoc', {ns: txnNs, doc: mem, hash, id: mem.id, ver: pseudoVer()}]
           if query.isCacheImpactedByTxn txn
             pubSub.publish queryChannel, message
           return
@@ -91,11 +91,11 @@ publish = (store, message, origDoc, newDoc) ->
       else
         # The query no longer contains the document,
         # so tell any subscribed clients to remove it.
-        pubSub.publish queryChannel, rmDoc: {ns: txnNs, doc: newDoc, hash, id: origDoc.id, ver: pseudoVer()}
+        pubSub.publish queryChannel, ['rmDoc', {ns: txnNs, doc: newDoc, hash, id: origDoc.id, ver: pseudoVer()}]
     # The query didn't contain the document before its mutation, but now it
     # does contain it, so tell the client to add the document to its model.
     else if query.test newDoc, nsPlusId
-      pubSub.publish queryChannel, addDoc: {ns: txnNs, doc: newDoc, ver: pseudoVer()}
+      pubSub.publish queryChannel, ['addDoc', {ns: txnNs, doc: newDoc, ver: pseudoVer()}]
       # But also send along the original mutation just in case
       # the client is also subscribed to another query that matched this document
       # pre-mutation but not post-mutation. In this case, the client should keep

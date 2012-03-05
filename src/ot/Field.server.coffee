@@ -6,7 +6,7 @@ FieldConnection = require './FieldConnection.server'
 # data: {type, v, snapshot, meta}
 # ops: [op]
 
-Field = module.exports = (store, pubSub, path, @version, @type = text) ->
+Field = module.exports = (store, path, @version, @type = text) ->
   @store = store
   @path = path
 
@@ -45,7 +45,7 @@ Field = module.exports = (store, pubSub, path, @version, @type = text) ->
     newDocData = {@snapshot, type: @type.name, v: opVersion+1, meta: @meta}
     @ops.push {op, v: opVersion, meta: opMeta}
 
-    pubSub.publish @path, ot: newOpData
+    store.publish @path, 'ot', newOpData
     callback null, opVersion
 
   return

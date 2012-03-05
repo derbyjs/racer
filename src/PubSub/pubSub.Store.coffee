@@ -8,33 +8,27 @@ module.exports =
 
   events:
     init: (store) ->
-      store._liveQueries = {}
-      store._clientSockets = {}
+      store._liveQueries = liveQueries = {}
+      store._clientSockets = clientSockets = {}
+      pubSub = store._pubSub
+      journal = store._journal
 
-      store._pubSub.on 'noSubscribers', (path) ->
-        delete store._liveQueries[path]
+      pubSub.on 'noSubscribers', (path) ->
+        delete liveQueries[path]
 
-      store._pubSub.on 'message', (clientId, msg) ->
-        {txn, ot, rmDoc, addDoc} = msg
-        return store._onTxnMsg clientId, txn if txn
-        return store._onOtMsg clientId, ot if ot
+      pubSub.on 'message', (clientId, [type, data]) ->
+        pubSub.emit type, clientId, data
 
-        # Live Query Channels
-        # These following 2 channels are for informing a client about
-        # changes to their data set based on mutations that add/rm docs
-        # to/from the data set enclosed by the live queries the client
-        # subscribes to.
-        if socket = store._clientSockets[clientId]
-          if rmDoc
-            return journal.nextTxnNum clientId, (err, num) ->
-              throw err if err
-              return socket.emit 'rmDoc', rmDoc, num
-          if addDoc
-            return journal.nextTxnNum clientId, (err, num) ->
-              throw err if err
-              return socket.emit 'addDoc', addDoc, num
-
-        throw new Error 'Unsupported message: ' + JSON.stringify(msg, null, 2)
+      # Live Query Channels
+      # These following 2 channels are for informing a client about
+      # changes to their data set based on mutations that add/rm docs
+      # to/from the data set enclosed by the live queries the client
+      # subscribes to.
+      ['addDoc', 'rmDoc'].forEach (message) ->
+        pubSub.on message, (clientId, data) ->
+          journal.nextTxnNum clientId, (err, num) ->
+            throw err if err
+            return clientSockets[clientId].emit message, data, num
 
     socket: (store, socket) ->
 
@@ -101,7 +95,8 @@ module.exports =
     unsubscribe: (clientId, targets, callback) ->
       send 'unsubscribe', this, clientId, targets, callback
 
-    publish: (path, message, meta) ->
+    publish: (path, type, data, meta) ->
+      message = [type, data]
       queryPubSub.publish this, path, message, meta
       @_pubSub.publish path, message
 

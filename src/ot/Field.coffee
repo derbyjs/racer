@@ -103,7 +103,8 @@ Field:: =
     unless @_specTrigger
       @_specTrigger = new Promise
       @_specTrigger.on => @flush()
-    @_specTrigger.fulfill true if shouldFulfill && !@_specTrigger.value
+    if (shouldFulfill || @model.isOtPath @path, true) && !@_specTrigger.value
+      @_specTrigger.fulfill true
     return @_specTrigger
 
   # Sends ops to the server

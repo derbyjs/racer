@@ -23,8 +23,8 @@ racer.use(__dirname + '/racer.server')  if isServer
 racer
   .use(require './mutators')
   .use(require './refs')
-  .use(require './txns')
   .use(require './pubSub')
+  .use(require './txns')
   .use(require './ot')
 
 # The browser module must be included last, since it creates a

@@ -13,13 +13,6 @@ module.exports =
     init: (model) ->
       model._otFields = {}
 
-      # TODO: Get rid of mutator post events like this
-      model.on 'setPost', ([path, value], ver) ->
-        # ver will be null for speculative values, so this detects
-        # when the OT path has been created on the server
-        if ver && value && value.$ot
-          model._otFields[path].specTrigger true
-
     bundle: (model) ->
       # TODO: toJSON shouldn't be called manually like this
       fields = {}
@@ -80,7 +73,12 @@ module.exports =
           at
         else
           at + '.' + path
-      return @_addOpAsTxn 'set', [path, $ot: value], callback
+
+      finish = (err, path, value, previous) =>
+        @_otFields[path].specTrigger true  unless err
+        callback? err, path, value, previous
+
+      return @_addOpAsTxn 'set', [path, $ot: value], finish
 
     otNull: (path, value, callback) ->
       len = arguments.length
@@ -90,15 +88,16 @@ module.exports =
         @get path
       return obj  if obj?
 
-      if len is 1
-        return @ot path
+      return if len is 1
+        @ot path
       else if len is 2
-        return @ot path, value
+        @ot path, value
       else
-        return @ot path, value, callback
+        @ot path, value, callback
 
-    isOtPath: (path) ->
-      @_memory.get(path, @_specModel()).$ot isnt undefined
+    isOtPath: (path, nonSpeculative) ->
+      data = if nonSpeculative then null else @_specModel()
+      return @_memory.get(path, data)?.$ot?
 
     isOtVal: (val) -> !!(val && val.$ot)
 

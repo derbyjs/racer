@@ -102,7 +102,7 @@ Store:: =
     args.push ver
     @_sendToDb method, args, (err, origDoc) =>
       # TODO De-couple publish from db write
-      @publish transaction.path(txn), {txn}, {origDoc}
+      @publish transaction.path(txn), 'txn', txn, {origDoc}
       callback err, txn  if callback
 
   createModel: ->

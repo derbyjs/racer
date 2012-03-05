@@ -255,8 +255,6 @@ module.exports =
       return if method is 'get'
       args = extractor.args txn
       out = @_memory[method] args..., ver, data
-      # TODO: Remove this event?
-      @emit method + 'Post', args, ver
       if doEmit
         if patch = txn.patch
           for {method, args} in patch

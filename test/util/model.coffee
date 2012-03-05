@@ -78,6 +78,17 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
   browserSocket._connect()  unless options.unconnected
   return [model, serverSockets]
 
+exports.createBrowserModel = createBrowserModel = (store, testPath, callback) ->
+  model = store.createModel()
+  model.subscribe testPath, (sandbox) ->
+    model.ref '_test', sandbox
+    model.bundle (bundle) ->
+      browserRacer = createBrowserRacer()
+      browserSocket = new BrowserSocketMock store.sockets
+      browserRacer.init JSON.parse(bundle), browserSocket
+      browserSocket._connect()
+      callback browserRacer.model
+
 # Create one or more browser models that are connected to a store over a
 # mock Socket.IO connection
 #
@@ -101,16 +112,9 @@ exports.mockFullSetup = (getStore, options, callback) ->
     store = getStore()
     store.setSockets serverSockets
     while i--
-      model = store.createModel()
-      do (model) -> model.subscribe testPath, (sandbox) ->
-        model.ref '_test', sandbox
-        model.bundle (bundle) ->
-          browserRacer = createBrowserRacer()
-          browserSocket = new BrowserSocketMock serverSockets
-          browserRacer.init JSON.parse(bundle), browserSocket
-          browserSocket._connect()
-          browserModels.push browserRacer.model
-          --numBrowsers || callback browserModels..., done
+      createBrowserModel store, testPath, (model) ->
+        browserModels.push model
+        --numBrowsers || callback browserModels..., done
 
   return (done) ->
     test done
