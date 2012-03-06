@@ -3,6 +3,7 @@
 
 module.exports = adapter 'db', (run) ->
 
+  run 'query', {noFlush: true}, require './query'
   run 'store mutators', require './storeMutators'
 
   run 'db flushing', (getStore) ->

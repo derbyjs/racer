@@ -13,12 +13,14 @@ runFor = (name, options, showOptions, callback) ->
 
     beforeEach (done) ->
       store = racer.createStore options
+      return done()  if options.noFlush
       store.flush done
 
-    afterEach (done) ->
-      store.flush ->
-        store.disconnect()
-        done()
+    unless options.noFlush
+      afterEach (done) ->
+        store.flush ->
+          store.disconnect()
+          done()
 
     callback -> store
 
@@ -62,4 +64,3 @@ exports.adapter = (type, callback) ->
       moreTests? run
       callback run
       integration run
-
