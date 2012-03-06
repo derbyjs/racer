@@ -10,12 +10,23 @@ module.exports =
     init: (store) ->
       # Maps path -> { listener: fn, queue: [msg], busy: bool }
       # TODO: This shouldn't be local to a store
-      store._otFields = {}
+      store._otFields = otFields = {}
 
       store._pubSub.on 'ot', (clientId, data) ->
         if socket = store._clientSockets[clientId]
           return if socket.id == data.meta.src
           socket.emit 'otOp', data
+
+      # TODO Convert the following to work beyond local memory
+      store._pubSub.on 'fetch', (out) ->
+        otPaths = []
+        for [root, value] in out.data
+          allOtPaths value, root, otPaths
+        return unless otPaths.length
+        out.ot = otData = {}
+        for otPath in otPaths
+          otData[otPath] = otField  if otField = otFields[otPath]
+        return
 
     socket: (store, socket) ->
       otFields = store._otFields
@@ -41,3 +52,17 @@ module.exports =
             flushViaFieldClient()
         else
           flushViaFieldClient()
+
+
+allOtPaths = (obj, root, results) ->
+  if obj && obj.$ot
+    results.push root
+    return
+  return unless typeof obj is 'object'
+  for key, value of obj
+    continue unless value
+    if value.$ot
+      results.push root + '.' + key
+      continue
+    allOtPaths value, key
+  return

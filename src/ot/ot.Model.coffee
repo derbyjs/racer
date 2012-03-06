@@ -11,7 +11,12 @@ module.exports =
 
   events:
     init: (model) ->
-      model._otFields = {}
+      model._otFields = otFields = {}
+
+      model.on 'subInit', (data) ->
+        if ot = data.ot 
+          otFields[path] = field  for path, field of ot
+      return
 
     bundle: (model) ->
       # TODO: toJSON shouldn't be called manually like this

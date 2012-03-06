@@ -89,9 +89,8 @@ module.exports =
 
         out.push @at root, true
 
-      @_fetch newTargets, (err, data, otData) =>
+      @_fetch newTargets, (err, data) =>
         @_initSubData data
-        @_initSubOtData otData
         callback out...
 
     subscribe: (targets...) ->
@@ -128,9 +127,8 @@ module.exports =
       # Callback immediately if already subscribed to everything
       return callback out... unless newTargets.length
 
-      @_subAdd newTargets, (err, data, otData) =>
+      @_subAdd newTargets, (err, data) =>
         @_initSubData data
-        @_initSubOtData otData
         callback out...
 
     unsubscribe: (targets...) ->
@@ -164,8 +162,9 @@ module.exports =
       @_subRemove newTargets, callback
 
     _initSubData: (data) ->
+      @emit 'subInit', data
       memory = @_memory
-      for [path, value, ver] in data
+      for [path, value, ver] in data.data
         if path is ''
           if typeof value is 'object'
             for k, v of value
@@ -173,11 +172,6 @@ module.exports =
             continue
           throw 'Cannot subscribe to "' + path '"'
         memory.set path, value, ver
-      return
-
-    _initSubOtData: (data) ->
-      fields = @_otFields
-      fields[path] = field for path, field of data
       return
 
     _fetch: (targets, callback) ->

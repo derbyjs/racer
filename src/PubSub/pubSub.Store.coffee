@@ -48,9 +48,9 @@ module.exports =
           return if err
 
           socket.on 'fetch', (clientId, targets, callback) ->
+            # Only fetch data
             store.fetch clientId, deserialize(targets), callback
 
-          # Called from already connected clients
           socket.on 'subAdd', (clientId, targets, callback) ->
             # Setup subscriptions and fetch data
             store.subscribe clientId, deserialize(targets), callback
@@ -64,31 +64,31 @@ module.exports =
   proto:
     fetch: (clientId, targets, callback) ->
       data = []
-      otData = {}
+      pubSub = @_pubSub
       finish = finishAfter targets.length, (err) ->
-        callback err, data, otData
+        out = {data}
+        # Note that `out` may be mutated by ot or other plugins
+        pubSub.emit 'fetch', out, clientId, targets
+        callback err, out
 
-      otFields = @_otFields
       for target in targets
         if target.isQuery
           fetchQueryData this, data, target, finish
         else
-          [root, remainder] = splitPath target
-          fetchPathData this, data, otData, root, remainder, otFields, finish
+          fetchPathData this, data, target, finish
       return
 
     # Fetch the set of data represented by `targets` and subscribe to future
     # changes to this set of data.
     # @param {String} clientId representing the subscriber
     # @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
-    # @param {Function} callback(err, data, otData)
+    # @param {Function} callback(err, data)
     subscribe: (clientId, targets, callback) ->
-      data = otData = null
+      data = null
       finish = finishAfter 2, (err) ->
-        callback err, data, otData
-      @fetch clientId, targets, (err, _data, _otData) ->
+        callback err, data
+      @fetch clientId, targets, (err, _data) ->
         data = _data
-        otData = _otData
         finish err
       send 'subscribe', this, clientId, targets, finish
 
@@ -175,28 +175,9 @@ addSubDatum = (data, root, remainder, value, ver) ->
     addSubDatum data, nextRoot, remainder, nextValue, ver
   return
 
-allOtPaths = (obj, root, results) ->
-  if obj && obj.$ot
-    results.push root
-    return
-  return unless typeof obj is 'object'
-  for key, value of obj
-    continue unless value
-    if value.$ot
-      results.push root + '.' + key
-      continue
-    allOtPaths value, key
-  return
-
-fetchPathData = (store, data, otData, root, remainder, otFields, finish) ->
+fetchPathData = (store, data, path, finish) ->
+  [root, remainder] = splitPath path
   store.get root, (err, value, ver) ->
-    # TODO Make ot field detection more accurate. Should cover all remainder scenarios.
-    # TODO Convert the following to work beyond MemoryStore
-    otPaths = []
-    allOtPaths value, root, otPaths
-    for otPath in otPaths
-      otData[otPath] = otField  if otField = otFields[otPath]
-
     # addSubDatum mutates data argument
     addSubDatum data, root, remainder, value, ver
     finish err
