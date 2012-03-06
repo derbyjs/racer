@@ -5,7 +5,7 @@ process.nextTick ->
   racer.init @init
   delete @init
 
-racer.onready = (model) ->
+racer.on 'ready', (model) ->
 
   editor = document.getElementById 'editor'
 

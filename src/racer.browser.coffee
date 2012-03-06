@@ -22,24 +22,21 @@ module.exports = (racer) ->
         method = item.shift()
         model[method] item...
 
-      socket ||= io.connect ioUri,
+      racer.emit 'init', model
+
+      model._setSocket socket || io.connect ioUri,
         'reconnection delay': 100
         'max reconnection attempts': 20
-      model.socket = socket
-
-      model.emit 'initialized'
-      model._setSocket socket
 
       isReady = true
-      racer.onready model
+      racer.emit 'ready', model
       return racer
 
-    onready: ->
     ready: (onready) -> ->
-      racer.onready = onready
+      racer.on 'ready', onready
       if isReady
         connected = model.socket.socket.connected
-        onready()
+        onready model
         # Republish the Socket.IO connect event after the onready callback
         # executes in case any client code wants to use it
         model.socket.socket.publish 'connect' if connected

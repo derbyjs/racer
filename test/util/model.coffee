@@ -85,7 +85,7 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, options, cal
     model.bundle (bundle) ->
       browserRacer = createBrowserRacer options.plugins
       browserSocket = new BrowserSocketMock store.sockets
-      browserRacer.onready = (model) ->
+      browserRacer.on 'ready', (model) ->
         browserSocket._connect()
         callback model
       browserRacer.init JSON.parse(bundle), browserSocket
