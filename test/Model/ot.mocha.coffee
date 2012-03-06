@@ -88,7 +88,7 @@ run 'Model.ot connected to a store', (getStore) ->
   # 
   # it 'otInsert events should be emitted in server-side subscribed models', (done) ->
   #   model = getStore().createModel()
-  #   model.subscribe 'test', (test) ->
+  #   model.subscribe 'test', (err, test) ->
   #     test.on 'otInsert', 'text', (pos, inserted) ->
   #       expect(pos).to.equal 1
   #       expect(inserted).to.equal 'def'

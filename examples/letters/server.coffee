@@ -40,7 +40,7 @@ app.get '/:roomName?', (req, res) ->
   return res.redirect "/#{normalizedName}" if normalizedName != roomName
 
   model = store.createModel()
-  model.subscribe "rooms.#{roomName}", 'rooms.*.players', (room) ->
+  model.subscribe "rooms.#{roomName}", 'rooms.*.players', (err, room) ->
     model.ref '_room', room
     model.set '_roomName', roomName
     unless room.get 'letters'

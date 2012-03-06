@@ -25,7 +25,7 @@ app.get '/', (req, res) ->
 app.get '/:groupName', (req, res) ->
   groupName = req.params.groupName
   model = store.createModel()
-  model.subscribe "groups.#{groupName}", (group) ->
+  model.subscribe "groups.#{groupName}", (err, group) ->
     model.ref '_group', group
     group.setNull
       todos:

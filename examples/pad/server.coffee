@@ -24,7 +24,7 @@ app.get '/', (req, res) ->
 
 app.get '/:group', (req, res) ->
   model = store.createModel()
-  model.subscribe "groups.#{req.params.group}", (room) ->
+  model.subscribe "groups.#{req.params.group}", (err, room) ->
     model.ref '_room', room
     room.otNull 'text', 'Edit this with friends.'
     # model.bundle waits for any pending model operations to complete and then

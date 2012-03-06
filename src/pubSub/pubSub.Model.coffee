@@ -91,7 +91,7 @@ module.exports =
 
       @_fetch newTargets, (err, data) =>
         @_initSubData data
-        callback out...
+        callback err, out...
 
     subscribe: (targets...) ->
       # For subscribe(targets..., callback)
@@ -125,11 +125,11 @@ module.exports =
         out.push @at root, true
 
       # Callback immediately if already subscribed to everything
-      return callback out... unless newTargets.length
+      return callback null, out...  unless newTargets.length
 
       @_subAdd newTargets, (err, data) =>
         @_initSubData data
-        callback out...
+        callback err, out...
 
     unsubscribe: (targets...) ->
       # For unsubscribe(targets..., callback)
@@ -157,7 +157,7 @@ module.exports =
             newTargets.push path
 
       # Callback immediately if already unsubscribed from everything
-      return callback() unless newTargets.length
+      return callback()  unless newTargets.length
 
       @_subRemove newTargets, callback
 
@@ -175,15 +175,15 @@ module.exports =
       return
 
     _fetch: (targets, callback) ->
-      return callback() unless @connected
+      return callback 'disconnected'  unless @connected
       @socket.emit 'fetch', @_clientId, targets, callback
 
     _subAdd: (targets, callback) ->
-      return callback() unless @connected
+      return callback 'disconnected'  unless @connected
       @socket.emit 'subAdd', @_clientId, targets, callback
 
     _subRemove: (targets, callback) ->
-      return callback() unless @connected
+      return callback 'disconnected'  unless @connected
       @socket.emit 'subRemove', @_clientId, targets, callback
 
   server:

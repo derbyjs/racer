@@ -80,7 +80,7 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, options, cal
     options = {}
   options ||= {}
   model = store.createModel()
-  model.subscribe testPath, (sandbox) ->
+  model.subscribe testPath, (err, sandbox) ->
     model.ref '_test', sandbox
     model.bundle (bundle) ->
       browserRacer = createBrowserRacer options.plugins

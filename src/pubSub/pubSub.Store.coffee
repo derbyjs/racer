@@ -45,6 +45,7 @@ module.exports =
         socket._clientIdPromise.fulfill clientId
 
         store._checkVersion socket, ver, clientStartId, (err) ->
+          # An error message will be sent to the client in checkVersion
           return if err
 
           socket.on 'fetch', (clientId, targets, callback) ->

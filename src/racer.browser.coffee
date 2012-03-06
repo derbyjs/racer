@@ -1,6 +1,7 @@
 require 'es5-shim'
 
 # NOTE: All racer modules for the browser should be included in racer.coffee
+# and not in this file
 
 # Static isReady and model variables are used, so that the ready function
 # can be called anonymously. This assumes that only one instace of Racer
@@ -32,11 +33,13 @@ module.exports = (racer) ->
       racer.emit 'ready', model
       return racer
 
+    # This returns a function that can be passed to a DOM ready function
     ready: (onready) -> ->
-      racer.on 'ready', onready
       if isReady
         connected = model.socket.socket.connected
         onready model
-        # Republish the Socket.IO connect event after the onready callback
-        # executes in case any client code wants to use it
-        model.socket.socket.publish 'connect' if connected
+        # Republish the Socket.IO connect event after the ready callback
+        # if Socket.IO previously connected
+        model.socket.socket.publish 'connect'  if connected
+        return
+      racer.on 'ready', onready
