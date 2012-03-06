@@ -3,7 +3,7 @@ Memory = require '../../Memory'
 Query = require './Query'
 
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
-routePattern = /^[^.]+\\.[^.]+(?=\\.|$)/
+routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
 
 module.exports = (racer) ->
   racer.adapters.db.Memory = DbMemory
@@ -47,7 +47,7 @@ mergeAll DbMemory::, Memory::,
       store.defaultRoute method, '*', (path, args..., ver, done, next) =>
         args = deepCopy args
         match = routePattern.exec path
-        docPath = if match then match[0] else path
+        docPath = match && match[0]
         @get docPath, (err, doc) =>
           return done err if err
           doc = deepCopy doc

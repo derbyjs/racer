@@ -23,11 +23,18 @@ module.exports =
       return true
     return false
 
-  finishAfter: (count, callback) ->
+  finishAfter: finishAfter = (count, callback) ->
+    callback() unless count
     err = null
     return (_err) ->
       err ||= _err
       --count || callback? err
+
+  forEach: (items, fn, done) ->
+    finish = finishAfter items.length, done
+    for item in items
+      fn item, finish
+    return
 
   bufferify: (methodName, {fn, await}) ->
     buffer = null

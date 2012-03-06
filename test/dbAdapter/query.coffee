@@ -1,5 +1,6 @@
-async = require 'async'
+{finishAfter, forEach} = require '../../src/util'
 {expect} = require '../util'
+{mockFullSetup} = require '../util/model'
 
 module.exports = (getStore) ->
   currCollectionIndex = 0
@@ -9,8 +10,6 @@ module.exports = (getStore) ->
 
   beforeEach ->
     store = getStore()
-    # Can't make this a `before` callback because redis pub/sub
-    # may bleed from one test into the next
     currNs = nsBase + currCollectionIndex++
 
   afterEach (done) ->
@@ -30,7 +29,7 @@ module.exports = (getStore) ->
     ]
 
     beforeEach (done) ->
-      async.forEach users
+      forEach users
       , (user, callback) ->
         store.set "#{currNs}.#{user.id}", user, null, ->
           callback()
@@ -132,66 +131,43 @@ module.exports = (getStore) ->
 
   describe 'receiving proper publishes', ->
     test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
-      return (done) ->
-        fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              [key, doc] = initialDoc()
-              store.set key, doc, null, ->
-                modelHello.subscribe queries(modelHello.query)..., ->
-                  preCondition(modelHello)
-                  finish()
-            browser: (modelHello, finish) ->
-              preCondition modelHello
-              listenForMutation modelHello, ->
-                switch postCondition.length
-                  when 1 then postCondition modelHello
-                  when 2 then postCondition modelHello, finish
-                finish()
-              , finish
-          modelFoo:
-            server: (_, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              mutate modelFoo
-              finish()
-        , done
+      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+        [key, doc] = initialDoc()
+        store.set key, doc, null, ->
+          listenForMutation modelA, ->
+            postCondition modelA
+            done()
+          modelA.subscribe queries(modelA.query)..., ->
+            preCondition modelA
+            mutate modelB
 
     describe 'set <namespace>.<id>', ->
-      it 'should publish the txn *only* to relevant live `equals` queries', (done) ->
-        userLeo  = id: '1', name: 'leo'
-        userBill = id: '2', name: 'bill'
-        userSue  = id: '3', name: 'sue'
+      userLeo  = id: '1', name: 'leo'
+      userBill = id: '2', name: 'bill'
+      userSue  = id: '3', name: 'sue'
 
-        fullSetup {store},
-          modelLeo:
-            server: (modelLeo, finish) ->
-              queryLeo = modelLeo.query(currNs).where('name').equals('leo')
-              modelLeo.subscribe queryLeo, ->
-                finish()
-            browser: (modelLeo, finish) ->
-              modelLeo.on 'set', "#{currNs}.*", (id, user) ->
-                expect(id).to.equal '1'
-                expect(user).to.eql userLeo
-                finish()
-          modelBill:
-            server: (modelBill, finish) ->
-              queryBill = modelBill.query(currNs).where('name').equals('bill')
-              modelBill.subscribe queryBill, ->
-                finish()
-            browser: (modelBill, finish) ->
-              modelBill.on 'set', "#{currNs}.*", (id, user) ->
-                expect(id).to.equal '2'
-                expect(user).to.eql userBill
-                finish()
-          modelSue:
-            server: (modelSue, finish) -> finish()
-            browser: (modelSue, finish) ->
-              modelSue = store.createModel()
-              modelSue.set "#{currNs}.1", userLeo
-              modelSue.set "#{currNs}.2", userBill
-              modelSue.set "#{currNs}.3", userSue
-              finish()
-        , done
+      it 'should publish the txn *only* to relevant live `equals` queries',
+        mockFullSetup getStore, {numBrowsers: 2}, (modelLeo, modelBill, done) ->
+          finish = finishAfter 2, ->
+            modelSue = store.createModel()
+            modelSue.set "#{currNs}.1", userLeo
+            modelSue.set "#{currNs}.2", userBill
+            modelSue.set "#{currNs}.3", userSue
+            done()
+
+          queryLeo = modelLeo.query(currNs).where('name').equals('leo')
+          modelLeo.subscribe queryLeo, ->
+            modelLeo.on 'set', "#{currNs}.*", (id, user) ->
+              expect(id).to.equal '1'
+              expect(user).to.eql userLeo
+            finish()
+
+          queryBill = modelBill.query(currNs).where('name').equals('bill')
+          modelBill.subscribe queryBill, ->
+            modelBill.on 'set', "#{currNs}.*", (id, user) ->
+              expect(id).to.equal '2'
+              expect(user).to.eql userBill
+            finish()
 
     describe 'set <namespace>.<id>.*', ->
       describe 'for equals queries', ->
@@ -201,27 +177,27 @@ module.exports = (getStore) ->
             return [
               query(currNs).where('greeting').equals('hello')
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-             expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello'}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello'}
+          mutate: (model) ->
+            model.set "#{currNs}.1.greeting", 'hello'
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', greeting: 'foo'}]
           queries: (query) ->
             return [query(currNs).where('greeting').equals('foo')]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo'}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo'}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.set "#{currNs}.1.greeting", 'hello'
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -231,18 +207,18 @@ module.exports = (getStore) ->
               query(currNs).where('greeting').equals('foo')
               query(currNs).where('age').equals(21)
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'setPost', ([path, val]) ->
+          listenForMutation: (model, onMutation) ->
+            model.on 'setPost', ([path, val]) ->
               if path == "#{currNs}.1.greeting" && val == 'hello' then onMutation()
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo', age: 21}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello', age: 21}
-            subscriberBrowserModel.on 'rmDoc', ->
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo', age: 21}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello', age: 21}
+            model.on 'rmDoc', ->
               # This should never get called. Keep it here to detect if we call > 1
               throw new Error 'Should not rmDoc'
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.greeting", 'hello'
+          mutate: (model) ->
+            model.set "#{currNs}.1.greeting", 'hello'
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -252,42 +228,42 @@ module.exports = (getStore) ->
               query(currNs).where('age').equals(27)
               query(currNs).where('age').equals(28)
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', ->
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', ->
               # This should never get called. Keep it here to detect if we call > 1
               throw new Error 'Should not rmDoc'
-            subscriberBrowserModel.on 'setPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
-          postCondition: (subscriberBrowserModel, finish) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 28
+            model.on 'setPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 28}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 28
 
       describe 'for gt queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
           queries: (query) -> [query(currNs).where('age').gt(27)]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 28
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 28}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 28
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', age: 28}]
           queries: (query) -> [query(currNs).where('age').gt(27)]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 27
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 28}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 27
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -297,16 +273,16 @@ module.exports = (getStore) ->
               query(currNs).where('age').gt(21)
               query(currNs).where('age').gt(22)
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation, finish) ->
-            subscriberBrowserModel.on 'setPost', onMutation
-            subscriberBrowserModel.on 'rmDoc', ->
+          listenForMutation: (model, onMutation, finish) ->
+            model.on 'setPost', onMutation
+            model.on 'rmDoc', ->
               throw new Error 'Should not rmDoc'
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 23}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 22}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 22
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 23}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 22}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 22
 
     # TODO gte, lt, lte queries testing
 
@@ -314,26 +290,26 @@ module.exports = (getStore) ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
           queries: (query) -> [query(currNs).where('age').within([28, 29, 30])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 30}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 30
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 30}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 30
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', age: 27}]
           queries: (query) -> [query(currNs).where('age').within([27, 28])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 29
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 29
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation'+
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -343,14 +319,14 @@ module.exports = (getStore) ->
               query(currNs).where('age').within([27, 28])
               query(currNs).where('age').within([27, 30])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'setPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 30}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 30
+          listenForMutation: (model, onMutation) ->
+            model.on 'setPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 30}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 30
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -360,55 +336,55 @@ module.exports = (getStore) ->
               query(currNs).where('age').within([27, 29])
               query(currNs).where('age').within([28, 29])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', ->
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', ->
               # This should never get called. Keep it here to detect if we call > 1
               throw new Error 'Should not rmDoc'
-            subscriberBrowserModel.on 'setPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 27}
-          postCondition: (subscriberBrowserModel, finish) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.set "#{currNs}.1.age", 28
+            model.on 'setPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', age: 28}
+          mutate: (model) ->
+            model.set "#{currNs}.1.age", 28
 
     describe 'del <namespace>.<id>', ->
       it 'should remove the modified doc from any models subscribed to a query matching the doc pre-del', test
         initialDoc: -> ["#{currNs}.1", {id: '1', age: 28}]
         queries: (query) -> [query(currNs).where('age').equals(28)]
-        listenForMutation: (subscriberBrowserModel, onMutation) ->
-          subscriberBrowserModel.on 'rmDoc', onMutation
-        preCondition: (subscriberModel) ->
-          expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', age: 28}
-        postCondition: (subscriberBrowserModel) ->
-          expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-        mutate: (publisherBrowserModel) ->
-          publisherBrowserModel.del "#{currNs}.1"
+        listenForMutation: (model, onMutation) ->
+          model.on 'rmDoc', onMutation
+        preCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1', age: 28}
+        postCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.equal undefined
+        mutate: (model) ->
+          model.del "#{currNs}.1"
 
     describe 'del <namespace>.<id>.*', ->
       it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
         initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian'}]
         queries: (query) -> [query(currNs).where('name').notEquals('Brian')]
-        listenForMutation: (subscriberBrowserModel, onMutation) ->
-          subscriberBrowserModel.on 'addDoc', onMutation
-        preCondition: (subscriberModel) ->
-          expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-        postCondition: (subscriberBrowserModel) ->
-          subscriberBrowserModel.get "#{currNs}.1", {id: '1'}
-        mutate: (publisherBrowserModel) ->
-          publisherBrowserModel.del "#{currNs}.1.name"
+        listenForMutation: (model, onMutation) ->
+          model.on 'addDoc', onMutation
+        preCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.equal undefined
+        postCondition: (model) ->
+          model.get "#{currNs}.1", {id: '1'}
+        mutate: (model) ->
+          model.del "#{currNs}.1.name"
 
       it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
         initialDoc: -> ["#{currNs}.1", {id: '1', name: 'Brian'}]
         queries: (query) -> [query(currNs).where('name').equals('Brian')]
-        listenForMutation: (subscriberBrowserModel, onMutation) ->
-          subscriberBrowserModel.on 'rmDoc', onMutation
-        preCondition: (subscriberModel) ->
-          expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
-        postCondition: (subscriberBrowserModel) ->
-          expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-        mutate: (publisherBrowserModel) ->
-          publisherBrowserModel.del "#{currNs}.1.name"
+        listenForMutation: (model, onMutation) ->
+          model.on 'rmDoc', onMutation
+        preCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
+        postCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.equal undefined
+        mutate: (model) ->
+          model.del "#{currNs}.1.name"
 
       it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' + 
          'and (2) a query matching the doc both pre- and post-mutation', test
@@ -418,16 +394,16 @@ module.exports = (getStore) ->
             query(currNs).where('name').equals('Brian')
             query(currNs).where('age').equals(27)
           ]
-        listenForMutation: (subscriberBrowserModel, onMutation) ->
-          subscriberBrowserModel.on 'rmDoc', ->
+        listenForMutation: (model, onMutation) ->
+          model.on 'rmDoc', ->
             throw new Error 'Should not rmDoc'
-          subscriberBrowserModel.on 'delPost', onMutation
-        preCondition: (subscriberModel) ->
-          expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian', age: 27}
-        postCondition: (subscriberBrowserModel) ->
-          expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
-        mutate: (publisherBrowserModel) ->
-          publisherBrowserModel.del "#{currNs}.1.age"
+          model.on 'delPost', onMutation
+        preCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian', age: 27}
+        postCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
+        mutate: (model) ->
+          model.del "#{currNs}.1.age"
 
       it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
          ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -437,18 +413,18 @@ module.exports = (getStore) ->
             query(currNs).where('name').equals('Brian')
             query(currNs).where('name').notEquals('Brian')
           ]
-        listenForMutation: (subscriberBrowserModel, onMutation) ->
-          subscriberBrowserModel.on 'rmDoc', ->
+        listenForMutation: (model, onMutation) ->
+          model.on 'rmDoc', ->
             throw new Error 'Should not rmDoc'
-          subscriberBrowserModel.on 'addDoc', ->
+          model.on 'addDoc', ->
             throw new Error 'Should not addDoc'
-          subscriberBrowserModel.on 'delPost', onMutation
-        preCondition: (subscriberModel) ->
-          expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
-        postCondition: (subscriberBrowserModel) ->
-          expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1'}
-        mutate: (publisherBrowserModel) ->
-          publisherBrowserModel.del "#{currNs}.1.name"
+          model.on 'delPost', onMutation
+        preCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
+        postCondition: (model) ->
+          expect(model.get "#{currNs}.1").to.eql {id: '1'}
+        mutate: (model) ->
+          model.del "#{currNs}.1.name"
 
     describe 'incr', ->
 
@@ -457,63 +433,63 @@ module.exports = (getStore) ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'ho']}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi', 'there'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'there'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'there'
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{currNs}.1", {id: '1'}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'hi'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'hi'
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'pushPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there', 'yo']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'yo'
+          listenForMutation: (model, onMutation) ->
+            model.on 'pushPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there', 'yo']}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'yo'
 
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red']}]
           queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'alert'
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red']}]
           queries: (query) -> [query(currNs).where('tags').equals(['red'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'alert'
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'alert'
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -523,14 +499,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals(['command', 'and', 'conquer'])
               query(currNs).where('tags').contains(['command'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'pushPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 'and', 'conquer'
+          listenForMutation: (model, onMutation) ->
+            model.on 'pushPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['command']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 'and', 'conquer'
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -540,52 +516,52 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals [{a: 1, b: 2}]
               query(currNs).where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'pushPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}]}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", {c: 10, d: 11}
+          listenForMutation: (model, onMutation) ->
+            model.on 'pushPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}]}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}, {c: 10, d: 11}]}
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", {c: 10, d: 11}
 
     describe 'unshift', ->
       describe 'for contains queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['ho', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi', 'ho'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'ho', 'there']}
+          mutate: (model) ->
+            model.unshift "#{currNs}.1.tags", 'hi'
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{currNs}.1", {id: '1'}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.unshift "#{currNs}.1.tags", 'hi'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
+          mutate: (model) ->
+            model.unshift "#{currNs}.1.tags", 'hi'
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'unshiftPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['yo', 'hi', 'there']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.unshift "#{currNs}.1.tags", 'yo'
+          listenForMutation: (model, onMutation) ->
+            model.on 'unshiftPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['yo', 'hi', 'there']}
+          mutate: (model) ->
+            model.unshift "#{currNs}.1.tags", 'yo'
 
       describe 'for equals queries', ->
 
@@ -594,38 +570,38 @@ module.exports = (getStore) ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['ho', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi', 'ho'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['ho', 'hi', 'there']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'hi'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['ho', 'hi', 'there']}
+          mutate: (model) ->
+            model.insert "#{currNs}.1.tags", 1, 'hi'
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{currNs}.1", {id: '1'}]
           queries: (query) -> [query(currNs).where('tags').contains(['hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.insert "#{currNs}.1.tags", 0, 'hi'
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi']}
+          mutate: (model) ->
+            model.insert "#{currNs}.1.tags", 0, 'hi'
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'insertPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'yo', 'there']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.insert "#{currNs}.1.tags", 1, 'yo'
+          listenForMutation: (model, onMutation) ->
+            model.on 'insertPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'yo', 'there']}
+          mutate: (model) ->
+            model.insert "#{currNs}.1.tags", 1, 'yo'
 
       describe 'for equals queries', ->
 
@@ -634,14 +610,14 @@ module.exports = (getStore) ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange']}]
           queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.pop "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.pop "#{currNs}.1.tags"
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -651,14 +627,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['venti', 'grande'])
               query(currNs).where('tags').contains(['venti'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'popPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.pop "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'popPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['venti']}
+          mutate: (model) ->
+            model.pop "#{currNs}.1.tags"
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -668,14 +644,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['walter', 'white'])
               query(currNs).where('tags').equals(['walter'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'popPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.pop "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'popPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter']}
+          mutate: (model) ->
+            model.pop "#{currNs}.1.tags"
 
       describe 'for equals queries', ->
 
@@ -684,14 +660,14 @@ module.exports = (getStore) ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange']}]
           queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.shift "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.shift "#{currNs}.1.tags"
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -701,14 +677,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['venti', 'grande'])
               query(currNs).where('tags').contains(['grande'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'shiftPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['grande']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.shift "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'shiftPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['grande']}
+          mutate: (model) ->
+            model.shift "#{currNs}.1.tags"
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -718,14 +694,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['walter', 'white'])
               query(currNs).where('tags').equals(['white'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'shiftPost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['white']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.shift "#{currNs}.1.tags"
+          listenForMutation: (model, onMutation) ->
+            model.on 'shiftPost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['white']}
+          mutate: (model) ->
+            model.shift "#{currNs}.1.tags"
 
       describe 'for equals queries', ->
 
@@ -734,14 +710,14 @@ module.exports = (getStore) ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'orange', 'yellow']}]
           queries: (query) -> [query(currNs).where('tags').contains(['red', 'orange'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange', 'yellow']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'orange', 'yellow']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.remove "#{currNs}.1.tags", 1, 1
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -751,14 +727,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['venti', 'grande'])
               query(currNs).where('tags').contains(['grande'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'removePost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'grande']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
+          listenForMutation: (model, onMutation) ->
+            model.on 'removePost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'grande']}
+          mutate: (model) ->
+            model.remove "#{currNs}.1.tags", 1, 1
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -768,40 +744,40 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['walter', 'white'])
               query(currNs).where('tags').equals(['white', 'white'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'removePost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'jesse', 'white']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.remove "#{currNs}.1.tags", 1, 1
+          listenForMutation: (model, onMutation) ->
+            model.on 'removePost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'jesse', 'white']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
+          mutate: (model) ->
+            model.remove "#{currNs}.1.tags", 1, 1
 
     describe 'move', ->
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['alert', 'red']}]
           queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'addDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.move "#{currNs}.1.tags", 0, 1
+          listenForMutation: (model, onMutation) ->
+            model.on 'addDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
+          mutate: (model) ->
+            model.move "#{currNs}.1.tags", 0, 1
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['red', 'alert']}]
           queries: (query) -> [query(currNs).where('tags').equals(['red', 'alert'])]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'rmDoc', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.equal undefined
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.push "#{currNs}.1.tags", 1, 0
+          listenForMutation: (model, onMutation) ->
+            model.on 'rmDoc', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['red', 'alert']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.equal undefined
+          mutate: (model) ->
+            model.push "#{currNs}.1.tags", 1, 0
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
@@ -811,14 +787,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals(['command', 'and', 'conquer'])
               query(currNs).where('tags').contains(['conquer', 'command', 'and'])
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'movePost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: ['conquer', 'command', 'and']}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.move "#{currNs}.1.tags", 2, 0
+          listenForMutation: (model, onMutation) ->
+            model.on 'movePost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['conquer', 'command', 'and']}
+          mutate: (model) ->
+            model.move "#{currNs}.1.tags", 2, 0
 
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -828,14 +804,14 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals [{a: 1}, {b: 2}, {c: 3}]
               query(currNs).where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
             ]
-          listenForMutation: (subscriberBrowserModel, onMutation) ->
-            subscriberBrowserModel.on 'movePost', onMutation
-          preCondition: (subscriberModel) ->
-            expect(subscriberModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
-          postCondition: (subscriberBrowserModel) ->
-            expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
-          mutate: (publisherBrowserModel) ->
-            publisherBrowserModel.move "#{currNs}.1.tags", 2, 1
+          listenForMutation: (model, onMutation) ->
+            model.on 'movePost', onMutation
+          preCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
+          postCondition: (model) ->
+            expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {c: 3}, {b: 2}]}
+          mutate: (model) ->
+            model.move "#{currNs}.1.tags", 2, 1
 
     describe 'only queries', ->
       # TODO
@@ -845,14 +821,14 @@ module.exports = (getStore) ->
 #              # reasons
 #              initialDoc: -> ["#{currNs}.1", {id: '1', name: 'brian', age: 26, city: 'sf'}]
 #              queries: (query) -> [query(currNs).where('name').equals('bri').only('name', 'city')]
-#              listenForMutation: (subscriberBrowserModel, onMutation) ->
-#                subscriberBrowserModel.on 'addDoc', onMutation
-#              preCondition: (subscriberModel) ->
-#                expect(subscriberModel.get "#{currNs}.1").to.equal undefined
-#              postCondition: (subscriberBrowserModel) ->
-#                expect(subscriberBrowserModel.get "#{currNs}.1").to.eql {id: '1', name: 'bri', city: 'sf'}
-#              mutate: (publisherBrowserModel) ->
-#                publisherBrowserModel.set "#{currNs}.1.name", 'bri'
+#              listenForMutation: (model, onMutation) ->
+#                model.on 'addDoc', onMutation
+#              preCondition: (model) ->
+#                expect(model.get "#{currNs}.1").to.equal undefined
+#              postCondition: (model) ->
+#                expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'bri', city: 'sf'}
+#              mutate: (model) ->
+#                model.set "#{currNs}.1.name", 'bri'
 
       # TODO
       it 'should not propagate transactions that involve paths outside of the `only` query param'
@@ -875,7 +851,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        async.forEach players
+        forEach players
         , (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
@@ -939,7 +915,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -955,7 +931,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  async.forEach ['rmDoc', 'addDoc']
+                  forEach ['rmDoc', 'addDoc']
                   , (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
@@ -979,7 +955,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -995,7 +971,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  async.forEach ['rmDoc', 'addDoc']
+                  forEach ['rmDoc', 'addDoc']
                   , (event, callback) ->
                     modelHello.on event, ->
                       callback()
@@ -1020,7 +996,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -1036,7 +1012,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  async.forEach ['rmDoc', 'addDoc']
+                  forEach ['rmDoc', 'addDoc']
                   , (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
@@ -1060,7 +1036,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -1076,7 +1052,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  async.forEach ['rmDoc', 'addDoc']
+                  forEach ['rmDoc', 'addDoc']
                   , (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
@@ -1099,7 +1075,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -1115,7 +1091,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  async.forEach ['rmDoc', 'addDoc']
+                  forEach ['rmDoc', 'addDoc']
                   , (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
@@ -1138,7 +1114,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -1179,7 +1155,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          async.forEach newPlayers
+          forEach newPlayers
           , (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
@@ -1223,7 +1199,7 @@ module.exports = (getStore) ->
                   expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                   finish()
               browser: (modelHello, finish) ->
-                async.forEach ['rmDoc', 'addDoc']
+                forEach ['rmDoc', 'addDoc']
                 , (event, callback) ->
                   modelHello.on event, -> callback()
                 , ->
@@ -1297,7 +1273,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        async.forEach players
+        forEach players
         , (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
@@ -1350,7 +1326,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        async.forEach players
+        forEach players
         , (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
@@ -1409,7 +1385,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        async.forEach players
+        forEach players
         , (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done

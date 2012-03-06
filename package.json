@@ -22,7 +22,6 @@
     "expect.js": ">=0.1.2",
     "coffee-script": ">=1.2.0",
     "console.color": ">=0.0.4",
-    "async": ">=0.1.15"
   },
   "engines": {
     "node": ">=0.4.0"

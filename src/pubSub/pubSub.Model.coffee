@@ -30,18 +30,16 @@ module.exports =
           subs.push query
         socket.emit 'sub', model._clientId, subs, model._memory.version, model._startId
 
-      addRemoteTxn = model._addRemoteTxn
-
+      memory = model._memory
       socket.on 'addDoc', ({doc, ns, ver}, num) ->
-        data = memory._data.world[ns] ||= {}
         # If the doc is already in the model, don't add it
-        if memory._data.world[ns][doc.id]
+        if (data = memory.get ns) && data[doc.id]
           # But add a null transaction anyway, so that `txnApplier`
           # doesn't hang because it never sees `num`
-          return addRemoteTxn null, num
+          return model._addRemoteTxn null, num
 
         txn = transaction.create base: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
-        addRemoteTxn txn, num
+        model._addRemoteTxn txn, num
         model.emit 'addDoc', "#{ns}.#{doc.id}", doc
 
       socket.on 'rmDoc', ({doc, ns, hash, id, ver}, num) ->
@@ -50,10 +48,10 @@ module.exports =
           # Remove the doc from here if any other queries --
           # besides the one that triggered the rmDoc -- match the doc
           if hash != key && query.test doc, "#{ns}.#{id}"
-            return addRemoteTxn null, num
+            return model._addRemoteTxn null, num
 
         txn = transaction.create base: ver, id: null, method: 'del', args: ["#{ns}.#{id}"]
-        addRemoteTxn txn, num
+        model._addRemoteTxn txn, num
         model.emit 'rmDoc', ns + '.' + id, doc
 
   proto:

@@ -10,7 +10,7 @@ module.exports =
     channels = []
     for query in queries
       hash = query.hash()
-      channels.push "queries.#{hash}"
+      channels.push "$q.#{hash}"
       liveQueries[hash] ||= deserialize query.serialize(), LiveQuery
 
     store._pubSub.subscribe subscriberId, channels, callback, true
@@ -20,14 +20,14 @@ module.exports =
       channels = []
       for query in queries
         hash = query.hash()
-        channels.push "queries.#{hash}"
+        channels.push "$q.#{hash}"
     else
       channels = null
 
     store._pubSub.unsubscribe subscriberId, channels, callback, true
 
   publish: (store, path, message, meta) ->
-    return if message[0] != 'txn' || path[0..7] == 'queries.'
+    return if message[0] != 'txn' || path[0..2] == '$q.'
     if origDoc = meta.origDoc
       txn = message[1]
       if origDoc
@@ -39,6 +39,7 @@ module.exports =
       publish store, message, origDoc, newDoc
     else
       publish store, message, meta
+    return
 
 publish = (store, message, origDoc, newDoc) ->
   txn = message[1]
@@ -54,7 +55,7 @@ publish = (store, message, origDoc, newDoc) ->
     # If we are setting an entire document
     doc = transaction.args(txn)[1]
     for hash, query of liveQueries
-      queryChannel = "queries.#{hash}"
+      queryChannel = "$q.#{hash}"
       if query.isPaginated
         continue unless query.testWithoutPaging doc, nsPlusId
         query.updateCache store, (err, newMembers, oldMembers, ver) ->
@@ -69,7 +70,7 @@ publish = (store, message, origDoc, newDoc) ->
     return
 
   for hash, query of liveQueries
-    queryChannel = "queries.#{hash}"
+    queryChannel = "$q.#{hash}"
     if query.isPaginated
       if (query.testWithoutPaging(origDoc, nsPlusId) || query.testWithoutPaging(newDoc, nsPlusId))
         # TODO Optimize for non-saturated case
@@ -92,6 +93,7 @@ publish = (store, message, origDoc, newDoc) ->
         # The query no longer contains the document,
         # so tell any subscribed clients to remove it.
         pubSub.publish queryChannel, ['rmDoc', {ns: txnNs, doc: newDoc, hash, id: origDoc.id, ver: pseudoVer()}]
+
     # The query didn't contain the document before its mutation, but now it
     # does contain it, so tell the client to add the document to its model.
     else if query.test newDoc, nsPlusId
@@ -109,6 +111,8 @@ publish = (store, message, origDoc, newDoc) ->
     # Else the document mutation may impact the paginated set, despite not being
     # in the page of interest.
 
+  return
+
 memory = new Memory
 memory.setVersion = ->
 applyTxn = (txn, doc) ->
@@ -123,6 +127,6 @@ applyTxn = (txn, doc) ->
   world[ns][id] = doc
   data = {world}
   try
-    memory[method] args..., 0, data
+    memory[method] args..., -1, data
   catch err then
   return doc
