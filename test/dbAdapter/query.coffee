@@ -29,10 +29,8 @@ module.exports = (getStore) ->
     ]
 
     beforeEach (done) ->
-      forEach users
-      , (user, callback) ->
-        store.set "#{currNs}.#{user.id}", user, null, ->
-          callback()
+      forEach users, (user, callback) ->
+        store.set "#{currNs}.#{user.id}", user, null, callback
       , done
 
     it 'should work for one parameter `equals` queries', (done) ->
@@ -130,17 +128,6 @@ module.exports = (getStore) ->
         done()
 
   describe 'receiving proper publishes', ->
-    test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
-        [key, doc] = initialDoc()
-        store.set key, doc, null, ->
-          listenForMutation modelA, ->
-            postCondition modelA
-            done()
-          modelA.subscribe queries(modelA.query)..., ->
-            preCondition modelA
-            mutate modelB
-
     describe 'set <namespace>.<id>', ->
       userLeo  = id: '1', name: 'leo'
       userBill = id: '2', name: 'bill'
@@ -168,6 +155,17 @@ module.exports = (getStore) ->
               expect(id).to.equal '2'
               expect(user).to.eql userBill
             finish()
+
+    test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
+      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+        [key, doc] = initialDoc()
+        store.set key, doc, null, ->
+          listenForMutation modelA, ->
+            postCondition modelA
+            done()
+          modelA.subscribe queries(modelA.query)..., ->
+            preCondition modelA
+            mutate modelB
 
     describe 'set <namespace>.<id>.*', ->
       describe 'for equals queries', ->
@@ -208,15 +206,15 @@ module.exports = (getStore) ->
               query(currNs).where('age').equals(21)
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'setPost', ([path, val]) ->
-              if path == "#{currNs}.1.greeting" && val == 'hello' then onMutation()
+            # This should never get called. Keep it here to detect if we call > 1
+            model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+            model.on 'set', "#{currNs}.1.greeting", (value) ->
+              expect(value).to.equal 'hello'
+              onMutation()
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'foo', age: 21}
           postCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', greeting: 'hello', age: 21}
-            model.on 'rmDoc', ->
-              # This should never get called. Keep it here to detect if we call > 1
-              throw new Error 'Should not rmDoc'
           mutate: (model) ->
             model.set "#{currNs}.1.greeting", 'hello'
 
@@ -229,10 +227,9 @@ module.exports = (getStore) ->
               query(currNs).where('age').equals(28)
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'rmDoc', ->
-              # This should never get called. Keep it here to detect if we call > 1
-              throw new Error 'Should not rmDoc'
-            model.on 'setPost', onMutation
+            # This should never get called. Keep it here to detect if we call > 1
+            model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+            model.on 'set', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -274,9 +271,8 @@ module.exports = (getStore) ->
               query(currNs).where('age').gt(22)
             ]
           listenForMutation: (model, onMutation, finish) ->
-            model.on 'setPost', onMutation
-            model.on 'rmDoc', ->
-              throw new Error 'Should not rmDoc'
+            model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+            model.on 'set', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', age: 23}
           postCondition: (model) ->
@@ -320,7 +316,7 @@ module.exports = (getStore) ->
               query(currNs).where('age').within([27, 30])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'setPost', onMutation
+            model.on 'set', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -337,10 +333,9 @@ module.exports = (getStore) ->
               query(currNs).where('age').within([28, 29])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'rmDoc', ->
-              # This should never get called. Keep it here to detect if we call > 1
-              throw new Error 'Should not rmDoc'
-            model.on 'setPost', onMutation
+            # This should never get called. Keep it here to detect if we call > 1
+            model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+            model.on 'set', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -395,9 +390,8 @@ module.exports = (getStore) ->
             query(currNs).where('age').equals(27)
           ]
         listenForMutation: (model, onMutation) ->
-          model.on 'rmDoc', ->
-            throw new Error 'Should not rmDoc'
-          model.on 'delPost', onMutation
+          model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+          model.on 'del', onMutation
         preCondition: (model) ->
           expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian', age: 27}
         postCondition: (model) ->
@@ -414,11 +408,9 @@ module.exports = (getStore) ->
             query(currNs).where('name').notEquals('Brian')
           ]
         listenForMutation: (model, onMutation) ->
-          model.on 'rmDoc', ->
-            throw new Error 'Should not rmDoc'
-          model.on 'addDoc', ->
-            throw new Error 'Should not addDoc'
-          model.on 'delPost', onMutation
+          model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
+          model.on 'addDoc', -> throw new Error 'Should not addDoc'
+          model.on 'del', onMutation
         preCondition: (model) ->
           expect(model.get "#{currNs}.1").to.eql {id: '1', name: 'Brian'}
         postCondition: (model) ->
@@ -458,7 +450,7 @@ module.exports = (getStore) ->
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'pushPost', onMutation
+            model.on 'push', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -500,7 +492,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['command'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'pushPost', onMutation
+            model.on 'push', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['command']}
           postCondition: (model) ->
@@ -517,7 +509,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'pushPost', onMutation
+            model.on 'push', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}]}
           postCondition: (model) ->
@@ -555,7 +547,7 @@ module.exports = (getStore) ->
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'unshiftPost', onMutation
+            model.on 'unshift', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -595,7 +587,7 @@ module.exports = (getStore) ->
           initialDoc: -> ["#{currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'insertPost', onMutation
+            model.on 'insert', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -628,7 +620,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['venti'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'popPost', onMutation
+            model.on 'pop', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
           postCondition: (model) ->
@@ -645,7 +637,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals(['walter'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'popPost', onMutation
+            model.on 'pop', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
           postCondition: (model) ->
@@ -678,7 +670,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'shiftPost', onMutation
+            model.on 'shift', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
           postCondition: (model) ->
@@ -695,7 +687,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals(['white'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'shiftPost', onMutation
+            model.on 'shift', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
           postCondition: (model) ->
@@ -728,7 +720,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'removePost', onMutation
+            model.on 'remove', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
           postCondition: (model) ->
@@ -745,7 +737,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals(['white', 'white'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'removePost', onMutation
+            model.on 'remove', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['walter', 'jesse', 'white']}
           postCondition: (model) ->
@@ -788,7 +780,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').contains(['conquer', 'command', 'and'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'movePost', onMutation
+            model.on 'move', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
           postCondition: (model) ->
@@ -805,7 +797,7 @@ module.exports = (getStore) ->
               query(currNs).where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'movePost', onMutation
+            model.on 'move', onMutation
           preCondition: (model) ->
             expect(model.get "#{currNs}.1").to.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
           postCondition: (model) ->
@@ -851,8 +843,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        forEach players
-        , (player, callback) ->
+        forEach players, (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
 
@@ -915,8 +906,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -931,8 +921,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  forEach ['rmDoc', 'addDoc']
-                  , (event, callback) ->
+                  forEach ['rmDoc', 'addDoc'], (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
                     modelPlayers = modelHello.get currNs
@@ -955,8 +944,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -971,8 +959,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  forEach ['rmDoc', 'addDoc']
-                  , (event, callback) ->
+                  forEach ['rmDoc', 'addDoc'], (event, callback) ->
                     modelHello.on event, ->
                       callback()
                   , ->
@@ -996,8 +983,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -1012,8 +998,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  forEach ['rmDoc', 'addDoc']
-                  , (event, callback) ->
+                  forEach ['rmDoc', 'addDoc'], (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
                     modelPlayers = modelHello.get currNs
@@ -1036,8 +1021,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -1052,8 +1036,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  forEach ['rmDoc', 'addDoc']
-                  , (event, callback) ->
+                  forEach ['rmDoc', 'addDoc'], (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
                     modelPlayers = modelHello.get currNs
@@ -1075,8 +1058,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -1091,8 +1073,7 @@ module.exports = (getStore) ->
                         expect(modelHello.get "#{currNs}." + player.id).to.eql player
                     finish()
                 browser: (modelHello, finish) ->
-                  forEach ['rmDoc', 'addDoc']
-                  , (event, callback) ->
+                  forEach ['rmDoc', 'addDoc'], (event, callback) ->
                     modelHello.on event, -> callback()
                   , ->
                     modelPlayers = modelHello.get currNs
@@ -1114,8 +1095,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -1155,8 +1135,7 @@ module.exports = (getStore) ->
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
           ]
           allPlayers = players.concat newPlayers
-          forEach newPlayers
-          , (player, callback) ->
+          forEach newPlayers, (player, callback) ->
             store.set "#{currNs}.#{player.id}", player, null, callback
           , ->
             fullSetup {store},
@@ -1199,8 +1178,7 @@ module.exports = (getStore) ->
                   expect(modelHello.get "#{currNs}.3").to.not.equal undefined
                   finish()
               browser: (modelHello, finish) ->
-                forEach ['rmDoc', 'addDoc']
-                , (event, callback) ->
+                forEach ['rmDoc', 'addDoc'], (event, callback) ->
                   modelHello.on event, -> callback()
                 , ->
                   expect(modelHello.get "#{currNs}.1").to.not.equal undefined
@@ -1273,8 +1251,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        forEach players
-        , (player, callback) ->
+        forEach players, (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
 
@@ -1326,8 +1303,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        forEach players
-        , (player, callback) ->
+        forEach players, (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
 
@@ -1385,8 +1361,7 @@ module.exports = (getStore) ->
           {id: '2', name: {last: 'Federer', first: 'Roger'},  ranking: 3}
           {id: '3', name: {last: 'Djoker',  first: 'Novak'},  ranking: 1}
         ]
-        forEach players
-        , (player, callback) ->
+        forEach players, (player, callback) ->
           store.set "#{currNs}.#{player.id}", player, null, callback
         , done
 
