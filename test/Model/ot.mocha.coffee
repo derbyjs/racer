@@ -79,6 +79,19 @@ describe 'Model.ot', ->
 
 run 'Model.ot connected to a store', (getStore) ->
 
+  # TODO: This test should pass; right now OT operations don't work on server-side models
+  # 
+  # it 'otInsert events should be emitted in server-side subscribed models', (done) ->
+  #   model = getStore().createModel()
+  #   model.subscribe 'test', (test) ->
+  #     test.on 'otInsert', 'text', (pos, inserted) ->
+  #       expect(pos).to.equal 1
+  #       expect(inserted).to.equal 'def'
+  #       expect(test.get 'text').to.equal 'adefbc'
+  #       done()
+  #     test.ot 'text', 'abc'
+  #     test.otInsert 'text', 1, 'def'
+
   it 'otInsert events should be emitted in remote subscribed models',
     mockFullSetup getStore, numBrowsers: 2, (modelA, modelB, done) ->
       modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->

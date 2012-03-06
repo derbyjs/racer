@@ -75,7 +75,8 @@ module.exports =
           at + '.' + path
 
       finish = (err, path, value, previous) =>
-        @_otFields[path].specTrigger true  unless err
+        if !err && field = @_otFields[path]
+          field.specTrigger true
         callback? err, path, value, previous
 
       return @_addOpAsTxn 'set', [path, $ot: value], finish

@@ -64,8 +64,8 @@ Field = module.exports = (@model, @path, @version = 0, @type = text) ->
     onTimeout: ->
       throw new Error "Did not receive a prior op in time. Invalid version would result by applying buffered received ops unless prior op was applied first."
 
-  model.on 'change', ([path, op, oldSnapshot], isLocal) =>
-    return unless path == @path
+  model.on 'change', ([_path, op, oldSnapshot], isLocal) ->
+    return unless _path == path
     for {p, i, d} in op
       if i
         model.emit 'otInsert', [path, p, i], isLocal
@@ -123,7 +123,6 @@ Field:: =
     @inflightCallbacks = @pendingCallbacks
     @pendingCallbacks = []
 
-    # @model.socket.send msg, (err, res) ->
     @model.socket.emit 'otOp', path: @path, op: @inflightOp, v: @version, (err, msg) =>
       @incomingSerializer.add [@inflightOp, false, err], msg.v if msg
 
