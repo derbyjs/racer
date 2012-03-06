@@ -1,7 +1,12 @@
-{expect} = require '../util'
-{mockSocketEcho, mockFullSetup, createBrowserModel, BrowserModel: Model} = require '../util/model'
-{run} = require '../util/store'
+{expect, clearRequireCache} = require '../util'
 {finishAfter} = require '../../src/util'
+{createBrowserRacer, mockSocketEcho, mockFullSetup, createBrowserModel} = require '../util/model'
+
+clearRequireCache()
+racer = require '../../src/racer'
+racer.use ot = require '../../src/ot'
+{run} = require '../util/store'
+{Model} = createBrowserRacer plugins = [ot]
 
 describe 'Model.ot', ->
 
@@ -57,7 +62,7 @@ describe 'Model.ot', ->
 
   # Client-server OT communication ##
   it 'client model should emit an otInsert event when it receives an OT message from the server with an otInsert op', (done) ->
-    [model, sockets] = mockSocketEcho '0'
+    [model, sockets] = mockSocketEcho '0', {plugins}
     model.ot 'some.ot.path', 'abcdef'
     model.on 'otInsert', 'some.ot.path', (pos, insertedStr) ->
       expect(insertedStr).to.equal 'try'
@@ -67,7 +72,7 @@ describe 'Model.ot', ->
     sockets.emit 'otOp', path: 'some.ot.path', op: [{i: 'try', p: 1}], v: 0
 
   it 'client model should emit a otDel event when it receives an OT message from the server with an otDel op', (done) ->
-    [model, sockets] = mockSocketEcho '0'
+    [model, sockets] = mockSocketEcho '0', {plugins}
     model.ot 'some.ot.path', 'abcdef'
     model.on 'otDel', 'some.ot.path', (pos, strToDel) ->
       expect(strToDel).to.equal 'bcd'
@@ -93,7 +98,7 @@ run 'Model.ot connected to a store', (getStore) ->
   #     test.otInsert 'text', 1, 'def'
 
   it 'otInsert events should be emitted in remote subscribed models',
-    mockFullSetup getStore, numBrowsers: 2, (modelA, modelB, done) ->
+    mockFullSetup getStore, {numBrowsers: 2, plugins}, (modelA, modelB, done) ->
       modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
         expect(insertedStr).to.equal 'xyz'
         expect(pos).to.equal 1
@@ -103,7 +108,7 @@ run 'Model.ot connected to a store', (getStore) ->
       modelA.otInsert '_test.text', 1, 'xyz'
 
   testOtOps = (options, callback, beforeDone) ->
-    mockFullSetup getStore, numBrowsers: 2, (modelA, modelB, done) ->
+    mockFullSetup getStore, {numBrowsers: 2, plugins}, (modelA, modelB, done) ->
       finish = finishAfter 2, ->
         textA = modelA.get '_test.text'
         textB = modelB.get '_test.text'
@@ -159,7 +164,7 @@ run 'Model.ot connected to a store', (getStore) ->
       modelA.otInsert '_test.text', 1, 'xyz'
     , (modelA, modelB, done) ->
       testPath = modelA.dereference '_test.text'
-      createBrowserModel getStore(), testPath, (modelC) ->
+      createBrowserModel getStore(), testPath, {plugins}, (modelC) ->
         expect(modelC.get testPath).to.equal 'axyzbcdefg'
         done()
 

@@ -1,13 +1,11 @@
 racer = require 'racer'
+racer.use require 'racer/lib/ot'
 
-# racer.ready returns a callback function for a DOM ready event. Its callback
-# will only be called once both the model data are loaded and the event that
-# it is passed to occurs.
-# Alternatively, racer.onload can be set to a function that only waits for
-# the model data to be loaded.
-# Calling $() with a function is equivalent to $(document).ready() in jQuery
-racer.onready = ->
-  model = racer.model
+process.nextTick ->
+  racer.init @init
+  delete @init
+
+racer.onready = (model) ->
 
   editor = document.getElementById 'editor'
 
@@ -66,7 +64,3 @@ racer.onready = ->
       editor.addEventListener event, genOp, false
     else
       editor.attachEvent 'on' + event, genOp
-
-do ->
-  racer.init @init
-  delete @init

@@ -70,10 +70,10 @@ module.exports =
         else
           mergeProto mixin.server
 
-      @emit type + ':mixin', Klass
-
       for name, fn of mixin.events
         @on type + ':' + name, fn
+
+      @emit type + ':mixin', Klass
 
     return this
 

@@ -25,7 +25,6 @@ racer
   .use(require './refs')
   .use(require './pubSub')
   .use(require './txns')
-  .use(require './ot')
 
 # The browser module must be included last, since it creates a
 # model instance, before which all plugins should be included

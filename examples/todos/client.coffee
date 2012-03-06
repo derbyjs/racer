@@ -1,9 +1,9 @@
 racer = require 'racer'
 todoHtml = require('./shared').todoHtml
 
-htmlEscape = (s) ->
-  unless s? then '' else s.toString().replace /&(?!\s)|</g, (s) ->
-    if s is '&' then '&amp;' else '&lt;'
+process.nextTick ->
+  racer.init @init
+  delete @init
 
 # racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
@@ -11,8 +11,7 @@ htmlEscape = (s) ->
 # Alternatively, racer.onload can be set to a function that only waits for
 # the model data to be loaded.
 # Calling $() with a function is equivalent to $(document).ready() in jQuery
-$ racer.ready ->
-  model = racer.model
+$ racer.ready (model) ->
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'
@@ -150,6 +149,7 @@ $ racer.ready ->
   document.execCommand 'useCSS', false, true
   document.execCommand 'styleWithCSS', false, false
 
-do ->
-  racer.init @init
-  delete @init
+
+  htmlEscape = (s) ->
+    unless s? then '' else s.toString().replace /&(?!\s)|</g, (s) ->
+      if s is '&' then '&amp;' else '&lt;'

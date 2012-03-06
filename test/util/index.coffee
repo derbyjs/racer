@@ -12,6 +12,20 @@ exports.calls = (num, fn) ->
     done() if num == n = 0
     fn -> done() if ++n >= num
 
+extended = [
+  require.resolve '../../src/racer'
+  require.resolve '../../src/util'
+  require.resolve '../../src/plugin'
+  require.resolve '../../src/Model'
+  require.resolve '../../src/Store'
+  require.resolve './store'
+]
+exports.clearRequireCache = ->
+  cache = require.cache
+  for path in extended
+    delete cache[path]
+  return
+
 flatten = (a) ->
   if typeof a is 'object'
     obj = if Array.isArray a then [] else {}

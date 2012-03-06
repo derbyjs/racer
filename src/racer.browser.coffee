@@ -5,15 +5,14 @@ require 'es5-shim'
 # Static isReady and model variables are used, so that the ready function
 # can be called anonymously. This assumes that only one instace of Racer
 # is running, which should be the case in the browser.
-isReady = false
+isReady = model = null
 
 module.exports = (racer) ->
   racer.util.mergeAll racer,
 
-    model: model = new racer.Model
-
-    # socket argument makes it easier to test - see test/util/model fullyWiredModels
+    # socket argument makes it easier to test - see test/util/model
     init: ([clientId, memory, count, onLoad, startId, ioUri], socket) ->
+      model = new racer.Model
       model._clientId = clientId
       model._startId = startId
       model._memory.init memory
@@ -32,7 +31,7 @@ module.exports = (racer) ->
       model._setSocket socket
 
       isReady = true
-      racer.onready()
+      racer.onready model
       return racer
 
     onready: ->

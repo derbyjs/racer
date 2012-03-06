@@ -2,6 +2,7 @@ express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
 racer = require 'racer'
+racer.use require 'racer/lib/ot'
 
 app = express.createServer()
   .use(express.favicon())

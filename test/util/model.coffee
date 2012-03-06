@@ -1,27 +1,19 @@
-{calls} = require './index'
+{calls, clearRequireCache} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
-extended = [
-  racerPath = require.resolve '../../src/racer'
-  require.resolve '../../src/util'
-  require.resolve '../../src/plugin'
-  require.resolve '../../src/Model'
-  require.resolve '../../src/transaction'
-]
-clearExtended = ->
-  for path in extended
-    delete require.cache[path]
-  return
+racerPath = require.resolve '../../src/racer'
 
-exports.createBrowserRacer = createBrowserRacer = ->
+exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   # Delete the cache of all modules extended for the server
-  clearExtended()
+  clearRequireCache()
   # Pretend like we are in a browser and require again
   global.window = {}
   browserRacer = require racerPath
+  if plugins
+    browserRacer.use plugin  for plugin in plugins
   # Reset state and delete the cache again, so that the next
   # time racer is required it will be for the server
   delete global.window
-  clearExtended()
+  clearRequireCache()
   return browserRacer
 
 exports.BrowserModel = BrowserModel = createBrowserRacer().Model
@@ -54,6 +46,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
 # options:
 #   unconnected:  Don't immediately connect the browser over the socket mock
 #   txnErr:       Respond to transactions with a 'txnErr message' if true
+#   plugins:      Racer plugins to include
 exports.mockSocketEcho = (clientId = '', options = {}) ->
   num = 0
   ver = 0
@@ -72,22 +65,30 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
       else
         socket.emit 'txnOk', transaction.id(txn), ++ver, ++num
   browserSocket = new BrowserSocketMock(serverSockets)
-  model = new BrowserModel
+  model = if plugins = options.plugins
+    new (createBrowserRacer(plugins).Model)
+  else
+    new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
   browserSocket._connect()  unless options.unconnected
   return [model, serverSockets]
 
-exports.createBrowserModel = createBrowserModel = (store, testPath, callback) ->
+exports.createBrowserModel = createBrowserModel = (store, testPath, options, callback) ->
+  if typeof options is 'function'
+    callback = options
+    options = {}
+  options ||= {}
   model = store.createModel()
   model.subscribe testPath, (sandbox) ->
     model.ref '_test', sandbox
     model.bundle (bundle) ->
-      browserRacer = createBrowserRacer()
+      browserRacer = createBrowserRacer options.plugins
       browserSocket = new BrowserSocketMock store.sockets
+      browserRacer.onready = (model) ->
+        browserSocket._connect()
+        callback model
       browserRacer.init JSON.parse(bundle), browserSocket
-      browserSocket._connect()
-      callback browserRacer.model
 
 # Create one or more browser models that are connected to a store over a
 # mock Socket.IO connection
@@ -95,6 +96,7 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, callback) ->
 # options:
 #   numBrowsers:  Number of browser models to create. Defaults to 1
 #   calls:        Expected number of calls to the done() function
+#   plugins:      Racer plugins to include in browser instances
 ns = 0
 exports.mockFullSetup = (getStore, options, callback) ->
   if typeof options is 'function'
@@ -112,7 +114,7 @@ exports.mockFullSetup = (getStore, options, callback) ->
     store = getStore()
     store.setSockets serverSockets
     while i--
-      createBrowserModel store, testPath, (model) ->
+      createBrowserModel store, testPath, options, (model) ->
         browserModels.push model
         --numBrowsers || callback browserModels..., done
 
