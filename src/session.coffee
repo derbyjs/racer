@@ -19,6 +19,6 @@ sessionFactory = (store) ->
     sid = sid.substr 0, sid.indexOf('.')
 
     model = req.model ||= store.createModel()
-    model.subscribe "sessions.#{sid}", (session) ->
+    model.subscribe "sessions.#{sid}", (err, session) ->
       model.ref '_session', session
       next()
