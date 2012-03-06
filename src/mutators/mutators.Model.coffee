@@ -1,4 +1,5 @@
 Async = require './Async'
+Memory = require '../Memory'
 
 # TODO: Perhaps this should be a macro. Needs DRYing
 
@@ -13,23 +14,35 @@ module.exports =
 
   events:
     init: (model) ->
-      model.async = model._createAsync()
+      # Memory instance for use in building multiple path objects in async get
+      memory = new Memory
 
-  server:
-    _createAsync: ->
-      return new Async
-        nextTxnId: => @_nextTxnId()
-        get: (path, callback) => @store.get path, callback
-        commit: (txn, callback) => @store._commit txn, callback
+      model.async = new Async
+        nextTxnId: ->
+          model._nextTxnId()
+
+        get: (path, callback) ->
+          model._fetch [path], (err, data) ->
+            return callback err if err
+
+            # Return undefined if no data matched
+            return callback() unless (items = data.data) && (len = items.length)
+
+            # Return the value for a single matching item on the same path
+            if len is 1 && (item = items[0]) && item[0] == path
+              return callback null, item[1]
+
+            # Return a multiple path object, such as the result of a query
+            for [subpath, value] in items
+              memory.set subpath, value, -1
+            out = memory.get path
+            memory.flush()
+            callback null, out
+
+        commit: (txn, callback) ->
+          model._asyncCommit txn, callback
 
   proto:
-    # TODO: This should send a request over socket.io for get and commit
-    _createAsync: ->
-      return new Async
-        nextTxnId: => @_nextTxnId()
-        get: => throw new Error 'Unimplemented'
-        commit: => throw new Error 'Unimplemented'
-
     get:
       type: ACCESSOR
       fn: (path) ->

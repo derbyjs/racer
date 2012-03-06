@@ -43,8 +43,10 @@ module.exports =
 
       model._removeTxn = (txnId) ->
         delete txns[txnId]
-        if ~(i = txnQueue.indexOf txnId) then txnQueue.splice i, 1
-        specCache.invalidate()
+        if ~(i = txnQueue.indexOf txnId)
+          txnQueue.splice i, 1
+          specCache.invalidate()
+        return
 
       # TODO Add client-side filtering for incoming data on
       # no-longer-subscribed-to channels. This alleviates race condition of
@@ -104,6 +106,7 @@ module.exports =
           txn = txns[id]
           return if !txn || txn.timeout > now
           commit txn
+        return
 
       fetchNewTxns = ->
         socket.emit 'txnsSince', memory.version + 1, model._startId, (err, newTxns, num) ->
@@ -183,6 +186,13 @@ module.exports =
     force: -> Object.create this, _force: value: true
 
     _commit: ->
+
+    _asyncCommit: (txn, callback) ->
+      return callback 'disconnected'  unless @connected
+      txn.callback = callback
+      id = transaction.id txn
+      @_txns[id] = txn
+      @_commit txn
 
     _nextTxnId: -> @_clientId + '.' + @_count.txn++
 
