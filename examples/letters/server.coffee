@@ -8,10 +8,8 @@ app = express.createServer()
   .use(gzip.staticGzip(__dirname))
 
 store = racer.createStore
-  redis: {db: 10}       # Configuration options for Redis transaction journal
-  listen: app           # A port or http server
-  namespace: 'letters'  # Socket.IO namespace
-  mode: 'stm'           # Enable STM conflict detection. Last-writer-wins by default
+  listen: app    # A port or http server
+  mode: 'stm'    # Enable STM conflict detection. Last-writer-wins by default
 
 # Clear all existing data on restart
 store.flush()

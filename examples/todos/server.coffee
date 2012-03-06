@@ -8,9 +8,9 @@ app = express.createServer()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
 
-# Listen specifies a port or http server
-# Namespace specifies the Socket.IO namespace
-store = racer.createStore redis: {db: 12}, listen: app, namespace: 'todos'
+store = racer.createStore
+  listen: app    # A port or http server
+
 # Clear all existing data on restart
 store.flush()
 
