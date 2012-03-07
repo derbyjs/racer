@@ -22,11 +22,11 @@ module.exports = (getStore) ->
       store.disconnect()
       done()
 
-  # describe 'fetch', ->
-  #   require('./query.fetch') getStore, getCurrNs
+  describe 'fetch', ->
+    require('./query.fetch') getStore, getCurrNs
 
-  # describe 'subscribe', ->
-  #   require('./query.subscribe') getStore, getCurrNs
+  describe 'subscribe', ->
+    require('./query.subscribe') getStore, getCurrNs
 
   describe 'paginated', ->
     require('./query.paginated') getStore, getCurrNs
