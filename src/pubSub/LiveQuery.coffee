@@ -1,10 +1,11 @@
 {lookup} = require '../path'
 transaction = require '../transaction'
 {indexOf, deepIndexOf, deepEqual} = require '../util'
-{deserialize} = require './Query'
 
-module.exports = LiveQuery = ->
+module.exports = LiveQuery = (@query) ->
   @_predicates = []
+  for [method, args] in query._calls
+    @[method] args...
   return
 
 LiveQuery::=
@@ -134,8 +135,7 @@ LiveQuery::=
 
   updateCache: (store, callback) ->
     cache = @_paginatedCache
-    plainQuery = deserialize @serialize()
-    store.query plainQuery, (err, found, ver) =>
+    store.query @query, (err, found, ver) =>
       return callback err if err
       removed = []
       added = []

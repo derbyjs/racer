@@ -11,7 +11,7 @@ module.exports =
     for query in queries
       hash = query.hash()
       channels.push "$q.#{hash}"
-      liveQueries[hash] ||= deserialize query.serialize(), LiveQuery
+      liveQueries[hash] ||= new LiveQuery query
 
     store._pubSub.subscribe subscriberId, channels, callback, true
 
@@ -74,7 +74,7 @@ publish = (store, message, origDoc, newDoc) ->
     if query.isPaginated
       if (query.testWithoutPaging(origDoc, nsPlusId) || query.testWithoutPaging(newDoc, nsPlusId))
         # TODO Optimize for non-saturated case
-        query.updateCache pubSub.store, (err, newMembers, oldMembers, ver) ->
+        query.updateCache store, (err, newMembers, oldMembers, ver) ->
           throw err if err
           for mem in newMembers
             pubSub.publish queryChannel, ['addDoc', {ns: txnNs, doc: mem, ver: pseudoVer()}]

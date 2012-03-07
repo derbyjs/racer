@@ -3,13 +3,12 @@
 Promise = require '../../Promise'
 LiveQuery = require '../../pubSub/LiveQuery'
 
-module.exports = MemoryQuery = ->
-  LiveQuery.apply this, arguments
-  @_conds = {}
+module.exports = MemoryQuery = (query) ->
   @_opts = {}
+  LiveQuery.call this, query
   return
 
-MemoryQuery::= mergeAll {}, LiveQuery::,
+mergeAll MemoryQuery::, LiveQuery::,
   only: (paths...) ->
     @_selectType = 'only'
     fields = @_opts.fields ||= {}

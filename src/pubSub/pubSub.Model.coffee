@@ -62,7 +62,7 @@ module.exports =
         query = deserialize item
         hash = query.hash()
         querySubs[hash] = query
-        liveQueries[hash] = deserialize item, LiveQuery
+        liveQueries[hash] = new LiveQuery query
 
     query: (namespace) -> new Query namespace
 
@@ -109,7 +109,7 @@ module.exports =
           hash = target.hash()
           unless querySubs[hash]
             querySubs[hash] = target
-            liveQueries[hash] = deserialize target.serialize(), LiveQuery
+            liveQueries[hash] = new LiveQuery target
             newTargets.push target
 
         else

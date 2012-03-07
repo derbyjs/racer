@@ -108,18 +108,12 @@ module.exports =
       # in time. i.e., no versions of the cache should exist between
       # an add/remove combined action that should be atomic but currently
       # isn't
-
-      # TODO Improve this de/serialize API
-      dbQuery = deserializeQuery query.serialize(), @_db.Query
-      dbQuery.run @_db, (err, found, xf) =>
-        # TODO Get version consistency right in face of concurrent writes during
-        # query
-        if Array.isArray found
-          if xf then for doc in found
-            xf doc
-        else if xf
-          xf found
-        callback err, found, @_db.version
+      db = @_db
+      dbQuery = new db.Query query
+      dbQuery.run db, (err, found) ->
+        # TODO Get version consistency right in face of concurrent writes
+        # during query
+        callback err, found, db.version
 
 
 deserialize = (targets) ->

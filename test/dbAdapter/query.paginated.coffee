@@ -18,51 +18,33 @@ module.exports = (getStore, getCurrNs) ->
     , done
 
   describe 'for non-saturated result sets (e.g., limit=10, sizeof(resultSet) < 10)', ->
-    it 'should add a document that satisfies the query', (done) ->
-      fullSetup {store},
-        modelHello:
-          server: (modelHello, finish) ->
-            query = modelHello.query(currNs).where('ranking').gte(3).limit(2)
-            modelHello.subscribe query, ->
-              expect(modelHello.get "#{currNs}.1").to.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.equal undefined
-              finish()
-          browser: (modelHello, finish) ->
-            modelHello.on 'addDoc', ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.equal undefined
-              finish()
-        modelFoo:
-          server: (modelFoo, finish) -> finish()
-          browser: (modelFoo, finish) ->
-            modelFoo.set "#{currNs}.1.ranking", 4
-            finish()
-      , done
+    it 'should add a document that satisfies the query',
+      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+        modelA.on 'addDoc', ->
+          expect(modelA.get "#{currNs}.1").to.not.equal undefined
+          expect(modelA.get "#{currNs}.2").to.not.equal undefined
+          expect(modelA.get "#{currNs}.3").to.equal undefined
+          done()
+        query = modelA.query(currNs).where('ranking').gte(3).limit(2)
+        modelA.subscribe query, ->
+          expect(modelA.get "#{currNs}.1").to.equal undefined
+          expect(modelA.get "#{currNs}.2").to.not.equal undefined
+          expect(modelA.get "#{currNs}.3").to.equal undefined
+          modelB.set "#{currNs}.1.ranking", 4
 
     it 'should remove a document that no longer satisfies the query', (done) ->
-      fullSetup {store},
-        modelHello:
-          server: (modelHello, finish) ->
-            query = modelHello.query(currNs).where('ranking').lt(2).limit(2)
-            modelHello.subscribe query, ->
-              expect(modelHello.get "#{currNs}.1").to.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.not.equal undefined
-              finish()
-          browser: (modelHello, finish) ->
-            modelHello.on 'rmDoc', ->
-              expect(modelHello.get "#{currNs}.1").to.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.equal undefined
-              finish()
-        modelFoo:
-          server: (modelFoo, finish) -> finish()
-          browser: (modelFoo, finish) ->
-            modelFoo.set "#{currNs}.3.ranking", 2
-            finish()
-      , done
+      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+        modelA.on 'rmDoc', ->
+          expect(modelA.get "#{currNs}.1").to.equal undefined
+          expect(modelA.get "#{currNs}.2").to.equal undefined
+          expect(modelA.get "#{currNs}.3").to.equal undefined
+          done()
+        query = modelA.query(currNs).where('ranking').lt(2).limit(2)
+        modelA.subscribe query, ->
+          expect(modelA.get "#{currNs}.1").to.equal undefined
+          expect(modelA.get "#{currNs}.2").to.equal undefined
+          expect(modelA.get "#{currNs}.3").to.not.equal undefined
+          modelB.set "#{currNs}.3.ranking", 2
 
   # TODO Test multi-param sorts
   describe 'for saturated result sets (i.e., limit == sizeof(resultSet))', ->
@@ -80,28 +62,28 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               forEach ['rmDoc', 'addDoc'], (event, callback) ->
-                modelHello.on event, -> callback()
+                modelA.on event, -> callback()
               , ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 4, 5
                 finish()
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.1.ranking", 6
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.1.ranking", 6
               finish()
         , done
 
@@ -118,29 +100,29 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               forEach ['rmDoc', 'addDoc'], (event, callback) ->
-                modelHello.on event, ->
+                modelA.on event, ->
                   callback()
               , ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 4, 5
                 finish()
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.1.ranking", 5
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.1.ranking", 5
               finish()
         , done
 
@@ -157,28 +139,28 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               forEach ['rmDoc', 'addDoc'], (event, callback) ->
-                modelHello.on event, -> callback()
+                modelA.on event, -> callback()
               , ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 4, 5
                 finish()
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.1.ranking", 6
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.1.ranking", 6
               finish()
         , done
 
@@ -195,28 +177,28 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               forEach ['rmDoc', 'addDoc'], (event, callback) ->
-                modelHello.on event, -> callback()
+                modelA.on event, -> callback()
               , ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 2, 3
                 finish()
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.6", {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.6", {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
               finish()
         , done
 
@@ -232,28 +214,28 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               forEach ['rmDoc', 'addDoc'], (event, callback) ->
-                modelHello.on event, -> callback()
+                modelA.on event, -> callback()
               , ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 2, 3
                 finish()
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.5.ranking", 0
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.5.ranking", 0
               finish()
         , done
 
@@ -269,31 +251,31 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               setTimeout ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
               , 200
-              modelHello.on 'addDoc', -> finish() # Should never be called
-              modelHello.on 'rmDoc', -> finish() # Should never be called
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.4.ranking", 5
+              modelA.on 'addDoc', -> finish() # Should never be called
+              modelA.on 'rmDoc', -> finish() # Should never be called
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.4.ranking", 5
               finish()
         , done
 
@@ -309,29 +291,29 @@ module.exports = (getStore, getCurrNs) ->
         store.set "#{currNs}.#{player.id}", player, null, callback
       , ->
         fullSetup {store},
-          modelHello:
-            server: (modelHello, finish) ->
-              query = modelHello.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
-              modelHello.subscribe query, ->
+          modelA:
+            server: (modelA, finish) ->
+              query = modelA.query(currNs).where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
+              modelA.subscribe query, ->
                 for player in allPlayers
                   if player.ranking not in [3, 4]
-                    expect(modelHello.get "#{currNs}." + player.id).to.equal undefined
+                    expect(modelA.get "#{currNs}." + player.id).to.equal undefined
                   else
-                    expect(modelHello.get "#{currNs}." + player.id).to.eql player
+                    expect(modelA.get "#{currNs}." + player.id).to.eql player
                 finish()
-            browser: (modelHello, finish) ->
+            browser: (modelA, finish) ->
               setTimeout ->
-                modelPlayers = modelHello.get currNs
+                modelPlayers = modelA.get currNs
                 for _, player of modelPlayers
                   expect(player.ranking).to.be.within 3, 4
                 finish()
               , 200
-              modelHello.on 'addDoc', -> finish() # Should never be called
-              modelHello.on 'rmDoc', -> finish() # Should never be called
-          modelFoo:
-            server: (modelFoo, finish) -> finish()
-            browser: (modelFoo, finish) ->
-              modelFoo.set "#{currNs}.4.ranking", 10
+              modelA.on 'addDoc', -> finish() # Should never be called
+              modelA.on 'rmDoc', -> finish() # Should never be called
+          modelB:
+            server: (modelB, finish) -> finish()
+            browser: (modelB, finish) ->
+              modelB.set "#{currNs}.4.ranking", 10
               finish()
         , done
 
@@ -339,26 +321,26 @@ module.exports = (getStore, getCurrNs) ->
     #   <page prev> <page curr> <page next>
     #                   -                     push to curr from next
       fullSetup {store},
-        modelHello:
-          server: (modelHello, finish) ->
-            query = modelHello.query(currNs).where('ranking').lt(5).sort('ranking', 'asc').limit(2)
-            modelHello.subscribe query, ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.not.equal undefined
+        modelA:
+          server: (modelA, finish) ->
+            query = modelA.query(currNs).where('ranking').lt(5).sort('ranking', 'asc').limit(2)
+            modelA.subscribe query, ->
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.equal undefined
+              expect(modelA.get "#{currNs}.3").to.not.equal undefined
               finish()
-          browser: (modelHello, finish) ->
+          browser: (modelA, finish) ->
             forEach ['rmDoc', 'addDoc'], (event, callback) ->
-              modelHello.on event, -> callback()
+              modelA.on event, -> callback()
             , ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.equal undefined
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.not.equal undefined
+              expect(modelA.get "#{currNs}.3").to.equal undefined
               finish()
-        modelFoo:
-          server: (modelFoo, finish) -> finish()
-          browser: (modelFoo, finish) ->
-            modelFoo.set "#{currNs}.3.ranking", 6
+        modelB:
+          server: (modelB, finish) -> finish()
+          browser: (modelB, finish) ->
+            modelB.set "#{currNs}.3.ranking", 6
             finish()
       , done
 
@@ -366,24 +348,24 @@ module.exports = (getStore, getCurrNs) ->
       #   <page prev> <page curr> <page next>
       #                   +                     pop from curr to next
       fullSetup {store},
-        modelHello:
-          server: (modelHello, finish) ->
-            query = modelHello.query(currNs).where('ranking').lt(3).sort('name.first', 'desc').limit(2)
-            modelHello.subscribe query, ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.not.equal undefined
+        modelA:
+          server: (modelA, finish) ->
+            query = modelA.query(currNs).where('ranking').lt(3).sort('name.first', 'desc').limit(2)
+            modelA.subscribe query, ->
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.equal undefined
+              expect(modelA.get "#{currNs}.3").to.not.equal undefined
               finish()
-          browser: (modelHello, finish) ->
-            modelHello.on 'rmDoc', ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.equal undefined
+          browser: (modelA, finish) ->
+            modelA.on 'rmDoc', ->
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.not.equal undefined
+              expect(modelA.get "#{currNs}.3").to.equal undefined
               finish()
-        modelFoo:
-          server: (modelFoo, finish) -> finish()
-          browser: (modelFoo, finish) ->
-            modelFoo.set "#{currNs}.2.ranking", 2
+        modelB:
+          server: (modelB, finish) -> finish()
+          browser: (modelB, finish) ->
+            modelB.set "#{currNs}.2.ranking", 2
             finish()
       , done
 
@@ -391,24 +373,24 @@ module.exports = (getStore, getCurrNs) ->
     #   <page prev> <page curr> <page next>
     #                   -><-                  re-arrange curr members
       fullSetup {store},
-        modelHello:
-          server: (modelHello, finish) ->
-            query = modelHello.query(currNs).where('ranking').lt(10).sort('ranking', 'asc').limit(2)
-            modelHello.subscribe query, ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.not.equal undefined
+        modelA:
+          server: (modelA, finish) ->
+            query = modelA.query(currNs).where('ranking').lt(10).sort('ranking', 'asc').limit(2)
+            modelA.subscribe query, ->
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.equal undefined
+              expect(modelA.get "#{currNs}.3").to.not.equal undefined
               finish()
-          browser: (modelHello, finish) ->
-            modelHello.on 'setPost', ->
-              expect(modelHello.get "#{currNs}.1").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.2").to.equal undefined
-              expect(modelHello.get "#{currNs}.3").to.not.equal undefined
-              expect(modelHello.get "#{currNs}.1.ranking").to.equal 0
+          browser: (modelA, finish) ->
+            modelA.on 'setPost', ->
+              expect(modelA.get "#{currNs}.1").to.not.equal undefined
+              expect(modelA.get "#{currNs}.2").to.equal undefined
+              expect(modelA.get "#{currNs}.3").to.not.equal undefined
+              expect(modelA.get "#{currNs}.1.ranking").to.equal 0
               finish()
-        modelFoo:
-          server: (modelFoo, finish) -> finish()
-          browser: (modelFoo, finish) ->
-            modelFoo.set "#{currNs}.1.ranking", 0
+        modelB:
+          server: (modelB, finish) -> finish()
+          browser: (modelB, finish) ->
+            modelB.set "#{currNs}.1.ranking", 0
             finish()
       , done

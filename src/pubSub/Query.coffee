@@ -21,8 +21,7 @@ Query = module.exports = (namespace) ->
 Query::=
   isQuery: true
 
-  serialize: serialize = -> @_calls
-  toJSON: serialize
+  toJSON: -> @_calls
 
   hash: ->
     sep = ':'
@@ -104,8 +103,8 @@ for method in ['byKey', 'where', 'equals', 'notEquals',
       @_calls.push [method, args]
       return this
 
-Query.deserialize = (calls, AdapterQuery = Query) ->
-  query = new AdapterQuery
+Query.deserialize = (calls) ->
+  query = new Query
   for [method, args] in calls
     query[method] args...
   return query
