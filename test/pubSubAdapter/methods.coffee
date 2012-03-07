@@ -43,6 +43,11 @@ module.exports = (getStore) ->
       pubSub.publish 'channel.1.nomatch', 'valueB'
       pubSub.publish 'channel.1.suffix', 'valueA2'
 
+  it 'unsubscribing from a path that is not subscribed to should be harmless', (done) ->
+    pubSub = onMessage()
+    pubSub.unsubscribe 'subcriber', ['not-subscribed-to-this-channel']
+    done()
+
   it 'unsubscribing from a path means the subscriber should no longer receive the path messages', (done) ->
     counter = 0
     pubSub = onMessage (subscriberId, message) ->
@@ -58,12 +63,9 @@ module.exports = (getStore) ->
         pubSub.unsubscribe '1', ['a'], ->
           pubSub.publish 'a', 'ignored'
           pubSub.publish 'b', 'last'
+        , true
       , 50
-
-  it 'unsubscribing from a path you are not subscribed to should be harmless', (done) ->
-    pubSub = onMessage()
-    pubSub.unsubscribe 'subcriber', ['not-subscribed-to-this-channel']
-    done()
+    , true
 
   it 'unsubscribing from a pattern means the subscriber should no longer receive the pattern messages', (done) ->
     counter = 0
@@ -73,11 +75,11 @@ module.exports = (getStore) ->
         expect(counter).to.equal 3
         done()
 
-    pubSub.subscribe '1', ['a.*', 'b.*'], ->
+    pubSub.subscribe '1', ['a', 'b'], ->
       pubSub.publish 'a.1', 'first'
       pubSub.publish 'b.1', 'second'
       setTimeout ->
-        pubSub.unsubscribe '1', ['a.*'], ->
+        pubSub.unsubscribe '1', ['a'], ->
           pubSub.publish 'a.2', 'ignored'
           pubSub.publish 'b.2', 'last'
       , 50
@@ -94,6 +96,8 @@ module.exports = (getStore) ->
       pubSub.subscribe '1', ['channel'], ->
         pubSub.publish 'channel', 'first'
         pubSub.publish 'channel', 'last'
+      , true
+    , true
 
   it 'subscribing > 1 time to the same pattern should still only result in the subscriber receiving the message once', (done) ->
     counter = 0
@@ -121,6 +125,21 @@ module.exports = (getStore) ->
         pubSub.publish 'channel.1', 'one'
         pubSub.publish 'channel.2', 'two'
 
+  it '2 subscribers to the same path should both receive messages', (done) ->
+    counter = 2
+    subscribersWithReceipt = {}
+    pubSub = onMessage (subscriberId, message) ->
+      subscribersWithReceipt[subscriberId] = true
+      return if --counter
+      expect(subscribersWithReceipt).to.eql '1': true, '2': true
+      done()
+
+    pubSub.subscribe '1', ['channel'], ->
+      pubSub.subscribe '2', ['channel'], ->
+        pubSub.publish 'channel', 'value'
+      , true
+    , true
+
   it '2 subscribers to the same pattern should both receive messages', (done) ->
     counter = 2
     subscribersWithReceipt = {}
@@ -130,8 +149,8 @@ module.exports = (getStore) ->
       expect(subscribersWithReceipt).to.eql '1': true, '2': true
       done()
 
-    pubSub.subscribe '1', ['channel.*'], ->
-      pubSub.subscribe '2', ['channel.*'], ->
+    pubSub.subscribe '1', ['channel'], ->
+      pubSub.subscribe '2', ['channel'], ->
         pubSub.publish 'channel.1', 'value'
 
   it 'subscribedTo should test if a client id is subscribed to a given path', ->

@@ -11,7 +11,7 @@
   "dependencies": {
     "socket.io": ">=0.9.0",
     "socket.io-client": ">=0.9.0",
-    "es5-shim": ">=1.2.3",
+    "es5-shim": ">=1.2.10",
     "browserify": ">=1.10.2",
     "uglify-js": ">=1.2.5",
     "share": "0.4.1",
@@ -22,6 +22,9 @@
     "expect.js": ">=0.1.2",
     "coffee-script": ">=1.2.0",
     "console.color": ">=0.0.4",
+    "racer-journal-redis": "*",
+    "racer-pubsub-redis": "*",
+    "racer-db-mongo": "*"
   },
   "engines": {
     "node": ">=0.4.0"

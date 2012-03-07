@@ -5,6 +5,7 @@ compile-examples:
 macro:
 	node ./lib/util/macro.js
 
+ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
 MOCHA := ./node_modules/mocha/bin/mocha
 OUT_FILE = "test-output.tmp"
@@ -19,14 +20,21 @@ test-mocha:
 		--grep "$(g)" \
 		$(MOCHA_TESTS) | tee $(OUT_FILE)
 
+test-external:
+	cd $(ROOT)/node_modules/racer-journal-redis/; make test
+	cd $(ROOT)/node_modules/racer-pubsub-redis/; make test
+	cd $(ROOT)/node_modules/racer-db-mongo/; make test
+	cd $(ROOT)
+
 test-fast:
 	@NODE_ENV=test $(MOCHA) \
 	  --colors \
 		--reporter spec \
-		--timeout 1000 \
+		--timeout 500 \
 		--grep "^(?:(?!@slow).)*$$" \
 		$(MOCHA_TESTS) | tee $(OUT_FILE)
 
 test: test-mocha
+test-all: test-mocha test-external
 test!:
 	@perl -n -e '/\[31m  0\) (.*?).\[0m/ && print "make test g=\"$$1\$$\""' $(OUT_FILE) | sh
