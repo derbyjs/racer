@@ -1,7 +1,6 @@
-queryPubSub = require './queryPubSub'
-{deserialize: deserializeQuery} = require './Query'
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util'
+{fetchQueryData, deserialize} = queryPubSub = require './queryPubSub'
 
 module.exports =
   type: 'Store'
@@ -88,10 +87,12 @@ module.exports =
       data = null
       finish = finishAfter 2, (err) ->
         callback err, data
+      # This call to subscribe must come before the fetch, since a liveQuery
+      # is created in subscribe that may be accessed during the fetch
+      send 'subscribe', this, clientId, targets, finish
       @fetch clientId, targets, (err, _data) ->
         data = _data
         finish err
-      send 'subscribe', this, clientId, targets, finish
 
     unsubscribe: (clientId, targets, callback) ->
       send 'unsubscribe', this, clientId, targets, callback
@@ -101,30 +102,7 @@ module.exports =
       queryPubSub.publish this, path, message, meta
       @_pubSub.publish path, message
 
-    query: (query, callback) ->
-      # TODO Add in an optimization later since query._paginatedCache
-      # can be read instead of going to the db. However, we must make
-      # sure that the cache is a consistent snapshot of a given moment
-      # in time. i.e., no versions of the cache should exist between
-      # an add/remove combined action that should be atomic but currently
-      # isn't
-      db = @_db
-      liveQueries = @_liveQueries
-      dbQuery = new db.Query query
-      dbQuery.run db, (err, found) ->
-        if query.isPaginated && Array.isArray(found) && (liveQuery = liveQueries[query.hash()])
-          liveQuery._paginatedCache = found
-        # TODO Get version consistency right in face of concurrent writes
-        # during query
-        callback err, found, db.version
-
-
-deserialize = (targets) ->
-  for target, i in targets
-    if Array.isArray target
-      # Deserialize query literal into a Query instance
-      targets[i] = deserializeQuery target
-  return targets
+    query: queryPubSub.query
 
 send = (method, store, clientId, targets, callback) ->
   if targets
@@ -178,17 +156,4 @@ fetchPathData = (store, data, path, finish) ->
   store.get root, (err, value, ver) ->
     # addSubDatum mutates data argument
     addSubDatum data, root, remainder, value, ver
-    finish err
-
-queryResultAsDatum = (doc, ver, query) ->
-  path = query.namespace + '.' + doc.id
-  return [path, doc, ver]
-
-fetchQueryData = (store, data, query, finish) ->
-  store.query query, (err, found, ver) ->
-    if Array.isArray found
-      for doc in found
-        data.push queryResultAsDatum(doc, ver, query)
-    else
-      data.push queryResultAsDatum(found, ver, query)
     finish err
