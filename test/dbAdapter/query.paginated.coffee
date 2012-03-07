@@ -32,7 +32,7 @@ module.exports = (getStore, getCurrNs) ->
           expect(modelA.get "#{currNs}.3").to.equal undefined
           modelB.set "#{currNs}.1.ranking", 4
 
-    it 'should remove a document that no longer satisfies the query', (done) ->
+    it 'should remove a document that no longer satisfies the query',
       mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
         modelA.on 'rmDoc', ->
           expect(modelA.get "#{currNs}.1").to.equal undefined

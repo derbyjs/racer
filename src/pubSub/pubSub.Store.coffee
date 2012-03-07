@@ -109,8 +109,11 @@ module.exports =
       # an add/remove combined action that should be atomic but currently
       # isn't
       db = @_db
+      liveQueries = @_liveQueries
       dbQuery = new db.Query query
       dbQuery.run db, (err, found) ->
+        if query.isPaginated && Array.isArray(found) && (liveQuery = liveQueries[query.hash()])
+          liveQuery._paginatedCache = found
         # TODO Get version consistency right in face of concurrent writes
         # during query
         callback err, found, db.version
