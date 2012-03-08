@@ -1,4 +1,4 @@
-text = require 'share/lib/types/text'
+text = require '../../node_modules/share/lib/types/text'
 Promise = require '../Promise'
 Serializer = require '../Serializer'
 {isSpeculative} = require '../speculative'

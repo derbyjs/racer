@@ -1,5 +1,5 @@
-text = require 'share/lib/types/text'
-syncqueue = require 'share/lib/server/syncqueue'
+text = require '../../node_modules/share/lib/types/text'
+syncqueue = require '../../node_modules/share/lib/server/syncqueue'
 FieldConnection = require './FieldConnection.server'
 
 # DB needs to keep around
