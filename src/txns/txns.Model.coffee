@@ -83,9 +83,9 @@ module.exports =
           model.__removeTxn txnId
           model._specModel()
           return if model._txnQueue.length
-          model._txnsPromise.fulfill()
+          model._txnsPromise.resolve()
         return
-      model._txnsPromise.fulfill()
+      model._txnsPromise.resolve()
 
     socket: (model, socket) ->
       memory = model._memory

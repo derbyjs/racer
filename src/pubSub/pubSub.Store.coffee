@@ -41,7 +41,7 @@ module.exports =
           delete store._clientSockets[clientId]
 
         # This promise is created in the txns.Store mixin
-        socket._clientIdPromise.fulfill clientId
+        socket._clientIdPromise.clear().resolve clientId
 
         store._checkVersion socket, ver, clientStartId, (err) ->
           # An error message will be sent to the client in checkVersion

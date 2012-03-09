@@ -99,20 +99,20 @@ Field:: =
       @flush()
     , 0
 
-  specTrigger: (shouldFulfill) ->
+  specTrigger: (shouldResolve) ->
     unless @_specTrigger
       @_specTrigger = new Promise
       @_specTrigger.on => @flush()
-    if (shouldFulfill || @model.isOtPath @path, true) && !@_specTrigger.value
-      @_specTrigger.fulfill true
+    if (shouldResolve || @model.isOtPath @path, true) && !@_specTrigger.value
+      @_specTrigger.resolve true
     return @_specTrigger
 
   # Sends ops to the server
   flush: ->
     # Used to flush the OT ops to the server when there are no pending STM transactions
     unless @_specTrigger
-      shouldFulfill = !isSpeculative @model._specModel()
-      @specTrigger shouldFulfill
+      shouldResolve = !isSpeculative @model._specModel()
+      @specTrigger shouldResolve
       return
 
     # Only one inflight op at a time
