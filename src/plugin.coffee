@@ -7,7 +7,7 @@ module.exports =
 
   use: (plugin, options) ->
     if typeof plugin is 'string'
-      return unless isServer
+      return this unless isServer
       plugin = _require plugin
 
     plugin this, options
