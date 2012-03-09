@@ -2,7 +2,11 @@
 plugin = require './plugin'
 {mergeAll, isServer} = util = require './util'
 
-racer = module.exports = mergeAll new EventEmitter(), plugin,
+racer = module.exports = new EventEmitter
+
+racer.merge = -> mergeAll this, arguments...
+
+racer.merge plugin,
 
   diffMatchPatch: require './diffMatchPatch'
   Memory: require './Memory'

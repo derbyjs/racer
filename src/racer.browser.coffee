@@ -9,7 +9,7 @@ require 'es5-shim'
 isReady = model = null
 
 module.exports = (racer) ->
-  racer.util.mergeAll racer,
+  racer.merge
 
     # socket argument makes it easier to test - see test/util/model
     init: ([clientId, memory, count, onLoad, startId, ioUri], socket) ->

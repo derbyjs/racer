@@ -5,9 +5,9 @@ socketioClient = require 'socket.io-client'
 uglify = require 'uglify-js'
 
 module.exports = (racer) ->
-  {isProduction, mergeAll} = racer.util
+  {isProduction} = racer.util
 
-  mergeAll racer,
+  racer.merge
 
     session: require './session'
     Store: Store = require './Store'
