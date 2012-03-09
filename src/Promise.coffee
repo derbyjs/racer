@@ -1,86 +1,68 @@
-Promise = module.exports = (opts) ->
+Promise = module.exports = ->
   @callbacks = []
   @errbacks = []
-  @clearValueCallbacks = []
-  if opts then for method, arg of opts
-    @[method] arg
   return
 
 Promise:: =
-  fulfill: (args...) ->
-    if @fulfilled
-      throw new Error 'Promise has already been fulfilled'
-    @fulfilled = true
-    if args.length == 1
-      @value = args[0]
-    else
-      @value = args
-    callback.apply scope, args for [callback, scope] in @callbacks
+  resolve: (@value) ->
+    if @resolved
+      throw new Error 'Promise has already been resolved'
+    @resolved = true
+    @ok = true
+    callback value for callback in @callbacks
+    errback null, value for errback in @errbacks
     @callbacks = []
-    return this
-
-  error: (err) ->
-    if @err
-      throw new Error 'Promise has already erred'
-    @err = err
-    throw err unless @errbacks.length
-    callback.call scope, err for [callback, scope] in @errbacks
     @errbacks = []
     return this
 
-  resolve: (err, vals...) ->
-    return @error err if err
-    return @fulfill vals...
+  errResolve: (err, @value) ->
+    if @resolved
+      throw new Error 'Promise has already been resolved'
+    @resolved = true
+    if err
+      @err = err
+      throw err if @callbacks.length
+      errback err, value for errback in @errbacks
+    else
+      @ok = true
+      callback value for callback in @callbacks
+      errback null, value for errback in @errbacks
+    @callbacks = []
+    @errbacks = []
     return this
 
-  on: (callback, scope) ->
-    return callback.call scope, @value if @fulfilled
-    @callbacks.push [callback, scope]
+  on: (callback) ->
+    if @ok
+      callback @value
+      return this
+    if @err
+      throw @err
+    @callbacks.push callback
     return this
 
-  errback: (callback, scope) ->
-    return callback.call scope, @err if @err
-    @errbacks.push [callback, scope]
+  errback: (errback) ->
+    if @resolved
+      errback @err, @value
+      return this
+    @errbacks.push errback
     return this
 
-  bothback: (callback, scope) ->
-    @errback callback, scope
-    @callback (vals...) ->
-      callback.call this, null, vals...
-    , scope
-
-  onClearValue: (callback, scope) ->
-    @clearValueCallbacks.push [callback, scope]
-    return this
-
-  clearValue: ->
+  clear: ->
+    delete @resolved
+    delete @ok
     delete @value
-    @fulfilled = false
-    cbs = @clearValueCallbacks
-    callback.call scope for [callback, scope] in cbs
-    @clearValueCallbacks = []
+    delete @err
     return this
 
 Promise::callback = Promise::on
 
 Promise.parallel = (promises) ->
-  compositePromise = new Promise
+  composite = new Promise
   if Array.isArray promises
-    numDependencies = promises.length
-    parallelVals = []
-    for promise, i in promises
-      do (i) ->
-        promise.callback (vals...) ->
-          parallelVals[i] = vals
-          --numDependencies || compositePromise.fulfill parallelVals...
-      promise.onClearValue -> compositePromise.clearValue()
-  else
-    numDependencies = Object.keys(promises).length
-    valsByName = {}
-    for name, promise of promises
-      do (name) ->
-        promise.callback (val) ->
-          valsByName[name] = val
-          --numDependencies || compositePromise.fulfill valsByName
-      promise.onClearValue -> compositePromise.clearValue()
-  return compositePromise
+    count = promises.length
+    err = null
+    for promise in promises
+      promise.errback (_err) ->
+        err ||= _err
+        --count || composite.errResolve err
+  return composite

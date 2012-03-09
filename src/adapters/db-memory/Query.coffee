@@ -30,7 +30,7 @@ mergeAll MemoryQuery::, LiveQuery::,
     return this
 
   run: (memoryAdapter, callback) ->
-    promise = new Promise bothback: callback
+    promise = (new Promise).errback callback
     matches = memoryAdapter.filter (doc, namespacePlusId) =>
       @testWithoutPaging doc, namespacePlusId
 
@@ -58,7 +58,7 @@ mergeAll MemoryQuery::, LiveQuery::,
           else throw new Error
         projectedDoc
 
-    promise.resolve null, matches
+    promise.errResolve null, matches
     return promise
 
 assignExcept = (to, from, exceptions) ->

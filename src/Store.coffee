@@ -113,7 +113,7 @@ Store:: =
     model._startIdPromise = startIdPromise = new Promise
     @_journal.startId (startId) ->
       model._startId = startId
-      startIdPromise.fulfill startId
+      startIdPromise.resolve startId
 
     localModels = @_localModels
     model._clientIdPromise = clientIdPromise = new Promise
@@ -121,7 +121,7 @@ Store:: =
       throw err if err
       model._clientId = clientId
       localModels[clientId] = model
-      clientIdPromise.fulfill clientId
+      clientIdPromise.resolve clientId
 
     model._bundlePromises.push startIdPromise, clientIdPromise
     return model

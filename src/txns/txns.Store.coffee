@@ -34,7 +34,7 @@ module.exports =
       # This is used to prevent emitting duplicate transactions
       socket.__base = 0
 
-      # This promise is fulfilled in the pubSub.Store mixin
+      # This promise is resolved in the pubSub.Store mixin
       socket._clientIdPromise = clientIdPromise = new Promise
 
       socket.on 'txn', (txn, clientStartId) ->
