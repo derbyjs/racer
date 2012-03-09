@@ -17,13 +17,15 @@ module.exports =
   #   type:     Name of the racer Klass in which to mixin
   #   [static]: Class/static methods to add to Klass
   #   [proto]:  Methods to add to Klass.prototype
-  #   [events]: Event callbacks including 'mixin', 'init', 'socket', ect.
+  #   [events]: Event callbacks including 'mixin', 'init', 'socket', etc.
   #
   # proto methods may be either a function or an object literal with:
   #   fn:       The method's function
-  #   [type]:   Optional string containing a comma-separated list of groups.
-  #             A reference to the method is added in an object on the Klass
-  #             with the group name
+  #   [type]:   Optionally add this method to a collection of methods accessible
+  #             via Klass.<type>. If type is a comma-separated string,
+  #             e.g., `type="foo,bar", then this method is added to several
+  #             method collections, e.g., added to `Klass.foo` and `Klass.bar`.
+  #             This is useful for grouping several methods together.
   #   <other>:  All other key-value pairings are added as properties of the method
   mixin: ->
     for mixin in arguments
@@ -31,10 +33,9 @@ module.exports =
         continue unless isServer
         mixin = _require mixin
 
-      {type} = mixin
-      Klass = @[type]
-      unless Klass
-        throw new Error "Mixins require a type parameter"  unless type
+      unless type = mixin.type
+        throw new Error "Mixins require a type parameter"
+      unless Klass = @[type]
         throw new Error "Cannot find racer.#{type}"
 
       if Klass.mixins
@@ -45,30 +46,14 @@ module.exports =
 
       mergeAll Klass, mixin.static
 
-      proto = Klass::
-      mergeProto = (items) ->
-        for name, item of items
-          if fn = item.fn
-            for key, value of item
-              continue if key is 'fn'
-              if key is 'type'
-                for groupName in value.split ','
-                  group = Klass[groupName] || Klass[groupName] = {}
-                  group[name] = fn
-                continue
-              fn[key] = value
-            proto[name] = fn
-            continue
-          proto[name] = item
-        return
-
-      mergeProto mixin.proto
+      mergeProto mixin.proto, Klass
 
       if isServer && (server = mixin.server)
-        if typeof server is 'string'
-          mergeProto _require server
-        else
-          mergeProto mixin.server
+        server =
+          if typeof server is 'string'
+          then _require server
+          else mixin.server
+        mergeProto server, Klass
 
       for name, fn of mixin.events
         @on type + ':' + name, fn
@@ -76,6 +61,22 @@ module.exports =
       @emit type + ':mixin', Klass
 
     return this
+
+mergeProto = (protoSpec, Klass) ->
+  targetPrototype = Klass::
+  for name, descriptor of protoSpec
+    if typeof descriptor is 'function'
+      targetPrototype[name] = descriptor
+      continue
+    fn = targetPrototype[name] = descriptor.fn
+    for key, value of descriptor
+      switch key
+        when 'fn' then continue
+        when 'type' then for groupName in value.split ','
+          methods = Klass[groupName] ||= {}
+          methods[name] = fn
+        else fn[key] = value
+  return
 
 emitFn = (self, type) ->
   (name, args...) -> self.emit type + ':' + name, args...
