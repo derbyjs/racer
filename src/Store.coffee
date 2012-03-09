@@ -1,6 +1,5 @@
 socketio = require 'socket.io'
-{Model} = racer = require './racer'
-Promise = require './Promise'
+{Promise, Model} = racer = require './racer'
 transaction = require './transaction.server'
 {eventRegExp} = require './path'
 {bufferify, finishAfter} = require './util'
