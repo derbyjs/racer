@@ -77,7 +77,8 @@ Store:: =
   _checkVersion: (socket, ver, clientStartId, callback) ->
     # TODO: Map the client's version number to the journal's and update
     # the client with the new startId & version when possible
-    @_journal.startId (startId) ->
+    @_journal.startId (err, startId) ->
+      return callback err if err
       if clientStartId != startId
         err = "clientStartId != startId (#{clientStartId} != #{startId})"
         socket.emit 'fatalErr', err
@@ -91,7 +92,7 @@ Store:: =
       throw err if err
       @_clientId = clientId
       @_nextTxnId = (callback) ->
-        callback '#' + @_clientId + '.' + @_txnCount++
+        callback null, '#' + @_clientId + '.' + @_txnCount++
       @_nextTxnId callback
 
   _finishCommit: (txn, ver, callback) ->
@@ -110,17 +111,16 @@ Store:: =
     model._ioUri = @_ioUri
 
     model._startIdPromise = startIdPromise = new Promise
-    @_journal.startId (startId) ->
+    @_journal.startId (err, startId) ->
       model._startId = startId
-      startIdPromise.resolve startId
+      startIdPromise.resolve err, startId
 
     localModels = @_localModels
     model._clientIdPromise = clientIdPromise = new Promise
     @_generateClientId (err, clientId) ->
-      throw err if err
       model._clientId = clientId
       localModels[clientId] = model
-      clientIdPromise.resolve clientId
+      clientIdPromise.resolve err, clientId
 
     model._bundlePromises.push startIdPromise, clientIdPromise
     return model

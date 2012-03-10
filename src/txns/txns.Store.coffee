@@ -47,7 +47,8 @@ module.exports =
             # Return errors to client, with the exeption of duplicates, which
             # may need to be sent to the model again
             return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-            clientIdPromise.on (clientId) ->
+            clientIdPromise.on (err, clientId) ->
+              throw err if err
               journal.nextTxnNum clientId, (err, num) ->
                 throw err if err
                 socket.emit 'txnOk', txnId, ver, num
@@ -55,7 +56,8 @@ module.exports =
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
         store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
-          clientIdPromise.on (clientId) ->
+          clientIdPromise.on (err, clientId) ->
+            return callback err if err
             journal.txnsSince ver, clientId, pubSub, (err, txns) ->
               return callback err if err
               journal.nextTxnNum clientId, (err, num) ->

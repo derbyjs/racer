@@ -104,7 +104,7 @@ Field:: =
       @_specTrigger = new Promise
       @_specTrigger.on => @flush()
     if (shouldResolve || @model.isOtPath @path, true) && !@_specTrigger.value
-      @_specTrigger.resolve true
+      @_specTrigger.resolve null, true
     return @_specTrigger
 
   # Sends ops to the server
