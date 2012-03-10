@@ -313,12 +313,33 @@ describe 'Model.ref', ->
     model.on 'set', '_session.user.name', cb
     model.set '_session.user.name', 'Bob'
 
-  it 'should emit once after setting a reference twice on the same path', calls 1, (done) ->
+  it 'should emit once on reference after setting a reference twice', calls 1, (done) ->
     model = new Model
     model.ref '_color', 'colors.green'
     model.ref '_color', 'colors.green'
     model.on 'set', '_color.*', done
     model.set 'colors.green.hex', '#0f0'
+
+  it 'should not emit on reference for an overwritten reference', calls 0, (done) ->
+    model = new Model
+    model.ref '_color', 'colors.green'
+    model.ref '_color', 'colors.red'
+    model.on 'set', '_color.*', done
+    model.set 'colors.green.hex', '#0f0'
+
+  it 'should emit once on referenced path after setting a reference twice', calls 1, (done) ->
+    model = new Model
+    model.ref '_color', 'colors.green'
+    model.ref '_color', 'colors.green'
+    model.on 'set', 'colors.green.*', done
+    model.set '_color.hex', '#0f0'
+
+  it 'should not emit on referenced path for an overwritten reference', calls 0, (done) ->
+    model = new Model
+    model.ref '_color', 'colors.green'
+    model.ref '_color', 'colors.red'
+    model.on 'set', 'colors.green.*', done
+    model.set '_color.hex', '#0f0'
 
   it 'supports specifying from path via scoped model', ->
     model = new Model
