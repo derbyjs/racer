@@ -31,9 +31,10 @@ module.exports = (racer) ->
       return store
 
     createAdapter: (adapterType, options) ->
-      unless Adapter = racer.adapters[adapterType][options.type]
+      try
+        Adapter = racer.adapters[adapterType][options.type]
+      catch err
         throw new Error "No #{adapterType} adapter found for #{options.type}"
-      delete options.type
       return new Adapter options
 
     # Returns a string of javascript representing a browserify bundle
