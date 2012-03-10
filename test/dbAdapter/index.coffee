@@ -1,6 +1,9 @@
 {expect} = require '../util'
 {adapter} = require '../util/store'
 
+# `adapter('db', block)` generates the exported
+# function (dbOptions, plugin, moreTests)
+# that runs `block` for the given `plugin`
 module.exports = adapter 'db', (run) ->
 
   run 'query', {noFlush: true}, require './query'
