@@ -14,9 +14,9 @@ JournalMemory::=
     @_txns = []
     @_txnClock = {}
     @_startId = (+new Date).toString 36
-    callback? null
+    callback?()
 
-  startId: (callback) -> callback @_startId
+  startId: (callback) -> callback null, @_startId
 
   version: (callback) -> callback null, @_txns.length
 

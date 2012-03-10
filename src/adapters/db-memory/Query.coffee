@@ -30,7 +30,7 @@ mergeAll MemoryQuery::, LiveQuery::,
     return this
 
   run: (memoryAdapter, callback) ->
-    promise = (new Promise).errback callback
+    promise = (new Promise).on callback
     matches = memoryAdapter.filter (doc, namespacePlusId) =>
       @testWithoutPaging doc, namespacePlusId
 
@@ -45,21 +45,19 @@ mergeAll MemoryQuery::, LiveQuery::,
       matches = matches.slice(skip, skip + limit)
 
     if selectType = @_selectType
-      matches = for doc in matches
+      for doc, i in matches
         projectedDoc = {}
-        switch selectType
-          when 'only'
-            for field of fields
-              assign projectedDoc, field, lookup(field, doc)
-            assign projectedDoc, 'id', lookup('id', doc)
-          when 'except'
-            assignExcept projectedDoc, doc, fields
+        if selectType is 'only'
+          for field of fields
+            assign projectedDoc, field, lookup(field, doc)
+          assign projectedDoc, 'id', lookup('id', doc)
+        else if selectType is 'except'
+          assignExcept projectedDoc, doc, fields
+        else
+          return promise.resolve new Error
+        matches[i] = projectedDoc
 
-          else throw new Error
-        projectedDoc
-
-    promise.errResolve null, matches
-    return promise
+    return promise.resolve null, matches
 
 assignExcept = (to, from, exceptions) ->
   return if from is undefined

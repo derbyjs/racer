@@ -6,8 +6,8 @@
 # that runs `block` for the given `plugin`
 module.exports = adapter 'db', (run) ->
 
-  run 'query', {noFlush: true}, require './query'
   run 'store mutators', require './storeMutators'
+  run 'query', {noFlush: true}, require './query'
 
   run 'db flushing', (getStore) ->
     it 'should delete all db contents', (done) ->

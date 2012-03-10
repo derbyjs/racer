@@ -188,17 +188,20 @@ module.exports =
 
     _fetch: (targets, callback) ->
       store = @store
-      @_clientIdPromise.on (clientId) ->
+      @_clientIdPromise.on (err, clientId) ->
+        return callback err if err
         store.fetch clientId, targets, callback
 
     _subAdd: (targets, callback) ->
       store = @store
-      @_clientIdPromise.on (clientId) ->
+      @_clientIdPromise.on (err, clientId) ->
+        return callback err if err
         # Subscribe while the model still only resides on the server
         # The model is unsubscribed before sending to the browser
         store.subscribe clientId, targets, callback
 
     _subRemove: (targets, callback) ->
       store = @store
-      @_clientIdPromise.on (clientId) ->
+      @_clientIdPromise.on (err, clientId) ->
+        return callback err if err
         store.unsubscribe clientId, targets, callback

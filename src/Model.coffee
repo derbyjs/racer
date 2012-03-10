@@ -6,6 +6,8 @@ Memory = require './Memory'
 Model = module.exports = ->
   @_memory = new Memory
   @_count = id: 0
+  # Set max listeners to unlimited
+  @setMaxListeners 0
   @mixinEmit 'init', this
   return
 

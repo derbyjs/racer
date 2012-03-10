@@ -7,7 +7,7 @@ JournalNone = ->
 JournalNone::=
   flush: (callback) -> callback?()
 
-  startId: (callback) -> callback null
+  startId: (callback) -> callback null, null
 
   version: (callback) -> callback null, -1
 
