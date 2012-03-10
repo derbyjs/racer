@@ -35,6 +35,16 @@ describe 'Model events', ->
       done()
     model.set 'color', 'green'
 
+  it 'model events should be emitted property on a private path', (done) ->
+    model = new Model
+    model.on 'set', '*', (path, value, previous, local) ->
+      expect(path).to.eql '_color'
+      expect(value).to.eql 'green'
+      expect(previous).to.equal undefined
+      expect(local).to.eql true
+      done()
+    model.set '_color', 'green'
+
   it 'model events should indicate when not locally emitted', (done) ->
     [model, sockets] = mockSocketModel '0'
     model.on 'set', '*', (path, value, previous, local) ->

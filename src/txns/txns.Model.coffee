@@ -233,9 +233,12 @@ module.exports =
       # Clone the args, so that they can be modified before being emitted
       # without affecting the txn args
       args = args.slice()
-      # Emit an event immediately on creation of the transaction
-      @emit method, args, out, true, @_pass
-      txn.emitted = true
+      # Emit an event immediately on creation of the transaction, unless
+      # already emitted. This may have happened for a private path that was
+      # applied when evaluating the speculative model.
+      unless txn.emitted
+        @emit method, args, out, true, @_pass
+        txn.emitted = true
 
       # Send it over Socket.IO or to the store on the server
       @_commit txn
@@ -271,6 +274,7 @@ module.exports =
             @emit method, args, null, isLocal, @_pass
         else
           @emit method, args, out, isLocal, @_pass
+          txn.emitted = true
       return out
 
     _specModel: ->
