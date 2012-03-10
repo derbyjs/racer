@@ -30,11 +30,14 @@ exports.runFn = runFn = (defaultOptions, type, typeOptions) ->
 
   run = (name, optionsList, callback) ->
     if typeof optionsList is 'function'
+      # Support `run(name, callback)` -- i.e. no options
       callback = optionsList
       optionsList = defaultOptions
     else if !optionsList
+      # Support `run(name)` -- i.e., default options
       optionsList = defaultOptions
     else if !Array.isArray(optionsList)
+      # Support `run(name, {...}, cb)` -- i.e., one options
       optionsList = [optionsList]
 
     showOptions = optionsList.length > 1
