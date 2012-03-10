@@ -341,6 +341,16 @@ describe 'Model.ref', ->
     model.on 'set', 'colors.green.*', done
     model.set '_color.hex', '#0f0'
 
+  it 'overwritten ref listeners should cleanup after a mutator event', ->
+    model = new Model
+    num = model.listeners('mutator').length
+    model.ref '_color', 'colors.green'
+    expect(model.listeners('mutator').length).to.equal num + 2
+    model.ref '_color', 'colors.green'
+    expect(model.listeners('mutator').length).to.equal num + 4
+    model.set 'colors.green.hex', '#0f0'
+    expect(model.listeners('mutator').length).to.equal num + 2
+
   it 'supports specifying from path via scoped model', ->
     model = new Model
     color = model.at '_color'
