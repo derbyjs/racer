@@ -7,20 +7,20 @@ module.exports = (getStore) ->
   it 'model.fetch & model.subscribe should retrieve items for a path pattern on the server', (done) ->
     store = getStore()
     tests =
-      '': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}}
-      'a': {a: {b: 1, c: 2, d: [1, 2]}}
-      'a.b': {a: {b: 1}}
-      'a.d': {a: {d: [1, 2]}}
-      '*.c': {a: {c: 2}, e: {c: 7}}
+      'globals._': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}, id: '_'}
+      'globals._.a': {a: {b: 1, c: 2, d: [1, 2]}}
+      'globals._.a.b': {a: {b: 1}}
+      'globals._.a.d': {a: {d: [1, 2]}}
+      'globals._.*.c': {a: {c: 2}, e: {c: 7}}
 
     patterns = Object.keys tests
     finish = finishAfter patterns.length, done
-    store.set 'a', {b: 1, c: 2, d: [1, 2]}, null, ->
-      store.set 'e', {c: 7}, null, ->
+    store.set 'globals._.a', {b: 1, c: 2, d: [1, 2]}, null, ->
+      store.set 'globals._.e', {c: 7}, null, ->
         patterns.forEach (pattern) ->
           expected = tests[pattern]
           ['subscribe', 'fetch'].forEach (method) ->
             model = store.createModel()
-            model[method] pattern, ->
-              expect(model.get()).to.eql expected
+            model[method] pattern, do (method, pattern) -> ->
+              expect(model.get('globals._')).to.eql expected
               finish()

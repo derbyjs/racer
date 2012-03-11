@@ -75,7 +75,9 @@ module.exports =
         if target.isQuery
           fetchQueryData this, data, target, finish
         else
-          fetchPathData this, data, target, finish
+          fetchPathData this, target, (path, datum, ver) ->
+            data.push [path, datum, ver]
+          , finish
       return
 
     # Fetch the set of data represented by `targets` and subscribe to future
@@ -104,6 +106,7 @@ module.exports =
 
     query: queryPubSub.query
 
+# TODO Comment this
 send = (method, store, clientId, targets, callback) ->
   if targets
     channels = []
@@ -127,33 +130,33 @@ send = (method, store, clientId, targets, callback) ->
   queryPubSub[method] store, clientId, null, finish
   store._pubSub[method] clientId, null, finish
 
-# Accumulates an array of tuples to set [path, value, ver]
-#
-# @param {Array} data is an array that gets mutated
-# @param {String} root is the part of the path up to ".*"
-# @param {String} remainder is the part of the path after "*"
-# @param {Object} value is the lookup value of the rooth path
-# @param {Number} ver is the lookup ver of the root path
-addSubDatum = (data, root, remainder, value, ver) ->
-  # Set the entire object
-  return data.push [root, value, ver]  unless remainder?
-
-  # Set each property one level down, since the path had a '*'
-  # following the current root
-  [appendRoot, remainder] = splitPath remainder
-  for prop of value
-    nextRoot = if root then root + '.' + prop else prop
-    nextValue = value[prop]
-    if appendRoot
-      nextRoot += '.' + appendRoot
-      nextValue = lookup appendRoot, nextValue
-
-    addSubDatum data, nextRoot, remainder, nextValue, ver
-  return
-
-fetchPathData = (store, data, path, finish) ->
+fetchPathData = (store, path, eachDatumCb, onComplete) ->
   [root, remainder] = splitPath path
-  store.get root, (err, value, ver) ->
-    # addSubDatum mutates data argument
-    addSubDatum data, root, remainder, value, ver
-    finish err
+  store.get root, (err, datum, ver) ->
+    return onComplete err if err
+    unless remainder?
+      eachDatumCb path, datum, ver
+    else
+      # The path contains looks like <root>.*.<remainder>,
+      # so set each property one level down
+      patternMatchingDatum root, remainder, datum, (fullPath, datum) ->
+        eachDatumCb fullPath, datum, ver
+    return onComplete null
+
+# @param {String} prefix is the part of the path up to ".*."
+# @param {String} remainder is the part of the path after ".*."
+# @param {Object} subDoc is the lookup value of the prefix
+# @param {Function} eachDatumCb is the callback for each datum matching the pattern
+patternMatchingDatum = (prefix, remainder, subDoc, eachDatumCb) ->
+  [appendToPrefix, remainder] = splitPath remainder
+  for property, value of subDoc
+    unless value.constructor == Object || Array.isArray value
+      # We can't lookup `appendToPrefix` on `value` in this case
+      continue
+
+    newPrefix = prefix + '.' + property + '.' + appendToPrefix
+    newValue = lookup appendToPrefix, value
+    unless remainder?
+      eachDatumCb newPrefix, newValue
+    else
+      patternMatchingDatum newPrefix, remainder, newValue, eachDatumCb
