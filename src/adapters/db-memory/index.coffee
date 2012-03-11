@@ -56,6 +56,7 @@ mergeAll DbMemory::, Memory::,
           catch err
             return done err, doc
           done null, doc
+
     getFn = (path, done, next) => @get path, done
     store.defaultRoute 'get', '*', getFn
     store.defaultRoute 'get', '', getFn
