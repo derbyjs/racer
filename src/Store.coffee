@@ -156,6 +156,7 @@ Store:: =
           db.version = parseInt(ver, 10)
           return done()
       fn: (method, args, done) ->
+        # TODO Don't concat every time
         routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
         [path, rest...] = args
         done ||= (err) ->
