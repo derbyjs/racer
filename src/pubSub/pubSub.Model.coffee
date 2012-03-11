@@ -126,8 +126,9 @@ module.exports =
       return callback null, out...  unless newTargets.length
 
       @_subAdd newTargets, (err, data) =>
+        return callback err if err
         @_initSubData data
-        callback err, out...
+        callback null, out...
 
     unsubscribe: (targets...) ->
       # For unsubscribe(targets..., callback)
@@ -193,12 +194,11 @@ module.exports =
         store.fetch clientId, targets, callback
 
     _subAdd: (targets, callback) ->
-      store = @store
-      @_clientIdPromise.on (err, clientId) ->
+      @_clientIdPromise.on (err, clientId) =>
         return callback err if err
         # Subscribe while the model still only resides on the server
         # The model is unsubscribed before sending to the browser
-        store.subscribe clientId, targets, callback
+        @store.subscribe clientId, targets, callback
 
     _subRemove: (targets, callback) ->
       store = @store
