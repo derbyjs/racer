@@ -18,6 +18,7 @@ module.exports = (getStore) ->
     store.flushJournal done
 
   after (done) ->
+    return done() unless store
     store.flush ->
       store.disconnect()
       done()
