@@ -158,14 +158,19 @@ lookupSet = (path, data, speculative, pathType) ->
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      unless pathType
-        parent = curr = undefined  unless i == len
-        break
-      # If pathType is truthy, create empty parent objects implied by path
-      if i == len
-        if pathType is 'array'
-          curr = parent[prop] = if speculative then createArray() else []
-        break
-      curr = parent[prop] = if speculative then createObject() else {}
+      switch pathType
+        when 'object'
+          unless i == len
+            curr = parent[prop] = if speculative then createObject() else {}
+        when 'array'
+          if i == len
+            curr = parent[prop] = if speculative then createArray() else []
+          else
+            curr = parent[prop] = if speculative then createObject() else {}
+        else
+          unless i == len
+            parent = curr = undefined
+          return [curr, parent, prop]
 
   return [curr, parent, prop]
+
