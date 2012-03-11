@@ -12,7 +12,7 @@ run 'Model.bundle', (store) ->
         # transactions committed
         expect(model._txnQueue).to.be.empty
         # and applied
-        expect(data).to.eql {presos: {racer: {slides: []}}}
+        expect(data).to.eql {presos: {racer: {id: 'racer', slides: []}}}
         done()
 
   it 'a private path transaction should not get stuck in the queue', (done) ->

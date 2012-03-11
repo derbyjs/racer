@@ -18,11 +18,12 @@ describe 'Memory', ->
     expect(memory.version).to.equal ver
 
     memory.set 'info.numbers', first: 2, second: 10, ++ver, null
-    expect(memory.get 'info.numbers').to.specEql {first: 2, second: 10}
+    expect(memory.get 'info.numbers').to.specEql {id: 'numbers', first: 2, second: 10}
     expect(memory.get()).to.specEql
         color: 'green'
         info:
           numbers:
+            id: 'numbers'
             first: 2
             second: 10
     expect(memory.version).to.equal ver
@@ -58,6 +59,7 @@ describe 'Memory', ->
     expect(memory.get()).to.specEql
       info:
         numbers:
+          id: 'numbers'
           first: 2
           second: 10
 

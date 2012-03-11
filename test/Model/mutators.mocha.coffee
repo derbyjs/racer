@@ -25,6 +25,7 @@ describe 'Model mutators', ->
       color: 'red'
       info:
         numbers:
+          id: 'numbers'
           first: 2
           second: 10
     expect(model._memory._data).to.specEql world: {}
@@ -34,6 +35,7 @@ describe 'Model mutators', ->
       color: 'red'
       info:
         numbers:
+          id: 'numbers'
           first: 2
           second: 10
           third: 13
@@ -45,6 +47,7 @@ describe 'Model mutators', ->
       color: 'green'
       info:
         numbers:
+          id: 'numbers'
           third: 13
     expect(model._memory._data).to.specEql world: {}
 

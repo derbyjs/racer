@@ -47,6 +47,7 @@ describe 'Model.ref', ->
     expect(model.get()).to.specEql
       colors:
         blue:
+          id: 'blue'
           hex: '#0f0'
       _color: ref
       selected: 'blue'
@@ -58,6 +59,7 @@ describe 'Model.ref', ->
     expect(model.get()).to.specEql
       colors:
         blue:
+          id: 'blue'
           hex: '#0f0'
       _color: ref2
       selected: 'blue'
@@ -67,6 +69,7 @@ describe 'Model.ref', ->
     expect(model.get()).to.specEql
       colors:
         blue:
+          id: 'blue'
           hex: '#0f0'
           compliment: 'yellow'
       _color: ref2
@@ -122,6 +125,7 @@ describe 'Model.ref', ->
     expect(model.get()).to.specEql
       colors:
         green:
+          id: 'green'
           hex: '#0f0'
       _color: ref
 
@@ -174,7 +178,7 @@ describe 'Model.ref', ->
     model = new Model
     model.ref '_color', 'colors.green'
     model.on 'set', 'colors.green', cb = (value, previous, isLocal) ->
-      expect(value).to.eql hex: '#0f0'
+      expect(value).to.eql hex: '#0f0', id: 'green'
       expect(previous).to.equal undefined
       expect(isLocal).to.equal true
       done()
@@ -271,7 +275,7 @@ describe 'Model.ref', ->
     model.set 'colorName', 'green'
     model.ref '_color', 'colors', 'colorName'
     model.on 'set', 'colors.green', cb = (value, previous, isLocal) ->
-      expect(value).to.eql hex: '#0f0'
+      expect(value).to.eql hex: '#0f0', id: 'green'
       expect(previous).to.equal undefined
       expect(isLocal).to.equal true
       done()
@@ -410,4 +414,4 @@ describe 'Model.ref', ->
     expect(color.path()).to.equal '_color'
     color.set 'hex', '#0f0'
     expect(color.get 'hex').to.equal '#0f0'
-    expect(model.get 'colors.green').to.specEql hex: '#0f0'
+    expect(model.get 'colors.green').to.specEql hex: '#0f0', id: 'green'

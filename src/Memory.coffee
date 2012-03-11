@@ -4,6 +4,7 @@
 ##  Do not edit it directly.
 
 {clone, create, createObject, createArray} = require './speculative'
+{isPrivate} = require './path'
 
 Memory = module.exports = ->
   @flush()
@@ -35,6 +36,8 @@ Memory:: =
     @setVersion ver
     [obj, parent, prop] = lookupSet path, data || @_data, `ver == null`, 'object'
     parent[prop] = value
+    if path.split('.').length == 2 && value?.constructor == Object
+      value.id ?= path.split('.')[1]
     return obj
 
   del: (path, ver, data) ->
@@ -148,6 +151,7 @@ lookupSet = (path, data, speculative, pathType) ->
   len = props.length
   i = 0
   curr = data.world = if speculative then create data.world else data.world
+  firstProp = props[0]
 
   while i < len
     prop = props[i++]
@@ -162,11 +166,13 @@ lookupSet = (path, data, speculative, pathType) ->
         when 'object'
           unless i == len
             curr = parent[prop] = if speculative then createObject() else {}
+            curr.id = prop if i == 2 && ! isPrivate firstProp
         when 'array'
           if i == len
             curr = parent[prop] = if speculative then createArray() else []
           else
             curr = parent[prop] = if speculative then createObject() else {}
+            curr.id = prop if i == 2 && ! isPrivate firstProp
         else
           unless i == len
             parent = curr = undefined

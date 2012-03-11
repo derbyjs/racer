@@ -8,10 +8,10 @@ module.exports = (getStore) ->
     store = getStore()
     tests =
       'globals._': {a: {b: 1, c: 2, d: [1, 2]}, e: {c: 7}, id: '_'}
-      'globals._.a': {a: {b: 1, c: 2, d: [1, 2]}}
-      'globals._.a.b': {a: {b: 1}}
-      'globals._.a.d': {a: {d: [1, 2]}}
-      'globals._.*.c': {a: {c: 2}, e: {c: 7}}
+      'globals._.a': {a: {b: 1, c: 2, d: [1, 2]}, id: '_'}
+      'globals._.a.b': {a: {b: 1}, id: '_'}
+      'globals._.a.d': {a: {d: [1, 2]}, id: '_'}
+      'globals._.*.c': {a: {c: 2}, e: {c: 7}, id: '_'}
 
     patterns = Object.keys tests
     finish = finishAfter patterns.length, done
