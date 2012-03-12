@@ -10,11 +10,13 @@ module.exports =
   mergeAll: (to, froms...) ->
     for from in froms
       if from
-        to[key] = value for key, value of from
+        for key of from
+          to[key] = from[key]
     return to
 
   merge: (to, from) ->
-    to[key] = value for key, value of from
+    for key of from
+      to[key] = from[key]
     return to
 
   hasKeys: (obj, ignore) ->
