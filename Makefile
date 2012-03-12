@@ -14,9 +14,6 @@ g = "."
 
 test-mocha:
 	@NODE_ENV=test $(MOCHA) \
-	  --colors \
-		--reporter spec \
-		--timeout 1200 \
 		--grep "$(g)" \
 		$(MOCHA_TESTS) | tee $(OUT_FILE)
 
