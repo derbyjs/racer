@@ -9,7 +9,8 @@
   "version": "0.1.9",
   "main": "./lib/racer.js",
   "scripts": {
-    "install": "./scripts/install"
+    "install": "./scripts/install",
+    "update": "./scripts/install"
   },
   "dependencies": {
     "socket.io": ">=0.9.0",
