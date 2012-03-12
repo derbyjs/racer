@@ -1,7 +1,7 @@
 fs = require 'fs'
 {normalize, join} = require 'path'
 
-files = (dir, extension, out = []) ->
+exports.files = files = (dir, extension, out = []) ->
   fs.readdirSync(dir)
     .forEach (p) ->
       p = join dir, p
@@ -11,7 +11,7 @@ files = (dir, extension, out = []) ->
         out.push p
   return out
 
-watch = (dir, extension, onChange) ->
+exports.watch = watch = (dir, extension, onChange) ->
   options = interval: 100
   files(dir, extension).forEach (file) ->
     fs.watchFile file, options, (curr, prev) ->
@@ -20,7 +20,7 @@ watch = (dir, extension, onChange) ->
 condition = (s) ->
   s.replace(/\s+or\s+/g, "' || def == '").replace(/\s+and\s+/g, "' && def == '")
 
-compileMacro = (filename) ->
+exports.compile = compile = (filename) ->
   console.log 'Compiling macro: ' + filename
   content = fs.readFileSync filename, 'utf8'
 
@@ -49,8 +49,3 @@ compileMacro = (filename) ->
 
   filename = filename[0..-7] + '.coffee'
   fs.writeFileSync filename, content, 'utf8'
-
-dir = normalize __dirname + '/../../src'
-extension = /\.macro$/
-files(dir, extension).forEach compileMacro
-watch dir, extension, compileMacro

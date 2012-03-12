@@ -1,0 +1,4 @@
+#! /bin/bash
+./scripts/compile-macro
+./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src
+./node_modules/coffee-script/bin/coffee -bc ./examples/*/*.coffee

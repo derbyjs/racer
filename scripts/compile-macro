@@ -1,0 +1,6 @@
+#! /usr/bin/env coffee
+
+{files, compile} = require '../src/util/macro'
+
+extension = /\.macro$/
+files(__dirname + '/../src', extension).forEach compile

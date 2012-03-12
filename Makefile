@@ -3,7 +3,7 @@ compile:
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
 macro:
-	node ./lib/util/macro.js
+	./scripts/watch-macro
 
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
