@@ -28,6 +28,8 @@ module.exports =
       ) + '(?:\\.|$)'
 
   lookup: (path, obj) ->
+    if path.indexOf('.') == -1
+      return obj[path]
     parts = path.split '.'
     for prop in parts
       return unless obj?
