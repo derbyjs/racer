@@ -1,5 +1,5 @@
 compile:
-	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src
+	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src ./dev
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
 macro:

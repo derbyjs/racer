@@ -47,5 +47,6 @@ exports.compile = compile = (filename) ->
   script += "return out;})()"
   content = eval script
 
-  filename = filename[0..-7] + '.coffee'
+  console.log filename
+  filename = (filename[0..-7] + '.coffee').replace('/racer/src/', '/racer/dev/')
   fs.writeFileSync filename, content, 'utf8'
