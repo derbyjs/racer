@@ -11,8 +11,7 @@ module.exports =
     # yet, but it seems to converge if run for multiple passes
 
     # Try applying the diff and then diff again until the arrays converge
-    while 1
-      break unless removes.length || moves.length || inserts.length
+    while removes.length || moves.length || inserts.length
       out = out.concat removes, moves, inserts
 
       for op in removes
