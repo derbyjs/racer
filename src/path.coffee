@@ -81,3 +81,9 @@ module.exports =
         stack = stack.parent
 
     return out
+
+  # Given a `path`, returns an array of length 3 with the namespace, id, and
+  # relative path to the attribute.
+  triplet: (path) ->
+    parts = path.split '.'
+    return [parts[0], parts[1], parts[2..].join('.')]
