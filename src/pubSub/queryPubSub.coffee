@@ -82,7 +82,7 @@ publish = (store, message, origDoc, newDoc) ->
   txn = message[1]
   txnVer = transaction.base txn
   pseudoVer = -> txnVer += 0.01
-  txnPath = transaction.path txn
+  txnPath = transaction.getPath txn
   [txnNs, txnId] = parts = txnPath.split '.'
   nsPlusId = txnNs + '.' + txnId
   liveQueries = store._liveQueries
@@ -155,7 +155,7 @@ memory.setVersion = ->
 applyTxn = (txn, doc) ->
   method = transaction.getMethod txn
   args = transaction.getArgs txn
-  path = transaction.path txn
+  path = transaction.getPath txn
   if method == 'del' && path.split('.').length == 2
     return undefined
   [ns, id] = path.split '.'

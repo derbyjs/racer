@@ -4,7 +4,7 @@ transaction.conflict = (txnA, txnB) ->
   # txnA is a new transaction, and txnB is an already committed transaction
 
   # There is no conflict if the paths don't conflict
-  return false unless transaction.pathConflict transaction.path(txnA), transaction.path(txnB)
+  return false unless transaction.pathConflict transaction.getPath(txnA), transaction.getPath(txnB)
 
   # There is no conflict if the transactions are from the same model client
   # and the new transaction was from a later client version.

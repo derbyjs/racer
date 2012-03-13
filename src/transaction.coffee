@@ -30,10 +30,8 @@ module.exports =
   getArgs: (txn) -> txn[3]
   setArgs: (txn, vals) -> txn[3] = vals
 
-  path: (txn, val) ->
-    args = @getArgs txn
-    args[0] = val if val isnt undefined
-    return args[0]
+  getPath: (txn) -> @getArgs(txn)[0]
+  setPath: (txn, val) -> @getArgs(txn)[0] = val
 
   meta: (txn, vals) ->
     txn[4] = vals if vals isnt undefined

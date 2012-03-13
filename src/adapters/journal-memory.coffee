@@ -30,7 +30,7 @@ JournalMemory::=
 
     txns = @_txns
     while txn = txns[ver++]
-      if pubSub.subscribedTo clientId, transaction.path(txn)
+      if pubSub.subscribedTo clientId, transaction.getPath(txn)
         since.push txn
     callback null, since
 

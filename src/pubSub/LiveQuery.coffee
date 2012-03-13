@@ -149,7 +149,7 @@ LiveQuery::=
       callback null, added, removed, ver
 
   isCacheImpactedByTxn: (txn) ->
-    [ns, id] = transaction.path(txn).split '.'
+    [ns, id] = transaction.getPath(txn).split '.'
     return false if ns != @namespace
     cache = @_paginatedCache
     for x in cache

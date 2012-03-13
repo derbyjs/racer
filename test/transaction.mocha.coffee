@@ -22,7 +22,7 @@ describe 'transaction', ->
 
   it 'test transaction.path', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.path txn).to.eql 'count'
+    expect(transaction.getPath txn).to.eql 'count'
 
   it 'test transaction.ops', ->
     compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
@@ -62,11 +62,11 @@ describe 'transaction', ->
     transaction.setArgs txn, ['count', 9]
     expect(transaction.getArgs txn).to.eql ['count', 9]
 
-  it 'test transaction.path setter', ->
+  it 'test transaction.setPath', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.path txn).to.equal 'count'
-    transaction.path txn, 'age'
-    expect(transaction.path txn).to.equal 'age'
+    expect(transaction.getPath txn).to.equal 'count'
+    transaction.setPath txn, 'age'
+    expect(transaction.getPath txn).to.equal 'age'
 
   it 'test transaction.ops setter', ->
     firstOps = [transaction.op.create(method: 'set', args: ['count', 1])]
