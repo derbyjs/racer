@@ -27,12 +27,11 @@ module.exports =
   getMethod: (txn) -> txn[2]
   setMethod: (txn, name) -> txn[2] = name
 
-  args: (txn, vals) ->
-    txn[3] = vals if vals isnt undefined
-    return txn[3]
+  getArgs: (txn) -> txn[3]
+  setArgs: (txn, vals) -> txn[3] = vals
 
   path: (txn, val) ->
-    args = @args txn
+    args = @getArgs txn
     args[0] = val if val isnt undefined
     return args[0]
 
@@ -72,7 +71,5 @@ module.exports =
     getMethod: (op) -> op[0]
     setMethod: (op, name) -> op[0] = name
 
-    args: (op, vals) ->
-      if vals isnt undefined
-        op[1] = vals
-      return op[1]
+    getArgs: (op) -> op[1]
+    setArgs: (op, vals) -> op[1] = vals

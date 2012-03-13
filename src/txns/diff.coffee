@@ -34,7 +34,7 @@ module.exports =
   mergeTxn: (txn, txns, txnQueue, arrayMutator, memory, before, after) ->
     path = transaction.path txn
     method = transaction.getMethod txn
-    args = transaction.args txn
+    args = transaction.getArgs txn
     if isArrayMutator = arrayMutator[method]
       [ins, rem, num] = txnEffect txn, method, args
       arraySubPath = eventRegExp "(#{path}.(\\d+)).*"
@@ -64,7 +64,7 @@ module.exports =
           before.set arrPath, arr && arr.slice(), 1, beforeData
           after.set arrPath, arr && arr.slice(), 1, afterData
           after[method] args.concat(1, afterData)...
-        argsQ = deepCopy transaction.args(txnQ)
+        argsQ = deepCopy transaction.getArgs(txnQ)
         if arraySubPath && (match = arraySubPath.exec pathQ)
           parentPath = match[1]
           i = +match[2]

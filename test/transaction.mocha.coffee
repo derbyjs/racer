@@ -16,9 +16,9 @@ describe 'transaction', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getMethod txn).to.eql 'set'
 
-  it 'test transaction.args', ->
+  it 'test transaction.getArgs', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.args txn).to.eql ['count', 1]
+    expect(transaction.getArgs txn).to.eql ['count', 1]
 
   it 'test transaction.path', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
@@ -32,9 +32,9 @@ describe 'transaction', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
     expect(transaction.op.getMethod op).to.equal 'set'
 
-  it 'test transaction.op.args', ->
+  it 'test transaction.op.getArgs', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
-    expect(transaction.op.args op).to.eql ['count', 1]
+    expect(transaction.op.getArgs op).to.eql ['count', 1]
 
   # Property setters
 
@@ -56,11 +56,11 @@ describe 'transaction', ->
     transaction.setMethod txn, 'del'
     expect(transaction.getMethod txn).to.equal 'del'
 
-  it 'test transaction.args setter', ->
+  it 'test transaction.getArgs setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.args txn).to.eql ['count', 1]
-    transaction.args txn, ['count', 9]
-    expect(transaction.args txn).to.eql ['count', 9]
+    expect(transaction.getArgs txn).to.eql ['count', 1]
+    transaction.setArgs txn, ['count', 9]
+    expect(transaction.getArgs txn).to.eql ['count', 9]
 
   it 'test transaction.path setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
@@ -82,11 +82,11 @@ describe 'transaction', ->
     transaction.op.setMethod op, 'del'
     expect(transaction.op.getMethod op).to.equal 'del'
 
-  it 'test transaction.op.args setter', ->
+  it 'test transaction.op.setArgs', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.op.args op).to.eql ['count', 1]
-    transaction.op.args op, ['count', 2]
-    expect(transaction.op.args op).to.eql ['count', 2]
+    expect(transaction.op.getArgs op).to.eql ['count', 1]
+    transaction.op.setArgs op, ['count', 2]
+    expect(transaction.op.getArgs op).to.eql ['count', 2]
 
   '''transaction.compound should return true if the txn
   has several ops''': ->

@@ -97,7 +97,7 @@ Store:: =
 
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
-    args = transaction.args(txn).slice()
+    args = transaction.getArgs(txn).slice()
     method = transaction.getMethod txn
     args.push ver
     @_sendToDb method, args, (err, origDoc) =>

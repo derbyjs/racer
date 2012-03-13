@@ -163,7 +163,7 @@ module.exports =
           if transaction.isCompound txn
             callbackArgs = transaction.ops txn
           else
-            callbackArgs = transaction.args(txn).slice 0
+            callbackArgs = transaction.getArgs(txn).slice 0
           callbackArgs.unshift err
           callback callbackArgs...
         removeTxn txnId
@@ -260,13 +260,13 @@ module.exports =
         if isCompound
           callback null, transaction.ops(txn)...
         else
-          callback null, transaction.args(txn)..., out
+          callback null, transaction.getArgs(txn)..., out
       return out
 
     _applyMutation: (extractor, txn, ver, data, doEmit, isLocal) ->
       method = extractor.getMethod txn
       return if method is 'get'
-      args = extractor.args txn
+      args = extractor.getArgs txn
       out = @_memory[method] args..., ver, data
       if doEmit
         if patch = txn.patch

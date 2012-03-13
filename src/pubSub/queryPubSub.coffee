@@ -67,7 +67,7 @@ module.exports =
         newDoc = deepCopy origDoc
       else
         # Otherwise, this is a new doc
-        newDoc = transaction.args(txn)[1]
+        newDoc = transaction.getArgs(txn)[1]
       newDoc = applyTxn txn, newDoc
       publish store, message, origDoc, newDoc
     else
@@ -90,7 +90,7 @@ publish = (store, message, origDoc, newDoc) ->
 
   if transaction.getMethod(txn) == 'set' && parts.length == 2
     # If we are setting an entire document
-    doc = transaction.args(txn)[1]
+    doc = transaction.getArgs(txn)[1]
     for hash, query of liveQueries
       queryChannel = "$q.#{hash}"
       if query.isPaginated
@@ -154,7 +154,7 @@ memory = new Memory
 memory.setVersion = ->
 applyTxn = (txn, doc) ->
   method = transaction.getMethod txn
-  args = transaction.args txn
+  args = transaction.getArgs txn
   path = transaction.path txn
   if method == 'del' && path.split('.').length == 2
     return undefined
