@@ -16,12 +16,11 @@ module.exports =
     txn[0] = val if val isnt undefined
     return txn[0]
 
-  id: (txn, val) ->
-    txn[1] = val if val isnt undefined
-    return txn[1]
+  getId: (txn) -> txn[1]
+  setId: (txn, id) -> txn[1] = id
 
   clientIdAndVer: (txn) ->
-    res = @id(txn).split '.'
+    res = @getId(txn).split '.'
     res[1] = parseInt res[1], 10
     return res
 
@@ -43,9 +42,9 @@ module.exports =
     return txn[4]
 
   clientId: (txn, newClientId) ->
-    [clientId, num] = @id(txn).split '.'
+    [clientId, num] = @getId(txn).split '.'
     if newClientId isnt undefined
-      @id(txn, newClientId + '.' + num)
+      @setId(txn, newClientId + '.' + num)
       return newClientId
     return clientId
 

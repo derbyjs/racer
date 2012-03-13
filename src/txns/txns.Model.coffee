@@ -60,7 +60,7 @@ module.exports =
         return unless txn?
 
         # Copy meta properties onto this transaction if it matches one in the queue
-        if txnQ = txns[transaction.id txn]
+        if txnQ = txns[transaction.getId txn]
           txn.callback = txnQ.callback
           txn.emitted = txnQ.emitted
 
@@ -177,7 +177,7 @@ module.exports =
     _commit: (txn) ->
       return if txn.isPrivate
       @store._commit txn, (err, txn) =>
-        return @_removeTxn transaction.id txn  if err
+        return @_removeTxn transaction.getId txn  if err
         @_onTxn txn
 
   proto:
@@ -190,7 +190,7 @@ module.exports =
     _asyncCommit: (txn, callback) ->
       return callback 'disconnected'  unless @connected
       txn.callback = callback
-      id = transaction.id txn
+      id = transaction.getId txn
       @_txns[id] = txn
       @_commit txn
 
@@ -198,7 +198,7 @@ module.exports =
 
     _queueTxn: (txn, callback) ->
       txn.callback = callback
-      id = transaction.id txn
+      id = transaction.getId txn
       @_txns[id] = txn
       @_txnQueue.push id
 
@@ -245,7 +245,7 @@ module.exports =
       return out
 
     _applyTxn: (txn, isLocal) ->
-      @_removeTxn txnId if txnId = transaction.id txn
+      @_removeTxn txnId if txnId = transaction.getId txn
       data = @_memory._data
       doEmit = !txn.emitted
       ver = Math.floor transaction.base txn
@@ -312,7 +312,7 @@ module.exports =
           out = @_applyMutation transaction, txn, null, data
 
       cache.data = data
-      cache.lastTxnId = transaction.id txn
+      cache.lastTxnId = transaction.getId txn
 
       data.$out = out
       return data
@@ -320,10 +320,10 @@ module.exports =
     # TODO: Finish implementation of atomic transactions
     # atomic: (block, callback) ->
     #   model = new AtomicModel @_nextTxnId(), this
-    #   @_atomicModels[model.id] = model
+    #   @_atomicModels[model.getId] = model
     #   commit = (_callback) =>
     #     model._commit (err) =>
-    #       delete @_atomicModels[model.id] unless err
+    #       delete @_atomicModels[model.getId] unless err
     #       _callback.apply null, arguments if _callback ||= callback
     #   abort = ->
     #   retry = ->

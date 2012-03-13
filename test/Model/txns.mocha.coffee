@@ -165,7 +165,7 @@ describe 'Model transaction handling', ->
   it 'model mutator methods should callback with error on confict', calls 2, (done) ->
     ver = 0
     [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
-      sockets.emit 'txnErr', 'conflict', transaction.id txn
+      sockets.emit 'txnErr', 'conflict', transaction.getId txn
       sockets._disconnect()
     model.set 'color', 'green', (err, path, value) ->
       expect(err).to.equal 'conflict'

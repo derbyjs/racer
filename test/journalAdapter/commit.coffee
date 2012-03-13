@@ -14,5 +14,5 @@ module.exports = (getStore) ->
       idIn.push id = "1.#{i}"
       txn = transaction.create(base: 0, id: id, method: 'set', args: ['stuff', 0])
       store._commit txn, (err, txn) ->
-        idOut.push transaction.id txn
+        idOut.push transaction.getId txn
         finish() if idOut.length is 10

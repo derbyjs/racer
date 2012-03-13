@@ -42,7 +42,7 @@ module.exports =
         store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
           store._commit txn, (err) ->
-            txnId = transaction.id txn
+            txnId = transaction.getId txn
             ver = transaction.base txn
             # Return errors to client, with the exeption of duplicates, which
             # may need to be sent to the model again

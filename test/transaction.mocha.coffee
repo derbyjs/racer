@@ -8,9 +8,9 @@ describe 'transaction', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.base txn).to.eql 2
 
-  it 'test transaction.id', ->
+  it 'test transaction.getId', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.id txn).to.eql '4.0'
+    expect(transaction.getId txn).to.eql '4.0'
 
   it 'test transaction.method', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
@@ -44,11 +44,11 @@ describe 'transaction', ->
     transaction.base txn, 3
     expect(transaction.base txn).to.equal 3
 
-  it 'test transaction.id setter', ->
+  it 'test transaction.setId ', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.id txn).to.equal '4.0'
-    transaction.id txn, '4.1'
-    expect(transaction.id txn).to.equal '4.1'
+    expect(transaction.getId txn).to.equal '4.0'
+    transaction.setId txn, '4.1'
+    expect(transaction.getId txn).to.equal '4.1'
 
   it 'test transaction.method setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]

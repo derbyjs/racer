@@ -9,7 +9,7 @@ transaction.conflict = (txnA, txnB) ->
   # There is no conflict if the transactions are from the same model client
   # and the new transaction was from a later client version.
   # However, this is not true for stores, whose IDs start with a '#'
-  txnAId = transaction.id txnA
+  txnAId = transaction.getId txnA
   if txnAId.charAt(0) != '#'
     [clientIdA, clientVerA] = transaction.clientIdAndVer txnA
     [clientIdB, clientVerB] = transaction.clientIdAndVer txnB
@@ -17,6 +17,6 @@ transaction.conflict = (txnA, txnB) ->
       return false if clientVerA > clientVerB
 
   # Ignore transactions with the same ID as an already committed transaction
-  return 'duplicate' if txnAId == transaction.id txnB
+  return 'duplicate' if txnAId == transaction.getId txnB
 
   return 'conflict'
