@@ -48,7 +48,7 @@ proto =
   _oplogAsTxn: ->
     ops = for txn in @oplog()
       transaction.op.create
-        method: transaction.method txn
+        method: transaction.getMethod txn
         args: transaction.args txn
     return transaction.create base: @version, id: @id, ops: ops
 

@@ -15,7 +15,7 @@
 #       model.get 'color'
 #       expect(model.oplog().length).to.equal 1
 #       op = model.oplog()[0]
-#       expect(transaction.method op).to.equal 'get'
+#       expect(transaction.getMethod op).to.equal 'get'
 #       done()
 
 #   it 'AtomicModel::oplog should only contain the ops that *it* has done', (done) ->
@@ -25,7 +25,7 @@
 #       model.get 'color'
 #       expect(model.oplog().length).to.equal 1
 #       op = model.oplog()[0]
-#       expect(transaction.method op).to.equal 'get'
+#       expect(transaction.getMethod op).to.equal 'get'
 #       expect(transaction.args op).to.eql ['color']
 #       expect(model._txnQueue.length).to.equal 2
 #       done()
@@ -36,7 +36,7 @@
 #     model.atomic (model) ->
 #       model.get 'color'
 #       parentTxn = model._txns[model._txnQueue[0]]
-#       expect(transaction.method parentTxn).to.equal 'set'
+#       expect(transaction.getMethod parentTxn).to.equal 'set'
 #       expect(transaction.args parentTxn).to.eql ['direction', 'west']
 #       done()
 

@@ -88,7 +88,7 @@ publish = (store, message, origDoc, newDoc) ->
   liveQueries = store._liveQueries
   pubSub = store._pubSub
 
-  if transaction.method(txn) == 'set' && parts.length == 2
+  if transaction.getMethod(txn) == 'set' && parts.length == 2
     # If we are setting an entire document
     doc = transaction.args(txn)[1]
     for hash, query of liveQueries
@@ -153,7 +153,7 @@ publish = (store, message, origDoc, newDoc) ->
 memory = new Memory
 memory.setVersion = ->
 applyTxn = (txn, doc) ->
-  method = transaction.method txn
+  method = transaction.getMethod txn
   args = transaction.args txn
   path = transaction.path txn
   if method == 'del' && path.split('.').length == 2

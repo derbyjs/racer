@@ -98,7 +98,7 @@ Store:: =
   _finishCommit: (txn, ver, callback) ->
     transaction.base txn, ver
     args = transaction.args(txn).slice()
-    method = transaction.method txn
+    method = transaction.getMethod txn
     args.push ver
     @_sendToDb method, args, (err, origDoc) =>
       # TODO De-couple publish from db write

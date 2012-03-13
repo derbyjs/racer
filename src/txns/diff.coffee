@@ -33,7 +33,7 @@ module.exports =
   # Given a txn, does a diff based on the txnQueue
   mergeTxn: (txn, txns, txnQueue, arrayMutator, memory, before, after) ->
     path = transaction.path txn
-    method = transaction.method txn
+    method = transaction.getMethod txn
     args = transaction.args txn
     if isArrayMutator = arrayMutator[method]
       [ins, rem, num] = txnEffect txn, method, args
@@ -47,7 +47,7 @@ module.exports =
       continue if txnQ.callback
       pathQ = transaction.path txnQ
       continue unless transaction.pathConflict path, pathQ
-      methodQ = transaction.method txnQ
+      methodQ = transaction.getMethod txnQ
       if isArrayMutator || arrayMutator[methodQ]
         unless arrPath
           if isArrayMutator

@@ -264,7 +264,7 @@ module.exports =
       return out
 
     _applyMutation: (extractor, txn, ver, data, doEmit, isLocal) ->
-      method = extractor.method txn
+      method = extractor.getMethod txn
       return if method is 'get'
       args = extractor.args txn
       out = @_memory[method] args..., ver, data

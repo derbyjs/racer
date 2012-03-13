@@ -12,9 +12,9 @@ describe 'transaction', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getId txn).to.eql '4.0'
 
-  it 'test transaction.method', ->
+  it 'test transaction.getMethod', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.method txn).to.eql 'set'
+    expect(transaction.getMethod txn).to.eql 'set'
 
   it 'test transaction.args', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
@@ -28,9 +28,9 @@ describe 'transaction', ->
     compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
     expect(transaction.ops compoundTxn).to.eql [transaction.op.create(method: 'set', args: ['count', 1])]
 
-  it 'test transaction.op.method', ->
+  it 'test transaction.op.getMethod', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
-    expect(transaction.op.method op).to.equal 'set'
+    expect(transaction.op.getMethod op).to.equal 'set'
 
   it 'test transaction.op.args', ->
     op = transaction.op.create method: 'set', args: ['count', 1]
@@ -50,11 +50,11 @@ describe 'transaction', ->
     transaction.setId txn, '4.1'
     expect(transaction.getId txn).to.equal '4.1'
 
-  it 'test transaction.method setter', ->
+  it 'test transaction.setMethod', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.method txn).to.equal 'set'
-    transaction.method txn, 'del'
-    expect(transaction.method txn).to.equal 'del'
+    expect(transaction.getMethod txn).to.equal 'set'
+    transaction.setMethod txn, 'del'
+    expect(transaction.getMethod txn).to.equal 'del'
 
   it 'test transaction.args setter', ->
     txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
@@ -76,11 +76,11 @@ describe 'transaction', ->
     transaction.ops txn, secondOps
     expect(transaction.ops txn).to.eql secondOps
 
-  it 'test transaction.op.method setter', ->
+  it 'test transaction.op.setMethod', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.op.method op).to.equal 'set'
-    transaction.op.method op, 'del'
-    expect(transaction.op.method op).to.equal 'del'
+    expect(transaction.op.getMethod op).to.equal 'set'
+    transaction.op.setMethod op, 'del'
+    expect(transaction.op.getMethod op).to.equal 'del'
 
   it 'test transaction.op.args setter', ->
     op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]

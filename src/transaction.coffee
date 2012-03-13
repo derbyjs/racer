@@ -24,9 +24,8 @@ module.exports =
     res[1] = parseInt res[1], 10
     return res
 
-  method: (txn, name) ->
-    txn[2] = name if name isnt undefined
-    return txn[2]
+  getMethod: (txn) -> txn[2]
+  setMethod: (txn, name) -> txn[2] = name
 
   args: (txn, vals) ->
     txn[3] = vals if vals isnt undefined
@@ -70,9 +69,8 @@ module.exports =
       op = [obj.method, obj.args]
       return op
 
-    method: (op, name) ->
-      op[0] = name if name isnt undefined
-      return op[0]
+    getMethod: (op) -> op[0]
+    setMethod: (op, name) -> op[0] = name
 
     args: (op, vals) ->
       if vals isnt undefined
