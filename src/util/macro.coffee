@@ -1,5 +1,5 @@
 fs = require 'fs'
-{normalize, join} = require 'path'
+{normalize, join, existsSync} = require 'path'
 
 exports.files = files = (dir, extension, out = []) ->
   fs.readdirSync(dir)
@@ -47,6 +47,7 @@ exports.compile = compile = (filename) ->
   script += "return out;})()"
   content = eval script
 
-  console.log filename
+  unless existsSync './dev'
+    fs.mkdirSync './dev'
   filename = (filename[0..-7] + '.coffee').replace('/racer/src/', '/racer/dev/')
   fs.writeFileSync filename, content, 'utf8'
