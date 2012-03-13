@@ -19,6 +19,7 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
         clearTimeout @_waiter
         @_waiter = null
 
+  # Maps future indexes -> transaction
   @_pending = {}
   @_index = init ? 1  # Corresponds to ver in Store and txnNum in Model
   return
@@ -26,26 +27,26 @@ module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
 Serializer::=
   _clearWaiter: ->
   _setWaiter: ->
-  add: (txn, txnIndex, arg) ->
+  add: (msg, msgIndex, arg) ->
     index = @_index
     # Cache this message to be applied later if it is not the next index
-    if txnIndex > index
-      @_pending[txnIndex] = txn
+    if msgIndex > index
+      @_pending[msgIndex] = msg
       @_setWaiter()
       return true
 
     # Ignore this message if it is older than the current index
-    return false if txnIndex < index
+    return false if msgIndex < index
 
     # Otherwise apply it immediately
-    @withEach txn, index, arg
+    @withEach msg, index, arg
     @_clearWaiter()
 
     # And apply any messages that were waiting for txn
     index++
     pending = @_pending
-    while txn = pending[index]
-      @withEach txn, index, arg
+    while msg = pending[index]
+      @withEach msg, index, arg
       delete pending[index++]
     @_index = index
     return true
