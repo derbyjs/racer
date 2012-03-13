@@ -1,5 +1,5 @@
 {expect} = require './util'
-transaction = require '../src/transaction.server'
+transaction = require '../lib/transaction.server'
 
 describe 'transaction', ->
   # Property getters

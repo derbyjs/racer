@@ -1,5 +1,5 @@
 {expect} = require '../util'
-{Model, transaction} = require '../../src/racer'
+{Model, transaction} = require '../../lib/racer'
 {mockSocketEcho, mockSocketModel} = require '../util/model'
 
 mirrorTest = (done, init, callback) ->

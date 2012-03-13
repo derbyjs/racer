@@ -1,6 +1,6 @@
 {inspect} = require 'util'
 {expect, calls} = require './util'
-{diffArrays} = require '../src/diffMatchPatch'
+{diffArrays} = require '../lib/diffMatchPatch'
 
 describe 'diffArrays', ->
 

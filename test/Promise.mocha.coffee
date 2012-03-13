@@ -1,5 +1,5 @@
 {expect, calls} = require './util'
-Promise = require '../src/Promise'
+Promise = require '../lib/Promise'
 
 describe 'Promise', ->
 

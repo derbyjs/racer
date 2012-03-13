@@ -1,5 +1,5 @@
 {inspect} = require 'util'
-speculative = require '../../src/speculative'
+speculative = require '../../lib/speculative'
 require 'console.color'
 exports.expect = expect = require 'expect.js'
 
@@ -13,11 +13,11 @@ exports.calls = (num, fn) ->
     fn -> done() if ++n >= num
 
 extended = [
-  require.resolve '../../src/racer'
-  require.resolve '../../src/util'
-  require.resolve '../../src/plugin'
-  require.resolve '../../src/Model'
-  require.resolve '../../src/Store'
+  require.resolve '../../lib/racer'
+  require.resolve '../../lib/util'
+  require.resolve '../../lib/plugin'
+  require.resolve '../../lib/Model'
+  require.resolve '../../lib/Store'
   require.resolve './store'
 ]
 exports.clearRequireCache = ->

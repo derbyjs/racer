@@ -1,6 +1,6 @@
 {inspect} = require 'util'
 {expect} = require './index'
-racer = require '../../src/racer'
+racer = require '../../lib/racer'
 integration = require '../Store/integration'
 
 exports.DEFAULT_RUN_OPTIONS = DEFAULT_RUN_OPTIONS =

@@ -1,6 +1,6 @@
 {calls, clearRequireCache} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
-racerPath = require.resolve '../../src/racer'
+racerPath = require.resolve '../../lib/racer'
 
 exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   # Delete the cache of all modules extended for the server

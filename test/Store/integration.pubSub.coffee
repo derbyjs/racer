@@ -1,6 +1,6 @@
 {expect} = require '../util'
 {mockFullSetup} = require '../util/model'
-{finishAfter} = require '../../src/util'
+{finishAfter} = require '../../lib/util'
 
 module.exports = (getStore) ->
 

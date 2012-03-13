@@ -1,5 +1,5 @@
 {expect} = require './util'
-{createObject, createArray, create, isSpeculative} = require '../src/speculative'
+{createObject, createArray, create, isSpeculative} = require '../lib/speculative'
 
 describe 'speculative', ->
 

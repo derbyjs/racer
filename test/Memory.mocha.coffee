@@ -1,5 +1,5 @@
 {expect} = require './util'
-Memory = require '../src/Memory'
+Memory = require '../lib/Memory'
 
 describe 'Memory', ->
 

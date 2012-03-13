@@ -1,5 +1,5 @@
 {expect} = require '../util'
-transaction = require '../../src/transaction'
+transaction = require '../../lib/transaction'
 
 module.exports = (getStore) ->
 

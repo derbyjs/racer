@@ -1,5 +1,5 @@
 {EventEmitter} = require 'events'
-{deepCopy} = require '../../src/util'
+{deepCopy} = require '../../lib/util'
 
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'

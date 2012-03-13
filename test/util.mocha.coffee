@@ -1,5 +1,5 @@
 {expect} = require './util'
-util = require '../src/util'
+util = require '../lib/util'
 
 describe 'util', ->
 

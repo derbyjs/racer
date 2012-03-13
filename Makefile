@@ -13,6 +13,7 @@ OUT_FILE = "test-output.tmp"
 g = "."
 
 test-mocha:
+	$(ROOT)/scripts/prepublish;
 	@NODE_ENV=test $(MOCHA) \
 		--grep "$(g)" \
 		$(MOCHA_TESTS) | tee $(OUT_FILE)

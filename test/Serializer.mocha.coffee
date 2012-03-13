@@ -1,5 +1,5 @@
 {expect} = require './util'
-Serializer = require '../src/Serializer'
+Serializer = require '../lib/Serializer'
 
 describe 'Serializer', ->
 

@@ -1,5 +1,5 @@
 {expect} = require './util'
-{isPrivate, regExp, eventRegExp, split, expand} = require '../src/path'
+{isPrivate, regExp, eventRegExp, split, expand} = require '../lib/path'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList

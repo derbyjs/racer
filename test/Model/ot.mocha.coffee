@@ -1,10 +1,10 @@
 {expect, clearRequireCache} = require '../util'
-{finishAfter} = require '../../src/util'
+{finishAfter} = require '../../lib/util'
 {createBrowserRacer, mockSocketEcho, mockFullSetup, createBrowserModel} = require '../util/model'
 
 clearRequireCache()
-racer = require '../../src/racer'
-racer.use ot = require '../../src/ot'
+racer = require '../../lib/racer'
+racer.use ot = require '../../lib/ot'
 {run} = require '../util/store'
 {Model} = createBrowserRacer plugins = [ot]
 

@@ -1,5 +1,5 @@
 {expect} = require '../util'
-{finishAfter} = require '../../src/util'
+{finishAfter} = require '../../lib/util'
 {mockFullSetup} = require '../util/model'
 
 module.exports = (getStore, getCurrNs) ->
