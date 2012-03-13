@@ -1,5 +1,5 @@
 {split: splitPath, lookup} = require '../path'
-{finishAfter} = require '../util'
+{finishAfter} = require '../util/async'
 {fetchQueryData, deserialize} = queryPubSub = require './queryPubSub'
 
 module.exports =

@@ -1,5 +1,5 @@
 {expect, clearRequireCache} = require '../util'
-{finishAfter} = require '../../lib/util'
+{finishAfter} = require '../../lib/util/async'
 {createBrowserRacer, mockSocketEcho, mockFullSetup, createBrowserModel} = require '../util/model'
 
 clearRequireCache()

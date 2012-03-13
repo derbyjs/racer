@@ -1,5 +1,5 @@
 {expect} = require '../util'
-{forEach} = require '../../lib/util'
+{forEach} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
 
 module.exports = (getStore) ->

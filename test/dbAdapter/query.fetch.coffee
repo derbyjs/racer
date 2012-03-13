@@ -1,5 +1,5 @@
 {expect} = require '../util'
-{forEach} = require '../../lib/util'
+{forEach} = require '../../lib/util/async'
 
 module.exports = (getStore, getCurrNs) ->
   store = currNs = null
