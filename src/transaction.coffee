@@ -33,9 +33,8 @@ module.exports =
   getPath: (txn) -> @getArgs(txn)[0]
   setPath: (txn, val) -> @getArgs(txn)[0] = val
 
-  meta: (txn, vals) ->
-    txn[4] = vals if vals isnt undefined
-    return txn[4]
+  getMeta: (txn) -> txn[4]
+  setMeta: (txn, vals) -> txn[4] = vals
 
   clientId: (txn, newClientId) ->
     [clientId, num] = @getId(txn).split '.'

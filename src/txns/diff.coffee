@@ -7,7 +7,7 @@ module.exports =
   txnEffect: txnEffect = (txn, method, args) ->
     switch method
       when 'push'
-        ins = transaction.meta txn
+        ins = transaction.getMeta txn
         num = args.length - 1
       when 'unshift'
         ins = 0
@@ -16,7 +16,7 @@ module.exports =
         ins = args[1]
         num = args.length - 2
       when 'pop'
-        rem = transaction.meta txn
+        rem = transaction.getMeta txn
         num = 1
       when 'shift'
         rem = 0
