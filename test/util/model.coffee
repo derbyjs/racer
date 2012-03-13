@@ -108,7 +108,12 @@ exports.mockFullSetup = (getStore, options, callback) ->
   serverSockets = new ServerSocketsMock()
   testPath = "tests.#{++ns}"
 
-  test = calls numCalls, (done) ->
+  return calls numCalls, (done) ->
+    allDone = (err) ->
+      return done err if err
+      serverSockets._disconnect()
+      done()
+
     browserModels = []
     i = numBrowsers
     store = getStore()
@@ -116,8 +121,4 @@ exports.mockFullSetup = (getStore, options, callback) ->
     while i--
       createBrowserModel store, testPath, options, (model) ->
         browserModels.push model
-        --numBrowsers || callback browserModels..., done
-
-  return (done) ->
-    test done
-    serverSockets._disconnect()
+        --numBrowsers || callback browserModels..., allDone

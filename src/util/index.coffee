@@ -26,11 +26,13 @@ module.exports =
     return false
 
   finishAfter: finishAfter = (count, callback) ->
-    callback() unless count
+    callback ||= (err) ->
+      throw err if err
+    return callback unless count
     err = null
     return (_err) ->
       err ||= _err
-      --count || callback? err
+      --count || callback err
 
   forEach: (items, fn, done) ->
     finish = finishAfter items.length, done

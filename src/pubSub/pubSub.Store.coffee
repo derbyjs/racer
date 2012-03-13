@@ -64,15 +64,15 @@ module.exports =
   proto:
     fetch: (clientId, targets, callback) ->
       data = []
-      pubSub = @_pubSub
-      finish = finishAfter targets.length, (err) ->
+      finish = finishAfter targets.length, (err) =>
         out = {data}
         # Note that `out` may be mutated by ot or other plugins
-        pubSub.emit 'fetch', out, clientId, targets
+        @_pubSub.emit 'fetch', out, clientId, targets
         callback err, out
 
       for target in targets
         if target.isQuery
+          # TODO Make this consistent with fetchPathData
           fetchQueryData this, data, target, finish
         else
           fetchPathData this, target, (path, datum, ver) ->
