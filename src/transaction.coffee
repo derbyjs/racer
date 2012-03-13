@@ -36,12 +36,11 @@ module.exports =
   getMeta: (txn) -> txn[4]
   setMeta: (txn, vals) -> txn[4] = vals
 
-  clientId: (txn, newClientId) ->
+  getClientId: (txn) -> @getId(txn).split('.')[0]
+  setClientId: (txn, newClientId) ->
     [clientId, num] = @getId(txn).split '.'
-    if newClientId isnt undefined
-      @setId(txn, newClientId + '.' + num)
-      return newClientId
-    return clientId
+    @setId(txn, newClientId + '.' + num)
+    return newClientId
 
   pathConflict: (pathA, pathB) ->
     # Paths conflict if equal or either is a sub-path of the other
