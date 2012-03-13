@@ -21,9 +21,9 @@ module.exports =
         # Otherwise, send the transaction over Socket.io
         if socket = clientSockets[clientId]
           # Prevent sending duplicate transactions by only sending new versions
-          base = transaction.base txn
-          if base > socket.__base
-            socket.__base = base
+          ver = transaction.getVer txn
+          if ver > socket.__ver
+            socket.__ver = ver
             journal.nextTxnNum clientId, (err, num) ->
               throw err if err
               socket.emit 'txn', txn, num
@@ -32,18 +32,18 @@ module.exports =
       journal = store._journal
       pubSub = store._pubSub
       # This is used to prevent emitting duplicate transactions
-      socket.__base = 0
+      socket.__ver = 0
 
       # This promise is resolved in the pubSub.Store mixin
       socket._clientIdPromise = clientIdPromise = new Promise
 
       socket.on 'txn', (txn, clientStartId) ->
-        ver = transaction.base txn
+        ver = transaction.getVer txn
         store._checkVersion socket, ver, clientStartId, (err) ->
           return if err
           store._commit txn, (err) ->
             txnId = transaction.getId txn
-            ver = transaction.base txn
+            ver = transaction.getVer txn
             # Return errors to client, with the exeption of duplicates, which
             # may need to be sent to the model again
             return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
@@ -63,5 +63,5 @@ module.exports =
               journal.nextTxnNum clientId, (err, num) ->
                 return callback err if err
                 if len = txns.length
-                  socket.__base = transaction.base txns[len - 1]
+                  socket.__ver = transaction.getVer txns[len - 1]
                 callback null, txns, num

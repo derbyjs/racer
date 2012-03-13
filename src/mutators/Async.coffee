@@ -17,47 +17,47 @@ Async:: =
 
   set: (path, value, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'set', args: [path, value]
+      txn = transaction.create ver: ver, id: id, method: 'set', args: [path, value]
       @_commit txn, callback
 
   del: (path, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'del', args: [path]
+      txn = transaction.create ver: ver, id: id, method: 'del', args: [path]
       @_commit txn, callback
 
   push: (path, items, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'push', args: [path].concat(items)
+      txn = transaction.create ver: ver, id: id, method: 'push', args: [path].concat(items)
       @_commit txn, callback
 
   unshift: (path, items, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'unshift', args: [path].concat(items)
+      txn = transaction.create ver: ver, id: id, method: 'unshift', args: [path].concat(items)
       @_commit txn, callback
 
   insert: (path, index, items, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'insert', args: [path, index].concat(items)
+      txn = transaction.create ver: ver, id: id, method: 'insert', args: [path, index].concat(items)
       @_commit txn, callback
 
   pop: (path, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'pop', args: [path]
+      txn = transaction.create ver: ver, id: id, method: 'pop', args: [path]
       @_commit txn, callback
 
   shift: (path, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'shift', args: [path]
+      txn = transaction.create ver: ver, id: id, method: 'shift', args: [path]
       @_commit txn, callback
 
   remove: (path, start, howMany, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'remove', args: [path, start, howMany]
+      txn = transaction.create ver: ver, id: id, method: 'remove', args: [path, start, howMany]
       @_commit txn, callback
 
   move: (path, from, to, howMany, ver, callback) ->
     @_nextTxnId (err, id) =>
-      txn = transaction.create base: ver, id: id, method: 'move', args: [path, from, to, howMany]
+      txn = transaction.create ver: ver, id: id, method: 'move', args: [path, from, to, howMany]
       @_commit txn, callback
 
   incr: (path, byNum, callback) ->

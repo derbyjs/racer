@@ -7,7 +7,7 @@ describe 'Model events', ->
   it 'model events should get emitted properly', (done) ->
     ver = 0
     [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
-      transaction.base txn, ++ver
+      transaction.setVer txn, ++ver
       sockets.emit 'txn', txn, ver
     count = 0
     model.on 'set', '*', (path, value) ->
@@ -54,7 +54,7 @@ describe 'Model events', ->
       expect(local).to.eql false
       sockets._disconnect()
       done()
-    sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
 
   it 'model.once should only emit once', (done) ->
     model = new Model
@@ -93,7 +93,7 @@ describe 'Model events', ->
     eventCalled = false
     model.on 'set', 'color', (val) ->
       eventCalled = true
-    txn = transaction.create(base: 1, id: 'clientA.0', method: 'set', args: ['color', 'green'])
+    txn = transaction.create(ver: 1, id: 'clientA.0', method: 'set', args: ['color', 'green'])
     model._txns['clientA.0'] = txn
     model._txnQueue = ['clientA.0']
     txn.emitted = true

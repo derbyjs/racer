@@ -4,28 +4,28 @@ transaction = require '../src/transaction.server'
 describe 'transaction', ->
   # Property getters
 
-  it 'test transaction.base', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.base txn).to.eql 2
+  it 'test transaction.getVer', ->
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
+    expect(transaction.getVer txn).to.eql 2
 
   it 'test transaction.getId', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getId txn).to.eql '4.0'
 
   it 'test transaction.getMethod', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getMethod txn).to.eql 'set'
 
   it 'test transaction.getArgs', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getArgs txn).to.eql ['count', 1]
 
   it 'test transaction.path', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getPath txn).to.eql 'count'
 
   it 'test transaction.ops', ->
-    compoundTxn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
+    compoundTxn = transaction.create ver: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
     expect(transaction.ops compoundTxn).to.eql [transaction.op.create(method: 'set', args: ['count', 1])]
 
   it 'test transaction.op.getMethod', ->
@@ -38,64 +38,64 @@ describe 'transaction', ->
 
   # Property setters
 
-  it 'test transaction.base setter', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
-    expect(transaction.base txn).to.equal 2
-    transaction.base txn, 3
-    expect(transaction.base txn).to.equal 3
+  it 'test transaction.setVer', ->
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
+    expect(transaction.getVer txn).to.equal 2
+    transaction.setVer txn, 3
+    expect(transaction.getVer txn).to.equal 3
 
   it 'test transaction.setId ', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getId txn).to.equal '4.0'
     transaction.setId txn, '4.1'
     expect(transaction.getId txn).to.equal '4.1'
 
   it 'test transaction.setMethod', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getMethod txn).to.equal 'set'
     transaction.setMethod txn, 'del'
     expect(transaction.getMethod txn).to.equal 'del'
 
   it 'test transaction.getArgs setter', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getArgs txn).to.eql ['count', 1]
     transaction.setArgs txn, ['count', 9]
     expect(transaction.getArgs txn).to.eql ['count', 9]
 
   it 'test transaction.setPath', ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.getPath txn).to.equal 'count'
     transaction.setPath txn, 'age'
     expect(transaction.getPath txn).to.equal 'age'
 
   it 'test transaction.ops setter', ->
     firstOps = [transaction.op.create(method: 'set', args: ['count', 1])]
-    txn = transaction.create base: 3, id: '4.1', ops: firstOps
+    txn = transaction.create ver: 3, id: '4.1', ops: firstOps
     expect(transaction.ops txn).to.eql firstOps
     secondOps = [transaction.op.create(method: 'push', args: ['a', 'b'])]
     transaction.ops txn, secondOps
     expect(transaction.ops txn).to.eql secondOps
 
   it 'test transaction.op.setMethod', ->
-    op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    op = transaction.op.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.op.getMethod op).to.equal 'set'
     transaction.op.setMethod op, 'del'
     expect(transaction.op.getMethod op).to.equal 'del'
 
   it 'test transaction.op.setArgs', ->
-    op = transaction.op.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    op = transaction.op.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.op.getArgs op).to.eql ['count', 1]
     transaction.op.setArgs op, ['count', 2]
     expect(transaction.op.getArgs op).to.eql ['count', 2]
 
   '''transaction.compound should return true if the txn
   has several ops''': ->
-    txn = transaction.create base: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
+    txn = transaction.create ver: 3, id: '4.1', ops: [transaction.op.create(method: 'set', args: ['count', 1])]
     expect(transaction.isCompound txn).to.be.true
 
   '''transaction.compound should return false if the txn
   has only one op''': ->
-    txn = transaction.create base: 2, id: '4.0', method: 'set', args: ['count', 1]
+    txn = transaction.create ver: 2, id: '4.0', method: 'set', args: ['count', 1]
     expect(transaction.isCompound txn).to.be.false
 
   # Evaluating (but not applying) transactions
@@ -118,19 +118,19 @@ describe 'transaction', ->
   # Transaction Conflict Detection
 
   it 'test conflict detection between transactions', ->
-    txn0 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
-    txn1 = transaction.create base: 0, id: '1.0', method: 'set', args: ['count', 1]
-    txn2 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 0]
-    txn3 = transaction.create base: 0, id: '0.0', method: 'del', args: ['count', 1]
-    txn4 = transaction.create base: 0, id: '0.0', method: 'set', args: ['count', 1, 0]
-    txn5 = transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 1]
-    txn6 = transaction.create base: 0, id: '0.1', method: 'set', args: ['name', 'drago']
+    txn0 = transaction.create ver: 0, id: '1.0', method: 'set', args: ['count', 1]
+    txn1 = transaction.create ver: 0, id: '1.0', method: 'set', args: ['count', 1]
+    txn2 = transaction.create ver: 0, id: '0.0', method: 'set', args: ['count', 0]
+    txn3 = transaction.create ver: 0, id: '0.0', method: 'del', args: ['count', 1]
+    txn4 = transaction.create ver: 0, id: '0.0', method: 'set', args: ['count', 1, 0]
+    txn5 = transaction.create ver: 0, id: '0.1', method: 'set', args: ['count', 1]
+    txn6 = transaction.create ver: 0, id: '0.1', method: 'set', args: ['name', 'drago']
 
-    txn2s = transaction.create base: 0, id: '#0.0', method: 'set', args: ['count', 1]
-    txn5s = transaction.create base: 0, id: '#0.1', method: 'set', args: ['count', 1]
+    txn2s = transaction.create ver: 0, id: '#0.0', method: 'set', args: ['count', 1]
+    txn5s = transaction.create ver: 0, id: '#0.1', method: 'set', args: ['count', 1]
 
-    txn7 = transaction.create base: 0, id: '1.0', method: 'set', args: ['obj.nested', 0]
-    txn8 = transaction.create base: 0, id: '2.0', method: 'set', args: ['obj.nested.a', 0]
+    txn7 = transaction.create ver: 0, id: '1.0', method: 'set', args: ['obj.nested', 0]
+    txn8 = transaction.create ver: 0, id: '2.0', method: 'set', args: ['obj.nested.a', 0]
 
     expect(transaction.conflict txn1, txn2).to.eql 'conflict' # Different arguments
     expect(transaction.conflict txn1, txn3).to.eql 'conflict' # Different method

@@ -67,8 +67,8 @@ module.exports =
         unless isLocal = 'callback' of txn
           mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
 
-        base = transaction.base txn
-        if base > memory.version || base == -1
+        ver = transaction.getVer txn
+        if ver > memory.version || ver == -1
           model._applyTxn txn, isLocal
         return
 
@@ -152,9 +152,9 @@ module.exports =
 
       # The model receives 'txnOk' from the server/store after the server/store
       # applies the transaction successfully
-      socket.on 'txnOk', (txnId, base, num) ->
+      socket.on 'txnOk', (txnId, ver, num) ->
         return unless txn = txns[txnId]
-        transaction.base txn, base
+        transaction.setVer txn, ver
         addRemoteTxn txn, num
 
       socket.on 'txnErr', (err, txnId) ->
@@ -211,9 +211,9 @@ module.exports =
       return unless (path = args[0])?
 
       # Create a new transaction
-      base = @_getVersion()
+      ver = @_getVersion()
       id = @_nextTxnId()
-      txn = transaction.create {base, id, method, args}
+      txn = transaction.create {ver, id, method, args}
       txn.isPrivate = isPrivate path
 
       # Add remove index as txn metadata. Null if transaction does nothing
@@ -248,7 +248,7 @@ module.exports =
       @_removeTxn txnId if txnId = transaction.getId txn
       data = @_memory._data
       doEmit = !txn.emitted
-      ver = Math.floor transaction.base txn
+      ver = Math.floor transaction.getVer txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
         for op in ops

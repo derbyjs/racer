@@ -50,7 +50,7 @@ proto =
       transaction.op.create
         method: transaction.getMethod txn
         args: transaction.getArgs txn
-    return transaction.create base: @version, id: @id, ops: ops
+    return transaction.create ver: @version, id: @id, ops: ops
 
   _getVersion: -> @version
 
@@ -73,6 +73,6 @@ proto =
     ver = @version
     for id in @_txnQueue
       myTxn = txns[id]
-      if @isMyOp(id) && transaction.pathConflict(txn, myTxn) && ver < transaction.base(txn)
+      if @isMyOp(id) && transaction.pathConflict(txn, myTxn) && ver < transaction.getVer(txn)
         return true
     return false

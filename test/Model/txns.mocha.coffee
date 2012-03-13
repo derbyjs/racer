@@ -10,16 +10,16 @@ describe 'Model transaction handling', ->
 
     model.set 'color', 'green'
     expect(model._txnQueue).to.eql ['0.0']
-    expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
+    expect(model._txns['0.0'].slice()).to.eql transaction.create ver: 0, id: '0.0', method: 'set', args: ['color', 'green']
 
     model.set 'count', 0
     expect(model._txnQueue).to.eql ['0.0', '0.1']
-    expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-    expect(model._txns['0.1'].slice()).to.eql transaction.create base: 0, id: '0.1', method: 'set', args: ['count', 0]
+    expect(model._txns['0.0'].slice()).to.eql transaction.create ver: 0, id: '0.0', method: 'set', args: ['color', 'green']
+    expect(model._txns['0.1'].slice()).to.eql transaction.create ver: 0, id: '0.1', method: 'set', args: ['count', 0]
 
   it 'client performs set on receipt of message', ->
     [model, sockets] = mockSocketModel()
-    sockets.emit 'txn', transaction.create(base: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 1, id: 'server0.0', method: 'set', args: ['color', 'green']), 1
     expect(model.get 'color').to.eql 'green'
     expect(model._memory.version).to.eql 1
     sockets._disconnect()
@@ -84,21 +84,21 @@ describe 'Model transaction handling', ->
 
   it 'transactions received out of order should be applied in order', ->
     [model, sockets] = mockSocketModel()
-    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 1, id: '_.0', method: 'set', args: ['color', 'green']), 1
     expect(model.get 'color').to.eql 'green'
 
-    sockets.emit 'txn', transaction.create(base: 3, id: '_.0', method: 'set', args: ['color', 'red']), 3
+    sockets.emit 'txn', transaction.create(ver: 3, id: '_.0', method: 'set', args: ['color', 'red']), 3
     expect(model.get 'color').to.eql 'green'
 
-    sockets.emit 'txn', transaction.create(base: 2, id: '_.0', method: 'set', args: ['number', 7]), 2
+    sockets.emit 'txn', transaction.create(ver: 2, id: '_.0', method: 'set', args: ['number', 7]), 2
     expect(model.get 'color').to.eql 'red'
     expect(model.get 'number').to.eql 7
     sockets._disconnect()
 
   it 'duplicate transaction versions should not be applied', ->
     [model, sockets] = mockSocketModel()
-    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
-    sockets.emit 'txn', transaction.create(base: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
+    sockets.emit 'txn', transaction.create(ver: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 1, id: '_.0', method: 'push', args: ['colors', 'green']), 2
     expect(model.get 'colors').to.specEql ['green']
     sockets._disconnect()
 
@@ -112,10 +112,10 @@ describe 'Model transaction handling', ->
       expect(ver).to.eql 3
       sockets._disconnect()
       done()
-    sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
-    sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
-    sockets.emit 'txn', transaction.create(base: 4, id: '1.4', method: 'set', args: ['color', 'green']), 4
-    sockets.emit 'txn', transaction.create(base: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
+    sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
+    sockets.emit 'txn', transaction.create(ver: 4, id: '1.4', method: 'set', args: ['color', 'green']), 4
+    sockets.emit 'txn', transaction.create(ver: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
 
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
     ignoreFirst = true
@@ -124,9 +124,9 @@ describe 'Model transaction handling', ->
       # so the first one should be ignored
       return ignoreFirst = false  if ignoreFirst
       done()
-    sockets.emit 'txn', transaction.create(base: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
-    sockets.emit 'txn', transaction.create(base: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3
-    sockets.emit 'txn', transaction.create(base: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
+    sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
+    sockets.emit 'txn', transaction.create(ver: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3
+    sockets.emit 'txn', transaction.create(ver: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
     setTimeout sockets._disconnect, 50
 
   it 'forcing a model method should create a transaction with a null version', ->
@@ -135,9 +135,9 @@ describe 'Model transaction handling', ->
     model.set 'color', 'green'
     model.force().set 'color', 'red'
     model.force().del 'color'
-    expect(model._txns['0.0'].slice()).to.eql transaction.create base: 0, id: '0.0', method: 'set', args: ['color', 'green']
-    expect(model._txns['0.1'].slice()).to.eql transaction.create base: null, id: '0.1', method: 'set', args: ['color', 'red']
-    expect(model._txns['0.2'].slice()).to.eql transaction.create base: null, id: '0.2', method: 'del', args: ['color']
+    expect(model._txns['0.0'].slice()).to.eql transaction.create ver: 0, id: '0.0', method: 'set', args: ['color', 'green']
+    expect(model._txns['0.1'].slice()).to.eql transaction.create ver: null, id: '0.1', method: 'set', args: ['color', 'red']
+    expect(model._txns['0.2'].slice()).to.eql transaction.create ver: null, id: '0.2', method: 'del', args: ['color']
 
   it 'a forced model mutation should not result in an adapter ver of null or undefined', ->
     model = new Model
@@ -149,7 +149,7 @@ describe 'Model transaction handling', ->
   it 'model mutator methods should callback on completion', calls 2, (done) ->
     ver = 0
     [model, sockets] = mockSocketModel '0', 'txn', (txn) ->
-      transaction.base txn, ++ver
+      transaction.setVer txn, ++ver
       sockets.emit 'txn', txn
       sockets._disconnect()
     model.set 'color', 'green', (err, path, value) ->

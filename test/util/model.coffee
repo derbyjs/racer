@@ -53,7 +53,7 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
   newTxns = []
   serverSockets = new ServerSocketsMock()
   serverSockets._queue = (txn) ->
-    transaction.base txn, ++ver
+    transaction.setVer txn, ++ver
     newTxns.push txn
   serverSockets.on 'connection', (socket) ->
     socket.on 'txnsSince', (ver, clientStartId, callback) ->

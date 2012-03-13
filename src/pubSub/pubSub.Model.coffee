@@ -38,7 +38,7 @@ module.exports =
           # doesn't hang because it never sees `num`
           return model._addRemoteTxn null, num
 
-        txn = transaction.create base: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
+        txn = transaction.create ver: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
         model._addRemoteTxn txn, num
         model.emit 'addDoc', "#{ns}.#{doc.id}", doc
 
@@ -50,7 +50,7 @@ module.exports =
           if hash != key && query.test doc, "#{ns}.#{id}"
             return model._addRemoteTxn null, num
 
-        txn = transaction.create base: ver, id: null, method: 'del', args: ["#{ns}.#{id}"]
+        txn = transaction.create ver: ver, id: null, method: 'del', args: ["#{ns}.#{id}"]
         model._addRemoteTxn txn, num
         model.emit 'rmDoc', ns + '.' + id, doc
 

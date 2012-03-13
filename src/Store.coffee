@@ -96,7 +96,7 @@ Store:: =
       @_nextTxnId callback
 
   _finishCommit: (txn, ver, callback) ->
-    transaction.base txn, ver
+    transaction.setVer txn, ver
     args = transaction.getArgs(txn).slice()
     method = transaction.getMethod txn
     args.push ver

@@ -146,7 +146,7 @@ describe 'Model.ref', ->
       done()
     ref = model.ref '_color', 'colors.green'
     expected = [transaction.create(
-      base: 0, id: '0.1', method: 'set', args: ['colors.green.hex', '#0f0']
+      ver: 0, id: '0.1', method: 'set', args: ['colors.green.hex', '#0f0']
     )]
     model.set '_color.hex', '#0f0'
 

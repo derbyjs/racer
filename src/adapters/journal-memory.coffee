@@ -45,7 +45,7 @@ JournalMemory::=
 commit = (txns, store, txn, callback) ->
   journalTxn = JSON.parse JSON.stringify txn
   ver = txns.push journalTxn
-  transaction.base journalTxn, ver
+  transaction.setVer journalTxn, ver
   store._finishCommit txn, ver, callback
 
 commitFns =
@@ -53,7 +53,7 @@ commitFns =
     commit self._txns, store, txn, callback
 
   stm: (self, store) -> (txn, callback) ->
-    ver = transaction.base txn
+    ver = transaction.getVer txn
     txns = self._txns
     if ver?
       if typeof ver isnt 'number'

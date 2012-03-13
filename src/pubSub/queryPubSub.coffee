@@ -80,7 +80,7 @@ queryResultAsDatum = (doc, ver, query) ->
 
 publish = (store, message, origDoc, newDoc) ->
   txn = message[1]
-  txnVer = transaction.base txn
+  txnVer = transaction.getVer txn
   pseudoVer = -> txnVer += 0.01
   txnPath = transaction.getPath txn
   [txnNs, txnId] = parts = txnPath.split '.'

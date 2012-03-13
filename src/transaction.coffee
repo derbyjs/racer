@@ -1,5 +1,5 @@
 # Transactions are represented as an Array:
-# [ base = version at the time of the transaction
+# [ ver = version at the time of the transaction
 # , transaction id
 # , method
 # , arguments]
@@ -7,14 +7,13 @@
 module.exports =
   create: (obj) ->
     if obj.ops
-      txn = [obj.base, obj.id, obj.ops]
+      txn = [obj.ver, obj.id, obj.ops]
     else
-      txn = [obj.base, obj.id, obj.method, obj.args]
+      txn = [obj.ver, obj.id, obj.method, obj.args]
     return txn
 
-  base: (txn, val) ->
-    txn[0] = val if val isnt undefined
-    return txn[0]
+  getVer: (txn) -> txn[0]
+  setVer: (txn, val) -> txn[0] = val
 
   getId: (txn) -> txn[1]
   setId: (txn, id) -> txn[1] = id
