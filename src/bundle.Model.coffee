@@ -29,4 +29,4 @@ mixin =
       callback JSON.stringify [clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
 
 onBundleTimeout = ->
-  throw new Error 'Model bundling took longer than #{BUNDLE_TIMEOUT} ms'
+  throw new Error "Model bundling took longer than #{BUNDLE_TIMEOUT} ms"
