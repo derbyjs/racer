@@ -18,7 +18,7 @@ mixin =
     bundle: (callback) ->
       # This event can be used by Model mixins to add items to onLoad before bundling
       @mixinEmit 'bundle', this
-      timeout = setTimeout BUNDLE_TIMEOUT, onBundleTimeout
+      timeout = setTimeout onBundleTimeout, BUNDLE_TIMEOUT
       Promise.parallel(@_bundlePromises).on =>
         clearTimeout timeout
         @_bundle callback
