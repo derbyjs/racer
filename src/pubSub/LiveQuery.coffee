@@ -16,6 +16,7 @@ LiveQuery::=
     return this
 
   testWithoutPaging: (doc, channel) ->
+    # Lazy compile the doc filter
     @testWithoutPaging = compileDocFilter @_predicates
     @testWithoutPaging doc, channel
 
@@ -35,7 +36,7 @@ LiveQuery::=
       currVal = lookup currProp, doc
       if typeof currVal is 'object'
         return deepEqual currVal, val
-      currVal == val
+      return currVal == val
     return this
 
   notEquals: (val) ->
