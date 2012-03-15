@@ -59,6 +59,7 @@ mergeAll MemoryQuery::, LiveQuery::,
 
     return promise.resolve null, matches
 
+# TODO Move this into a ./util file
 assignExcept = (to, from, exceptions) ->
   return if from is undefined
   for key, val of from
