@@ -5,6 +5,7 @@
 
 DEFAULT_TIMEOUT = 1000
 
+# TODO Respect Single Responsibility -- place waiter code elsewhere
 module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
   if onTimeout
     timeout = DEFAULT_TIMEOUT if timeout is undefined
