@@ -1,7 +1,11 @@
+{deepEqual} = require '../util'
+
 module.exports = (model, path, inputs, callback, destroy) ->
   modelPassFn = model.pass 'fn'
   run = ->
+    previous = model.get path
     value = callback (model.get input for input in inputs)...
+    return value if deepEqual value, previous
     modelPassFn.set path, value
     return value
   out = run()
