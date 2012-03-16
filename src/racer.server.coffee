@@ -31,11 +31,19 @@ module.exports = (racer) ->
       return store
 
     createAdapter: (adapterType, options) ->
-      try
-        Adapter = racer.adapters[adapterType][options.type]
-      catch err
-        throw new Error "No #{adapterType} adapter found for #{options.type}"
-      return new Adapter options
+      if typeof options is 'string'
+        options = type: options
+      if !options.constructor == Object
+        # Then, we passed in an Adapter directly as options
+        adapter = options
+      else
+        try
+          Adapter = racer.adapters[adapterType][options.type]
+        catch err
+          throw new Error "No #{adapterType} adapter found for #{options.type}"
+        adapter = new Adapter options
+      adapter.connect?()
+      return adapter
 
     # Returns a string of javascript representing a browserify bundle
     # and the socket.io client-side code

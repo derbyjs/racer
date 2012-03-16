@@ -1,5 +1,5 @@
 socketio = require 'socket.io'
-{Promise, Model} = racer = require './racer'
+{Promise, Model, createAdapter} = racer = require './racer'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
@@ -18,12 +18,12 @@ transaction = require './transaction.server'
 
 Store = module.exports = (options = {}) ->
   @_localModels = {}
-  @_journal = journal = createAdapter options, 'journal', type: 'Memory'
-  @_db = db = createAdapter options, 'db', type: 'Memory'
+  @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
+  @_db = db = racer.createAdapter 'db', options.journal || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
-  @_clientId = clientId = createAdapter options, 'clientId', type: 'Rfc4122_v4'
+  @_clientId = clientId = racer.createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
 
   # Add a @_commit method to this store based on the conflict resolution mode
   # TODO: Default mode should be 'ot' once supported
@@ -184,17 +184,6 @@ Store:: =
       return fn.apply null, captures.concat(rest, [lockingDone, next])
 
 Store.MODES = ['lww', 'stm']
-
-Store.createAdapter = createAdapter = (storeOptions, adapterType, defaultOptions) ->
-  options = storeOptions[adapterType] || defaultOptions
-  if typeof options is 'string'
-    options = type: options
-  if options.type
-    adapter = racer.createAdapter adapterType, options
-    adapter.connect?()
-    return adapter
-  return options
-
 
 bufferifyMethods Store, ['_sendToDb'],
   await: (done) ->
