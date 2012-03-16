@@ -1,4 +1,5 @@
 {expect} = require '../util'
+{finishAfter} = require '../../lib/util/async'
 
 # TODO Add remove tests
 # TODO Add more move tests
@@ -295,3 +296,22 @@ module.exports = (getStore) ->
           expect(value).to.specEql ['red', 'yellow', 'green', 'orange', 'blue']
           expect(ver).to.equal _ver
           done()
+
+  it 'should end up in the intended state after a series of rapid inserts on the same path', (done) ->
+    store = getStore()
+    finish = finishAfter 3, ->
+      store.get 'globals._.colors', (err, value, ver) ->
+        expect(err).to.be.null()
+        expect(value).to.specEql ['THREE', 'TWO', 'ONE']
+        expect(ver).to.equal _ver
+        done()
+    _ver = 0
+    store.insert 'globals._.colors', 0, ['ONE'], ++_ver, (err) ->
+      expect(err).to.be.null()
+      finish()
+    store.insert 'globals._.colors', 0, ['TWO'], ++_ver, (err) ->
+      expect(err).to.be.null()
+      finish()
+    store.insert 'globals._.colors', 0, ['THREE'], ++_ver, (err) ->
+      expect(err).to.be.null()
+      finish()
