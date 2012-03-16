@@ -1,8 +1,8 @@
 socketio = require 'socket.io'
 {Promise, Model} = racer = require './racer'
 transaction = require './transaction.server'
-{eventRegExp} = require './path'
-{bufferify, finishAfter} = require './util'
+{eventRegExp, subPathToDoc} = require './path'
+{bufferifyMethods, finishAfter} = require './util/async'
 
 # store = new Store
 #   mode:      'lww' || 'stm' || 'ot'
@@ -18,10 +18,11 @@ transaction = require './transaction.server'
 
 Store = module.exports = (options = {}) ->
   @_localModels = {}
-
   @_journal = journal = createAdapter options, 'journal', type: 'Memory'
-  @_pubSub = pubSub = createAdapter options, 'pubSub', type: 'Memory'
   @_db = db = createAdapter options, 'db', type: 'Memory'
+  @_writeLocks = {}
+  @_waitingForUnlock = {}
+
   @_clientId = clientId = createAdapter options, 'clientId', type: 'Rfc4122_v4'
 
   # Add a @_commit method to this store based on the conflict resolution mode
@@ -30,7 +31,7 @@ Store = module.exports = (options = {}) ->
 
   @_generateClientId = clientId.generateFn()
 
-  @mixinEmit 'init', this
+  @mixinEmit 'init', this, options
 
   @_persistenceRoutes = persistenceRoutes = {}
   @_defaultPersistenceRoutes = defaultPersistenceRoutes = {}
@@ -101,9 +102,8 @@ Store:: =
     method = transaction.getMethod txn
     args.push ver
     @_sendToDb method, args, (err, origDoc) =>
-      # TODO De-couple publish from db write
       @publish transaction.getPath(txn), 'txn', txn, {origDoc}
-      callback err, txn  if callback
+      callback err, txn if callback
 
   createModel: ->
     model = new Model
@@ -134,7 +134,7 @@ Store:: =
     delete localModels[clientId]
 
 
-  ## PERSISTENCE ROUTER ##
+  ## ACCESSOR ROUTERS/MIDDLEWARE ##
 
   route: (method, path, fn) ->
     re = eventRegExp path
@@ -146,39 +146,46 @@ Store:: =
     @_defaultPersistenceRoutes[method].push [re, fn]
     return this
 
-  _sendToDb:
-    bufferify '_sendToDb',
-      await: (done) ->
-        db = @_db
-        return done() if db.version isnt undefined
-        @_journal.version (err, ver) ->
-          throw err if err
-          db.version = parseInt(ver, 10)
-          return done()
-      fn: (method, args, done) ->
-        # TODO Don't concat every time
-        routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
-        [path, rest...] = args
-        done ||= (err) ->
-          throw err if err
-        i = 0
-        do next = ->
-          unless handler = routes[i++]
-            throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
-          [re, fn] = handler
-          return next() unless path == '' || (match = path.match re)
-          captures = if path == ''
-              ['']
-            else if match.length > 1
-              match[1..]
-            else
-              [match[0]]
-          return fn.apply null, captures.concat(rest, [done, next])
+  _sendToDb: (method, args, done) ->
+    [path, rest...] = args
+    if method != 'get'
+      pathToDoc = subPathToDoc path
+      if pathToDoc of @_writeLocks
+        return (@_waitingForUnlock[pathToDoc] ||= []).push [method, args, done]
 
+      @_writeLocks[pathToDoc] = true
+      done ||= (err) ->
+        throw err if err
+      lockingDone = =>
+        delete @_writeLocks[pathToDoc]
+        if buffer = @_waitingForUnlock[pathToDoc]
+          [method, args, __done] = buffer.shift()
+          delete @_waitingForUnlock[pathToDoc] unless buffer.length
+          @_sendToDb method, args, __done
+        done arguments...
+    else
+      lockingDone = done
+
+    # TODO Don't concat every time
+    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
+
+    i = 0
+    do next = ->
+      unless handler = routes[i++]
+        throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
+      [re, fn] = handler
+      return next() unless path == '' || (match = path.match re)
+      captures = if path == ''
+          ['']
+        else if match.length > 1
+          match[1..]
+        else
+          [match[0]]
+      return fn.apply null, captures.concat(rest, [lockingDone, next])
 
 Store.MODES = ['lww', 'stm']
 
-createAdapter = (storeOptions, adapterType, defaultOptions) ->
+Store.createAdapter = createAdapter = (storeOptions, adapterType, defaultOptions) ->
   options = storeOptions[adapterType] || defaultOptions
   if typeof options is 'string'
     options = type: options
@@ -187,3 +194,13 @@ createAdapter = (storeOptions, adapterType, defaultOptions) ->
     adapter.connect?()
     return adapter
   return options
+
+
+bufferifyMethods Store, ['_sendToDb'],
+  await: (done) ->
+    db = @_db
+    return done() if db.version isnt undefined
+    @_journal.version (err, ver) ->
+      throw err if err
+      db.version = parseInt(ver, 10)
+      return done()

@@ -1,3 +1,5 @@
+console.assert require('../util').isServer
+
 Memory = require '../Memory'
 transaction = require '../transaction.server'
 {deepCopy} = require '../util'
@@ -5,32 +7,6 @@ LiveQuery = require './LiveQuery'
 {deserialize: deserializeQuery} = require './Query'
 
 module.exports =
-  query: (query, callback) ->
-    # TODO Add in an optimization later since query._paginatedCache
-    # can be read instead of going to the db. However, we must make
-    # sure that the cache is a consistent snapshot of a given moment
-    # in time. i.e., no versions of the cache should exist between
-    # an add/remove combined action that should be atomic but currently
-    # isn't
-    db = @_db
-    liveQueries = @_liveQueries
-    dbQuery = new db.Query query
-    dbQuery.run db, (err, found) ->
-      if query.isPaginated && Array.isArray(found) && (liveQuery = liveQueries[query.hash()])
-        liveQuery._paginatedCache = found
-      # TODO Get version consistency right in face of concurrent writes
-      # during query
-      callback err, found, db.version
-
-  fetchQueryData: (store, data, query, finish) ->
-    store.query query, (err, found, ver) ->
-      if Array.isArray found
-        for doc in found
-          data.push queryResultAsDatum(doc, ver, query)
-      else
-        data.push queryResultAsDatum(found, ver, query)
-      finish err
-
   deserialize: (targets) ->
     for target, i in targets
       if Array.isArray target
@@ -73,10 +49,6 @@ module.exports =
     else
       publish store, message, meta
     return
-
-queryResultAsDatum = (doc, ver, query) ->
-  path = query.namespace + '.' + doc.id
-  return [path, doc, ver]
 
 publish = (store, message, origDoc, newDoc) ->
   txn = message[1]

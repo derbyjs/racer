@@ -1,12 +1,14 @@
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util/async'
-{fetchQueryData, deserialize} = queryPubSub = require './queryPubSub'
+{deserialize} = queryPubSub = require './queryPubSub'
+{createAdapter} = require '../Store'
 
 module.exports =
   type: 'Store'
 
   events:
-    init: (store) ->
+    init: (store, opts) ->
+      store._pubSub = createAdapter opts, 'pubSub', type: 'Memory'
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
       pubSub = store._pubSub
@@ -65,15 +67,18 @@ module.exports =
     fetch: (clientId, targets, callback) ->
       data = []
       finish = finishAfter targets.length, (err) =>
+        return callback err if err
         out = {data}
         # Note that `out` may be mutated by ot or other plugins
         @_pubSub.emit 'fetch', out, clientId, targets
-        callback err, out
+        callback null, out
 
       for target in targets
         if target.isQuery
           # TODO Make this consistent with fetchPathData
-          fetchQueryData this, data, target, finish
+          fetchQueryData this, target, (path, datum, ver) ->
+            data.push [path, datum, ver]
+          , finish
         else
           fetchPathData this, target, (path, datum, ver) ->
             data.push [path, datum, ver]
@@ -104,7 +109,24 @@ module.exports =
       queryPubSub.publish this, path, message, meta
       @_pubSub.publish path, message
 
-    query: queryPubSub.query
+    # TODO Move this into another module?
+    query: (query, callback) ->
+      # TODO Add in an optimization later since query._paginatedCache
+      # can be read instead of going to the db. However, we must make
+      # sure that the cache is a consistent snapshot of a given moment
+      # in time. i.e., no versions of the cache should exist between
+      # an add/remove combined action that should be atomic but currently
+      # isn't
+      db = @_db
+      liveQueries = @_liveQueries
+      dbQuery = new db.Query query
+      dbQuery.run db, (err, found) ->
+        if query.isPaginated && Array.isArray(found) && (liveQuery = liveQueries[query.hash()])
+          liveQuery._paginatedCache = found
+        # TODO Get version consistency right in face of concurrent writes
+        # during query
+        callback err, found, db.version
+
 
 # TODO Comment this
 send = (method, store, clientId, targets, callback) ->
@@ -160,3 +182,24 @@ patternMatchingDatum = (prefix, remainder, subDoc, eachDatumCb) ->
       eachDatumCb newPrefix, newValue
     else
       patternMatchingDatum newPrefix, remainder, newValue, eachDatumCb
+
+# TODO Add in an optimization later since query._paginatedCache
+# can be read instead of going to the db. However, we must make
+# sure that the cache is a consistent snapshot of a given moment
+# in time. i.e., no versions of the cache should exist between
+# an add/remove combined action that should be atomic but currently
+# isn't
+# TODO Get version consistency right in face of concurrent writes
+# during query
+fetchQueryData = (store, query, eachDatumCb, finish) ->
+  store.query query, (err, result, version) ->
+    return finish err if err
+
+    if Array.isArray result
+      for doc in result
+        path = query.namespace + '.' + doc.id
+        eachDatumCb path, doc, version
+    else
+      path = query.namespace + '.' + result.id
+      eachDatumCb path, result, version
+    finish null

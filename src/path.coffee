@@ -87,3 +87,5 @@ module.exports =
   triplet: (path) ->
     parts = path.split '.'
     return [parts[0], parts[1], parts[2..].join('.')]
+
+  subPathToDoc: (path) -> path.split('.')[0..1].join('.')
