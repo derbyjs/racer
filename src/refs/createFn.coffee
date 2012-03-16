@@ -1,13 +1,24 @@
 {deepEqual} = require '../util'
+{diffArrays} = require '../diffMatchPatch'
 
 module.exports = (model, path, inputs, callback, destroy) ->
   modelPassFn = model.pass 'fn'
   run = ->
     previous = model.get path
     value = callback (model.get input for input in inputs)...
+    
+    if Array.isArray(previous) && Array.isArray(value)
+      diff = diffArrays previous, value
+      for args in diff
+        method = args[0]
+        args[0] = path
+        modelPassFn[method] args...
+      return
+
     return value if deepEqual value, previous
     modelPassFn.set path, value
     return value
+
   out = run()
 
   # Create regular expression matching the path or any of its parents

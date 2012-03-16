@@ -152,3 +152,44 @@ describe 'Model.fn', ->
     model.set 'arg', 5
     out.fn 'arg', (arg) -> arg * 2
     expect(model.get '_out').to.equal 10
+
+  it 'only emits events when the output value differs', (done) ->
+    model = new Model
+    model.set 'items', [
+      {active: true}
+      {active: false}
+    ]
+    value = model.fn '_hasActive', 'items', (items) ->
+      for item in items
+        return true if item.active
+      return false
+    expect(value).to.equal true
+
+    model.on 'set', '_hasActive', (value) ->
+      expect(value).to.equal false
+      done()
+
+    model.push 'items', {active: false}
+    model.set 'items.1.active', true
+    model.set 'items.0.active', false
+    # This is the only operation that should produce an event
+    model.set 'items.1.active', false
+    model.pop 'items'
+
+  it 'emits array diff events instead of sets', (done) ->
+    model = new Model
+    model.set 'items', [3, 2, 1]
+    value = model.fn '_sorted', 'items', (items) ->
+      items.slice().sort()
+    expect(value).to.specEql [1, 2, 3]
+
+    model.on 'set', '_sorted', ->
+      done new Error 'set called'
+    model.on 'insert', '_sorted', (index, value) ->
+      expect(model.get 'items').to.specEql [3, 2, 1, 4]
+      expect(model.get '_sorted').to.specEql [1, 2, 3, 4]
+      expect(index).to.equal 3
+      expect(value).to.equal 4
+      done()
+
+    model.push 'items', 4
