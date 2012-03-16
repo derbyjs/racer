@@ -55,8 +55,7 @@ module.exports =
 
   # Ported to coffeescript from node.js assert.js
   objEquiv: objEquiv = (a, b) ->
-    if !a? && !b?
-      # if isUndefinedOrNull(a) || isUndefinedOrNull(b)
+    if `a == null` || `b == null`
       return false
     # an identical 'prototype' property.
     return false if a:: != b::
