@@ -19,7 +19,7 @@ transaction = require './transaction.server'
 Store = module.exports = (options = {}) ->
   @_localModels = {}
   @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
-  @_db = db = racer.createAdapter 'db', options.journal || {type: 'Memory'}
+  @_db = db = racer.createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
