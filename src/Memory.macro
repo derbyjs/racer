@@ -25,7 +25,8 @@ Memory:: =
     # Note that $deref is set to null instead of being deleted; deleting a
     # value in a speculative model would not override the underlying value
     data.$deref = null
-    if path then lookup(path, data, getRef) else data.world
+    return lookup path, data, getRef if path
+    return data.world
 
   set: (path, value, ver, data) ->
     @setVersion ver
