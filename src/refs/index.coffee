@@ -80,6 +80,9 @@ mixin =
       return model.at from
 
     fn: (inputs..., callback) ->
+      # Convert scoped models into paths
+      for input, i in inputs
+        inputs[i] = input._at || input
       path = if @_at then @_at else inputs.shift()
       model = @_root
       model._checkRefPath path, 'fn'

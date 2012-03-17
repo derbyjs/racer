@@ -6,7 +6,7 @@ module.exports = (model, path, inputs, callback, destroy) ->
   run = ->
     previous = model.get path
     value = callback (model.get input for input in inputs)...
-    
+
     if Array.isArray(previous) && Array.isArray(value)
       diff = diffArrays previous, value
       for args in diff
@@ -43,7 +43,7 @@ module.exports = (model, path, inputs, callback, destroy) ->
       model.removeListener 'mutator', listener
       destroy?()
     else if reInput.test mutatorPath
-      out = run()
+      process.nextTick -> out = run()
     return
 
   return out
