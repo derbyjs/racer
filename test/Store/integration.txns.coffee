@@ -4,7 +4,7 @@
 module.exports = (getStore) ->
 
   it 'events should be emitted in remote subscribed models',
-    mockFullSetup getStore, numBrowsers: 2, (modelA, modelB, done) ->
+    mockFullSetup getStore, (modelA, modelB, done) ->
       modelA.on 'set', '_test.color', (value, previous, isLocal) ->
         expect(value).to.equal 'green'
         expect(previous).to.equal undefined

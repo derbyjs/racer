@@ -51,7 +51,7 @@ module.exports = (getStore) ->
     beforeEach setPlayers
 
     it 'should update the version when the doc is removed from a model because it no longer matches subscriptions',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         oldVer = null
         modelA.on 'rmDoc', ->
           expect(modelA._getVersion()).to.equal(oldVer + 1)
@@ -62,7 +62,7 @@ module.exports = (getStore) ->
           modelB.set "#{currNs}.1.ranking", 11
 
     it 'should update the version when the doc is added to a model because it starts to match subscriptions',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         oldVer = null
         modelA.on 'addDoc', ->
           expect(modelA._getVersion()).to.equal(oldVer + 1)
@@ -76,7 +76,7 @@ module.exports = (getStore) ->
     beforeEach setPlayers
 
     it 'should apply a txn if a document is still in a query result set after a mutation',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         modelA.on 'set', ->
           expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
           done()
@@ -90,7 +90,7 @@ module.exports = (getStore) ->
           modelB.set "#{currNs}.3.name.last", 'Djokovic'
 
     it 'should not apply a txn if a document is being added to a query result set after a mutation',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         modelA.on 'set', ([path, val]) ->
           if path == "#{currNs}.3"
             expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
@@ -112,7 +112,7 @@ module.exports = (getStore) ->
     # The second time it sees the now-duplicate transaction, it doesn't
     # send it down because the txn version == socket version.
     it 'should only receive a transaction once if it applies to > 1 query',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         modelA.on 'set', ([path, val], ver) ->
           if path == "#{currNs}.3.name.last"
             expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}

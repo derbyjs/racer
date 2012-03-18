@@ -24,7 +24,7 @@ module.exports = (getStore, getCurrNs) ->
     return
 
   test = ({query, events, definedBefore, definedAfter, onSubscribe}) ->
-    mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+    mockFullSetup getStore, (modelA, modelB, done) ->
       forEach events, (event, callback) ->
         modelA.on event, -> callback()
       , ->
@@ -82,7 +82,7 @@ module.exports = (getStore, getCurrNs) ->
 
 
     testSetup = (callback) ->
-      mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+      mockFullSetup getStore, (modelA, modelB, done) ->
         newPlayers = [
           {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
           {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}
