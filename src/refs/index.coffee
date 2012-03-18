@@ -3,7 +3,7 @@
 Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
-{deepEqual} = require '../util'
+{deepEqual, equalsNaN} = require '../util'
 mutator = basicMutator = arrayMutator = null
 
 module.exports = (racer) ->
@@ -107,8 +107,7 @@ mixin =
       model._ensurePrivateRefPath path, 'fn'
       if typeof callback is 'string'
         callback = do new Function 'return ' + callback
-      destroy = @_onCreateFn path, inputs, callback
-      return model._createFn path, inputs, callback, destroy
+      return model._createFn path, inputs, callback
 
     # Overridden on server; do nothing in browser
     _onCreateRef: ->
@@ -119,7 +118,6 @@ mixin =
     #                   calculated
     # @param {Function} callback returns the reactive value at `path` calculated from the
     #                   values at the paths defined by `inputs`
-    # @param {Function} `destroy` is a clearnup function that is run when...
     # @param {undefined} `prevVal` is never passed into the function. It's included
     #                    as a function parameter, so we can have it as a variable
     #                    lexically within the function body without having to declare
@@ -127,29 +125,26 @@ mixin =
     # @param {undefined} `currVal` is never passed into the function, for the same
     #                    reasons `prevVal` is never passed in.
     _createFn: (path, inputs, callback, destroy, prevVal, currVal) ->
-      modelPassFn = @pass 'fn'
-
-      # Create regular expression matching the path or any of its parents
+      # Regular expression matching the path or any of its parents
       reSelf = regExpMatchingPathOrParent path
 
-      # Create regular expression matching any of the inputs or
-      # child paths of any of the inputs
+      # Regular expression matching any of the inputs or their children paths
       reInput = regExpMatchingPathsOrChildren inputs
+
+      destroy = @_onCreateFn path, inputs, callback
 
       listener = @on 'mutator', (mutator, mutatorPath, _arguments) =>
         return if _arguments[3] == 'fn'
 
-        if ( reSelf.test(mutatorPath) &&
-             (test = @get path) != currVal &&
-             (test == test || currVal == currVal) #Don't remove if both test and currVal are NaN
-        )
+        if reSelf.test(mutatorPath) && !equalsNaN currVal
           @removeListener 'mutator', listener
-          destroy?()
-        else if reInput.test mutatorPath
-          process.nextTick -> currVal = run()
-        return
+          return destroy?()
+        if reInput.test mutatorPath
+          return process.nextTick -> currVal = updateVal()
 
-      return do run = =>
+      modelPassFn = @pass 'fn'
+
+      return do updateVal = =>
         prevVal = currVal
         currVal = callback (@get input for input in inputs)...
 
