@@ -1,4 +1,4 @@
-{isPrivate} = require '../path'
+{isPrivate, regExpMatchingPathOrParent, regExpMatchingPathsOrChildren} = require '../path'
 {derefPath} = require './util'
 Ref = require './Ref'
 RefList = require './RefList'
@@ -136,16 +136,11 @@ createFn = (model, path, inputs, callback, destroy) ->
   out = run()
 
   # Create regular expression matching the path or any of its parents
-  p = ''
-  source = (for segment, i in path.split '.'
-    "(?:#{p += if i then '\\.' + segment else segment})"
-  ).join '|'
-  reSelf = new RegExp '^' + source + '$'
+  reSelf = regExpMatchingPathOrParent path
 
   # Create regular expression matching any of the inputs or
   # child paths of any of the inputs
-  source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
-  reInput = new RegExp '^' + source + '$'
+  reInput = regExpMatchingPathsOrChildren inputs
 
   listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
     return if _arguments[3] == 'fn'
