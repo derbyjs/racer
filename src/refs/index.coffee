@@ -2,6 +2,8 @@
 {derefPath} = require './util'
 Ref = require './Ref'
 RefList = require './RefList'
+{diffArrays} = require '../diffMatchPatch'
+{deepEqual} = require '../util'
 mutator = basicMutator = arrayMutator = null
 
 module.exports = (racer) ->
@@ -106,50 +108,59 @@ mixin =
       if typeof callback is 'string'
         callback = do new Function 'return ' + callback
       destroy = @_onCreateFn path, inputs, callback
-      return createFn model, path, inputs, callback, destroy
+      return model._createFn path, inputs, callback, destroy
 
     # Overridden on server; do nothing in browser
     _onCreateRef: ->
     _onCreateFn: ->
 
-{deepEqual} = require '../util'
-{diffArrays} = require '../diffMatchPatch'
+    # @param {String} path to the reactive value
+    # @param {[String]} inputs is a list of paths from which the reactive value is
+    #                   calculated
+    # @param {Function} callback returns the reactive value at `path` calculated from the
+    #                   values at the paths defined by `inputs`
+    # @param {Function} `destroy` is a clearnup function that is run when...
+    # @param {undefined} `prevVal` is never passed into the function. It's included
+    #                    as a function parameter, so we can have it as a variable
+    #                    lexically within the function body without having to declare
+    #                    `var prevVal`; this is nice for coffee-script.
+    # @param {undefined} `currVal` is never passed into the function, for the same
+    #                    reasons `prevVal` is never passed in.
+    _createFn: (path, inputs, callback, destroy, prevVal, currVal) ->
+      modelPassFn = @pass 'fn'
 
-createFn = (model, path, inputs, callback, destroy, prevVal, currVal) ->
-  modelPassFn = model.pass 'fn'
+      # Create regular expression matching the path or any of its parents
+      reSelf = regExpMatchingPathOrParent path
 
-  # Create regular expression matching the path or any of its parents
-  reSelf = regExpMatchingPathOrParent path
+      # Create regular expression matching any of the inputs or
+      # child paths of any of the inputs
+      reInput = regExpMatchingPathsOrChildren inputs
 
-  # Create regular expression matching any of the inputs or
-  # child paths of any of the inputs
-  reInput = regExpMatchingPathsOrChildren inputs
+      listener = @on 'mutator', (mutator, mutatorPath, _arguments) =>
+        return if _arguments[3] == 'fn'
 
-  listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
-    return if _arguments[3] == 'fn'
+        if ( reSelf.test(mutatorPath) &&
+             (test = @get path) != currVal &&
+             (test == test || currVal == currVal) #Don't remove if both test and currVal are NaN
+        )
+          @removeListener 'mutator', listener
+          destroy?()
+        else if reInput.test mutatorPath
+          process.nextTick -> currVal = run()
+        return
 
-    if reSelf.test(mutatorPath) && (test = model.get path) != currVal && (
-      # Don't remove if both test and currVal are NaN
-      test == test || currVal == currVal
-    )
-      model.removeListener 'mutator', listener
-      destroy?()
-    else if reInput.test mutatorPath
-      process.nextTick -> currVal = run()
-    return
+      return do run = =>
+        prevVal = currVal
+        currVal = callback (@get input for input in inputs)...
 
-  return do run = ->
-    prevVal = currVal
-    currVal = callback (model.get input for input in inputs)...
+        if Array.isArray(prevVal) && Array.isArray(currVal)
+          diff = diffArrays prevVal, currVal
+          for args in diff
+            method = args[0]
+            args[0] = path
+            modelPassFn[method] args...
+          return currVal
 
-    if Array.isArray(prevVal) && Array.isArray(currVal)
-      diff = diffArrays prevVal, currVal
-      for args in diff
-        method = args[0]
-        args[0] = path
-        modelPassFn[method] args...
-      return currVal
-
-    return currVal if deepEqual prevVal, currVal
-    modelPassFn.set path, currVal
-    return currVal
+        return currVal if deepEqual prevVal, currVal
+        modelPassFn.set path, currVal
+        return currVal
