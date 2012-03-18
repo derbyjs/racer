@@ -96,7 +96,7 @@ mixin =
     # Defines a reactive value that depends on `inputs`, which are used by
     # `callback` to re-calculate a return value every time any of the `inputs`
     # change.
-    fn: (inputs..., callback) ->
+    fn: (inputs..., fn) ->
       # Convert scoped models into paths
       for input, i in inputs
         inputs[i] = input._at || input
@@ -105,9 +105,9 @@ mixin =
       model = @_root
 
       model._ensurePrivateRefPath path, 'fn'
-      if typeof callback is 'string'
-        callback = do new Function 'return ' + callback
-      return model._createFn path, inputs, callback
+      if typeof fn is 'string'
+        fn = do new Function 'return ' + fn
+      return model._createFn path, inputs, fn
 
     # Overridden on server; do nothing in browser
     _onCreateRef: ->
@@ -116,7 +116,7 @@ mixin =
     # @param {String} path to the reactive value
     # @param {[String]} inputs is a list of paths from which the reactive value is
     #                   calculated
-    # @param {Function} callback returns the reactive value at `path` calculated from the
+    # @param {Function} fn returns the reactive value at `path` calculated from the
     #                   values at the paths defined by `inputs`
     # @param {undefined} `prevVal` is never passed into the function. It's included
     #                    as a function parameter, so we can have it as a variable
@@ -124,14 +124,14 @@ mixin =
     #                    `var prevVal`; this is nice for coffee-script.
     # @param {undefined} `currVal` is never passed into the function, for the same
     #                    reasons `prevVal` is never passed in.
-    _createFn: (path, inputs, callback, destroy, prevVal, currVal) ->
+    _createFn: (path, inputs, fn, destroy, prevVal, currVal) ->
       # Regular expression matching the path or any of its parents
       reSelf = regExpMatchingPathOrParent path
 
       # Regular expression matching any of the inputs or their children paths
       reInput = regExpMatchingPathsOrChildren inputs
 
-      destroy = @_onCreateFn path, inputs, callback
+      destroy = @_onCreateFn path, inputs, fn
 
       listener = @on 'mutator', (mutator, mutatorPath, _arguments) =>
         return if _arguments[3] == 'fn'
@@ -146,7 +146,7 @@ mixin =
 
       return do updateVal = =>
         prevVal = currVal
-        currVal = callback (@get input for input in inputs)...
+        currVal = fn (@get input for input in inputs)...
 
         if Array.isArray(prevVal) && Array.isArray(currVal)
           diff = diffArrays prevVal, currVal
