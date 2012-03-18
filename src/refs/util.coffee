@@ -3,4 +3,4 @@ module.exports =
     data.$deref?() || to
 
   lookupPath: (path, props, i) ->
-    [path, props[i..]...].join '.'
+    [path].concat(props[i..]).join '.'
