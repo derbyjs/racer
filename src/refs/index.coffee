@@ -4,7 +4,7 @@ Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
 {deepEqual, equalsNaN} = require '../util'
-mutator = basicMutator = arrayMutator = null
+mutator = null
 
 module.exports = (racer) ->
   racer.mixin mixin
@@ -17,7 +17,7 @@ mixin =
   events:
 
     mixin: (Model) ->
-      {mutator, basicMutator, arrayMutator} = Model
+      {mutator} = Model
 
     init: (model) ->
       # Used for model scopes
