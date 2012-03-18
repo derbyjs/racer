@@ -32,16 +32,8 @@ module.exports =
 
   # Ported to coffeescript from node.js assert.js
   deepEqual: deepEqual = (actual, expected) ->
-      # 7.1. All identical values are equivalent, as determined by ==.
+    # 7.1. All identical values are equivalent, as determined by ==.
     return true if actual == expected
-
-    if Buffer.isBuffer(actual) && Buffer.isBuffer(expected)
-      return false if actual.length != expected.length
-
-      for actualVal, i in actual
-        return false if actualVal != expected[i]
-
-      return true
 
     # 7.2. If the expected value is a Date object, the actual value is
     # equivalent if it is also a Date object that refers to the same time.
@@ -63,8 +55,7 @@ module.exports =
 
   # Ported to coffeescript from node.js assert.js
   objEquiv: objEquiv = (a, b) ->
-    if !a? && !b?
-      # if isUndefinedOrNull(a) || isUndefinedOrNull(b)
+    if `a == null` || `b == null`
       return false
     # an identical 'prototype' property.
     return false if a:: != b::

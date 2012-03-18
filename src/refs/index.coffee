@@ -95,6 +95,9 @@ mixin =
     # `callback` to re-calculate a return value every time any of the `inputs`
     # change.
     fn: (inputs..., callback) ->
+      # Convert scoped models into paths
+      for input, i in inputs
+        inputs[i] = input._at || input
       # If we are a scoped model, scoped to @_at
       path = if @_at then @_at else inputs.shift()
       model = @_root
@@ -109,12 +112,27 @@ mixin =
     _onCreateRef: ->
     _onCreateFn: ->
 
+{deepEqual} = require '../util'
+{diffArrays} = require '../diffMatchPatch'
+
 createFn = (model, path, inputs, callback, destroy) ->
   modelPassFn = model.pass 'fn'
   run = ->
+    previous = model.get path
     value = callback (model.get input for input in inputs)...
+
+    if Array.isArray(previous) && Array.isArray(value)
+      diff = diffArrays previous, value
+      for args in diff
+        method = args[0]
+        args[0] = path
+        modelPassFn[method] args...
+      return
+
+    return value if deepEqual value, previous
     modelPassFn.set path, value
     return value
+
   out = run()
 
   # Create regular expression matching the path or any of its parents
@@ -139,7 +157,7 @@ createFn = (model, path, inputs, callback, destroy) ->
       model.removeListener 'mutator', listener
       destroy?()
     else if reInput.test mutatorPath
-      out = run()
+      process.nextTick -> out = run()
     return
 
   return out
