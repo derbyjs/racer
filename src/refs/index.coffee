@@ -2,7 +2,6 @@
 {derefPath} = require './util'
 Ref = require './Ref'
 RefList = require './RefList'
-createFn = require './createFn'
 mutator = basicMutator = arrayMutator = null
 
 module.exports = (racer) ->
@@ -19,8 +18,13 @@ mixin =
       {mutator, basicMutator, arrayMutator} = Model
 
     init: (model) ->
+      # Used for model scopes
       model._root = model
+
+      # [[from, get, item], ...]
       model._refsToBundle = []
+
+      # [['fn', path, inputs..., cb.toString()], ...]
       model._fnsToBundle = []
 
       for method of mutator
@@ -46,24 +50,27 @@ mixin =
       for item in model._fnsToBundle
         onLoad.push item if item
 
+      return
+
   proto:
     _getRef: (path) -> @_memory.get path, @_specModel(), true
 
-    _checkRefPath: (from, type) ->
-      @_memory.get from, data = @_specModel(), true
-      unless isPrivate derefPath data, from
+    _ensurePrivateRefPath: (from, type) ->
+      unless isPrivate @dereference(from, true)
         throw new Error "cannot create #{type} on public path #{from}"
       return
 
-    dereference: (path) ->
-      @_memory.get path, data = @_specModel()
+    dereference: (path, getRef = false) ->
+      @_memory.get path, data = @_specModel(), getRef
       return derefPath data, path
 
     ref: (from, to, key) -> @_createRef Ref, 'ref', from, to, key
 
-    refList: (from, to, key) -> @_createRef RefList, 'refList', from, to, key
+    refList: (from, to, key) ->
+      @_createRef RefList, 'refList', from, to, key
 
     _createRef: (RefType, modelMethod, from, to, key) ->
+      # Normalize from, to, key if we are a model scope
       if @_at
         key = to
         to = from
@@ -73,16 +80,26 @@ mixin =
       to = to._at  if to._at
       key = key._at  if key && key._at
       model = @_root
-      model._checkRefPath from, 'ref'
-      {get} = new RefType basicMutator, arrayMutator, model, from, to, key
+
+      model._ensurePrivateRefPath from, 'ref'
+      {get} = new RefType model, from, to, key
       model.set from, get
+
+      # The server model adds [from, get, [modelMethod, from, to, key]]
+      # to @_refsToBundle
       @_onCreateRef modelMethod, from, to, key, get
+
       return model.at from
 
+    # Defines a reactive value that depends on `inputs`, which are used by
+    # `callback` to re-calculate a return value every time any of the `inputs`
+    # change.
     fn: (inputs..., callback) ->
+      # If we are a scoped model, scoped to @_at
       path = if @_at then @_at else inputs.shift()
       model = @_root
-      model._checkRefPath path, 'fn'
+
+      model._ensurePrivateRefPath path, 'fn'
       if typeof callback is 'string'
         callback = do new Function 'return ' + callback
       destroy = @_onCreateFn path, inputs, callback
@@ -91,3 +108,38 @@ mixin =
     # Overridden on server; do nothing in browser
     _onCreateRef: ->
     _onCreateFn: ->
+
+createFn = (model, path, inputs, callback, destroy) ->
+  modelPassFn = model.pass 'fn'
+  run = ->
+    value = callback (model.get input for input in inputs)...
+    modelPassFn.set path, value
+    return value
+  out = run()
+
+  # Create regular expression matching the path or any of its parents
+  p = ''
+  source = (for segment, i in path.split '.'
+    "(?:#{p += if i then '\\.' + segment else segment})"
+  ).join '|'
+  reSelf = new RegExp '^' + source + '$'
+
+  # Create regular expression matching any of the inputs or
+  # child paths of any of the inputs
+  source = ("(?:#{input}(?:\\..+)?)" for input in inputs).join '|'
+  reInput = new RegExp '^' + source + '$'
+
+  listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
+    return if _arguments[3] == 'fn'
+
+    if reSelf.test(mutatorPath) && (test = model.get path) != out && (
+      # Don't remove if both test and out are NaN
+      test == test || out == out
+    )
+      model.removeListener 'mutator', listener
+      destroy?()
+    else if reInput.test mutatorPath
+      out = run()
+    return
+
+  return out
