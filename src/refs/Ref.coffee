@@ -1,23 +1,15 @@
 {eventRegExp} = require '../path'
 {derefPath, lookupPath} = require './util'
+Model = require '../Model'
 
-Ref = module.exports = (basicMutator, arrayMutator, @model, @from, to, key) ->
+Ref = module.exports = (@model, @from, @to, @key) ->
   @listeners = []
 
-  unless from && to
-    throw new Error 'invalid arguments for model.ref'
+  throw new Error 'Missing `from` in `model.ref(from, to, key)`' unless from
+  throw new Error 'Missing `to` in `model.ref(from, to, key)`' unless to
 
   if key
-    @get = (lookup, data, path, props, len, i) ->
-      lookup to, data
-      dereffed = derefPath data, to
-      keyPath = lookup key, data
-      currPath = lookupPath dereffed + '.' + keyPath, props, i
-      curr = lookup currPath, data
-
-      data.$deref = (method) ->
-        if i == len && method of basicMutator then path else currPath
-      return [curr, currPath, i]
+    @get = => @_getWithKey arguments...
 
     @addListener "#{to}.*", (match) ->
       keyPath = model.get(key).toString()
@@ -32,14 +24,7 @@ Ref = module.exports = (basicMutator, arrayMutator, @model, @from, to, key) ->
       return null
 
   else
-    @get = (lookup, data, path, props, len, i) ->
-      curr = lookup to, data
-      dereffed = derefPath data, to
-      currPath = lookupPath dereffed, props, i
-
-      data.$deref = (method) ->
-        if i == len && method of basicMutator then path else currPath
-      return [curr, currPath, i]
+    @get = => @_getWithoutKey arguments...
 
     @addListener "#{to}.*", (match) -> from + '.' + match[1]
     @addListener to, -> from
@@ -66,3 +51,26 @@ Ref:: =
     model = @model
     for listener in @listeners
       model.removeListener 'mutator', listener
+    return
+
+  _getWithKey: (lookup, data, path, props, len, i) ->
+    to = @to
+    lookup to, data
+    dereffed = derefPath data, to
+    keyPath = lookup @key, data
+    currPath = lookupPath dereffed + '.' + keyPath, props, i
+    curr = lookup currPath, data
+
+    data.$deref = (method) ->
+      if i == len && method of Model.basicMutator then path else currPath
+    return [curr, currPath, i]
+
+  _getWithoutKey: (lookup, data, path, props, len, i) ->
+    to = @to
+    curr = lookup to, data
+    dereffed = derefPath data, to
+    currPath = lookupPath dereffed, props, i
+
+    data.$deref = (method) ->
+      if i == len && method of Model.basicMutator then path else currPath
+    return [curr, currPath, i]
