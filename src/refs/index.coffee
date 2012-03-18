@@ -115,25 +115,8 @@ mixin =
 {deepEqual} = require '../util'
 {diffArrays} = require '../diffMatchPatch'
 
-createFn = (model, path, inputs, callback, destroy) ->
+createFn = (model, path, inputs, callback, destroy, prevVal, currVal) ->
   modelPassFn = model.pass 'fn'
-  run = ->
-    previous = model.get path
-    value = callback (model.get input for input in inputs)...
-
-    if Array.isArray(previous) && Array.isArray(value)
-      diff = diffArrays previous, value
-      for args in diff
-        method = args[0]
-        args[0] = path
-        modelPassFn[method] args...
-      return
-
-    return value if deepEqual value, previous
-    modelPassFn.set path, value
-    return value
-
-  out = run()
 
   # Create regular expression matching the path or any of its parents
   reSelf = regExpMatchingPathOrParent path
@@ -145,14 +128,28 @@ createFn = (model, path, inputs, callback, destroy) ->
   listener = model.on 'mutator', (mutator, mutatorPath, _arguments) ->
     return if _arguments[3] == 'fn'
 
-    if reSelf.test(mutatorPath) && (test = model.get path) != out && (
-      # Don't remove if both test and out are NaN
-      test == test || out == out
+    if reSelf.test(mutatorPath) && (test = model.get path) != currVal && (
+      # Don't remove if both test and currVal are NaN
+      test == test || currVal == currVal
     )
       model.removeListener 'mutator', listener
       destroy?()
     else if reInput.test mutatorPath
-      process.nextTick -> out = run()
+      process.nextTick -> currVal = run()
     return
 
-  return out
+  return do run = ->
+    prevVal = currVal
+    currVal = callback (model.get input for input in inputs)...
+
+    if Array.isArray(prevVal) && Array.isArray(currVal)
+      diff = diffArrays prevVal, currVal
+      for args in diff
+        method = args[0]
+        args[0] = path
+        modelPassFn[method] args...
+      return currVal
+
+    return currVal if deepEqual prevVal, currVal
+    modelPassFn.set path, currVal
+    return currVal
