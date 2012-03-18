@@ -59,7 +59,7 @@ mixin =
 
     _ensurePrivateRefPath: (from, type) ->
       unless isPrivate @dereference(from, true)
-        throw new Error "cannot create #{type} on public path #{from}"
+        throw new Error "cannot create #{type} on public path '#{from}'"
       return
 
     dereference: (path, getRef = false) ->
