@@ -1,5 +1,3 @@
-require 'es5-shim'
-
 # NOTE: All racer modules for the browser should be included in racer.coffee
 # and not in this file
 
