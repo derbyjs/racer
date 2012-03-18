@@ -67,8 +67,7 @@ mixin =
 
     ref: (from, to, key) -> @_createRef Ref, 'ref', from, to, key
 
-    refList: (from, to, key) ->
-      @_createRef RefList, 'refList', from, to, key
+    refList: (from, to, key) -> @_createRef RefList, 'refList', from, to, key
 
     _createRef: (RefType, modelMethod, from, to, key) ->
       # Normalize from, to, key if we are a model scope
