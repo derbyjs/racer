@@ -101,7 +101,7 @@ mixin =
       for input, i in inputs
         inputs[i] = input._at || input
       # If we are a scoped model, scoped to @_at
-      path = if @_at then @_at else inputs.shift()
+      path = @_at || inputs.shift()
       model = @_root
 
       model._ensurePrivateRefPath path, 'fn'
