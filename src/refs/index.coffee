@@ -60,7 +60,6 @@ mixin =
     _ensurePrivateRefPath: (from, type) ->
       unless isPrivate @dereference(from, true)
         throw new Error "cannot create #{type} on public path '#{from}'"
-      return
 
     dereference: (path, getRef = false) ->
       @_memory.get path, data = @_specModel(), getRef
