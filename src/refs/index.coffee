@@ -3,7 +3,7 @@
 Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
-{deepEqual, equalsNaN} = require '../util'
+{isServer, deepEqual, equalsNaN} = require '../util'
 mutator = null
 
 module.exports = (racer) ->
@@ -110,6 +110,8 @@ mixin =
     # Overridden on server; do nothing in browser
     _onCreateRef: ->
     _onCreateFn: ->
+    # TODO Replace 2 lines above with `if isServer` at the sites of the _onCreateRef and
+    #      _onCreateFn calls
 
     # @param {String} path to the reactive value
     # @param {[String]} inputs is a list of paths from which the reactive value is
