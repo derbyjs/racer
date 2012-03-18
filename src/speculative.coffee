@@ -21,9 +21,7 @@ module.exports =
       obj.$spec = true
       return obj
 
-    obj = Object.create proto
-    obj.$spec = true
-    return obj
+    return Object.create proto, $spec: value: true
 
   clone: (proto) ->
     if Array.isArray proto
