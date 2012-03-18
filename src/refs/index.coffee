@@ -91,9 +91,9 @@ mixin =
 
       return model.at from
 
-    # Defines a reactive value that depends on `inputs`, which are used by
-    # `callback` to re-calculate a return value every time any of the `inputs`
-    # change.
+    # Defines a reactive value that depends on the paths represented by `inputs`, which
+    # which are used by `fn` to re-calculate a return value every time any of the
+    # `inputs` change.
     fn: (inputs..., fn) ->
       # Convert scoped models into paths
       for input, i in inputs
