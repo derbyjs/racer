@@ -41,6 +41,8 @@ module.exports = (racer) ->
           Adapter = racer.adapters[adapterType][options.type]
         catch err
           throw new Error "No #{adapterType} adapter found for #{options.type}"
+        if typeof Adapter isnt 'function'
+          throw new Error "No #{adapterType} adapter found for #{options.type}"
         adapter = new Adapter options
       adapter.connect?()
       return adapter

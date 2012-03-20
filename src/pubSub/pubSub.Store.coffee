@@ -199,7 +199,7 @@ fetchQueryData = (store, query, eachDatumCb, finish) ->
       for doc in result
         path = query.namespace + '.' + doc.id
         eachDatumCb path, doc, version
-    else
+    else if result
       path = query.namespace + '.' + result.id
       eachDatumCb path, result, version
     finish null

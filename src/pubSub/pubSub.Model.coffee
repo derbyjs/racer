@@ -36,17 +36,22 @@ module.exports =
         if (data = memory.get ns) && data[doc.id]
           # But add a null transaction anyway, so that `txnApplier`
           # doesn't hang because it never sees `num`
-          return model._addRemoteTxn null, num
+          model._addRemoteTxn null, num
+        else
+          txn = transaction.create ver: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
+          model._addRemoteTxn txn, num
+          model.emit 'addDoc', "#{ns}.#{doc.id}", doc
 
-        txn = transaction.create ver: ver, id: null, method: 'set', args: ["#{ns}.#{doc.id}", doc]
-        model._addRemoteTxn txn, num
-        model.emit 'addDoc', "#{ns}.#{doc.id}", doc
+        # TODO Resume here for reactive query code
+#        for key, query of model._querySubs
+#          results = model.query query
+#          model.set query.orderedIdPath(), results.map ({id}) -> id
 
       socket.on 'rmDoc', ({doc, ns, hash, id, ver}, num) ->
         # TODO Optimize this by sending + using only ns.id
         for key, query of model._liveQueries
-          # Remove the doc from here if any other queries --
-          # besides the one that triggered the rmDoc -- match the doc
+          # Don't remove the doc from if any other queries -- besides
+          # the one that triggered the rmDoc -- match the doc
           if hash != key && query.test doc, "#{ns}.#{id}"
             return model._addRemoteTxn null, num
 
@@ -55,14 +60,15 @@ module.exports =
         model.emit 'rmDoc', ns + '.' + id, doc
 
   proto:
-    _loadSubs: (@_pathSubs, _querySubs) ->
+    _loadSubs: (@_pathSubs, querySubList) ->
       querySubs = @_querySubs
       liveQueries = @_liveQueries
-      for item in _querySubs
+      for item in querySubList
         query = deserialize item
         hash = query.hash()
         querySubs[hash] = query
         liveQueries[hash] = new LiveQuery query
+      return
 
     query: (namespace) -> new Query namespace
 
@@ -164,12 +170,6 @@ module.exports =
       @emit 'subInit', data
       memory = @_memory
       for [path, value, ver] in data.data
-        if path is ''
-          if typeof value is 'object'
-            for k, v of value
-              memory.set k, v, ver
-            continue
-          throw 'Cannot subscribe to "' + path '"'
         memory.set path, value, ver
       return
 

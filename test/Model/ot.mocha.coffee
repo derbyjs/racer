@@ -98,7 +98,7 @@ run 'Model.ot connected to a store', (getStore) ->
   #     test.otInsert 'text', 1, 'def'
 
   it 'otInsert events should be emitted in remote subscribed models',
-    mockFullSetup getStore, {numBrowsers: 2, plugins}, (modelA, modelB, done) ->
+    mockFullSetup getStore, {plugins}, (modelA, modelB, done) ->
       modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
         expect(insertedStr).to.equal 'xyz'
         expect(pos).to.equal 1
@@ -108,7 +108,7 @@ run 'Model.ot connected to a store', (getStore) ->
       modelA.otInsert '_test.text', 1, 'xyz'
 
   testOtOps = (options, callback, beforeDone) ->
-    mockFullSetup getStore, {numBrowsers: 2, plugins}, (modelA, modelB, done) ->
+    mockFullSetup getStore, {plugins}, (modelA, modelB, done) ->
       finish = finishAfter 2, ->
         textA = modelA.get '_test.text'
         textB = modelB.get '_test.text'

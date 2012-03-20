@@ -14,7 +14,7 @@ module.exports = (getStore, getCurrNs) ->
     userSue  = id: '3', name: 'sue'
 
     it 'should publish the txn *only* to relevant live `equals` queries',
-      mockFullSetup getStore, {numBrowsers: 2}, (modelLeo, modelBill, done) ->
+      mockFullSetup getStore, (modelLeo, modelBill, done) ->
         finish = finishAfter 2, ->
           modelSue = store.createModel()
           modelSue.set "#{currNs}.1", userLeo
@@ -37,7 +37,7 @@ module.exports = (getStore, getCurrNs) ->
           finish()
 
   test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
-    mockFullSetup getStore, {numBrowsers: 2}, (modelA, modelB, done) ->
+    mockFullSetup getStore, (modelA, modelB, done) ->
       [key, doc] = initialDoc()
       store.set key, doc, null, ->
         listenForMutation modelA, ->

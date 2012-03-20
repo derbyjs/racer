@@ -108,3 +108,5 @@ module.exports =
     for v, i in list
       return i if isEqual obj, v
     return -1
+
+  equalsNaN: (x) -> ! (x == x)

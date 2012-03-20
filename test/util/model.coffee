@@ -94,7 +94,6 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, options, cal
 # mock Socket.IO connection
 #
 # options:
-#   numBrowsers:  Number of browser models to create. Defaults to 1
 #   calls:        Expected number of calls to the done() function
 #   plugins:      Racer plugins to include in browser instances
 ns = 0
@@ -103,7 +102,7 @@ exports.mockFullSetup = (getStore, options, callback) ->
     callback = options
     options = {}
   options ||= {}
-  numBrowsers = options.numBrowsers || 1
+  numBrowsers = callback.length - 1 # subtract 1 for the done parameter
   numCalls = options.calls || 1
   serverSockets = new ServerSocketsMock()
   testPath = "tests.#{++ns}"

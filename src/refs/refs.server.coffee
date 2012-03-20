@@ -5,7 +5,8 @@ cbs = {}
 
 module.exports =
   _onCreateRef: (method, from, to, key, get) ->
-    args = if key then [method, from, to, key] else [method, from, to]
+    args = [method, from, to]
+    args.push key if key
     @_refsToBundle.push [from, get, args]
 
   _onCreateFn: (path, inputs, callback) ->
@@ -19,5 +20,5 @@ module.exports =
       )
 
     fnsToBundle = @_fnsToBundle
-    i = fnsToBundle.push(['fn', path, inputs..., cb]) - 1
-    return -> delete fnsToBundle[i]
+    len = fnsToBundle.push ['fn', path, inputs..., cb]
+    return -> delete fnsToBundle[len-1]
