@@ -83,7 +83,8 @@ module.exports =
           model.__removeTxn txnId
           model._specModel()
           return if model._txnQueue.length
-          model._txnsPromise.resolve()
+          process.nextTick ->
+            model._txnsPromise.resolve()
         return
       model._txnsPromise.resolve()
 
