@@ -10,6 +10,7 @@ racer.merge = -> mergeAll this, arguments...
 
 racer.merge plugin,
 
+  async: require './util/async'
   diffMatchPatch: require './diffMatchPatch'
   Memory: require './Memory'
   Model: require './Model'
