@@ -48,9 +48,7 @@ mergeAll RefList::, Ref::
 RefList::_get = (lookup, data, path, props, len, i) ->
   basicMutators = Model.basicMutator
   arrayMutators = Model.arrayMutator
-  from = @from
-  to = @to
-  key = @key
+  {from, to, key} = @
 
   obj = lookup(to, data) || {}
   dereffed = derefPath data, to
@@ -135,4 +133,3 @@ RefList::_get = (lookup, data, path, props, len, i) ->
         currPath
 
     return [curr, currPath, i]
-
