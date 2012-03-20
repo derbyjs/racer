@@ -140,7 +140,7 @@ mixin =
           @removeListener 'mutator', listener
           return destroy?()
         if reInput.test mutatorPath
-          return process.nextTick -> currVal = updateVal()
+          currVal = updateVal()
 
       modelPassFn = @pass 'fn'
 
