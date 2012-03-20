@@ -69,8 +69,7 @@ module.exports = (racer) ->
       options.debug = true  unless isProduction || options.debug?
 
       socketioClient.builder racer.transports, {minify}, (err, value) ->
-        throw err if err
-        callback value + ';' + browserify.bundle options
+        callback err, value + ';' + browserify.bundle options
 
   Object.defineProperty racer, 'version',
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
