@@ -57,9 +57,9 @@ mixin =
   proto:
     _getRef: (path) -> @_memory.get path, @_specModel(), true
 
-    _ensurePrivateRefPath: (from, type) ->
+    _ensurePrivateRefPath: (from, modelMethod) ->
       unless isPrivate @dereference(from, true)
-        throw new Error "cannot create #{type} on public path '#{from}'"
+        throw new Error "cannot create #{modelMethod} on public path '#{from}'"
 
     dereference: (path, getRef = false) ->
       @_memory.get path, data = @_specModel(), getRef
@@ -81,13 +81,13 @@ mixin =
       key = key._at  if key && key._at
       model = @_root
 
-      model._ensurePrivateRefPath from, 'ref'
+      model._ensurePrivateRefPath from, modelMethod
       {get} = new RefType model, from, to, key
       model.set from, get
 
       # The server model adds [from, get, [modelMethod, from, to, key]]
       # to @_refsToBundle
-      @_onCreateRef modelMethod, from, to, key, get
+      @_onCreateRef? modelMethod, from, to, key, get
 
       return model.at from
 
@@ -107,12 +107,6 @@ mixin =
         fn = do new Function 'return ' + fn
       return model._createFn path, inputs, fn
 
-    # Overridden on server; do nothing in browser
-    _onCreateRef: ->
-    _onCreateFn: ->
-    # TODO Replace 2 lines above with `if isServer` at the sites of the _onCreateRef and
-    #      _onCreateFn calls
-
     # @param {String} path to the reactive value
     # @param {[String]} inputs is a list of paths from which the reactive value is
     #                   calculated
@@ -131,7 +125,7 @@ mixin =
       # Regular expression matching any of the inputs or their children paths
       reInput = regExpMatchingPathsOrChildren inputs
 
-      destroy = @_onCreateFn path, inputs, fn
+      destroy = @_onCreateFn? path, inputs, fn
 
       listener = @on 'mutator', (mutator, mutatorPath, _arguments) =>
         return if _arguments[3] == 'fn'
