@@ -75,6 +75,41 @@ describe 'Model.ref', ->
       _color: ref2
       selected: 'blue'
 
+  it 'should handle undefined and null key values', ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+    model.ref '_color', 'colors', '_selected'
+    expect(model.get '_color').to.equal undefined
+    expect(model.get '_color.hex').to.equal undefined
+
+    model.set '_color.hex', '#ff0'
+    expect(model.get 'colors').to.specEql
+      undefined:
+        id: 'undefined'
+        hex: '#ff0'
+      green:
+        id: 'green'
+        hex: '#0f0'
+
+    model.set '_selected', null
+    expect(model.get '_color').to.equal undefined
+    expect(model.get '_color.hex').to.equal undefined
+
+    model.set '_color.hex', '#ff0'
+    expect(model.get 'colors').to.specEql
+      undefined:
+        id: 'undefined'
+        hex: '#ff0'
+      null:
+        id: 'null'
+        hex: '#ff0'
+      green:
+        id: 'green'
+        hex: '#0f0'
+
   it 'should support getting nested references', ->
     model = new Model
     model.set 'users.1', 'brian'

@@ -12,7 +12,11 @@ Ref = module.exports = (@model, @from, @to, @key) ->
     @get = => @_getWithKey arguments...
 
     @addListener "#{to}.*", (match) ->
-      keyPath = model.get(key).toString()
+      # Don't emit another event if there is a null or undefined key
+      keyValue = model.get key
+      return null unless keyValue?
+
+      keyPath = keyValue.toString()
       remainder = match[1]
       return from if remainder == keyPath
       # Test to see if the remainder starts with the keyPath

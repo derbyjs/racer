@@ -3,8 +3,8 @@
 Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
+Model = require '../Model'
 {isServer, deepEqual, equalsNaN} = require '../util'
-mutator = null
 
 module.exports = (racer) ->
   racer.mixin mixin
@@ -16,9 +16,6 @@ mixin =
 
   events:
 
-    mixin: (Model) ->
-      {mutator} = Model
-
     init: (model) ->
       # Used for model scopes
       model._root = model
@@ -29,7 +26,7 @@ mixin =
       # [['fn', path, inputs..., cb.toString()], ...]
       model._fnsToBundle = []
 
-      for method of mutator
+      for method of Model.mutator
         do (method) -> model.on method, ([path]) ->
           model.emit 'mutator', method, path, arguments
 
