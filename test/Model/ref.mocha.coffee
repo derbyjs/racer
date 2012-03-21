@@ -317,6 +317,42 @@ describe 'Model.ref', ->
     model.on 'set', '_color', cb
     model.set 'colors.green', hex: '#0f0'
 
+  it 'should emit when setting the key path', (done) ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+      red:
+        id: 'red'
+        hex: '#f00'
+    model.set 'colorName', 'green'
+    model.ref '_color', 'colors', 'colorName'
+    model.on 'set', '_color', (value, previous) ->
+      expect(value).to.specEql
+        id: 'red'
+        hex: '#f00'
+      expect(previous).to.specEql
+        id: 'green'
+        hex: '#0f0'
+      done()
+    model.set 'colorName', 'red'
+
+  it 'should emit when deleting the key path', (done) ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+    model.set 'colorName', 'green'
+    model.ref '_color', 'colors', 'colorName'
+    model.on 'del', '_color', (previous) ->
+      expect(previous).to.specEql
+        id: 'green'
+        hex: '#0f0'
+      done()
+    model.del 'colorName'
+
   it 'should not emit when setting under non-matching key', calls 1, (done) ->
     model = new Model
     model.set 'colorName', 'green'
