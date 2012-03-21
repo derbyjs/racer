@@ -20,6 +20,7 @@ Store = module.exports = (options = {}) ->
   @_localModels = {}
   @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
   @_db = db = racer.createAdapter 'db', options.db || {type: 'Memory'}
+  @io = options.io
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
@@ -46,17 +47,17 @@ Store = module.exports = (options = {}) ->
 Store:: =
 
   listen: (to, namespace) ->
-    io = socketio.listen to
-    io.configure ->
-      io.set 'browser client', false
-      io.set 'transports', racer.transports
-    io.configure 'production', ->
-      io.set 'log level', 1
+    @io ?= socketio.listen to
+    @io.configure ->
+      @io.set 'browser client', false
+      @io.set 'transports', racer.transports
+    @io.configure 'production', ->
+      @io.set 'log level', 1
     socketUri = if typeof to is 'number' then ':' + to else ''
     if namespace
-      @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
+      @setSockets @io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
     else
-      @setSockets io.sockets, socketUri
+      @setSockets @io.sockets, socketUri
 
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
