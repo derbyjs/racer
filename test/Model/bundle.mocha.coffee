@@ -1,10 +1,16 @@
 {expect} = require '../util'
-{run} = require '../util/store'
+racer = require '../../lib/racer'
 
-run 'Model.bundle', (store) ->
+describe 'Model bundle', ->
+  beforeEach (done) ->
+    @store = racer.createStore()
+    @store.flush done
+
+  afterEach (done) ->
+    @store.flush done
 
   it 'should wait for the model transactions to be committed', (done) ->
-    model = store().createModel()
+    model = @store.createModel()
     model.subscribe 'presos.racer', (err, presos) ->
       presos.set {slides: []}
       model.bundle (bundle) ->
@@ -16,14 +22,14 @@ run 'Model.bundle', (store) ->
         done()
 
   it 'a private path transaction should not get stuck in the queue', (done) ->
-    model = store().createModel()
+    model = @store.createModel()
     model.subscribe 'presos.racer', (err, presos) ->
       presos.set {slides: []}
       model.set '_role', 'presenter'
       model.bundle (bundle) -> done()
 
   it 'bundle invocation before all txns have been applied should wait for all txns to be applied', (done) ->
-    store = store()
+    store = @store
     model = store.createModel()
 
     model.subscribe 'groups.racer', (err, group) ->

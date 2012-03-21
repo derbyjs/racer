@@ -10,7 +10,8 @@ ignore[speculative.identifier] = 1
 exports.calls = (num, fn) ->
   (done) ->
     done() if num == n = 0
-    fn -> done() if ++n >= num
+    fn.call @, ->
+      done() if ++n >= num
 
 extended = [
   require.resolve '../../lib/racer'
@@ -18,7 +19,6 @@ extended = [
   require.resolve '../../lib/plugin'
   require.resolve '../../lib/Model'
   require.resolve '../../lib/Store'
-  require.resolve './store'
 ]
 exports.clearRequireCache = ->
   cache = require.cache

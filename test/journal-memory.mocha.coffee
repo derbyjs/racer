@@ -1,14 +1,25 @@
 {expect} = require './util'
-{run} = require './util/store'
 {mockFullSetup} = require './util/model'
+racer = require '../lib/racer'
+shouldBehaveLikeJournalAdapter = require './journalAdapter'
 
-require('./journalAdapter') type: 'Memory', null, (run) ->
+describe 'Memory journal adapter', ->
 
-  run 'Memory journal flushing', (getStore) ->
+  shouldBehaveLikeJournalAdapter()
 
-    it 'should reset everything in the journal',
-      mockFullSetup getStore, (model, done) ->
-        store = getStore()
+  describe 'flushing', ->
+    beforeEach (done) ->
+      store = @store = racer.createStore() # TODO per db adapter?
+      store.flush done
+
+    afterEach (done) ->
+      @store.flush =>
+        @store.disconnect()
+        done()
+
+    it 'should reset everything in the journal', (done) ->
+      store = @store
+      mockFullSetup store, done, (model, done) ->
         journal = store._journal
         clientId = model._clientId
         journal.startId (origStartId) ->

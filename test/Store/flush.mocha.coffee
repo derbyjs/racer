@@ -1,43 +1,68 @@
 {expect} = require '../util'
-{run} = require '../util/store'
+racer = require '../../lib/racer'
 
-run 'Store flush', (getStore) ->
+describe 'Store flush', ->
+  beforeEach (done) ->
+    @store = racer.createStore()
+    @store.flush done
+
+  afterEach (done) ->
+    @store.flush done
 
   it 'should flush the db and journal', (done) ->
-    store = getStore()
     flushed = {}
-    store._db.flush = (cb) ->
+    __dbFlush__ = @store._db.flush
+    @store._db.flush = (cb) ->
       flushed.db = true
       cb null
-    store._journal.flush = (cb) ->
+      @flush = __dbFlush__
+
+    __journalFlush__ = @store._journal.flush
+    @store._journal.flush = (cb) ->
       flushed.journal = true
       cb null
-    store.flush (err) ->
+      @flush = __journalFlush__
+
+    @store.flush (err) ->
       expect(err).to.be.null()
       expect(flushed.db).to.be.ok()
       expect(flushed.journal).to.be.ok()
       done()
 
   it 'should callback with an error if the db adapter fails to flush', (done) ->
-    store = getStore()
-    store._db.flush = (cb) -> cb new Error
-    store.flush (err) ->
+    __dbFlush__ = @store._db.flush
+    @store._db.flush = (cb) ->
+      cb new Error
+      @flush = __dbFlush__
+
+    @store.flush (err) ->
       expect(err).to.be.an Error
       done()
 
   it 'should callback with an error if the journal fails to flush', (done) ->
-    store = getStore()
-    store._journal.flush = (cb) -> cb new Error
-    store.flush (err) ->
+    __journalFlush__ = @store._journal.flush
+    @store._journal.flush = (cb) ->
+      cb new Error
+      @flush = __journalFlush__
+
+    @store.flush (err) ->
       expect(err).to.be.an Error
       done()
 
   it 'should callback with a single error if both the adapter and journal fail to flush', (done) ->
-    store = getStore()
     callbackCount = 0
-    store._db.flush = (cb) -> cb new Error
-    store._journal.flush = (cb) -> cb new Error
-    store.flush (err) ->
+
+    __dbFlush__ = @store._db.flush
+    @store._db.flush = (cb) ->
+      cb new Error
+      @flush = __dbFlush__
+
+    __journalFlush__ = @store._journal.flush
+    @store._journal.flush = (cb) ->
+      cb new Error
+      @flush = __journalFlush__
+
+    @store.flush (err) ->
       expect(err).to.be.an Error
       expect(++callbackCount).to.eql 1
       done()

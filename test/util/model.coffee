@@ -1,13 +1,12 @@
 {calls, clearRequireCache} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
-racerPath = require.resolve '../../lib/racer'
 
 exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   # Delete the cache of all modules extended for the server
   clearRequireCache()
   # Pretend like we are in a browser and require again
   global.window = {}
-  browserRacer = require racerPath
+  browserRacer = require '../../lib/racer'
   if plugins
     browserRacer.use plugin  for plugin in plugins
   # Reset state and delete the cache again, so that the next
@@ -17,7 +16,7 @@ exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   return browserRacer
 
 exports.BrowserModel = BrowserModel = createBrowserRacer().Model
-{transaction} = require racerPath
+{transaction} = require '../../lib/racer'
 
 
 # Create a model connected to a server sockets mock. Good for testing
@@ -94,30 +93,26 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, options, cal
 # mock Socket.IO connection
 #
 # options:
-#   calls:        Expected number of calls to the done() function
 #   plugins:      Racer plugins to include in browser instances
 ns = 0
-exports.mockFullSetup = (getStore, options, callback) ->
+exports.mockFullSetup = (store, done, options, callback) ->
   if typeof options is 'function'
     callback = options
     options = {}
   options ||= {}
   numBrowsers = callback.length - 1 # subtract 1 for the done parameter
-  numCalls = options.calls || 1
   serverSockets = new ServerSocketsMock()
   testPath = "tests.#{++ns}"
 
-  return calls numCalls, (done) ->
-    allDone = (err) ->
-      return done err if err
-      serverSockets._disconnect()
-      done()
+  allDone = (err) ->
+    return done err if err
+    serverSockets._disconnect()
+    done()
 
-    browserModels = []
-    i = numBrowsers
-    store = getStore()
-    store.setSockets serverSockets
-    while i--
-      createBrowserModel store, testPath, options, (model) ->
-        browserModels.push model
-        --numBrowsers || callback browserModels..., allDone
+  browserModels = []
+  i = numBrowsers
+  store.setSockets serverSockets
+  while i--
+    createBrowserModel store, testPath, options, (model) =>
+      browserModels.push model
+      --numBrowsers || callback browserModels..., allDone

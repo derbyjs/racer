@@ -1,6 +1,21 @@
 # Theses tests should be run against each adapter
+{merge} = require '../../lib/util'
+racer = require '../../lib/racer'
 
-module.exports = (run) ->
+shouldPassPubSubIntegrationTests = require './integration.pubSub'
+shouldPassTransactionIntegrationTests = require './integration.txns'
 
-  run 'Store pubSub', run.allModes, require './integration.pubSub'
-  run 'Store txns', run.allModes, require './integration.txns'
+module.exports = (storeOpts = {}) ->
+
+  for mode in racer.Store.MODES
+    describe mode, ->
+      beforeEach (done) ->
+        opts = merge {mode}, storeOpts
+        store = @store = racer.createStore opts
+        store.flush done
+
+      afterEach (done) ->
+        @store.flush done
+
+      shouldPassPubSubIntegrationTests()
+      shouldPassTransactionIntegrationTests()
