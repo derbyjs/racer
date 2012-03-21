@@ -1,3 +1,5 @@
+require 'es5-shim' unless isServer
+
 {EventEmitter} = require 'events'
 plugin = require './plugin'
 {mergeAll, isServer} = util = require './util'
@@ -8,6 +10,7 @@ racer.merge = -> mergeAll this, arguments...
 
 racer.merge plugin,
 
+  async: require './util/async'
   diffMatchPatch: require './diffMatchPatch'
   Memory: require './Memory'
   Model: require './Model'
