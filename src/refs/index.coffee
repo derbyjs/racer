@@ -34,9 +34,15 @@ mixin =
       model.on 'beforeTxn', (method, args) ->
         return unless path = args[0]
 
+        # Dereference transactions to operate on their absolute path
         obj = memory.get path, data = model._specModel()
         if fn = data.$deref
           args[0] = fn method, args, model, obj
+
+        # Suppress emission of set events when setting a function,
+        # which is what happens when a ref is created
+        if method is 'set' && typeof args[1] is 'function'
+          args.cancelEmit = true
         return
 
     bundle: (model) ->
@@ -80,7 +86,12 @@ mixin =
 
       model._ensurePrivateRefPath from, modelMethod
       {get} = new RefType model, from, to, key
-      model.set from, get
+      # The value of set is a function, so the set event will be canceled in the
+      # model.on('beforeTxn') handler above
+      previous = model.set from, get
+      # Emit a set event with the expected dereferenced values
+      value = model.get from
+      model.emit 'set', [from, value], previous, true, undefined
 
       # The server model adds [from, get, [modelMethod, from, to, key]]
       # to @_refsToBundle

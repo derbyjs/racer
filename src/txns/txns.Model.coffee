@@ -216,6 +216,7 @@ module.exports =
       id = @_nextTxnId()
       txn = transaction.create {ver, id, method, args}
       txn.isPrivate = isPrivate path
+      txn.emitted = args.cancelEmit
 
       # Add remove index as txn metadata. Null if transaction does nothing
       if method is 'pop'

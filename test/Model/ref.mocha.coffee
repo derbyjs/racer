@@ -185,6 +185,21 @@ describe 'Model.ref', ->
     )]
     model.set '_color.hex', '#0f0'
 
+  it 'should emit an event when the ref is created with the dereferenced value', (done) ->
+    model = new Model
+    model.set '_color', 'green'
+    model.set '_otherColor', 'red'
+    model.on 'set', '*', (path, value, previous, isLocal, pass) ->
+      expect(path).to.equal '_color'
+      expect(model.get '_color').to.equal 'red'
+      expect(value).to.equal 'red'
+      expect(previous).to.equal 'green'
+      expect(isLocal).to.equal true
+      expect(pass).to.equal undefined
+      done()
+    expect(model.get '_color').to.equal 'green'
+    model.ref '_color', '_otherColor'
+
   it 'should emit on both paths when setting under reference', calls 2, (done) ->
     model = new Model
     model.ref '_color', 'colors.green'
@@ -329,6 +344,9 @@ describe 'Model.ref', ->
     model.set 'colorName', 'green'
     model.ref '_color', 'colors', 'colorName'
     model.on 'set', '_color', (value, previous) ->
+      expect(model.get '_color').to.specEql
+        id: 'red'
+        hex: '#f00'
       expect(value).to.specEql
         id: 'red'
         hex: '#f00'
@@ -347,6 +365,7 @@ describe 'Model.ref', ->
     model.set 'colorName', 'green'
     model.ref '_color', 'colors', 'colorName'
     model.on 'del', '_color', (previous) ->
+      expect(model.get '_color').to.equal undefined
       expect(previous).to.specEql
         id: 'green'
         hex: '#0f0'
