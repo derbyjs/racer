@@ -505,3 +505,24 @@ describe 'Model.ref', ->
     color.set 'hex', '#0f0'
     expect(color.get 'hex').to.equal '#0f0'
     expect(model.get 'colors.green').to.specEql hex: '#0f0', id: 'green'
+
+  it 'should support getting references on deep paths', ->
+    model = new Model
+    leaderboard = model.at 'leaderboard'
+    players = leaderboard.at 'players'
+    players.set
+      'a':
+        id: 'a'
+        name: 'Jane'
+      'b':
+        id: 'b'
+        name: 'Karen'
+    selectedId = leaderboard.at '_selectedId'
+    selected = leaderboard.at '_selected'
+    selected.ref players, selectedId
+
+    selectedId.set 'b'
+    expect(selected.get()).to.specEql
+      id: 'b'
+      name: 'Karen'
+    expect(selected.get 'name').to.equal 'Karen'
