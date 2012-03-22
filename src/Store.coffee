@@ -48,10 +48,10 @@ Store:: =
 
   listen: (to, namespace) ->
     @io ?= socketio.listen to
-    @io.configure ->
+    @io.configure =>
       @io.set 'browser client', false
       @io.set 'transports', racer.transports
-    @io.configure 'production', ->
+    @io.configure 'production', =>
       @io.set 'log level', 1
     socketUri = if typeof to is 'number' then ':' + to else ''
     if namespace
