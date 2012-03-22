@@ -5,14 +5,16 @@ Model = require '../Model'
 
 RefList = module.exports = (@model, @from, @to, @key) ->
   @listeners = []
+  arrayMutators = Model.arrayMutator
 
   unless from && to && key
     throw new Error 'invalid arguments for model.refList'
 
-  @get = => @_get arguments...
+  @get = (lookup, data, path, props, len, i) =>
+    @_get lookup, data, path, props, len, i
 
   @addListener key, (match, method, args) ->
-    if i = Model.arrayMutator[method]?.insertArgs
+    if i = arrayMutators[method]?.insertArgs
       while (id = args[i])?
         args[i] = model.get(to + '.' + id)
         i++
@@ -48,7 +50,7 @@ mergeAll RefList::, Ref::
 RefList::_get = (lookup, data, path, props, len, i) ->
   basicMutators = Model.basicMutator
   arrayMutators = Model.arrayMutator
-  {from, to, key} = @
+  {from, to, key} = this
 
   obj = lookup(to, data) || {}
   dereffed = derefPath data, to

@@ -75,6 +75,41 @@ describe 'Model.ref', ->
       _color: ref2
       selected: 'blue'
 
+  it 'should handle undefined and null key values', ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+    model.ref '_color', 'colors', '_selected'
+    expect(model.get '_color').to.equal undefined
+    expect(model.get '_color.hex').to.equal undefined
+
+    model.set '_color.hex', '#ff0'
+    expect(model.get 'colors').to.specEql
+      undefined:
+        id: 'undefined'
+        hex: '#ff0'
+      green:
+        id: 'green'
+        hex: '#0f0'
+
+    model.set '_selected', null
+    expect(model.get '_color').to.equal undefined
+    expect(model.get '_color.hex').to.equal undefined
+
+    model.set '_color.hex', '#ff0'
+    expect(model.get 'colors').to.specEql
+      undefined:
+        id: 'undefined'
+        hex: '#ff0'
+      null:
+        id: 'null'
+        hex: '#ff0'
+      green:
+        id: 'green'
+        hex: '#0f0'
+
   it 'should support getting nested references', ->
     model = new Model
     model.set 'users.1', 'brian'
@@ -149,6 +184,21 @@ describe 'Model.ref', ->
       ver: 0, id: '0.1', method: 'set', args: ['colors.green.hex', '#0f0']
     )]
     model.set '_color.hex', '#0f0'
+
+  it 'should emit an event when the ref is created with the dereferenced value', (done) ->
+    model = new Model
+    model.set '_color', 'green'
+    model.set '_otherColor', 'red'
+    model.on 'set', '*', (path, value, previous, isLocal, pass) ->
+      expect(path).to.equal '_color'
+      expect(model.get '_color').to.equal 'red'
+      expect(value).to.equal 'red'
+      expect(previous).to.equal 'green'
+      expect(isLocal).to.equal true
+      expect(pass).to.equal undefined
+      done()
+    expect(model.get '_color').to.equal 'green'
+    model.ref '_color', '_otherColor'
 
   it 'should emit on both paths when setting under reference', calls 2, (done) ->
     model = new Model
@@ -281,6 +331,46 @@ describe 'Model.ref', ->
       done()
     model.on 'set', '_color', cb
     model.set 'colors.green', hex: '#0f0'
+
+  it 'should emit when setting the key path', (done) ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+      red:
+        id: 'red'
+        hex: '#f00'
+    model.set 'colorName', 'green'
+    model.ref '_color', 'colors', 'colorName'
+    model.on 'set', '_color', (value, previous) ->
+      expect(model.get '_color').to.specEql
+        id: 'red'
+        hex: '#f00'
+      expect(value).to.specEql
+        id: 'red'
+        hex: '#f00'
+      expect(previous).to.specEql
+        id: 'green'
+        hex: '#0f0'
+      done()
+    model.set 'colorName', 'red'
+
+  it 'should emit when deleting the key path', (done) ->
+    model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
+        hex: '#0f0'
+    model.set 'colorName', 'green'
+    model.ref '_color', 'colors', 'colorName'
+    model.on 'del', '_color', (previous) ->
+      expect(model.get '_color').to.equal undefined
+      expect(previous).to.specEql
+        id: 'green'
+        hex: '#0f0'
+      done()
+    model.del 'colorName'
 
   it 'should not emit when setting under non-matching key', calls 1, (done) ->
     model = new Model
@@ -415,3 +505,24 @@ describe 'Model.ref', ->
     color.set 'hex', '#0f0'
     expect(color.get 'hex').to.equal '#0f0'
     expect(model.get 'colors.green').to.specEql hex: '#0f0', id: 'green'
+
+  it 'should support getting references on deep paths', ->
+    model = new Model
+    leaderboard = model.at 'leaderboard'
+    players = leaderboard.at 'players'
+    players.set
+      'a':
+        id: 'a'
+        name: 'Jane'
+      'b':
+        id: 'b'
+        name: 'Karen'
+    selectedId = leaderboard.at '_selectedId'
+    selected = leaderboard.at '_selected'
+    selected.ref players, selectedId
+
+    selectedId.set 'b'
+    expect(selected.get()).to.specEql
+      id: 'b'
+      name: 'Karen'
+    expect(selected.get 'name').to.equal 'Karen'

@@ -32,8 +32,9 @@ Memory:: =
     @setVersion ver
     [obj, parent, prop] = lookupSet path, data || @_data, `ver == null`, 'object'
     parent[prop] = value
-    if path.split('.').length == 2 && value?.constructor == Object
-      value.id ?= path.split('.')[1]
+    segments = path.split '.'
+    if segments.length == 2 && value && value.constructor == Object
+      value.id ?= segments[1]
     return obj
 
   del: (path, ver, data) ->
