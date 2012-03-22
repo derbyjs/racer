@@ -1,10 +1,10 @@
-{isPrivate, regExpMatchingPathOrParent, regExpMatchingPathsOrChildren} = require '../path'
+{isPrivate, regExpPathOrParent, regExpPathsOrChildren} = require '../path'
 {derefPath} = require './util'
 Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
 Model = require '../Model'
-{isServer, deepEqual, equalsNaN} = require '../util'
+{isServer, equal} = require '../util'
 
 module.exports = (racer) ->
   racer.mixin mixin
@@ -130,37 +130,42 @@ mixin =
     # @param {undefined} `currVal` is never passed into the function, for the same
     #                    reasons `prevVal` is never passed in.
     _createFn: (path, inputs, fn, destroy, prevVal, currVal) ->
-      # Regular expression matching the path or any of its parents
-      reSelf = regExpMatchingPathOrParent path
-
-      # Regular expression matching any of the inputs or their children paths
-      reInput = regExpMatchingPathsOrChildren inputs
+      reSelf = regExpPathOrParent path
+      reInput = regExpPathsOrChildren inputs
 
       destroy = @_onCreateFn? path, inputs, fn
 
       listener = @on 'mutator', (mutator, mutatorPath, _arguments) =>
-        return if _arguments[3] == 'fn'
+        # Ignore mutations created by this reactive function
+        return if _arguments[3] == listener
 
-        if reSelf.test(mutatorPath) && !equalsNaN currVal
+        # Remove reactive function if something else sets the value of its
+        # output path. We get the current value here, since a mutator
+        # might operate on the path or the parent path that does not actually
+        # affect the reactive function. The equal function is true if the
+        # objects are identical or if they are both NaN
+        if reSelf.test(mutatorPath) && !equal(@get(path), currVal)
           @removeListener 'mutator', listener
           return destroy?()
+
         if reInput.test mutatorPath
           currVal = updateVal()
 
-      modelPassFn = @pass 'fn'
+      model = @pass listener
 
       return do updateVal = =>
         prevVal = currVal
         currVal = fn (@get input for input in inputs)...
 
-        if Array.isArray(prevVal) && Array.isArray(currVal)
-          diff = diffArrays prevVal, currVal
-          for args in diff
-            method = args[0]
-            args[0] = path
-            modelPassFn[method] args...
-          return currVal
+        # TODO: Investigate using array diffing
+        # if Array.isArray(prevVal) && Array.isArray(currVal)
+        #   diff = diffArrays prevVal, currVal
+        #   for args in diff
+        #     method = args[0]
+        #     args[0] = path
+        #     model[method] args...
+        #   return currVal
 
-        return currVal if deepEqual prevVal, currVal
-        modelPassFn.set path, currVal
+        return currVal if equal prevVal, currVal
+        model.set path, currVal
         return currVal

@@ -109,4 +109,6 @@ module.exports =
       return i if isEqual obj, v
     return -1
 
-  equalsNaN: (x) -> ! (x == x)
+  equalsNaN: equalsNaN = (x) -> x != x
+
+  equal: (a, b) -> a == b || (equalsNaN(a) && equalsNaN(b))
