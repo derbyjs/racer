@@ -34,7 +34,7 @@ Memory:: =
     parent[prop] = value
     segments = path.split '.'
     if segments.length == 2 && value && value.constructor == Object
-      value.id = segments[1]
+      value.id ?= segments[1]
     return obj
 
   del: (path, ver, data) ->
