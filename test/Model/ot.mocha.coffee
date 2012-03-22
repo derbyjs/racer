@@ -4,8 +4,10 @@
 
 clearRequireCache()
 racer = require '../../lib/racer'
-racer.use ot = require '../../lib/ot'
-{Model} = createBrowserRacer plugins = [ot]
+otPlugin = require '../../lib/ot'
+racer.use otPlugin
+plugins = [otPlugin]
+{Model} = createBrowserRacer plugins
 
 describe 'Model.ot', ->
 
@@ -102,7 +104,7 @@ describe 'Model.ot', ->
     #     test.otInsert 'text', 1, 'def'
 
     it 'otInsert events should be emitted in remote subscribed models', (done) ->
-      mockFullSetup @store, done, {plugins}, (modelA, modelB, done) ->
+      mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
         modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
           expect(insertedStr).to.equal 'xyz'
           expect(pos).to.equal 1
@@ -114,7 +116,7 @@ describe 'Model.ot', ->
     testOtOps = (options, callback, beforeDone) ->
       return (done) ->
         testContext = this
-        mockFullSetup @store, done, {plugins}, (modelA, modelB, done) ->
+        mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
           finish = finishAfter 2, ->
             textA = modelA.get '_test.text'
             textB = modelB.get '_test.text'
@@ -170,7 +172,7 @@ describe 'Model.ot', ->
         modelA.otInsert '_test.text', 1, 'xyz'
       , (modelA, modelB, done) ->
         testPath = modelA.dereference '_test.text'
-        createBrowserModel @store, testPath, {plugins}, (modelC) ->
+        createBrowserModel @store, testPath, plugins, (modelC) ->
           expect(modelC.get testPath).to.equal 'axyzbcdefg'
           done()
 

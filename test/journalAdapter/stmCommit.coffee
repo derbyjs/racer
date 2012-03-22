@@ -3,10 +3,12 @@
 transaction = require '../../lib/transaction'
 racer = require '../../lib/racer'
 
-module.exports = (storeOpts = {}) ->
+module.exports = (storeOpts = {}, plugins = []) ->
   describe 'STM commit', ->
 
     beforeEach (done) ->
+      for plugin in plugins
+        racer.use plugin if plugin.useWith.server
       opts = merge {mode: 'stm'}, storeOpts
       store = @store = racer.createStore opts
       store.flush done

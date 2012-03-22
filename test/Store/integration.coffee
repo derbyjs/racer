@@ -5,17 +5,21 @@ racer = require '../../lib/racer'
 shouldPassPubSubIntegrationTests = require './integration.pubSub'
 shouldPassTransactionIntegrationTests = require './integration.txns'
 
-module.exports = (storeOpts = {}) ->
+module.exports = (storeOpts = {}, plugins = []) ->
 
-  for mode in racer.Store.MODES
-    describe mode, ->
-      beforeEach (done) ->
-        opts = merge {mode}, storeOpts
-        store = @store = racer.createStore opts
-        store.flush done
+  describe 'Store integration tests', ->
 
-      afterEach (done) ->
-        @store.flush done
+    for mode in racer.Store.MODES
+      describe mode, ->
+        beforeEach (done) ->
+          for plugin in plugins
+            racer.use plugin if plugin.useWith.server
+          opts = merge {mode}, storeOpts
+          store = @store = racer.createStore opts
+          store.flush done
 
-      shouldPassPubSubIntegrationTests()
-      shouldPassTransactionIntegrationTests()
+        afterEach (done) ->
+          @store.flush done
+
+        shouldPassPubSubIntegrationTests()
+        shouldPassTransactionIntegrationTests plugins

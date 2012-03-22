@@ -8,10 +8,9 @@ module.exports =
 
   events:
     init: (store, opts) ->
-      store._pubSub = racer.createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
+      pubSub = store._pubSub = racer.createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
-      pubSub = store._pubSub
       journal = store._journal
 
       pubSub.on 'noSubscribers', (path) ->
@@ -35,7 +34,6 @@ module.exports =
 
       # Called when a client first connects
       socket.on 'sub', (clientId, targets, ver, clientStartId) ->
-
         store._clientSockets[clientId] = socket
         socket.on 'disconnect', ->
           store.unsubscribe clientId

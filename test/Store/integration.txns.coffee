@@ -1,10 +1,10 @@
 {expect} = require '../util'
 {mockFullSetup} = require '../util/model'
 
-module.exports = ->
+module.exports = (plugins) ->
   describe 'Store transactions', ->
     it 'events should be emitted in remote subscribed models', (done) ->
-      mockFullSetup @store, done, (modelA, modelB, done) ->
+      mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
         modelA.on 'set', '_test.color', (value, previous, isLocal) ->
           expect(value).to.equal 'green'
           expect(previous).to.equal undefined

@@ -5,12 +5,14 @@ racer = require '../../lib/racer'
 # TODO Add remove tests
 # TODO Add more move tests
 
-module.exports = ->
+module.exports = (storeOpts = {}, plugins = []) ->
   describe 'store mutators', ->
 
     beforeEach (done) ->
-      store = @store = racer.createStore()
-      store.flush done
+      for plugin in plugins
+        racer.use plugin if plugin.useWith.server
+      @store = racer.createStore(storeOpts)
+      @store.flush done
 
     afterEach (done) ->
       @store.flush =>

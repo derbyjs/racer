@@ -1,18 +1,15 @@
-{calls, clearRequireCache} = require './index'
+{calls, changeEnvTo} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
 
 exports.createBrowserRacer = createBrowserRacer = (plugins) ->
-  # Delete the cache of all modules extended for the server
-  clearRequireCache()
+  changeEnvTo 'browser'
   # Pretend like we are in a browser and require again
-  global.window = {}
   browserRacer = require '../../lib/racer'
+  browserRacer.setMaxListeners 0
   if plugins
-    browserRacer.use plugin  for plugin in plugins
-  # Reset state and delete the cache again, so that the next
-  # time racer is required it will be for the server
-  delete global.window
-  clearRequireCache()
+    for plugin in plugins
+      browserRacer.use plugin if plugin.useWith.browser
+  changeEnvTo 'server'
   return browserRacer
 
 exports.BrowserModel = BrowserModel = createBrowserRacer().Model
@@ -65,7 +62,7 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
         socket.emit 'txnOk', transaction.getId(txn), ++ver, ++num
   browserSocket = new BrowserSocketMock(serverSockets)
   model = if plugins = options.plugins
-    new (createBrowserRacer(plugins).Model)
+    new (createBrowserRacer(options.plugins).Model)
   else
     new BrowserModel
   model._clientId = clientId
@@ -73,16 +70,16 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
   browserSocket._connect()  unless options.unconnected
   return [model, serverSockets]
 
-exports.createBrowserModel = createBrowserModel = (store, testPath, options, callback) ->
-  if typeof options is 'function'
-    callback = options
-    options = {}
-  options ||= {}
+exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, callback) ->
+  if typeof plugins is 'function'
+    callback = plugins
+    plugins = []
+  plugins ||= []
   model = store.createModel()
   model.subscribe testPath, (err, sandbox) ->
     model.ref '_test', sandbox
     model.bundle (bundle) ->
-      browserRacer = createBrowserRacer options.plugins
+      browserRacer = createBrowserRacer plugins
       browserSocket = new BrowserSocketMock store.sockets
       browserRacer.on 'ready', (model) ->
         browserSocket._connect()
@@ -92,14 +89,13 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, options, cal
 # Create one or more browser models that are connected to a store over a
 # mock Socket.IO connection
 #
-# options:
-#   plugins:      Racer plugins to include in browser instances
+# plugins:      Racer plugins to include in browser instances
 ns = 0
-exports.mockFullSetup = (store, done, options, callback) ->
-  if typeof options is 'function'
-    callback = options
-    options = {}
-  options ||= {}
+exports.mockFullSetup = (store, done, plugins, callback) ->
+  if typeof plugins is 'function'
+    callback = plugins
+    plugins = []
+  plugins ||= []
   numBrowsers = callback.length - 1 # subtract 1 for the done parameter
   serverSockets = new ServerSocketsMock()
   testPath = "tests.#{++ns}"
@@ -113,6 +109,6 @@ exports.mockFullSetup = (store, done, options, callback) ->
   i = numBrowsers
   store.setSockets serverSockets
   while i--
-    createBrowserModel store, testPath, options, (model) =>
+    createBrowserModel store, testPath, plugins, (model) =>
       browserModels.push model
       --numBrowsers || callback browserModels..., allDone

@@ -13,18 +13,28 @@ exports.calls = (num, fn) ->
     fn.call @, ->
       done() if ++n >= num
 
-extended = [
+modulesToCache = [
   require.resolve '../../lib/racer'
   require.resolve '../../lib/util'
   require.resolve '../../lib/plugin'
   require.resolve '../../lib/Model'
   require.resolve '../../lib/Store'
 ]
+
 exports.clearRequireCache = ->
   cache = require.cache
-  for path in extended
-    delete cache[path]
+  for k in modulesToCache
+    delete cache[k]
   return
+
+exports.changeEnvTo = (type) ->
+  console.assert(type == 'browser' || type == 'server')
+
+  switch env = type
+    when 'browser' then global.window = {}
+    when 'server' then delete global.window
+
+  return exports.clearRequireCache()
 
 flatten = (a) ->
   if typeof a is 'object'

@@ -1,5 +1,4 @@
 {expect} = require '../util'
-{mockFullSetup} = require '../util/model'
 {finishAfter} = require '../../lib/util/async'
 
 module.exports = ->

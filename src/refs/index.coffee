@@ -6,8 +6,10 @@ RefList = require './RefList'
 {isServer, deepEqual, equalsNaN} = require '../util'
 mutator = null
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.mixin mixin
+
+exports.useWith = server: true, browser: true
 
 mixin =
   type: 'Model'

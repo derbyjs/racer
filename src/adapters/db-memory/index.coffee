@@ -5,8 +5,10 @@ Query = require './Query'
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.adapters.db.Memory = DbMemory
+
+exports.useWith = server: true, browser: false
 
 DbMemory = ->
   @_flush()

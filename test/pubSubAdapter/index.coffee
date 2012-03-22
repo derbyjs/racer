@@ -2,31 +2,34 @@
 racer = require '../../lib/racer'
 shouldPassStoreIntegrationTests = require '../Store/integration'
 
-shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}) ->
+shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}, plugins = []) ->
 
-  shouldPassStoreIntegrationTests storeOpts
+  shouldPassStoreIntegrationTests storeOpts, plugins
 
   describe 'subscribe/publish', ->
 
     beforeEach (done) ->
+      for plugin in plugins
+        racer.use plugin if plugin.useWith.server
       @store = racer.createStore storeOpts
       @store.flush done
 
     afterEach (done) ->
-      @store.flush done
+      @store.flushJournal =>
+        @store.disconnect()
+        done()
 
     onMessage = (store, callback) ->
       pubSub = store._pubSub
-      # Remove listeners that may have been created by Store, since we are just
-      # testing the functionality of the pubSub adapter itself
-      pubSub.removeAllListeners()
       pubSub.on 'message', callback  if callback?
       return pubSub
 
     it 'a published transaction to the same path should be received if subscribed to', (done) ->
       pubSub = onMessage @store, (subscriberId, message) ->
+        console.log arguments
         expect(subscriberId).to.equal '1'
         expect(message).to.eql 'value'
+        console.log "DONE"
         done()
       pubSub.subscribe '1', ['channel'], ->
         pubSub.publish 'channel', 'value'

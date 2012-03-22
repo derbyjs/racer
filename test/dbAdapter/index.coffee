@@ -4,14 +4,16 @@ shouldBeAbleToQuery = require './query'
 shouldPassStoreIntegrationTests = require '../Store/integration'
 racer = require '../../lib/racer'
 
-shouldBehaveLikeDbAdapter = module.exports = (storeOpts = {}) ->
-  shouldWorkWithStoreMutators(storeOpts)
-  shouldBeAbleToQuery(storeOpts)
+shouldBehaveLikeDbAdapter = module.exports = (storeOpts = {}, plugins = []) ->
+  shouldWorkWithStoreMutators(storeOpts, plugins)
+  shouldBeAbleToQuery(storeOpts, plugins)
 
   describe 'db flushing', ->
     beforeEach (done) ->
-      store = @store = racer.createStore(storeOpts)
-      store.flush done
+      for plugin in plugins
+        racer.use plugin if plugin.useWith.server
+      @store = racer.createStore(storeOpts)
+      @store.flush done
 
     afterEach (done) ->
       @store.flush =>

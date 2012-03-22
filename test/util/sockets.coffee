@@ -9,6 +9,7 @@ callEmit = (target, name, args, async) ->
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
+  @setMaxListeners 0
   @_sockets = sockets = []
   @on 'connection', (socket) ->
     browserSocket = socket._browserSocket
@@ -19,6 +20,7 @@ ServerSocketsMock = exports.ServerSocketsMock = ->
     for browserSocket in sockets
       browserSocket._disconnect()
   return
+
 ServerSocketsMock:: =
   emit: (name, args...) ->
     callEmit socket, name, args for socket in @_sockets
@@ -28,8 +30,10 @@ nextSocketId = 1
 
 ServerSocketMock = (@_serverSockets, @_browserSocket) ->
   EventEmitter.call this
+  @setMaxListeners 0
   @id = @_browserSocket.id
   return
+
 ServerSocketMock:: =
   emit: (name, args...) ->
     callEmit @_browserSocket, name, args
@@ -37,6 +41,7 @@ ServerSocketMock:: =
 
 BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
   EventEmitter.call this
+  @setMaxListeners 0
   @id = nextSocketId++
   @_serverSocket = new ServerSocketMock @_serverSockets, this
   @socket = connected: false

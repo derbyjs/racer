@@ -1,7 +1,9 @@
 Promise = require './Promise'
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.mixin mixin
+
+exports.useWith = server: true, browser: true
 
 mixin =
   type: "Model"

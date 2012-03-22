@@ -2,7 +2,7 @@
 {finishAfter} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
 
-module.exports = ->
+module.exports = (plugins) ->
   describe 'subscribe', ->
     describe 'set <namespace>.<id>', ->
       userLeo  = id: '1', name: 'leo'
@@ -11,7 +11,7 @@ module.exports = ->
 
       it 'should publish the txn *only* to relevant live `equals` queries', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelLeo, modelBill, done) ->
+        mockFullSetup store, done, plugins, (modelLeo, modelBill, done) ->
           finish = finishAfter 2, ->
             modelSue = store.createModel()
             modelSue.set "#{currNs}.1", userLeo
@@ -33,10 +33,11 @@ module.exports = ->
               expect(user).to.eql userBill
             finish()
 
+    storeId = 1
     test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
       return (done) ->
         {store} = testContext = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           [key, doc] = initialDoc.call testContext
           store.set key, doc, null, ->
             listenForMutation.call testContext, modelA, ->

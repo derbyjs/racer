@@ -1,5 +1,7 @@
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.adapters.clientId.Mongo = ClientIdMongo
+
+exports.useWith = server: true, browser: false
 
 ClientIdMongo = (@_options) ->
   return

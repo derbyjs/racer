@@ -1,7 +1,9 @@
 {EventEmitter} = require 'events'
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.adapters.pubSub.None = PubSubNone
+
+exports.useWith = server: true, browser: false
 
 PubSubNone = ->
   return

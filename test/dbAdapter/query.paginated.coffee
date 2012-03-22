@@ -2,7 +2,7 @@
 {forEach} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
 
-module.exports = ->
+module.exports = (plugins) ->
   describe 'paginated', ->
     players = [
       {id: '1', name: {last: 'Nadal',   first: 'Rafael'}, ranking: 2}
@@ -25,7 +25,7 @@ module.exports = ->
     test = ({query, events, definedBefore, definedAfter, onSubscribe}) ->
       return (done) ->
         {store, currNs} = testContext = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           forEach events, (event, callback) ->
             modelA.on event, -> callback()
           , ->
@@ -83,7 +83,7 @@ module.exports = ->
 
 
       testSetup = (store, currNs, done, callback) ->
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           newPlayers = [
             {id: '4', name: {first: 'David', last: 'Ferrer'}, ranking: 5}
             {id: '5', name: {first: 'Andy',  last: 'Murray'}, ranking: 4}

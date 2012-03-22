@@ -6,7 +6,7 @@
 # is running, which should be the case in the browser.
 isReady = model = null
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.merge
 
     # socket argument makes it easier to test - see test/util/model
@@ -41,3 +41,5 @@ module.exports = (racer) ->
         model.socket.socket.publish 'connect'  if connected
         return
       racer.on 'ready', onready
+
+exports.useWith = server: false, browser: true

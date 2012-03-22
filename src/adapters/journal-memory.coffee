@@ -1,9 +1,11 @@
 transaction = deepCopy = null
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   {transaction} = racer
   {deepCopy} = racer.util
   racer.adapters.journal.Memory = JournalMemory
+
+exports.useWith = server: true, browser: false
 
 JournalMemory = ->
   @flush()

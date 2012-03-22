@@ -1,5 +1,7 @@
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
   racer.adapters.journal.None = JournalNone
+
+exports.useWith = server: true, browser: false
 
 JournalNone = ->
   return

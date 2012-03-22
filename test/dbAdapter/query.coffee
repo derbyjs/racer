@@ -6,14 +6,16 @@ shouldFetchDataAsAQuery = require './query.fetch'
 shouldBeSubscribable = require './query.subscribe'
 shouldSupportPaginatedSubscribe = require './query.paginated'
 
-module.exports = (storeOptions = {}) ->
+module.exports = (storeOpts = {}, plugins = []) ->
   describe 'store mutators', ->
     currCollectionIndex = 0
     nsBase = 'users_'
 
-    beforeEach ->
+    beforeEach (done) ->
       @currNs = nsBase + currCollectionIndex++
-      @store = racer.createStore(storeOptions)
+      racer.use plugin for plugin in plugins
+      @store = racer.createStore(storeOpts)
+      setTimeout done, 200
 
     afterEach (done) ->
       @store._db.version = 0
@@ -27,9 +29,9 @@ module.exports = (storeOptions = {}) ->
 
     shouldFetchDataAsAQuery()
 
-    shouldBeSubscribable()
+    shouldBeSubscribable plugins
 
-    shouldSupportPaginatedSubscribe()
+    shouldSupportPaginatedSubscribe plugins
 
     describe 'dependent queries', ->
       it "should send updates when they react to their depedency queries' updates"
@@ -51,7 +53,7 @@ module.exports = (storeOptions = {}) ->
 
       it 'should update the version when the doc is removed from a model because it no longer matches subscriptions', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'rmDoc', ->
             expect(modelA._getVersion()).to.equal(oldVer + 1)
@@ -63,7 +65,7 @@ module.exports = (storeOptions = {}) ->
 
       it 'should update the version when the doc is added to a model because it starts to match subscriptions', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'addDoc', ->
             expect(modelA._getVersion()).to.equal(oldVer + 1)
@@ -78,7 +80,7 @@ module.exports = (storeOptions = {}) ->
 
       it 'should apply a txn if a document is still in a query result set after a mutation', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ->
             expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
             done()
@@ -93,7 +95,7 @@ module.exports = (storeOptions = {}) ->
 
       it 'should not apply a txn if a document is being added to a query result set after a mutation', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val]) ->
             if path == "#{currNs}.3"
               expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
@@ -116,7 +118,7 @@ module.exports = (storeOptions = {}) ->
       # send it down because the txn version == socket version.
       it 'should only receive a transaction once if it applies to > 1 query', (done) ->
         {store, currNs} = this
-        mockFullSetup store, done, (modelA, modelB, done) ->
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val], ver) ->
             if path == "#{currNs}.3.name.last"
               expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}

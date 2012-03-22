@@ -4,9 +4,9 @@ racer = require '../../lib/racer'
 shouldCommitWithSTM = require './stmCommit'
 shouldPassStoreIntegrationTests = require '../Store/integration'
 
-module.exports = (storeOpts = {}) ->
+module.exports = (storeOpts = {}, plugins = []) ->
 
-  shouldCommitWithSTM()
+  shouldCommitWithSTM storeOpts, plugins
 
   describe 'commit', ->
     transaction = require '../../lib/transaction'
@@ -14,6 +14,8 @@ module.exports = (storeOpts = {}) ->
     for mode in racer.Store.MODES
       describe mode, ->
         beforeEach (done) ->
+          for plugin in plugins
+            racer.use plugin if plugin.useWith.server
           opts = merge {mode}, storeOpts
           store = @store = racer.createStore opts
           store.flush done
@@ -37,6 +39,8 @@ module.exports = (storeOpts = {}) ->
 
   describe 'flushing', ->
     beforeEach (done) ->
+      for plugin in plugins
+        racer.use plugin if plugin.useWith.server
       store = @store = racer.createStore storeOpts
       store.flush done
 
