@@ -21,5 +21,5 @@ module.exports = (storeOpts = {}, plugins = []) ->
         afterEach (done) ->
           @store.flush done
 
-        shouldPassPubSubIntegrationTests()
+        shouldPassPubSubIntegrationTests plugins
         shouldPassTransactionIntegrationTests plugins

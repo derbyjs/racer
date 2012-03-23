@@ -26,10 +26,8 @@ shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}, plugins = []) 
 
     it 'a published transaction to the same path should be received if subscribed to', (done) ->
       pubSub = onMessage @store, (subscriberId, message) ->
-        console.log arguments
         expect(subscriberId).to.equal '1'
         expect(message).to.eql 'value'
-        console.log "DONE"
         done()
       pubSub.subscribe '1', ['channel'], ->
         pubSub.publish 'channel', 'value'

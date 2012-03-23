@@ -3,8 +3,9 @@
 Ref = require './Ref'
 RefList = require './RefList'
 {diffArrays} = require '../diffMatchPatch'
-Model = require '../Model'
 {isServer, equal} = require '../util'
+
+racer = require '../racer'
 
 exports = module.exports = (racer) ->
   racer.mixin mixin
@@ -27,6 +28,8 @@ mixin =
 
       # [['fn', path, inputs..., cb.toString()], ...]
       model._fnsToBundle = []
+
+      Model = model.constructor
 
       for method of Model.mutator
         do (method) -> model.on method, ([path]) ->

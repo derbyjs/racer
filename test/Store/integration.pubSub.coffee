@@ -1,7 +1,8 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
+{mockFullSetup} = require '../util/model'
 
-module.exports = ->
+module.exports = (plugins = []) ->
   describe 'Store pub sub', ->
     it 'model.fetch & model.subscribe should retrieve items for a path pattern on the server', (done) ->
       tests =
@@ -25,3 +26,10 @@ module.exports = ->
               model[method] pattern, ->
                 expect(model.get('globals._')).to.eql expected
                 finish()
+
+    it 'should distribute events to refs remotely', (done) ->
+      mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
+        modelB.on 'set', '_test.text', (val) ->
+          expect(val).to.equal 'word'
+          done()
+        modelA.set '_test.text', 'word'

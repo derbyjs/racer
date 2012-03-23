@@ -84,6 +84,7 @@ describe 'Model.ot', ->
 
   describe 'connected to a store', ->
     beforeEach (done) ->
+      racer.use plugin for plugin in plugins
       store = @store = racer.createStore()
       store.flush done
 
@@ -103,7 +104,7 @@ describe 'Model.ot', ->
     #     test.ot 'text', 'abc'
     #     test.otInsert 'text', 1, 'def'
 
-    it 'otInsert events should be emitted in remote subscribed models', (done) ->
+    it 'otInsert events should be emitted in remote subscribed models XXX', (done) ->
       mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
         modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
           expect(insertedStr).to.equal 'xyz'
