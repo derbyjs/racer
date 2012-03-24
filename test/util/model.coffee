@@ -28,7 +28,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
     socket.on name, onName
     socket.on 'txnsSince', (ver, clientStartId, callback) ->
       callback null, [], 1
-  browserSocket = new BrowserSocketMock serverSockets
+  browserSocket = new BrowserSocketMock serverSockets, clientId
   model = new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
@@ -60,7 +60,7 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
         socket.emit 'txnErr', err
       else
         socket.emit 'txnOk', transaction.getId(txn), ++ver, ++num
-  browserSocket = new BrowserSocketMock(serverSockets)
+  browserSocket = new BrowserSocketMock(serverSockets, clientId)
   model = if plugins = options.plugins
     new (createBrowserRacer(options.plugins).Model)
   else
@@ -80,7 +80,7 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, cal
     model.ref '_test', sandbox
     model.bundle (bundle) ->
       browserRacer = createBrowserRacer plugins
-      browserSocket = new BrowserSocketMock store.sockets
+      browserSocket = new BrowserSocketMock store.sockets, model._clientId
       browserRacer.on 'ready', (model) ->
         browserSocket._connect()
         callback model

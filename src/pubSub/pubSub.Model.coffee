@@ -16,21 +16,19 @@ module.exports =
       model._liveQueries = {}  # maps hash -> liveQuery
 
     bundle: (model) ->
-      querySubs = []
-      for hash, query of model._querySubs
-        querySubs.push query
+      querySubs = (query for _, query of model._querySubs)
       model._onLoad.push ['_loadSubs', model._pathSubs, querySubs]
 
     socket: (model, socket) ->
+      memory = model._memory
+
       socket.on 'connect', ->
         # Establish subscriptions upon connecting and get any transactions
         # that may have been missed
         subs = Object.keys model._pathSubs
-        for hash, query of model._querySubs
-          subs.push query
-        socket.emit 'sub', model._clientId, subs, model._memory.version, model._startId
+        subs.push query for _, query of model._querySubs
+        socket.emit 'sub', model._clientId, subs, memory.version, model._startId
 
-      memory = model._memory
       socket.on 'addDoc', ({doc, ns, ver}, num) ->
         # If the doc is already in the model, don't add it
         if (data = memory.get ns) && data[doc.id]
@@ -175,15 +173,15 @@ module.exports =
 
     _fetch: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'fetch', @_clientId, targets, callback
+      @socket.emit 'fetch', targets, callback
 
     _subAdd: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subAdd', @_clientId, targets, callback
+      @socket.emit 'subAdd', targets, callback
 
     _subRemove: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subRemove', @_clientId, targets, callback
+      @socket.emit 'subRemove', targets, callback
 
   server:
 

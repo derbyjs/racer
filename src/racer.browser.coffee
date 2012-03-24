@@ -26,6 +26,7 @@ exports = module.exports = (racer) ->
       model._setSocket socket || io.connect ioUri,
         'reconnection delay': 100
         'max reconnection attempts': 20
+        query: 'clientId=' + clientId
 
       isReady = true
       racer.emit 'ready', model

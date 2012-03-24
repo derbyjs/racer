@@ -60,7 +60,8 @@ Store:: =
 
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
-      @mixinEmit 'socket', this, socket
+      clientId = socket.handshake.query.clientId
+      @mixinEmit 'socket', this, socket, clientId
 
   flushJournal: (callback) -> @_journal.flush callback
   flushDb: (callback) -> @_db.flush callback
@@ -82,7 +83,6 @@ Store:: =
       return callback err if err
       if clientStartId != startId
         err = "clientStartId != startId (#{clientStartId} != #{startId})"
-        socket.emit 'fatalErr', err
         return callback err
       callback null
 
