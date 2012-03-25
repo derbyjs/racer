@@ -108,8 +108,6 @@ eventListener = (method, pattern, callback, at) ->
 
   else
     # on(type, listener)
-    # Test for function by looking for call, since pattern can be a regex,
-    # which has a typeof == 'function' as well
     return pattern if pattern instanceof Function
 
   # on(method, pattern, callback)
