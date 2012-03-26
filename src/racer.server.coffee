@@ -11,7 +11,6 @@ module.exports = (racer) ->
 
     session: require './session'
     Store: Store = require './Store'
-    transaction: require './transaction.server'
 
     transports: ['websocket', 'xhr-polling']
 
