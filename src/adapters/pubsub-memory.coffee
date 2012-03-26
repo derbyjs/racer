@@ -1,9 +1,8 @@
 {EventEmitter} = require 'events'
-pathRegExp = hasKeys = null
+{regExp: pathRegExp} = require '../path'
+{hasKeys} = require '../util'
 
 exports = module.exports = (racer) ->
-  {regExp: pathRegExp} = racer.path
-  {hasKeys} = racer.util
   racer.registerAdapter 'pubSub', 'Memory', PubSubMemory
 
 exports.useWith = server: true, browser: false

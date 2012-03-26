@@ -8,17 +8,7 @@ racer = module.exports = new EventEmitter
 racer.merge = -> mergeAll this, arguments...
 
 racer.merge plugin,
-
-  diffMatchPatch: require './diffMatchPatch'
-  Memory: require './Memory'
   Model: require './Model'
-  path: require './path'
-  plugin: plugin
-  Promise: require './Promise'
-  Serializer: require './Serializer'
-  speculative: require './speculative'
-  transaction: require './transaction'
-  util: util
 
 # Note that this plugin is passed by string to prevent
 # Browserify from including it

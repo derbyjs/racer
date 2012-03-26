@@ -4,10 +4,9 @@ socketio = require 'socket.io'
 socketioClient = require 'socket.io-client'
 uglify = require 'uglify-js'
 {registerAdapter} = require './adapters'
+{isProduction} = require './util'
 
 module.exports = (racer) ->
-  {isProduction} = racer.util
-
   racer.merge
 
     session: require './session'
