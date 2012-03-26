@@ -1,4 +1,4 @@
-{mergeAll, isServer} = util = require './util'
+{mergeAll, isServer} = require './util'
 require 'es5-shim' unless isServer
 {EventEmitter} = require 'events'
 plugin = require './plugin'

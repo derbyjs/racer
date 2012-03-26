@@ -7,6 +7,13 @@ uglify = require 'uglify-js'
 {isProduction} = require './util'
 
 module.exports = (racer) ->
+
+  Object.defineProperty racer, 'version',
+    get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
+
+
+  ## Racer Server-side Configuration ##
+
   racer.settings =
     env: process.env.NODE_ENV || 'development'
 
@@ -24,48 +31,47 @@ module.exports = (racer) ->
   racer.configure 'production', ->
     @set 'minify', true
 
-  racer.merge
 
-    session: require './session'
-    Store: Store = require './Store'
+  racer.session = require './session'
 
-    createStore: (options = {}) ->
-      # TODO: Provide full configuration for socket.io
-      store = new Store options
-      if sockets = options.sockets
-        store.setSockets sockets, options.socketUri
-      else if listen = options.listen
-        store.listen listen, options.namespace
-      return store
+  ## Racer Store ##
 
-    registerAdapter: (type, name, AdapterKlass) ->
-      registerAdapter type, name, AdapterKlass
+  racer.Store = require './Store'
+  racer.createStore = (options = {}) ->
+    # TODO: Provide full configuration for socket.io
+    store = new @Store options
+    if sockets = options.sockets
+      store.setSockets sockets, options.socketUri
+    else if listen = options.listen
+      store.listen listen, options.namespace
+    return store
 
-    # Returns a string of javascript representing a browserify bundle
-    # and the socket.io client-side code
-    #
-    # Options:
-    #   minify: Set to truthy to minify the javascript
-    #
-    #   Passed to browserify:
-    #     entry:   e.g., __dirname + '/client.js'
-    #     filter:  defaults to uglify if minify is true
-    #     debug:   true unless in production
-    js: (options, callback) ->
-      if typeof options is 'function'
-        callback = options
-        options = {}
-      minify = options.minify || @get 'minify'
-      options.filter = (@get('minifyFilter') || uglify) if minify && !options.filter
+  # Returns a string of javascript representing a browserify bundle
+  # and the socket.io client-side code
+  #
+  # Options:
+  #   minify: Set to truthy to minify the javascript
+  #
+  #   Passed to browserify:
+  #     entry:   e.g., __dirname + '/client.js'
+  #     filter:  defaults to uglify if minify is true
+  #     debug:   true unless in production
+  racer.js = (options, callback) ->
+    if typeof options is 'function'
+      callback = options
+      options = {}
+    minify = options.minify || @get 'minify'
+    options.filter = (@get('minifyFilter') || uglify) if minify && !options.filter
 
-      # Add pseudo filenames and line numbers in browser debugging
-      options.debug = true  unless isProduction || options.debug?
+    # Add pseudo filenames and line numbers in browser debugging
+    options.debug = true  unless isProduction || options.debug?
 
-      socketioClient.builder racer.get('transports'), {minify}, (err, value) ->
-        callback err, value + ';' + browserify.bundle options
+    socketioClient.builder racer.get('transports'), {minify}, (err, value) ->
+      callback err, value + ';' + browserify.bundle options
 
-  Object.defineProperty racer, 'version',
-    get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
+
+  racer.registerAdapter = (type, name, AdapterKlass) ->
+    registerAdapter type, name, AdapterKlass
 
   racer
     .use(require './bundle.Model')  
