@@ -1,8 +1,7 @@
+{mergeAll, isServer} = util = require './util'
 require 'es5-shim' unless isServer
-
 {EventEmitter} = require 'events'
 plugin = require './plugin'
-{mergeAll, isServer} = util = require './util'
 
 racer = module.exports = new EventEmitter
 
