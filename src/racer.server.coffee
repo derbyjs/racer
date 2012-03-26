@@ -45,6 +45,8 @@ module.exports = (racer) ->
     # and the socket.io client-side code
     #
     # Options:
+    #   minify: Set to truthy to minify the javascript
+    #
     #   Passed to browserify:
     #     entry:   e.g., __dirname + '/client.js'
     #     filter:  defaults to uglify if minify is true
@@ -53,7 +55,7 @@ module.exports = (racer) ->
       if typeof options is 'function'
         callback = options
         options = {}
-      minify = @get 'minify'
+      minify = options.minify || @get 'minify'
       options.filter = (@get('minifyFilter') || uglify) if minify && !options.filter
 
       # Add pseudo filenames and line numbers in browser debugging
