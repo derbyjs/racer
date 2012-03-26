@@ -1,5 +1,5 @@
 {expect, calls} = require '../util'
-{transaction} = require '../../lib/racer'
+transaction = require '../../lib/transaction'
 {mockSocketModel, mockSocketEcho, BrowserModel: Model} = require '../util/model'
 
 describe 'Model transaction handling', ->

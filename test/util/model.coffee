@@ -13,7 +13,7 @@ exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   return browserRacer
 
 exports.BrowserModel = BrowserModel = createBrowserRacer().Model
-{transaction} = require '../../lib/racer'
+transaction = require '../../lib/transaction'
 
 
 # Create a model connected to a server sockets mock. Good for testing
