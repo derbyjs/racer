@@ -7,12 +7,27 @@ uglify = require 'uglify-js'
 {isProduction} = require './util'
 
 module.exports = (racer) ->
+  racer.settings =
+    env: process.env.NODE_ENV || 'development'
+
+  racer.configure = (envs..., fn) ->
+    fn.call this if envs[0] == 'all' || ~envs.indexOf @settings.env
+
+  racer.set = (setting, value) ->
+    @settings[setting] = value
+    return this
+
+  racer.get = (setting) -> @settings[setting]
+
+  racer.set 'transports', ['websocket', 'xhr-polling']
+
+  racer.configure 'production', ->
+    @set 'minify', true
+
   racer.merge
 
     session: require './session'
     Store: Store = require './Store'
-
-    transports: ['websocket', 'xhr-polling']
 
     createStore: (options = {}) ->
       # TODO: Provide full configuration for socket.io
@@ -30,8 +45,6 @@ module.exports = (racer) ->
     # and the socket.io client-side code
     #
     # Options:
-    #   Racer-specific:
-    #     minify:  true/false
     #   Passed to browserify:
     #     entry:   e.g., __dirname + '/client.js'
     #     filter:  defaults to uglify if minify is true
@@ -40,14 +53,13 @@ module.exports = (racer) ->
       if typeof options is 'function'
         callback = options
         options = {}
-      {minify} = options
-      minify = isProduction  unless minify?
-      options.filter = uglify  if minify && !options.filter
+      minify = @get 'minify'
+      options.filter = (@get('minifyFilter') || uglify) if minify && !options.filter
 
       # Add pseudo filenames and line numbers in browser debugging
       options.debug = true  unless isProduction || options.debug?
 
-      socketioClient.builder racer.transports, {minify}, (err, value) ->
+      socketioClient.builder racer.get('transports'), {minify}, (err, value) ->
         callback err, value + ';' + browserify.bundle options
 
   Object.defineProperty racer, 'version',

@@ -51,7 +51,7 @@ Store:: =
     io = socketio.listen to
     io.configure ->
       io.set 'browser client', false
-      io.set 'transports', racer.transports
+      io.set 'transports', racer.get('transports')
     io.configure 'production', ->
       io.set 'log level', 1
     socketUri = if typeof to is 'number' then ':' + to else ''
