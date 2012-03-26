@@ -1,5 +1,4 @@
 transaction = require '../transaction.server'
-{deepCopy} = require '../util'
 
 exports = module.exports = (racer) ->
   racer.registerAdapter 'journal', 'Memory', JournalMemory
