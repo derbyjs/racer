@@ -3,6 +3,7 @@ browserify = require 'browserify'
 socketio = require 'socket.io'
 socketioClient = require 'socket.io-client'
 uglify = require 'uglify-js'
+{registerAdapter} = require './adapters'
 
 module.exports = (racer) ->
   {isProduction} = racer.util
@@ -15,37 +16,17 @@ module.exports = (racer) ->
 
     transports: ['websocket', 'xhr-polling']
 
-    adapters:
-      journal: {}
-      pubSub: {}
-      db: {}
-      clientId: {}
-
     createStore: (options = {}) ->
       # TODO: Provide full configuration for socket.io
       store = new Store options
-      if options.sockets
-        store.setSockets options.sockets, options.socketUri
-      else if options.listen
-        store.listen options.listen, options.namespace
+      if sockets = options.sockets
+        store.setSockets sockets, options.socketUri
+      else if listen = options.listen
+        store.listen listen, options.namespace
       return store
 
-    createAdapter: (adapterType, options) ->
-      if typeof options is 'string'
-        options = type: options
-      if !options.constructor == Object
-        # Then, we passed in an Adapter directly as options
-        adapter = options
-      else
-        try
-          Adapter = racer.adapters[adapterType][options.type]
-        catch err
-          throw new Error "No #{adapterType} adapter found for #{options.type}"
-        if typeof Adapter isnt 'function'
-          throw new Error "No #{adapterType} adapter found for #{options.type}"
-        adapter = new Adapter options
-      adapter.connect?()
-      return adapter
+    registerAdapter: (type, name, AdapterKlass) ->
+      registerAdapter type, name, AdapterKlass
 
     # Returns a string of javascript representing a browserify bundle
     # and the socket.io client-side code

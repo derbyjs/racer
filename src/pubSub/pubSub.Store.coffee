@@ -1,6 +1,7 @@
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util/async'
 {deserialize} = queryPubSub = require './queryPubSub'
+{createAdapter} = require '../adapters'
 racer = require '../racer'
 
 module.exports =
@@ -8,7 +9,7 @@ module.exports =
 
   events:
     init: (store, opts) ->
-      pubSub = store._pubSub = racer.createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
+      pubSub = store._pubSub = createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
       journal = store._journal

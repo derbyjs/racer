@@ -6,7 +6,7 @@ MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove',
 routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
 
 exports = module.exports = (racer) ->
-  racer.adapters.db.Memory = DbMemory
+  racer.registerAdapter 'db', 'Memory', DbMemory
 
 exports.useWith = server: true, browser: false
 

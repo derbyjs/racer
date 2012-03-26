@@ -1,7 +1,7 @@
 uuid = require 'node-uuid'
 
 exports = module.exports = (racer) ->
-  racer.adapters.clientId.Rfc4122_v4 = ClientIdRfc4122_v4
+  racer.registerAdapter 'clientId', 'Rfc4122_v4', ClientIdRfc4122_v4
 
 exports.useWith = server: true, browser: false
 

@@ -1,5 +1,6 @@
 socketio = require 'socket.io'
-{Promise, Model, createAdapter} = racer = require './racer'
+{Promise, Model} = racer = require './racer'
+{createAdapter} = require './adapters'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
@@ -18,12 +19,12 @@ transaction = require './transaction.server'
 
 Store = module.exports = (options = {}) ->
   @_localModels = {}
-  @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
-  @_db = db = racer.createAdapter 'db', options.db || {type: 'Memory'}
+  @_journal = journal = createAdapter 'journal', options.journal || {type: 'Memory'}
+  @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
-  @_clientId = clientId = racer.createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
+  @_clientId = clientId = createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
 
   # Add a @_commit method to this store based on the conflict resolution mode
   # TODO: Default mode should be 'ot' once supported
