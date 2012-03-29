@@ -32,6 +32,7 @@ ServerSocketMock = (@_serverSockets, @_browserSocket) ->
   EventEmitter.call this
   @setMaxListeners 0
   @id = @_browserSocket.id
+  @handshake = query: clientId: @_browserSocket._clientId
   return
 
 ServerSocketMock:: =
@@ -39,7 +40,7 @@ ServerSocketMock:: =
     callEmit @_browserSocket, name, args
   __proto__: EventEmitter::
 
-BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets) ->
+BrowserSocketMock = exports.BrowserSocketMock = (@_serverSockets, @_clientId) ->
   EventEmitter.call this
   @setMaxListeners 0
   @id = nextSocketId++

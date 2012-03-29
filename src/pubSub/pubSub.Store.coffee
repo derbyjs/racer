@@ -1,6 +1,7 @@
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util/async'
 {deserialize} = queryPubSub = require './queryPubSub'
+{createAdapter} = require '../adapters'
 racer = require '../racer'
 
 module.exports =
@@ -8,7 +9,7 @@ module.exports =
 
   events:
     init: (store, opts) ->
-      pubSub = store._pubSub = racer.createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
+      pubSub = store._pubSub = createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
       journal = store._journal
@@ -30,36 +31,34 @@ module.exports =
             throw err if err
             return clientSockets[clientId].emit message, data, num
 
-    socket: (store, socket) ->
+    socket: (store, socket, clientId) ->
+      store._clientSockets[clientId] = socket
+      socket.on 'disconnect', ->
+        delete store._clientSockets[clientId]
 
       # Called when a client first connects
       socket.on 'sub', (clientId, targets, ver, clientStartId) ->
-        store._clientSockets[clientId] = socket
+
         socket.on 'disconnect', ->
           store.unsubscribe clientId
           store._journal.unregisterClient clientId
-          delete store._clientSockets[clientId]
-
-        # This promise is created in the txns.Store mixin
-        socket._clientIdPromise.clear().resolve null, clientId
 
         store._checkVersion socket, ver, clientStartId, (err) ->
-          # An error message will be sent to the client in checkVersion
-          return if err
+          return socket.emit 'fatalErr', err if err
 
-          socket.on 'fetch', (clientId, targets, callback) ->
+          socket.on 'fetch', (targets, callback) ->
             # Only fetch data
             store.fetch clientId, deserialize(targets), callback
 
-          socket.on 'subAdd', (clientId, targets, callback) ->
+          socket.on 'subAdd', (targets, callback) ->
             # Setup subscriptions and fetch data
             store.subscribe clientId, deserialize(targets), callback
 
-          socket.on 'subRemove', (clientId, targets, callback) ->
+          socket.on 'subRemove', (targets, callback) ->
             store.unsubscribe clientId, deserialize(targets), callback
 
           # Setup subscriptions only
-          send 'subscribe', store, clientId, deserialize(targets)
+          sendToPubSub 'subscribe', store, clientId, deserialize(targets)
 
   proto:
     fetch: (clientId, targets, callback) ->
@@ -94,13 +93,13 @@ module.exports =
         callback err, data
       # This call to subscribe must come before the fetch, since a liveQuery
       # is created in subscribe that may be accessed during the fetch
-      send 'subscribe', this, clientId, targets, finish
+      sendToPubSub 'subscribe', this, clientId, targets, finish
       @fetch clientId, targets, (err, _data) ->
         data = _data
         finish err
 
     unsubscribe: (clientId, targets, callback) ->
-      send 'unsubscribe', this, clientId, targets, callback
+      sendToPubSub 'unsubscribe', this, clientId, targets, callback
 
     publish: (path, type, data, meta) ->
       message = [type, data]
@@ -127,7 +126,7 @@ module.exports =
 
 
 # TODO Comment this
-send = (method, store, clientId, targets, callback) ->
+sendToPubSub = (method, store, clientId, targets, callback) ->
   if targets
     channels = []
     queries = []

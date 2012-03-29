@@ -1,26 +1,14 @@
+{mergeAll, isServer} = util = require './util'
 require 'es5-shim' unless isServer
-
 {EventEmitter} = require 'events'
 plugin = require './plugin'
-{mergeAll, isServer} = util = require './util'
 
 racer = module.exports = new EventEmitter
 
 racer.merge = -> mergeAll this, arguments...
 
 racer.merge plugin,
-
-  async: require './util/async'
-  diffMatchPatch: require './diffMatchPatch'
-  Memory: require './Memory'
   Model: require './Model'
-  path: require './path'
-  plugin: plugin
-  Promise: require './Promise'
-  Serializer: require './Serializer'
-  speculative: require './speculative'
-  transaction: require './transaction'
-  util: util
 
 # Note that this plugin is passed by string to prevent
 # Browserify from including it

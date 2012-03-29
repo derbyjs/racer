@@ -1,5 +1,7 @@
 socketio = require 'socket.io'
-{Promise, Model, createAdapter} = racer = require './racer'
+{Model} = racer = require './racer'
+Promise = require './Promise'
+{createAdapter} = require './adapters'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
@@ -18,12 +20,12 @@ transaction = require './transaction.server'
 
 Store = module.exports = (options = {}) ->
   @_localModels = {}
-  @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
-  @_db = db = racer.createAdapter 'db', options.db || {type: 'Memory'}
+  @_journal = journal = createAdapter 'journal', options.journal || {type: 'Memory'}
+  @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
-  @_clientId = clientId = racer.createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
+  @_clientId = clientId = createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
 
   # Add a @_commit method to this store based on the conflict resolution mode
   # TODO: Default mode should be 'ot' once supported
@@ -33,13 +35,12 @@ Store = module.exports = (options = {}) ->
 
   @mixinEmit 'init', this, options
 
-  @_persistenceRoutes = persistenceRoutes = {}
-  @_defaultPersistenceRoutes = defaultPersistenceRoutes = {}
+  # Maps method => [function]
+  @_routes = routes = {}
   for type in ['accessor', 'mutator']
     for method of Store[type]
-      persistenceRoutes[method] = []
-      defaultPersistenceRoutes[method] = []
-  db.setupDefaultPersistenceRoutes this
+      routes[method] = []
+  db.setupRoutes this
 
   return
 
@@ -49,7 +50,7 @@ Store:: =
     io = socketio.listen to
     io.configure ->
       io.set 'browser client', false
-      io.set 'transports', racer.transports
+      io.set 'transports', racer.get('transports')
     io.configure 'production', ->
       io.set 'log level', 1
     socketUri = if typeof to is 'number' then ':' + to else ''
@@ -60,7 +61,8 @@ Store:: =
 
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
-      @mixinEmit 'socket', this, socket
+      clientId = socket.handshake.query.clientId
+      @mixinEmit 'socket', this, socket, clientId
 
   flushJournal: (callback) -> @_journal.flush callback
   flushDb: (callback) -> @_db.flush callback
@@ -82,7 +84,6 @@ Store:: =
       return callback err if err
       if clientStartId != startId
         err = "clientStartId != startId (#{clientStartId} != #{startId})"
-        socket.emit 'fatalErr', err
         return callback err
       callback null
 
@@ -136,14 +137,24 @@ Store:: =
 
   ## ACCESSOR ROUTERS/MIDDLEWARE ##
 
-  route: (method, path, fn) ->
+  route: (method, path, priority, fn) ->
+    if typeof priority is 'function'
+      fn = priority
+      priority = 0
+    else
+      priority ||= 0
     re = eventRegExp path
-    @_persistenceRoutes[method].push [re, fn]
-    return this
+    handler = [re, fn, priority]
 
-  defaultRoute: (method, path, fn) ->
-    re = eventRegExp path
-    @_defaultPersistenceRoutes[method].push [re, fn]
+    # Instert route before the first route with the same or lesser priority 
+    routes = @_routes[method]
+    for route, i in routes
+      if handler[2] <= priority
+        routes.splice i, 0, handler
+        return this
+
+    # Insert route at the end if it is the lowest priority
+    routes.push handler
     return this
 
   _sendToDb: (method, args, done) ->
@@ -166,8 +177,7 @@ Store:: =
     else
       lockingDone = done
 
-    # TODO Don't concat every time
-    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
+    routes = @_routes[method]
 
     i = 0
     do next = ->

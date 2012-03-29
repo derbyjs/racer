@@ -9,7 +9,9 @@ isReady = model = null
 exports = module.exports = (racer) ->
   racer.merge
 
-    # socket argument makes it easier to test - see test/util/model
+    # `init` should be called (by the developer) with the specified arguments
+    # when the browser loads the app.
+    # `socket` argument makes it easier to test - see test/util/model
     init: ([clientId, memory, count, onLoad, startId, ioUri], socket) ->
       model = new racer.Model
       model._clientId = clientId
@@ -26,6 +28,7 @@ exports = module.exports = (racer) ->
       model._setSocket socket || io.connect ioUri,
         'reconnection delay': 100
         'max reconnection attempts': 20
+        query: 'clientId=' + clientId
 
       isReady = true
       racer.emit 'ready', model

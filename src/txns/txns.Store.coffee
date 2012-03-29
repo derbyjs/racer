@@ -28,40 +28,33 @@ module.exports =
               throw err if err
               socket.emit 'txn', txn, num
 
-    socket: (store, socket) ->
+    socket: (store, socket, clientId) ->
       journal = store._journal
       pubSub = store._pubSub
       # This is used to prevent emitting duplicate transactions
       socket.__ver = 0
 
-      # This promise is resolved in the pubSub.Store mixin
-      socket._clientIdPromise = clientIdPromise = new Promise
-
       socket.on 'txn', (txn, clientStartId) ->
         ver = transaction.getVer txn
         store._checkVersion socket, ver, clientStartId, (err) ->
-          return if err
+          return socket.emit 'fatalErr', err if err
           store._commit txn, (err) ->
             txnId = transaction.getId txn
             ver = transaction.getVer txn
             # Return errors to client, with the exeption of duplicates, which
             # may need to be sent to the model again
             return socket.emit 'txnErr', err, txnId if err && err != 'duplicate'
-            clientIdPromise.on (err, clientId) ->
+            journal.nextTxnNum clientId, (err, num) ->
               throw err if err
-              journal.nextTxnNum clientId, (err, num) ->
-                throw err if err
-                socket.emit 'txnOk', txnId, ver, num
+              socket.emit 'txnOk', txnId, ver, num
 
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
         store._checkVersion socket, ver, clientStartId, (err) ->
-          return if err
-          clientIdPromise.on (err, clientId) ->
+          return socket.emit 'fatalErr', err if err
+          journal.txnsSince ver, clientId, pubSub, (err, txns) ->
             return callback err if err
-            journal.txnsSince ver, clientId, pubSub, (err, txns) ->
+            journal.nextTxnNum clientId, (err, num) ->
               return callback err if err
-              journal.nextTxnNum clientId, (err, num) ->
-                return callback err if err
-                if len = txns.length
-                  socket.__ver = transaction.getVer txns[len - 1]
-                callback null, txns, num
+              if len = txns.length
+                socket.__ver = transaction.getVer txns[len - 1]
+              callback null, txns, num

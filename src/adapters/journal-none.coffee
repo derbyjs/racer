@@ -1,5 +1,5 @@
 exports = module.exports = (racer) ->
-  racer.adapters.journal.None = JournalNone
+  racer.registerAdapter 'journal', 'None', JournalNone
 
 exports.useWith = server: true, browser: false
 

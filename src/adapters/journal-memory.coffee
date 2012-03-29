@@ -1,9 +1,8 @@
-transaction = deepCopy = null
+transaction = require '../transaction.server'
+{deepCopy} = require '../util'
 
 exports = module.exports = (racer) ->
-  {transaction} = racer
-  {deepCopy} = racer.util
-  racer.adapters.journal.Memory = JournalMemory
+  racer.registerAdapter 'journal', 'Memory', JournalMemory
 
 exports.useWith = server: true, browser: false
 

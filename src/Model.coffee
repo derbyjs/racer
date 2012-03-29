@@ -64,8 +64,7 @@ mergeAll Model::, EventEmitter::,
 
   path: -> @_at || ''
 
-  leaf: (path) ->
-    path = @_at || '' unless path?
+  leaf: (path = @_at || '') ->
     i = path.lastIndexOf '.'
     return path.substr i + 1
 
