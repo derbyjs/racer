@@ -99,7 +99,7 @@ eventListener = (method, pattern, callback, at) ->
   if at
     if typeof pattern is 'string'
       pattern = at + '.' + pattern
-    else if pattern.call
+    else if pattern instanceof Function
       callback = pattern
       pattern = at
     else
@@ -107,9 +107,7 @@ eventListener = (method, pattern, callback, at) ->
 
   else
     # on(type, listener)
-    # Test for function by looking for call, since pattern can be a regex,
-    # which has a typeof == 'function' as well
-    return pattern if pattern.call
+    return pattern if pattern instanceof Function
 
   # on(method, pattern, callback)
   re = eventRegExp pattern
