@@ -1,4 +1,5 @@
 {regExp: pathRegExp} = require '../../path'
+{hasKeys} = require '../../util'
 
 module.exports = stringInterface = (pubSub) ->
   # forwardIndex comes in handy for efficient publish
