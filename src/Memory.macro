@@ -144,21 +144,22 @@ lookupSet = (path, data, speculative, pathType) ->
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      switch pathType
-        when 'object'
-          unless i == len
-            curr = parent[prop] = if speculative then createObject() else {}
-            curr.id = prop if i == 2 && ! isPrivate firstProp
-        when 'array'
-          if i == len
-            curr = parent[prop] = if speculative then createArray() else []
-          else
-            curr = parent[prop] = if speculative then createObject() else {}
-            curr.id = prop if i == 2 && ! isPrivate firstProp
+      if pathType is 'object'
+        if /^[0-9]+$/.test(props[i])
+          curr = parent[prop] = if speculative then createArray() else []
+        else if i != len
+          curr = parent[prop] = if speculative then createObject() else {}
+          curr.id = prop if i == 2 && ! isPrivate firstProp
+      else if pathType is 'array'
+        if i == len
+          curr = parent[prop] = if speculative then createArray() else []
         else
-          unless i == len
-            parent = curr = undefined
-          return [curr, parent, prop]
+          curr = parent[prop] = if speculative then createObject() else {}
+          curr.id = prop if i == 2 && ! isPrivate firstProp
+      else
+        if i != len
+          parent = curr = undefined
+        return [curr, parent, prop]
     #else
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop

@@ -37,13 +37,12 @@ Store = module.exports = (options = {}) ->
 
   @mixinEmit 'init', this, options
 
-  @_persistenceRoutes = persistenceRoutes = {}
-  @_defaultPersistenceRoutes = defaultPersistenceRoutes = {}
+  # Maps method => [function]
+  @_routes = routes = {}
   for type in ['accessor', 'mutator']
     for method of Store[type]
-      persistenceRoutes[method] = []
-      defaultPersistenceRoutes[method] = []
-  db.setupDefaultPersistenceRoutes this
+      routes[method] = []
+  db.setupRoutes this
 
   return
 
@@ -142,14 +141,24 @@ Store:: =
 
   ## ACCESSOR ROUTERS/MIDDLEWARE ##
 
-  route: (method, path, fn) ->
+  route: (method, path, priority, fn) ->
+    if typeof priority is 'function'
+      fn = priority
+      priority = 0
+    else
+      priority ||= 0
     re = eventRegExp path
-    @_persistenceRoutes[method].push [re, fn]
-    return this
+    handler = [re, fn, priority]
 
-  defaultRoute: (method, path, fn) ->
-    re = eventRegExp path
-    @_defaultPersistenceRoutes[method].push [re, fn]
+    # Instert route before the first route with the same or lesser priority 
+    routes = @_routes[method]
+    for route, i in routes
+      if handler[2] <= priority
+        routes.splice i, 0, handler
+        return this
+
+    # Insert route at the end if it is the lowest priority
+    routes.push handler
     return this
 
   _sendToDb: (method, args, done) ->
@@ -172,8 +181,7 @@ Store:: =
     else
       lockingDone = done
 
-    # TODO Don't concat every time
-    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
+    routes = @_routes[method]
 
     i = 0
     do next = ->
