@@ -1,15 +1,25 @@
 {split: splitPath, lookup} = require '../path'
 {finishAfter} = require '../util/async'
-{deserialize} = queryPubSub = require './queryPubSub'
-{createAdapter} = require '../adapters'
+{hasKeys} = require '../util'
 racer = require '../racer'
+PubSub = require './PubSub'
+
+{deserialize: deserializeQuery} = require './Query'
+deserialize = (targets) ->
+  for target, i in targets
+    if Array.isArray target
+      # Deserialize query literal into a Query instance
+      targets[i] = deserializeQuery target
+  return targets
+
 
 module.exports =
   type: 'Store'
 
   events:
     init: (store, opts) ->
-      pubSub = store._pubSub = createAdapter 'pubSub', opts.pubSub || {type: 'Memory'}
+      pubSub = store._pubSub = new PubSub
+
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
       journal = store._journal
@@ -17,19 +27,16 @@ module.exports =
       pubSub.on 'noSubscribers', (path) ->
         delete liveQueries[path]
 
-      pubSub.on 'message', (clientId, [type, data]) ->
-        pubSub.emit type, clientId, data
-
       # Live Query Channels
       # These following 2 channels are for informing a client about
       # changes to their data set based on mutations that add/rm docs
       # to/from the data set enclosed by the live queries the client
       # subscribes to.
-      ['addDoc', 'rmDoc'].forEach (message) ->
-        pubSub.on message, (clientId, data) ->
+      ['addDoc', 'rmDoc'].forEach (messageType) ->
+        pubSub.on messageType, (clientId, data) ->
           journal.nextTxnNum clientId, (err, num) ->
             throw err if err
-            return clientSockets[clientId].emit message, data, num
+            return clientSockets[clientId].emit messageType, data, num
 
     socket: (store, socket, clientId) ->
       store._clientSockets[clientId] = socket
@@ -50,24 +57,25 @@ module.exports =
             # Only fetch data
             store.fetch clientId, deserialize(targets), callback
 
-          socket.on 'subAdd', (targets, callback) ->
+          socket.on 'addSub', (targets, callback) ->
             # Setup subscriptions and fetch data
             store.subscribe clientId, deserialize(targets), callback
 
-          socket.on 'subRemove', (targets, callback) ->
+          socket.on 'removeSub', (targets, callback) ->
             store.unsubscribe clientId, deserialize(targets), callback
 
           # Setup subscriptions only
-          sendToPubSub 'subscribe', store, clientId, deserialize(targets)
+          store._pubSub.subscribe clientId, deserialize(targets)
 
   proto:
+    # TODO fetch does not belong in pubSub
     fetch: (clientId, targets, callback) ->
       data = []
       finish = finishAfter targets.length, (err) =>
         return callback err if err
         out = {data}
         # Note that `out` may be mutated by ot or other plugins
-        @_pubSub.emit 'fetch', out, clientId, targets
+        @emit 'fetch', out, clientId, targets
         callback null, out
 
       for target in targets
@@ -93,18 +101,20 @@ module.exports =
         callback err, data
       # This call to subscribe must come before the fetch, since a liveQuery
       # is created in subscribe that may be accessed during the fetch
-      sendToPubSub 'subscribe', this, clientId, targets, finish
+      @_pubSub.subscribe clientId, targets, finish
       @fetch clientId, targets, (err, _data) ->
         data = _data
         finish err
 
     unsubscribe: (clientId, targets, callback) ->
-      sendToPubSub 'unsubscribe', this, clientId, targets, callback
+      @_pubSub.unsubscribe clientId, targets, callback
 
     publish: (path, type, data, meta) ->
-      message = [type, data]
-      queryPubSub.publish this, path, message, meta
-      @_pubSub.publish path, message
+      message = {type, params: {channel: path, data: data} }
+      @_pubSub.publish message, meta
+#      message = [type, data]
+#      queryPubSub.publish this, path, message, meta
+#      @_pubSub.publish path, message
 
     # TODO Move this into another module?
     query: (query, callback) ->
@@ -123,31 +133,6 @@ module.exports =
         # TODO Get version consistency right in face of concurrent writes
         # during query
         callback err, found, db.version
-
-
-# TODO Comment this
-sendToPubSub = (method, store, clientId, targets, callback) ->
-  if targets
-    channels = []
-    queries = []
-    for target in targets
-      queue = if target.isQuery then queries else channels
-      queue.push target
-    numChannels = channels.length
-    numQueries = queries.length
-    count = if numChannels && numQueries then 2 else 1
-    finish = finishAfter count, callback
-    if numQueries
-      queryPubSub[method] store, clientId, queries, finish
-    if numChannels
-      store._pubSub[method] clientId, channels, finish
-    return
-
-  # Unsubscribing without any targets removes all subscriptions
-  # for a given clientId
-  finish = finishAfter 2, callback
-  queryPubSub[method] store, clientId, null, finish
-  store._pubSub[method] clientId, null, finish
 
 fetchPathData = (store, path, eachDatumCb, onComplete) ->
   [root, remainder] = splitPath path

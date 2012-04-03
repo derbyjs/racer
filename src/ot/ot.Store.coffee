@@ -18,7 +18,7 @@ module.exports =
           socket.emit 'otOp', data
 
       # TODO Convert the following to work beyond local memory
-      store._pubSub.on 'fetch', (out) ->
+      store.on 'fetch', (out) ->
         otPaths = []
         for [root, value] in out.data
           allOtPaths value, root, otPaths

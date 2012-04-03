@@ -9,8 +9,9 @@ module.exports = (storeOpts = {}, plugins = []) ->
   describe 'store mutators', ->
 
     beforeEach (done) ->
-      for plugin in plugins
-        racer.use plugin if plugin.useWith.server
+      for plugin, i in plugins
+        pluginOpts = plugin.testOpts
+        racer.use plugin, pluginOpts if plugin.useWith.server
       @store = racer.createStore(storeOpts)
       @store.flush done
 

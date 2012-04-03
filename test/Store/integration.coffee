@@ -13,7 +13,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
       describe mode, ->
         beforeEach (done) ->
           for plugin in plugins
-            racer.use plugin if plugin.useWith.server
+            racer.use plugin, plugin.testOpts if plugin.useWith.server
           opts = merge {mode}, storeOpts
           store = @store = racer.createStore opts
           store.flush done

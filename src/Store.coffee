@@ -1,3 +1,4 @@
+{EventEmitter} = require 'events'
 socketio = require 'socket.io'
 {Model} = racer = require './racer'
 Promise = require './Promise'
@@ -19,6 +20,7 @@ transaction = require './transaction.server'
 # immediately called after instantiation.
 
 Store = module.exports = (options = {}) ->
+  EventEmitter.call this
   @_localModels = {}
   @_journal = journal = createAdapter 'journal', options.journal || {type: 'Memory'}
   @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
@@ -46,6 +48,8 @@ Store = module.exports = (options = {}) ->
   return
 
 Store:: =
+
+  __proto__: EventEmitter::
 
   listen: (to, namespace) ->
     io = socketio.listen to

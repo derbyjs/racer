@@ -8,7 +8,8 @@ exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   browserRacer.setMaxListeners 0
   if plugins
     for plugin in plugins
-      browserRacer.use plugin if plugin.useWith.browser
+      pluginOpts = plugin.testOpts
+      browserRacer.use plugin, pluginOpts if plugin.useWith.browser
   changeEnvTo 'server'
   return browserRacer
 

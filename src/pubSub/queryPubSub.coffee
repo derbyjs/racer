@@ -4,16 +4,8 @@ Memory = require '../Memory'
 transaction = require '../transaction.server'
 {deepCopy} = require '../util'
 LiveQuery = require './LiveQuery'
-{deserialize: deserializeQuery} = require './Query'
 
 module.exports =
-  deserialize: (targets) ->
-    for target, i in targets
-      if Array.isArray target
-        # Deserialize query literal into a Query instance
-        targets[i] = deserializeQuery target
-    return targets
-
   subscribe: (store, subscriberId, queries, callback) ->
     liveQueries = store._liveQueries
     channels = []

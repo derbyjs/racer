@@ -13,7 +13,9 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
     beforeEach (done) ->
       @currNs = nsBase + currCollectionIndex++
-      racer.use plugin for plugin in plugins
+      for plugin in plugins
+        pluginOpts = plugin.testOpts
+        racer.use plugin, pluginOpts
       @store = racer.createStore(storeOpts)
       setTimeout done, 200
 

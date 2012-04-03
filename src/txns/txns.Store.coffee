@@ -30,7 +30,6 @@ module.exports =
 
     socket: (store, socket, clientId) ->
       journal = store._journal
-      pubSub = store._pubSub
       # This is used to prevent emitting duplicate transactions
       socket.__ver = 0
 
@@ -51,7 +50,7 @@ module.exports =
       socket.on 'txnsSince', (ver, clientStartId, callback) ->
         store._checkVersion socket, ver, clientStartId, (err) ->
           return socket.emit 'fatalErr', err if err
-          journal.txnsSince ver, clientId, pubSub, (err, txns) ->
+          journal.txnsSince ver, clientId, store._pubSub, (err, txns) ->
             return callback err if err
             journal.nextTxnNum clientId, (err, num) ->
               return callback err if err

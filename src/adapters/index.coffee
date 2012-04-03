@@ -1,8 +1,7 @@
-console.assert require('./util').isServer
+console.assert require('../util').isServer
 
 adapters =
   journal: {}
-  pubSub: {}
   db: {}
   clientId: {}
 

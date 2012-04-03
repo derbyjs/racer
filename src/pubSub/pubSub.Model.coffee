@@ -129,7 +129,7 @@ module.exports =
       # Callback immediately if already subscribed to everything
       return callback null, out...  unless newTargets.length
 
-      @_subAdd newTargets, (err, data) =>
+      @_addSub newTargets, (err, data) =>
         return callback err if err
         @_initSubData data
         callback null, out...
@@ -162,7 +162,7 @@ module.exports =
       # Callback immediately if already unsubscribed from everything
       return callback()  unless newTargets.length
 
-      @_subRemove newTargets, callback
+      @_removeSub newTargets, callback
 
     _initSubData: (data) ->
       @emit 'subInit', data
@@ -175,13 +175,13 @@ module.exports =
       return callback 'disconnected'  unless @connected
       @socket.emit 'fetch', targets, callback
 
-    _subAdd: (targets, callback) ->
+    _addSub: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subAdd', targets, callback
+      @socket.emit 'addSub', targets, callback
 
-    _subRemove: (targets, callback) ->
+    _removeSub: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subRemove', targets, callback
+      @socket.emit 'removeSub', targets, callback
 
   server:
 
@@ -191,14 +191,14 @@ module.exports =
         return callback err if err
         store.fetch clientId, targets, callback
 
-    _subAdd: (targets, callback) ->
+    _addSub: (targets, callback) ->
       @_clientIdPromise.on (err, clientId) =>
         return callback err if err
         # Subscribe while the model still only resides on the server
         # The model is unsubscribed before sending to the browser
         @store.subscribe clientId, targets, callback
 
-    _subRemove: (targets, callback) ->
+    _removeSub: (targets, callback) ->
       store = @store
       @_clientIdPromise.on (err, clientId) ->
         return callback err if err
