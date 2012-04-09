@@ -12,17 +12,12 @@ JournalMemory = ->
 JournalMemory::=
   flush: (callback) ->
     @_txns = []
-    @_txnClock = {}
     @_startId = (+new Date).toString 36
     callback?()
 
   startId: (callback) -> callback null, @_startId
 
   version: (callback) -> callback null, @_txns.length
-
-  unregisterClient: (clientId, callback) ->
-    delete @_txnClock[clientId]
-    callback?()
 
   txnsSince: (ver, clientId, pubSub, callback) ->
     since = []
@@ -33,11 +28,6 @@ JournalMemory::=
       if pubSub.subscribedTo clientId, transaction.getPath(txn)
         since.push txn
     callback null, since
-
-  nextTxnNum: (clientId, callback) ->
-    txnClock = @_txnClock
-    num = txnClock[clientId] = (txnClock[clientId] || 0) + 1
-    callback null, num
 
   commitFn: (store, mode) -> commitFns[mode] this, store
 

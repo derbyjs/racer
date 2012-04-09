@@ -25,9 +25,7 @@ mixin =
         @_bundle callback
 
     _bundle: (callback) ->
-      clientId = @_clientId
-      @store._unregisterLocalModel clientId
-      callback JSON.stringify [clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
+      callback JSON.stringify [@_clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
 
 onBundleTimeout = ->
   throw new Error "Model bundling took longer than #{mixin.static.BUNDLE_TIMEOUT} ms"

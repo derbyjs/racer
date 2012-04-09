@@ -2,6 +2,7 @@ transaction = require '../transaction'
 {expand: expandPath, split: splitPath} = require '../path'
 LiveQuery = require './LiveQuery'
 {deserialize} = Query = require './Query'
+{merge} = require '../util'
 empty = ->
 
 module.exports =
@@ -21,13 +22,20 @@ module.exports =
 
     socket: (model, socket) ->
       memory = model._memory
+      args = arguments
 
-      socket.on 'connect', ->
-        # Establish subscriptions upon connecting and get any transactions
-        # that may have been missed
-        subs = Object.keys model._pathSubs
-        subs.push query for _, query of model._querySubs
-        socket.emit 'sub', model._clientId, subs, memory.version, model._startId
+      # When the store asks the browser model to resync with the store, then
+      # the model should send the store its subscriptions and handle the
+      # receipt of instructions to get the model state back in sync with the
+      # store state (e.g., in the form of applying missed transaction, or in
+      # the form of diffing to a received store state)
+      socket.on 'resyncWithStore', (fn) ->
+        socket.once 'snapshotUpdate', (data) ->
+          # TODO Over-ride and replay diff as events
+          memory.eraseNonPrivate()
+          model._initData data
+          model.emit 'reInit'
+        fn model._subs(), memory.version, model._startId
 
       socket.on 'addDoc', ({doc, ns, ver}, num) ->
         # If the doc is already in the model, don't add it
@@ -166,6 +174,9 @@ module.exports =
 
     _initSubData: (data) ->
       @emit 'subInit', data
+      @_initData data
+
+    _initData: (data) ->
       memory = @_memory
       for [path, value, ver] in data.data
         memory.set path, value, ver
@@ -182,6 +193,11 @@ module.exports =
     _removeSub: (targets, callback) ->
       return callback 'disconnected'  unless @connected
       @socket.emit 'removeSub', targets, callback
+
+    _subs: ->
+      subs = Object.keys @_pathSubs
+      subs.push query for _, query of @_querySubs
+      return subs
 
   server:
 

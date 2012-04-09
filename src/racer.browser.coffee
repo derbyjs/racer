@@ -37,12 +37,7 @@ exports = module.exports = (racer) ->
     # This returns a function that can be passed to a DOM ready function
     ready: (onready) -> ->
       if isReady
-        connected = model.socket.socket.connected
-        onready model
-        # Republish the Socket.IO connect event after the ready callback
-        # if Socket.IO previously connected
-        model.socket.socket.publish 'connect'  if connected
-        return
+        return onready model
       racer.on 'ready', onready
 
 exports.useWith = server: false, browser: true

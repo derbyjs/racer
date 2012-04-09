@@ -22,8 +22,20 @@ module.exports =
 
       store._liveQueries = liveQueries = {}
       store._clientSockets = clientSockets = {}
-      journal = store._journal
 
+      nextTxnNum = {}
+      store._txnClock = txnClock =
+        unregister: (clientId) ->
+          delete nextTxnNum[clientId]
+
+        register: (clientId) ->
+          nextTxnNum[clientId] = 1
+
+        nextTxnNum: (clientId) ->
+          @register clientId unless clientId of nextTxnNum
+          nextTxnNum[clientId]++
+
+      # TODO Move this behind the channel-interface-query abstraction
       pubSub.on 'noSubscribers', (path) ->
         delete liveQueries[path]
 
@@ -34,38 +46,56 @@ module.exports =
       # subscribes to.
       ['addDoc', 'rmDoc'].forEach (messageType) ->
         pubSub.on messageType, (clientId, data) ->
-          journal.nextTxnNum clientId, (err, num) ->
-            throw err if err
-            return clientSockets[clientId].emit messageType, data, num
+          num = txnClock.nextTxnNum clientId
+          return clientSockets[clientId].emit messageType, data, num
 
     socket: (store, socket, clientId) ->
       store._clientSockets[clientId] = socket
+
       socket.on 'disconnect', ->
         delete store._clientSockets[clientId]
+        # Start buffering transactions on behalf of this disconnected client.
+        # Buffering occurs for up to 3 seconds.
+        store._startTxnBuffer clientId, 3000
 
-      # Called when a client first connects
-      socket.on 'sub', (clientId, targets, ver, clientStartId) ->
+      # Set up subscription cbs
+      socket.on 'fetch', (targets, cb) ->
+        # Only fetch data
+        store.fetch clientId, deserialize(targets), cb
 
-        socket.on 'disconnect', ->
-          store.unsubscribe clientId
-          store._journal.unregisterClient clientId
+      socket.on 'addSub', (targets, cb) ->
+        store.subscribeWithFetch clientId, deserialize(targets), cb
 
-        store._checkVersion socket, ver, clientStartId, (err) ->
-          return socket.emit 'fatalErr', err if err
+      socket.on 'removeSub', (targets, cb) ->
+        store.unsubscribe clientId, deserialize(targets), cb
 
-          socket.on 'fetch', (targets, callback) ->
-            # Only fetch data
-            store.fetch clientId, deserialize(targets), callback
+      # Check to see if this socket connection is
+      # 1. The first connection after the server ships the bundled model to the browser.
+      # 2. A connection that occurs shortly after an aberrant disconnect
+      if store._txnBuffer clientId
+        # If so, the store has been buffering any transactions meant to be
+        # received by the (disconnected) browser model because of model subscriptions.
 
-          socket.on 'addSub', (targets, callback) ->
-            # Setup subscriptions and fetch data
-            store.subscribe clientId, deserialize(targets), callback
+        # So stop buffering the transactions
+        store._cancelTxnBufferExpiry clientId
+        # And send the buffered transactions to the browser
+        store._flushTxnBuffer clientId, socket
+      else
+        # Otherwise, the server store has completely forgotten about this
+        # client because it has been disconnected too long. In this case, the
+        # store should
+        # 1. Ask the browser model what it is subscribed to, so we can re-establish subscriptions
+        # 2. Send the browser model enough data to bring it up to speed with
+        #    the current data snapshot according to the server. When the store uses a journal, then it can send the browser a set of missing transactions. When the store does not use a journal, then it sends the browser a new snapshot of what the browser is interested in; the browser can then set itself to the new snapshot and diff it against its stale snapshot to reply the diff to the DOM, which reflects the stale state.
+        socket.emit 'resyncWithStore', (subs, clientVer, clientStartId) ->
+          store._checkVersion clientVer, clientStartId, (err) ->
+            return socket.emit 'fatalErr', err if err
 
-          socket.on 'removeSub', (targets, callback) ->
-            store.unsubscribe clientId, deserialize(targets), callback
+            deserializedSubs = deserialize subs
+            store.subscribeWithoutFetch clientId, deserializedSubs
+            store.fetch clientId, deserializedSubs, (err, data) ->
+              socket.emit 'snapshotUpdate', data
 
-          # Setup subscriptions only
-          store._pubSub.subscribe clientId, deserialize(targets)
 
   proto:
     # TODO fetch does not belong in pubSub
@@ -90,31 +120,33 @@ module.exports =
           , finish
       return
 
+    subscribeWithoutFetch: (clientId, targets, cb) ->
+      @_pubSub.subscribe clientId, targets, cb
+
     # Fetch the set of data represented by `targets` and subscribe to future
     # changes to this set of data.
     # @param {String} clientId representing the subscriber
     # @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
     # @param {Function} callback(err, data)
-    subscribe: (clientId, targets, callback) ->
+    subscribeWithFetch: subscribeWithFetch = (clientId, targets, cb) ->
       data = null
       finish = finishAfter 2, (err) ->
-        callback err, data
+        cb err, data
       # This call to subscribe must come before the fetch, since a liveQuery
       # is created in subscribe that may be accessed during the fetch
-      @_pubSub.subscribe clientId, targets, finish
+      @subscribeWithoutFetch clientId, targets, finish
       @fetch clientId, targets, (err, _data) ->
         data = _data
         finish err
 
-    unsubscribe: (clientId, targets, callback) ->
-      @_pubSub.unsubscribe clientId, targets, callback
+    subscribe: subscribeWithFetch
+
+    unsubscribe: (clientId, targets, cb) ->
+      @_pubSub.unsubscribe clientId, targets, cb
 
     publish: (path, type, data, meta) ->
       message = {type, params: {channel: path, data: data} }
       @_pubSub.publish message, meta
-#      message = [type, data]
-#      queryPubSub.publish this, path, message, meta
-#      @_pubSub.publish path, message
 
     # TODO Move this into another module?
     query: (query, callback) ->

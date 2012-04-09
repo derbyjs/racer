@@ -27,8 +27,6 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new ServerSocketsMock()
   serverSockets.on 'connection', (socket) ->
     socket.on name, onName
-    socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback null, [], 1
   browserSocket = new BrowserSocketMock serverSockets, clientId
   model = new BrowserModel
   model._clientId = clientId
@@ -53,9 +51,6 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
     transaction.setVer txn, ++ver
     newTxns.push txn
   serverSockets.on 'connection', (socket) ->
-    socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback null, newTxns, ++num
-      newTxns = []
     socket.on 'txn', (txn) ->
       if err = options.txnErr
         socket.emit 'txnErr', err
@@ -75,17 +70,30 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, cal
   if typeof plugins is 'function'
     callback = plugins
     plugins = []
+  if typeof callback is 'object'
+    {preBundle, postBundle, preConnect, postConnect: callback} = callback
   plugins ||= []
   model = store.createModel()
   model.subscribe testPath, (err, sandbox) ->
     model.ref '_test', sandbox
+    preBundle?(model)
     model.bundle (bundle) ->
-      browserRacer = createBrowserRacer plugins
-      browserSocket = new BrowserSocketMock store.sockets, model._clientId
-      browserRacer.on 'ready', (model) ->
-        browserSocket._connect()
-        callback model
-      browserRacer.init JSON.parse(bundle), browserSocket
+      setupBrowser = ->
+        browserRacer = createBrowserRacer plugins
+        browserSocket = new BrowserSocketMock store.sockets, model._clientId
+        browserRacer.on 'ready', (model) ->
+          preConnect?(model)
+          browserSocket._connect()
+          callback model
+        browserRacer.init JSON.parse(bundle), browserSocket
+      if postBundle
+        if postBundle.length == 1
+          postBundle model
+          setupBrowser()
+        else
+          postBundle model, setupBrowser
+      else
+        setupBrowser()
 
 # Create one or more browser models that are connected to a store over a
 # mock Socket.IO connection
@@ -96,6 +104,8 @@ exports.mockFullSetup = (store, done, plugins, callback) ->
   if typeof plugins is 'function'
     callback = plugins
     plugins = []
+  if typeof callback is 'object'
+    {postBundle, preBundle, preConnect, postConnect: callback} = callback
   plugins ||= []
   numBrowsers = callback.length - 1 # subtract 1 for the done parameter
   serverSockets = new ServerSocketsMock()
@@ -110,6 +120,10 @@ exports.mockFullSetup = (store, done, plugins, callback) ->
   i = numBrowsers
   store.setSockets serverSockets
   while i--
-    createBrowserModel store, testPath, plugins, (model) =>
-      browserModels.push model
-      --numBrowsers || callback browserModels..., allDone
+    createBrowserModel store, testPath, plugins,
+      preBundle: preBundle
+      postBundle: postBundle
+      preConnect: preConnect
+      postConnect: (model) =>
+        browserModels.push model
+        --numBrowsers || callback browserModels..., allDone

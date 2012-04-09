@@ -33,20 +33,6 @@ mirrorTest = (done, init, callback) ->
 
 describe 'Model event patching', ->
 
-  it 'mock should support synching txns on connect', (done) ->
-    [model, sockets] = mockSocketEcho 0, unconnected: true
-    model.set 'name', 'John'
-    sockets._queue transaction.create
-      id: '1.0', method: 'set', args: ['color', 'green']
-
-    model.socket._connect()
-    setTimeout ->
-      expect(model.get()).to.eql
-        color: 'green'
-        name: 'John'
-      done()
-    , 10
-
   it 'conflicting txn from server should be applied first', (done) ->
     [model, sockets] = mockSocketEcho 0, unconnected: true
     model.set 'name', 'John'

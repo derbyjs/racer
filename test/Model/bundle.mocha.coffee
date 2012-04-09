@@ -28,7 +28,7 @@ describe 'Model bundle', ->
       model.set '_role', 'presenter'
       model.bundle (bundle) -> done()
 
-  it 'bundle invocation before all txns have been applied should wait for all txns to be applied', (done) ->
+  it '(before all txns have been applied) should wait for all txns to be applied', (done) ->
     store = @store
     model = store.createModel()
 
@@ -38,14 +38,12 @@ describe 'Model bundle', ->
       # Simulate this latency scenario
       flush = ->
         fn() for fn in buffer
+        return
       commit = store._commit
       buffer = []
       store._commit = ->
         args = arguments
         buffer.push -> commit.apply(store, args)
-      _bundle = model.bundle
-      model.bundle = ->
-        _bundle.apply model, arguments
 
       group.set 'age', 1
       model.bundle (bundle) ->
@@ -54,3 +52,7 @@ describe 'Model bundle', ->
         done()
 
       process.nextTick flush
+
+  it 'should buffer any transactions received after its own txn application, and send those down to the browser upon socket.io connection'
+
+  it 'should expire the local model after the expiry period'

@@ -47,7 +47,8 @@ module.exports =
         Klass.mixins.push mixin
       else
         Klass.mixins = [mixin]
-        Klass::mixinEmit = emitFn this, type
+        Klass::mixinEmit = (name, args...) =>
+          @emit type + ':' + name, args...
 
       mergeAll Klass, mixin.static
 
@@ -82,6 +83,3 @@ mergeProto = (protoSpec, Klass) ->
           methods[name] = fn
         else fn[key] = value
   return
-
-emitFn = (self, type) ->
-  (name, args...) -> self.emit type + ':' + name, args...

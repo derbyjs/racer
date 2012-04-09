@@ -102,13 +102,10 @@ describe 'Model transaction handling', ->
     expect(model.get 'colors').to.specEql ['green']
     sockets._disconnect()
 
-  it 'transactions should be requested if pending longer than timeout @slow', (done) ->
+  it 'transactions should be requested if it has not received its next expected txn in a while @slow', (done) ->
+    # Txn serializer timeout is 1 second
     @timeout 2000
-    ignoreFirst = true
-    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
-      # A txnsSince request is sent immediately upon connecting,
-      # so the first one should be ignored
-      return ignoreFirst = false  if ignoreFirst
+    [model, sockets] = mockSocketModel '0', 'snapshotUpdate', (ver) ->
       expect(ver).to.eql 3
       sockets._disconnect()
       done()
@@ -118,11 +115,7 @@ describe 'Model transaction handling', ->
     sockets.emit 'txn', transaction.create(ver: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
 
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
-    ignoreFirst = true
-    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
-      # A txnsSince request is sent immediately upon connecting,
-      # so the first one should be ignored
-      return ignoreFirst = false  if ignoreFirst
+    [model, sockets] = mockSocketModel '0', 'fetchCurrSnapshot', (ver) ->
       done()
     sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
     sockets.emit 'txn', transaction.create(ver: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3

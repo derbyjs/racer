@@ -15,6 +15,12 @@ Memory:: =
     @_data = world: obj.data
     @version = obj.ver
 
+  eraseNonPrivate: ->
+    {world} = @_data
+    for path of world
+      delete world[path] unless isPrivate path
+    return
+
   toJSON: -> data: @_data.world, ver: @version
 
   setVersion: (ver) ->

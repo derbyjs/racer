@@ -81,7 +81,7 @@ Store:: =
     @_db.disconnect?()
     @_clientId.disconnect?()
 
-  _checkVersion: (socket, ver, clientStartId, callback) ->
+  _checkVersion: (ver, clientStartId, callback) ->
     # TODO: Map the client's version number to the journal's and update
     # the client with the new startId & version when possible
     @_journal.startId (err, startId) ->
@@ -131,9 +131,6 @@ Store:: =
     return model
 
   _unregisterLocalModel: (clientId) ->
-    # Unsubscribe the model from PubSub events. It will be resubscribed
-    # when the model connects over socket.io
-    @unsubscribe clientId
     localModels = @_localModels
     delete localModels[clientId].store
     delete localModels[clientId]
@@ -150,11 +147,11 @@ Store:: =
     re = eventRegExp path
     handler = [re, fn, priority]
 
-    # Instert route before the first route with the same or lesser priority 
+    # Instert route after the first route with the same or lesser priority
     routes = @_routes[method]
-    for route, i in routes
-      if handler[2] <= priority
-        routes.splice i, 0, handler
+    for {2: currPriority}, i in routes
+      if priority <= currPriority
+        routes.splice i+1, 0, handler
         return this
 
     # Insert route at the end if it is the lowest priority
