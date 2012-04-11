@@ -23,6 +23,12 @@ mergeAll Model::, EventEmitter::,
   _setSocket: (@socket) ->
     @mixinEmit 'socket', this, socket
 
+    @disconnect = ->
+      socket.disconnect()
+
+    @connect = ->
+      socket.socket.connect()
+
     @canConnect = true
     socket.on 'fatalErr', (msg) =>
       @canConnect = false

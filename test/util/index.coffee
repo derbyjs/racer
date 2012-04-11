@@ -91,7 +91,7 @@ expect.Assertion::protoEql = (val) ->
   return this
 
 specEql = (a, b) ->
-  exception = (objA, objB, prop) -> ignore[prop]
+  exception = (objA, objB, prop) -> ignore[prop] || typeof objA[prop] == 'function'
   protoSubset(a, b, exception) && protoSubset(b, a, exception)
 
 expect.Assertion::specEql = (val) ->

@@ -31,7 +31,7 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   model = new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
-  browserSocket._connect()
+  browserSocket.socket.connect()
   return [model, serverSockets]
 
 # Create a model connected to a server socket mock & pass all transactions
@@ -63,7 +63,7 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
     new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
-  browserSocket._connect()  unless options.unconnected
+  browserSocket.socket.connect()  unless options.unconnected
   return [model, serverSockets]
 
 exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, callback) ->
@@ -83,7 +83,7 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, cal
         browserSocket = new BrowserSocketMock store.sockets, model._clientId
         browserRacer.on 'ready', (model) ->
           preConnect?(model)
-          browserSocket._connect()
+          browserSocket.socket.connect()
           callback model
         browserRacer.init JSON.parse(bundle), browserSocket
       if postBundle

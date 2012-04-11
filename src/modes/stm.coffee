@@ -86,7 +86,7 @@ Stm::version = (cb) ->
 Stm::snapshotSince = ({ver, clientStartId, clientId}, cb) ->
   @checkStartMarker clientStartId, (err) =>
     return cb err if err
-    @txnsSince ver, clientId, @_store._pubSub, (err, txns) ->
+    @_journal.txnsSince ver, clientId, @_store._pubSub, (err, txns) ->
       return cb err if err
       cb null, {txns}
 

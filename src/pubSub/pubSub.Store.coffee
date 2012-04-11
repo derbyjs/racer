@@ -47,7 +47,8 @@ module.exports =
       ['addDoc', 'rmDoc'].forEach (messageType) ->
         pubSub.on messageType, (clientId, data) ->
           num = txnClock.nextTxnNum clientId
-          return clientSockets[clientId].emit messageType, data, num
+          return unless socket = clientSockets[clientId]
+          return socket.emit messageType, data, num
 
     socket: (store, socket, clientId) ->
       store._clientSockets[clientId] = socket

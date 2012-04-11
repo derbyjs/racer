@@ -151,7 +151,9 @@ lookupSet = (path, data, speculative, pathType) ->
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
       if pathType is 'object'
-        if /^[0-9]+$/.test(props[i])
+        # Cover case where property is a number and it NOT a doc id
+        # We treat the value at <collection>.<docid> as an Object, not an Array
+        if i != 1 && /^[0-9]+$/.test(props[i])
           curr = parent[prop] = if speculative then createArray() else []
         else if i != len
           curr = parent[prop] = if speculative then createObject() else {}

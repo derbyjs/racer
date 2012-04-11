@@ -1,190 +1,266 @@
 {expect} = require '../util'
-{Model} = require '../../lib/racer'
-transaction = require '../../lib/transaction'
-{mockSocketEcho, mockSocketModel} = require '../util/model'
+racer = require '../../lib/racer'
+{mockFullSetup} = require '../util/model'
 
-mirrorTest = (done, init, callback) ->
-  mirror = new Model
-  mirror._commit = ->
-  [model, sockets] = mockSocketEcho 0, unconnected: true
+describe 'Model event patching (lww)', ->
 
-  model.on 'mutator', (method, path, {0: args}) ->
-    args = JSON.parse JSON.stringify args
-    # console.log method, args
-    mirror[method] args...
+  beforeEach ->
+    @store = racer.createStore mode: type: 'lww'
 
-  [remoteModel] = mockSocketModel 1, 'txn', (txn) ->
-    sockets._queue JSON.parse JSON.stringify txn
+  afterEach (done) ->
+    @store.flushMode done
 
-  if arguments.length == 3
-    mirror._memory._data.world =
-      model._memory._data.world =
-        remoteModel._memory._data.world = init
-  else
-    callback = init
+  testBriefOffline = (store, done, {init, mutate, eventual}) ->
+    mockFullSetup store, done, [],
+      preBundle: (model) ->
+        return unless init
+        for k, v of init
+          model.set k, v
+      postConnect: (modelA, modelB, done) ->
+        modelA.disconnect()
+        mutate modelA, modelB
+        modelA.connect()
+        process.nextTick ->
+          expect(modelA.get()).to.specEql modelB.get()
+          for path, expectedVal of eventual
+            expect(modelA.get path).to.specEql expectedVal
+          done()
 
-  callback model, remoteModel
+  it 'conflicting txn from server should be over-written', (done) ->
+    mockFullSetup @store, done, [], (modelA, modelB, done) ->
+      modelA.set '_test.name', 'John'
+      modelA.disconnect()
+      modelB.set '_test.name', 'Sue' # This will be queues on server
 
-  process.nextTick ->
-    model.socket._connect()
-  setTimeout ->
-    expect(mirror.get()).to.specEql model.get()
-    done()
-  , 10
+      modelA.connect()
 
-describe 'Model event patching', ->
-
-  it 'conflicting txn from server should be applied first', (done) ->
-    [model, sockets] = mockSocketEcho 0, unconnected: true
-    model.set 'name', 'John'
-    sockets._queue transaction.create
-      id: '1.0', method: 'set', args: ['name', 'Sue']
-
-    model.socket._connect()
-    setTimeout ->
-      expect(model.get()).to.eql name: 'John'
-      done()
-    , 10
+      process.nextTick ->
+        expect(modelA.get('_test.name')).to.specEql 'John'
+        done()
 
   it 'set on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.set 'name', 'John'
-      model.set 'name', 'Sue'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.set '_test.name', 'John'
+        connectedModel.set '_test.name', 'Sue'
+      eventual:
+        '_test.name': 'Sue'
 
   it 'set on parent', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.set 'user.name', 'John'
-      model.set 'user', {}
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.set '_test.user.name', 'John'
+        connectedModel.set '_test.user', {}
+      eventual:
+        '_test.user': {}
 
   it 'set on child', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.set 'user', {}
-      model.set 'user.name', 'John'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.set '_test.user', {}
+        connectedModel.set '_test.user.name', 'John'
+      eventual:
+        '_test.user': {name: 'John'}
 
   it 'set and del on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.del 'name'
-      model.set 'name', 'John'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.set '_test.user.name', 'John'
+        connectedModel.del '_test.user.name'
+      eventual:
+        '_test.user.name': undefined
 
   it 'set and push on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 'a'
-      model.set 'items', []
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 'a'
+        connectedModel.set '_test.items', []
+      eventual:
+        '_test.items': []
 
   it 'pushes on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 'a', 'b', 'c'
-      remote.push 'items', 'd'
-      model.push 'items', 'x', 'y', 'z'
-      model.push 'items', 'm', 'n'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 'a', 'b', 'c'
+        disconnectedModel.push '_test.items', 'd'
+        connectedModel.push '_test.items', 'x', 'y', 'z'
+        connectedModel.push '_test.items', 'm', 'n'
+      eventual:
+        '_test.items': ['a', 'b', 'c', 'd', 'x', 'y', 'z', 'm', 'n']
 
   it 'unshifts on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.unshift 'items', 'a', 'b', 'c'
-      remote.unshift 'items', 'd'
-      model.unshift 'items', 'x', 'y', 'z'
-      model.unshift 'items', 'm', 'n'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.unshift '_test.items', 'a', 'b', 'c'
+        disconnectedModel.unshift '_test.items', 'd'
+        connectedModel.unshift '_test.items', 'x', 'y', 'z'
+        connectedModel.unshift '_test.items', 'm', 'n'
+      eventual:
+        '_test.items': ['m', 'n', 'x', 'y', 'z', 'd', 'a', 'b', 'c']
 
   it 'inserts on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.insert 'items', 0, 'a', 'b', 'c'
-      remote.insert 'items', 1, 'd'
-      model.insert 'items', 0, 'x', 'y', 'z'
-      model.insert 'items', 3, 'm', 'n'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.insert '_test.items', 0, 'a', 'b', 'c'
+        disconnectedModel.insert '_test.items', 1, 'd'
+        connectedModel.insert '_test.items', 0, 'x', 'y', 'z'
+        connectedModel.insert '_test.items', 3, 'm', 'n'
+      eventual:
+        '_test.items': ['x', 'y', 'z', 'm', 'n', 'a', 'd', 'b', 'c']
 
   it 'push & pop on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 'a', 'b', 'c'
-      remote.pop 'items'
-      model.push 'items', 'x'
-      model.pop 'items'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 'a', 'b', 'c'
+        disconnectedModel.pop '_test.items'
+        connectedModel.push '_test.items', 'x'
+        connectedModel.pop '_test.items'
+      eventual:
+        '_test.items': ['a', 'b']
 
   it 'moves on same path', (done) ->
-    mirrorTest done, items: [
-      {a: 0}
-      {b: 1}
-      {c: 2}
-      {d: 3}
-    ], (model, remote) ->
-      remote.move 'items', 0, 3
-      model.move 'items', 3, 0
+    testBriefOffline @store, done,
+      init:
+        '_test.items': [
+          {a: 0}
+          {b: 1}
+          {c: 2}
+          {d: 3}
+        ]
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.move '_test.items', 0, 3
+        connectedModel.move '_test.items', 3, 0
+      eventual:
+        '_test.items': []
 
   it 'moves on same path reverse', (done) ->
-    mirrorTest done, items: [
-      {a: 0}
-      {b: 1}
-      {c: 2}
-      {d: 3}
-    ], (model, remote) ->
-      remote.move 'items', 3, 0
-      model.move 'items', 0, 3
+    testBriefOffline @store, done,
+      init:
+        '_test.items': [
+          {a: 0}
+          {b: 1}
+          {c: 2}
+          {d: 3}
+        ]
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.move '_test.items', 3, 0
+        connectedModel.move '_test.items', 0, 3
+      eventual:
+        '_test.items': []
 
   it 'push, move, & pop on same path', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 'a', 'b', 'c'
-      remote.move 'items', 1, 0, 2
-      remote.pop 'items'
-      model.push 'items', 'x', 'y'
-      model.move 'items', 0, 1, 1
-      model.pop 'items'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 'a', 'b', 'c'
+        disconnectedModel.move '_test.items', 1, 0, 2
+        expect(disconnectedModel.get '_test.items').to.specEql ['b', 'c', 'a']
+        disconnectedModel.pop '_test.items'
+        expect(disconnectedModel.get '_test.items').to.specEql ['b', 'c']
+        connectedModel.push '_test.items', 'x', 'y'
+        connectedModel.move '_test.items', 0, 1, 1
+        expect(connectedModel.get '_test.items').to.specEql ['y', 'x']
+        connectedModel.pop '_test.items'
+        expect(connectedModel.get '_test.items').to.specEql ['y']
+
+      eventual:
+        '_test.items': []
 
   it 'remove both local and remote', (done) ->
-    mirrorTest done, {items: ['x']}, (model, remote) ->
-      remote.remove 'items', 0
-      model.remove 'items', 0
+    testBriefOffline @store, done,
+      init:
+        '_test.items': ['x']
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.remove '_test.items', 0
+        connectedModel.remove '_test.items', 0
+      eventual:
+        '_test.items': []
 
   it 'push & set on array index remote', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 1
-      remote.set 'items.0', 'x'
-      model.push 'items', 2
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 1
+        disconnectedModel.set '_test.items.0', 'x'
+        connectedModel.push '_test.items', 2
+      eventual:
+        '_test.items': ['x', 2]
 
   it 'push & set on array index local', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', 1
-      model.push 'items', 0
-      model.set 'items.0', 'x'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', 1
+        connectedModel.push '_test.items', 0
+        connectedModel.set '_test.items.0', 'x'
+      eventual:
+        '_test.items': ['x', 0]
 
   it 'remote set & local push on array child', (done) ->
-    mirrorTest done, {items: []}, (model, remote) ->
-      remote.set 'items.0.name', 'x'
-      model.push 'items', {name: 2}
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.set '_test.items.0.name', 'x'
+        connectedModel.push '_test.items', {name: 2}
+      eventual:
+        '_test.items': [{name: 'x'}, {name: 2}]
 
   it 'remote push & local set on array child', (done) ->
-    mirrorTest done, {items: []}, (model, remote) ->
-      remote.push 'items', {name: 2}
-      model.set 'items.0.name', 'x'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', {name: 2}
+        connectedModel.set '_test.items.0.name', 'x'
+      eventual:
+        '_test.items': [{name: 'x'}]
 
   it 'remote del & local move on array child', (done) ->
-    mirrorTest done, {items: [1, 2, 3]}, (model, remote) ->
-      remote.remove 'items', 0
-      model.move 'items', 0, 2
+    testBriefOffline @store, done,
+      init:
+        '_test.items': [1, 2, 3]
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.remove '_test.items', 0
+        connectedModel.move '_test.items', 0, 2
+      eventual:
+        '_test.items': []
 
   it 'remote push & set on array child', (done) ->
-    mirrorTest done, {items: []}, (model, remote) ->
-      remote.push 'items', {name: 1}
-      remote.set 'items.0.name', 'x'
-      model.push 'items', {name: 2}
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', {name: 1}
+        disconnectedModel.set '_test.items.0.name', 'x'
+        connectedModel.push '_test.items', {name: 2}
+      eventual:
+        '_test.items': [{name: 'x'}, {name: 2}]
 
   it 'local push & set on array child', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', {name: 1}
-      model.push 'items', {name: 0}
-      model.set 'items.0.name', 'x'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', {name: 1}
+        connectedModel.push '_test.items', {name: 0}
+        connectedModel.set '_test.items.0.name', 'x'
+      eventual:
+        '_test.items': [{name: 'x'}, {name: 0}]
 
   it 'local push & nested set on array child', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', {name: 1}
-      model.push 'items', {name: 0}
-      model.set 'items.0.stuff.name', 'x'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', {name: 1}
+        connectedModel.push '_test.items', {name: 0}
+        connectedModel.set '_test.items.0.stuff.name', 'x'
+      eventual:
+        '_test.items': [{name: 1, stuff: name: 'x'}, {name: 0}]
 
   it 'local push & del on array child', (done) ->
-    mirrorTest done, (model, remote) ->
-      remote.push 'items', {name: 1}
-      model.push 'items', {name: 0}
-      model.del 'items.0.name'
+    testBriefOffline @store, done,
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.push '_test.items', {name: 1}
+        connectedModel.push '_test.items', {name: 0}
+        connectedModel.del '_test.items.0.name'
+      eventual:
+        '_test.items': [{name: 1}, {}]
 
   it 'local push & nested del on array child', (done) ->
-    mirrorTest done, {items: [{stuff: {name: 2}}]}, (model, remote) ->
-      remote.unshift 'items', {name: 1}
-      model.del 'items.0.stuff.name'
+    testBriefOffline @store, done,
+      init:
+        '_test.items': [{stuff: {name: 2}}]
+      mutate: (disconnectedModel, connectedModel) ->
+        disconnectedModel.unshift 'items', {name: 1}
+        connectedModel.del 'items.0.stuff.name'
+      eventual:
+        '_test.items': [{name: 1}, {stuff: {}}]

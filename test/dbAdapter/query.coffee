@@ -17,7 +17,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         pluginOpts = plugin.testOpts
         racer.use plugin, pluginOpts
       @store = racer.createStore(storeOpts)
-      setTimeout done, 200
+      setTimeout done, 200 # TODO Rm timeout
 
     afterEach (done) ->
       @store._db.version = 0
