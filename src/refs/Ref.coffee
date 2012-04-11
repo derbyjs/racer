@@ -71,7 +71,9 @@ Ref:: =
   _getWithKey: (lookup, data, path, props, len, i) ->
     to = @to
     lookup to, data
-    dereffed = derefPath(data, to) + '.' + lookup(@key, data)
+    dereffed = derefPath(data, to) + '.'
+    data.$deref = null
+    dereffed += lookup(@key, data)
     curr = lookup dereffed, data
     currPath = lookupPath dereffed, props, i
 
