@@ -9,7 +9,7 @@ describe 'Store flush', ->
   afterEach (done) ->
     @store.flush done
 
-  it 'should flush the db and journal', (done) ->
+  it 'should flush the db and journal (via mode)', (done) ->
     flushed = {}
     __dbFlush__ = @store._db.flush
     @store._db.flush = (cb) ->
@@ -17,8 +17,8 @@ describe 'Store flush', ->
       cb null
       @flush = __dbFlush__
 
-    __journalFlush__ = @store._journal.flush
-    @store._journal.flush = (cb) ->
+    __journalFlush__ = @store._mode.flush
+    @store._mode.flush = (cb) ->
       flushed.journal = true
       cb null
       @flush = __journalFlush__
@@ -40,8 +40,8 @@ describe 'Store flush', ->
       done()
 
   it 'should callback with an error if the journal fails to flush', (done) ->
-    __journalFlush__ = @store._journal.flush
-    @store._journal.flush = (cb) ->
+    __journalFlush__ = @store._mode.flush
+    @store._mode.flush = (cb) ->
       cb new Error
       @flush = __journalFlush__
 
@@ -57,8 +57,8 @@ describe 'Store flush', ->
       cb new Error
       @flush = __dbFlush__
 
-    __journalFlush__ = @store._journal.flush
-    @store._journal.flush = (cb) ->
+    __journalFlush__ = @store._mode.flush
+    @store._mode.flush = (cb) ->
       cb new Error
       @flush = __journalFlush__
 

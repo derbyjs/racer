@@ -163,7 +163,7 @@ module.exports =
           if transaction.isCompound txn
             callbackArgs = transaction.ops txn
           else
-            callbackArgs = transaction.getArgs(txn).slice 0
+            callbackArgs = transaction.copyArgs txn
           callbackArgs.unshift err
           callback callbackArgs...
         removeTxn txnId

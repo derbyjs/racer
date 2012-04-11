@@ -1,7 +1,6 @@
 console.assert require('../util').isServer
 
 adapters =
-  journal: {}
   db: {}
   clientId: {}
 

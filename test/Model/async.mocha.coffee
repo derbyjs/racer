@@ -3,7 +3,9 @@ racer = require '../../lib/racer'
 
 describe 'Model.async', ->
   beforeEach (done) ->
-    store = @store= racer.createStore mode: 'stm'
+    store = @store= racer.createStore
+      mode:
+        type: 'stm'
     store.flush done
 
   afterEach (done) ->

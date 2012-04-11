@@ -21,7 +21,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
     afterEach (done) ->
       @store._db.version = 0
-      @store.flushJournal done
+      @store.flushMode done
 
     after (done) ->
       return done() unless store = @store

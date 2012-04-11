@@ -24,7 +24,7 @@ transaction = require '../../lib/transaction'
 # name:           Name of browser-side socket event to handle
 # onName:         Handler function for browser-side socket event
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
-  serverSockets = new ServerSocketsMock()
+  serverSockets = new ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
     socket.on name, onName
   browserSocket = new BrowserSocketMock serverSockets, clientId
@@ -43,10 +43,10 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
 #   txnErr:       Respond to transactions with a 'txnErr message' if true
 #   plugins:      Racer plugins to include
 exports.mockSocketEcho = (clientId = '', options = {}) ->
-  num = 0
+  num = 0 # The client txn serializing number
   ver = 0
   newTxns = []
-  serverSockets = new ServerSocketsMock()
+  serverSockets = new ServerSocketsMock
   serverSockets._queue = (txn) ->
     transaction.setVer txn, ++ver
     newTxns.push txn

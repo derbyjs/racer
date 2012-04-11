@@ -16,7 +16,10 @@ module.exports = (storeOpts = {}, plugins = []) ->
         beforeEach (done) ->
           for plugin in plugins
             racer.use plugin if plugin.useWith.server
-          opts = merge {mode}, storeOpts
+          opts = merge
+            mode:
+              type: mode
+          , storeOpts
           store = @store = racer.createStore opts
           store.flush done
 
@@ -51,20 +54,20 @@ module.exports = (storeOpts = {}, plugins = []) ->
       store = @store
       store.set 'color', 'green', 1, (err) ->
         expect(err).to.be.null()
-        store._journal.version (err, ver) ->
+        store._mode.version (err, ver) ->
           expect(ver).to.be(1)
           store.flush (err) ->
             expect(err).to.be.null()
-            store._journal.version (ver) ->
+            store._mode.version (ver) ->
               expect(ver).to.not.be.ok()
               done()
 
     it 'should return an error if the journal fails to flush', (done) ->
-      __flush__ = @store._journal.flush
-      @store._journal.flush = (callback) ->
+      __flush__ = @store._mode.flush
+      @store._mode.flush = (callback) ->
         @flush = __flush__
         callback new Error
-      @store.flushJournal (err) ->
+      @store.flushMode (err) ->
         expect(err).to.be.an Error
         done()
 

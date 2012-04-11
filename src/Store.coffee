@@ -8,13 +8,15 @@ transaction = require './transaction.server'
 {bufferifyMethods, finishAfter} = require './util/async'
 
 # store = new Store
-#   mode:      'lww' || 'stm' || 'ot'
-#   journal:   options literal or journal adapter instance
-#   pubSub:    options literal or pubSub adapter instance
+#   mode:
+#     type: 'lww' || 'stm' || 'ot'
+#     [journal]:
+#       klass: RedisJournal
+#       opts: {port, host, db, password}
 #   db:        options literal or db adapter instance
 #   clientId:  options literal or clientId adapter instance
 #
-# If an options literal is passed for journal, pubSub, db, or clientId,
+# If an options literal is passed for db or clientId,
 # it must contain a `type` property with the name of the adapter under
 # `racer.adapters`. If the adapter has a `connect` method, it will be
 # immediately called after instantiation.
@@ -22,16 +24,28 @@ transaction = require './transaction.server'
 Store = module.exports = (options = {}) ->
   EventEmitter.call this
   @_localModels = {}
-  @_journal = journal = createAdapter 'journal', options.journal || {type: 'Memory'}
+
+  # Set up the conflict resolution mode
+  if modeOpts = options.mode
+    # e.g.,
+    # mode:
+    #   type: 'stm'
+    #   journal:
+    #     klass: MemoryJournal
+    createMode = require './modes/' + modeOpts.type
+    delete modeOpts.type
+    modeOpts.store = @
+  else
+    # TODO Default should be 'ot' once supported
+    createMode = require './modes/lww'
+    modeOpts = store: @
+  @_mode = createMode modeOpts
+
   @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
   @_clientId = clientId = createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
-
-  # Add a @_commit method to this store based on the conflict resolution mode
-  # TODO: Default mode should be 'ot' once supported
-  @_commit = journal.commitFn this, options.mode || 'lww'
 
   @_generateClientId = clientId.generateFn()
 
@@ -49,6 +63,9 @@ Store = module.exports = (options = {}) ->
 Store:: =
 
   __proto__: EventEmitter::
+
+  _commit: (txn, cb) ->
+    @_mode.commit txn, cb
 
   listen: (to, namespace) ->
     io = socketio.listen to
@@ -68,34 +85,30 @@ Store:: =
       clientId = socket.handshake.query.clientId
       @mixinEmit 'socket', this, socket, clientId
 
-  flushJournal: (callback) -> @_journal.flush callback
+  flushMode: (cb) -> @_mode.flush cb
   flushDb: (callback) -> @_db.flush callback
   flush: (callback) ->
     finish = finishAfter 2, callback
-    @flushJournal finish
+    @flushMode finish
     @flushDb finish
 
   disconnect: ->
-    @_journal.disconnect?()
+    @_mode.disconnect?()
     @_pubSub.disconnect?()
     @_db.disconnect?()
     @_clientId.disconnect?()
 
-  _checkVersion: (ver, clientStartId, callback) ->
-    # TODO: Map the client's version number to the journal's and update
-    # the client with the new startId & version when possible
-    @_journal.startId (err, startId) ->
-      return callback err if err
-      if clientStartId != startId
-        err = "clientStartId != startId (#{clientStartId} != #{startId})"
-        return callback err
-      callback null
+  _checkVersion: (ver, clientStartId, cb) ->
+    if @_mode.checkStartMarker
+      return @_mode.checkStartMarker clientStartId, cb
+    return cb null
 
   # This method is used by mutators on Store::
   _nextTxnId: (callback) ->
     @_txnCount = 0
+    # Generate a special client id for store
     @_generateClientId (err, clientId) =>
-      throw err if err
+      return callback err if err
       @_clientId = clientId
       @_nextTxnId = (callback) ->
         callback null, '#' + @_clientId + '.' + @_txnCount++
@@ -103,10 +116,10 @@ Store:: =
 
   _finishCommit: (txn, ver, callback) ->
     transaction.setVer txn, ver
-    args = transaction.getArgs(txn).slice()
+    dbArgs = transaction.copyArgs txn
     method = transaction.getMethod txn
-    args.push ver
-    @_sendToDb method, args, (err, origDoc) =>
+    dbArgs.push ver
+    @_sendToDb method, dbArgs, (err, origDoc) =>
       @publish transaction.getPath(txn), 'txn', txn, {origDoc}
       callback err, txn if callback
 
@@ -115,19 +128,21 @@ Store:: =
     model.store = this
     model._ioUri = @_ioUri
 
-    model._startIdPromise = startIdPromise = new Promise
-    @_journal.startId (err, startId) ->
-      model._startId = startId
-      startIdPromise.resolve err, startId
+    if @_mode.startId
+      model._startIdPromise = startIdPromise = new Promise
+      model._bundlePromises.push startIdPromise
+      @_mode.startId (err, startId) ->
+        model._startId = startId
+        startIdPromise.resolve err, startId
 
     localModels = @_localModels
     model._clientIdPromise = clientIdPromise = new Promise
+    model._bundlePromises.push clientIdPromise
     @_generateClientId (err, clientId) ->
       model._clientId = clientId
       localModels[clientId] = model
       clientIdPromise.resolve err, clientId
 
-    model._bundlePromises.push startIdPromise, clientIdPromise
     return model
 
   _unregisterLocalModel: (clientId) ->
@@ -200,7 +215,9 @@ bufferifyMethods Store, ['_sendToDb'],
   await: (done) ->
     db = @_db
     return done() if db.version isnt undefined
-    @_journal.version (err, ver) ->
+    # Assign the db version to match the journal version
+    # TODO This isn't necessary for LWW
+    @_mode.version (err, ver) ->
       throw err if err
-      db.version = parseInt(ver, 10)
+      db.version = ver
       return done()

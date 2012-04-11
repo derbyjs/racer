@@ -59,19 +59,16 @@ module.exports =
             socket.emit 'txnOk', txnId, ver, num
 
       socket.on 'fetchCurrSnapshot', (ver, clientStartId, callback) ->
-        if store._journal
-          store._checkVersion ver, clientStartId, (err) ->
-            return socket.emit 'fatalErr', err if err
-            store._journal.txnsSince ver, clientId, store._pubSub, (err, txns) ->
-              return callback err if err
-              num = txnClock.nextTxnNum clientId
-              if len = txns.length
-                socket.__ver = transaction.getVer txns[len - 1]
-              socket.emit 'snapshotUpdate', 'newTxns', null, txns, num
-              callback null, txns, num
-        else
-          store.fetch clientId, subs, (err, data) ->
+        store._mode.snapshotSince {ver, clientStartId, subs}, (err, {data, txns}) ->
+          socket.emit 'fatalErr', err if err
+          if data
             socket.emit 'snapshotUpdate', data
+          else if txns
+            num = txnClock.nextTxnNum clientId
+            if len = txns.length
+              socket.__ver = transaction.getVer txns[len - 1]
+            socket.emit 'snapshotUpdate', 'newTxns', null, txns, num
+            callback null, txns, num
 
   proto:
     _startTxnBuffer: (clientId, timeoutAfter = 3000) ->

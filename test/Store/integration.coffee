@@ -9,12 +9,15 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
   describe 'Store integration tests', ->
 
-    for mode in racer.Store.MODES
+    racer.Store.MODES.forEach (mode) ->
       describe mode, ->
         beforeEach (done) ->
           for plugin in plugins
             racer.use plugin, plugin.testOpts if plugin.useWith.server
-          opts = merge {mode}, storeOpts
+          opts = merge
+            mode:
+              type: mode
+          , storeOpts
           store = @store = racer.createStore opts
           store.flush done
 

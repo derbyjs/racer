@@ -74,9 +74,7 @@ module.exports = (racer) ->
     registerAdapter type, name, AdapterKlass
 
   racer
-    .use(require './bundle.Model')  
-    .use(require './adapters/journal-memory')
-    .use(require './adapters/journal-none')
+    .use(require './bundle.Model')
     .use(require './adapters/db-memory')
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')

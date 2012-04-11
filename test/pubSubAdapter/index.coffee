@@ -17,7 +17,7 @@ shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}, plugins = []) 
       @store.flush done
 
     afterEach (done) ->
-      @store.flushJournal =>
+      @store.flushMode =>
         @store.disconnect()
         done()
 

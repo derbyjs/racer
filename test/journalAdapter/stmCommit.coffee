@@ -9,7 +9,10 @@ module.exports = (storeOpts = {}, plugins = []) ->
     beforeEach (done) ->
       for plugin in plugins
         racer.use plugin if plugin.useWith.server
-      opts = merge {mode: 'stm'}, storeOpts
+      opts = merge
+        mode:
+          type: 'stm'
+      , storeOpts
       store = @store = racer.createStore opts
       store.flush done
 

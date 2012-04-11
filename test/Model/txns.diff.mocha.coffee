@@ -12,6 +12,7 @@ mirrorTest = (done, init, callback) ->
     args = JSON.parse JSON.stringify args
     # console.log method, args
     mirror[method] args...
+
   [remoteModel] = mockSocketModel 1, 'txn', (txn) ->
     sockets._queue JSON.parse JSON.stringify txn
 

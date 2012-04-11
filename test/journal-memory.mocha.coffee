@@ -9,7 +9,10 @@ describe 'Memory journal adapter', ->
 
   describe 'flushing', ->
     beforeEach (done) ->
-      store = @store = racer.createStore() # TODO per db adapter?
+      # TODO per db adapter?
+      store = @store = racer.createStore
+        mode:
+          type: 'stm'
       store.flush done
 
     afterEach (done) ->
@@ -20,7 +23,7 @@ describe 'Memory journal adapter', ->
     it 'should reset everything in the journal', (done) ->
       store = @store
       mockFullSetup store, done, (model, done) ->
-        journal = store._journal
+        journal = store._mode._journal
         clientId = model._clientId
         journal.startId (origStartId) ->
           model.set '_test.color', 'green', ->
@@ -31,7 +34,7 @@ describe 'Memory journal adapter', ->
 
             # Without the timeout, origStartId could equal startId
             setTimeout ->
-              store.flushJournal (err) ->
+              journal.flush (err) ->
                 expect(err).to.be.null()
                 expect(journal._txns).to.be.empty()
                 # TODO Add this to another test

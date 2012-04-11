@@ -29,27 +29,24 @@ Serializer::=
   _clearWaiter: ->
   _setWaiter: ->
   add: (msg, msgIndex, arg) ->
-    index = @_index
     # Cache this message to be applied later if it is not the next index
-    if msgIndex > index
+    if msgIndex > @_index
       @_pending[msgIndex] = msg
       @_setWaiter()
       return true
 
     # Ignore this message if it is older than the current index
-    return false if msgIndex < index
+    return false if msgIndex < @_index
 
     # Otherwise apply it immediately
-    @withEach msg, index, arg
+    @withEach msg, @_index++, arg
     @_clearWaiter()
 
     # And apply any messages that were waiting for txn
-    index++
     pending = @_pending
-    while msg = pending[index]
-      @withEach msg, index, arg
-      delete pending[index++]
-    @_index = index
+    while msg = pending[@_index]
+      @withEach msg, @_index, arg
+      delete pending[@_index++]
     return true
 
   setIndex: (@_index) ->
