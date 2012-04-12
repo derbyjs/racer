@@ -22,7 +22,6 @@ module.exports =
 
     socket: (model, socket) ->
       memory = model._memory
-      args = arguments
 
       # When the store asks the browser model to resync with the store, then
       # the model should send the store its subscriptions and handle the
@@ -30,11 +29,6 @@ module.exports =
       # store state (e.g., in the form of applying missed transaction, or in
       # the form of diffing to a received store state)
       socket.on 'resyncWithStore', (fn) ->
-        socket.once 'snapshotUpdate', (data) ->
-          # TODO Over-ride and replay diff as events
-          memory.eraseNonPrivate()
-          model._initData data
-          model.emit 'reInit'
         fn model._subs(), memory.version, model._startId
 
       socket.on 'addDoc', ({doc, ns, ver}, num) ->

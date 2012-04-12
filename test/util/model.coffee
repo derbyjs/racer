@@ -26,6 +26,8 @@ transaction = require '../../lib/transaction'
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
   serverSockets = new ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
+    return unless name
+    return unless socket._browserSocket._clientId == clientId
     socket.on name, onName
   browserSocket = new BrowserSocketMock serverSockets, clientId
   model = new BrowserModel
@@ -47,9 +49,6 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
   ver = 0
   newTxns = []
   serverSockets = new ServerSocketsMock
-  serverSockets._queue = (txn) ->
-    transaction.setVer txn, ++ver
-    newTxns.push txn
   serverSockets.on 'connection', (socket) ->
     socket.on 'txn', (txn) ->
       if err = options.txnErr

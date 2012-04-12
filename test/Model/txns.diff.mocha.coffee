@@ -16,6 +16,8 @@ describe 'Model event patching (lww)', ->
         return unless init
         for k, v of init
           model.set k, v
+        return
+
       postConnect: (modelA, modelB, done) ->
         modelA.disconnect()
         mutate modelA, modelB
@@ -26,16 +28,17 @@ describe 'Model event patching (lww)', ->
             expect(modelA.get path).to.specEql expectedVal
           done()
 
-  it 'conflicting txn from server should be over-written', (done) ->
+  it 'conflicting txn from server should be applied first, local txn afterwards', (done) ->
     mockFullSetup @store, done, [], (modelA, modelB, done) ->
-      modelA.set '_test.name', 'John'
       modelA.disconnect()
-      modelB.set '_test.name', 'Sue' # This will be queues on server
+
+      modelA.set '_test.name', 'John' # This will be queued in the browser for the server
+      modelB.set '_test.name', 'Sue' # This will be queued on server for the browser
 
       modelA.connect()
 
       process.nextTick ->
-        expect(modelA.get('_test.name')).to.specEql 'John'
+        expect(modelA.get '_test.name').to.specEql 'John'
         done()
 
   it 'set on same path', (done) ->

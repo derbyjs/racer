@@ -46,6 +46,7 @@ module.exports =
       socket.__ver = 0
 
       socket.on 'txn', (txn, clientStartId) ->
+        # TODO We can re-fashion this as middleware for socket.io
         ver = transaction.getVer txn
         store._checkVersion ver, clientStartId, (err) ->
           return socket.emit 'fatalErr', err if err
@@ -58,19 +59,11 @@ module.exports =
             num = txnClock.nextTxnNum clientId
             socket.emit 'txnOk', txnId, ver, num
 
-      socket.on 'fetchCurrSnapshot', (ver, clientStartId, callback) ->
-        store._mode.snapshotSince {ver, clientStartId, subs}, (err, {data, txns}) ->
-          socket.emit 'fatalErr', err if err
-          if data
-            socket.emit 'snapshotUpdate', data
-          else if txns
-            num = txnClock.nextTxnNum clientId
-            if len = txns.length
-              socket.__ver = transaction.getVer txns[len - 1]
-            socket.emit 'snapshotUpdate', 'newTxns', null, txns, num
-            callback null, txns, num
+      socket.on 'fetchCurrSnapshot', (ver, clientStartId, subs) ->
+        store._onSnapshotRequest ver, clientStartId, clientId, socket, subs
 
   proto:
+
     _startTxnBuffer: (clientId, timeoutAfter = 3000) ->
       txnBuffers = @_txnBuffers
       if clientId of txnBuffers

@@ -83,11 +83,9 @@ Stm::checkStartMarker = (clientStartId, cb) ->
 Stm::version = (cb) ->
   @_journal.version cb
 
-Stm::snapshotSince = ({ver, clientStartId, clientId}, cb) ->
-  @checkStartMarker clientStartId, (err) =>
+Stm::snapshotSince = ({ver, clientId}, cb) ->
+  @_journal.txnsSince ver, clientId, @_store._pubSub, (err, txns) ->
     return cb err if err
-    @_journal.txnsSince ver, clientId, @_store._pubSub, (err, txns) ->
-      return cb err if err
-      cb null, {txns}
+    cb null, {txns}
 
 copy = (x) -> JSON.parse JSON.stringify x

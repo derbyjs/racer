@@ -25,7 +25,7 @@ ServerSocketsMock = exports.ServerSocketsMock = ->
 ServerSocketsMock:: =
   emit: (name, args...) ->
     EventEmitter::emit.call @, name, args...
-    callEmit socket, name, args for socket in @_sockets
+    callEmit socket, name, args for _, socket of @_sockets
   __proto__: EventEmitter::
 
 nextSocketId = 1

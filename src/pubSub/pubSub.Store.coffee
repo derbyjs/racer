@@ -3,7 +3,6 @@
 {hasKeys} = require '../util'
 racer = require '../racer'
 PubSub = require './PubSub'
-
 {deserialize: deserializeQuery} = require './Query'
 deserialize = (targets) ->
   for target, i in targets
@@ -11,7 +10,6 @@ deserialize = (targets) ->
       # Deserialize query literal into a Query instance
       targets[i] = deserializeQuery target
   return targets
-
 
 module.exports =
   type: 'Store'
@@ -89,13 +87,7 @@ module.exports =
         # 2. Send the browser model enough data to bring it up to speed with
         #    the current data snapshot according to the server. When the store uses a journal, then it can send the browser a set of missing transactions. When the store does not use a journal, then it sends the browser a new snapshot of what the browser is interested in; the browser can then set itself to the new snapshot and diff it against its stale snapshot to reply the diff to the DOM, which reflects the stale state.
         socket.emit 'resyncWithStore', (subs, clientVer, clientStartId) ->
-          store._checkVersion clientVer, clientStartId, (err) ->
-            return socket.emit 'fatalErr', err if err
-
-            deserializedSubs = deserialize subs
-            store.subscribeWithoutFetch clientId, deserializedSubs
-            store.fetch clientId, deserializedSubs, (err, data) ->
-              socket.emit 'snapshotUpdate', data
+          store._onSnapshotRequest clientVer, clientStartId, clientId, socket, subs, 'shouldSubscribe'
 
 
   proto:
@@ -148,6 +140,22 @@ module.exports =
     publish: (path, type, data, meta) ->
       message = {type, params: {channel: path, data: data} }
       @_pubSub.publish message, meta
+
+    _onSnapshotRequest: (ver, clientStartId, clientId, socket, subs, shouldSubscribe) ->
+      @_checkVersion ver, clientStartId, (err) =>
+        socket.emit 'fatalErr', err if err
+        subs = deserialize subs
+        if shouldSubscribe
+          @subscribeWithoutFetch clientId, subs
+        @_mode.snapshotSince {ver, clientId, subs}, (err, {data, txns}) =>
+          socket.emit 'fatalErr', err if err
+          num = @_txnClock.nextTxnNum clientId
+          if data
+            socket.emit 'snapshotUpdate:replace', data, num
+          else if txns
+            if len = txns.length
+              socket.__ver = transaction.getVer txns[len - 1]
+            socket.emit 'snapshotUpdate:newTxns', txns, num
 
     # TODO Move this into another module?
     query: (query, callback) ->

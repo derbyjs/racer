@@ -10,6 +10,7 @@ Lww = (store: @_store) ->
 
 Lww::commit = (txn, cb) ->
   ver = @_nextVer++
+  transaction.setVer txn, ver
   @_store._finishCommit txn, ver, cb
 
 Lww::flush = (cb) -> cb null
