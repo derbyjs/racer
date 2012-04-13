@@ -3,3 +3,4 @@
 --timeout 1200
 --growl
 --debug
+--compilers coffee:coffee-script

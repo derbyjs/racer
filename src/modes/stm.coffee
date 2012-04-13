@@ -9,9 +9,11 @@ module.exports = ({store, journal}) ->
     {klass, opts} = journal
     klass ||= MemoryJournal
     journal = new klass opts
-  return new Stm {store, journal}
+  return new Stm store, journal
 
-Stm = (store: @_store, journal: @_journal) ->
+Stm = (store, journal) ->
+  @_store = store
+  @_journal = journal
 
   ## Ensure Serialization of Transactions to the DB ##
   # TODO: This algorithm will need to change when we go multi-process,

@@ -2,9 +2,10 @@
 transaction = require '../transaction.server'
 
 module.exports = ({store}) ->
-  new Lww {store}
+  new Lww store
 
-Lww = (store: @_store) ->
+Lww = (store) ->
+  @_store = store
   @_nextVer = 1
   return
 
