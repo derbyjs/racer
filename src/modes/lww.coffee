@@ -7,7 +7,13 @@ module.exports = ({store}) ->
 Lww = (store) ->
   @_store = store
   @_nextVer = 1
+
   return
+
+# TODO Remove this startId requirement for lww
+Lww::startId = (cb) ->
+  startId = @_startId ||= (+new Date).toString 36
+  cb null, startId
 
 Lww::commit = (txn, cb) ->
   ver = @_nextVer++
@@ -23,3 +29,10 @@ Lww::snapshotSince = ({ver, clientId, subs}, cb) ->
   @_store.fetch clientId, subs, (err, data) ->
     return cb err if err
     cb null, {data}
+
+# TODO Remove this startId requirement for lww
+Lww::checkStartMarker = (clientStartId, cb) ->
+  if clientStartId != @_startId
+      err = "clientStartId != startId (#{clientStartId} != #{@_startId})"
+      return cb err
+    cb null
