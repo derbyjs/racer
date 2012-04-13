@@ -83,7 +83,8 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, cal
         browserRacer.on 'ready', (model) ->
           preConnect?(model)
           browserSocket.socket.connect()
-          callback model
+          process.nextTick ->
+            callback model
         browserRacer.init JSON.parse(bundle), browserSocket
       if postBundle
         if postBundle.length == 1

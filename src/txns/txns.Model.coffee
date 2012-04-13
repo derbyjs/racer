@@ -215,7 +215,7 @@ module.exports =
         # Don't queue this up in socket.io's message buffer. Instead, we
         # explicitly send over any txns in the @_txnQueue during reconnect
         # synchronization.
-        return unless @connected
+        return unless model.connected
 
         socket.emit 'txn', txn, model._startId
 

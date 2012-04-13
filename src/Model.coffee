@@ -26,7 +26,8 @@ mergeAll Model::, EventEmitter::,
     @disconnect = ->
       socket.disconnect()
 
-    @connect = ->
+    @connect = (cb) ->
+      if cb then socket.once 'connect', cb
       socket.socket.connect()
 
     @canConnect = true

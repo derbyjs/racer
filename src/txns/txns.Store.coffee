@@ -36,9 +36,8 @@ module.exports =
         #
         # 1. During initial Model#bundle and socket 'connection' event
         # 2. If a browser loses connection
-        else
-          if buffer = store._txnBuffer clientId
-            buffer.push txn
+        else if buffer = store._txnBuffer clientId
+          buffer.push txn
 
     socket: (store, socket, clientId) ->
       txnClock = store._txnClock
@@ -86,6 +85,6 @@ module.exports =
 
     _flushTxnBuffer: (clientId, socket) ->
       txnBuffers = @_txnBuffers
-      for txn in txnBuffers[clientId].buffer
-        socket.emit 'txn', txn
+      txns = txnBuffers[clientId].buffer
+      socket.emit 'snapshotUpdate:newTxns', txns
       delete txnBuffers[clientId]

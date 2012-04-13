@@ -57,7 +57,6 @@ BrowserSocketMock:: =
   __proto__: EventEmitter::
 
   _disconnect: disconnect = ->
-    # TODO Change async = false to async = true for following arguments
     callEmit @_serverSocket, 'disconnect', [], false if @socket.connected
     @socket.connected = false
     EventEmitter::emit.call this, 'disconnect'
