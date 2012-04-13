@@ -1,6 +1,7 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
 racer = require '../../lib/racer'
+{augmentStoreOpts} = require '../journalAdapter/util'
 
 # TODO Add remove tests
 # TODO Add more move tests
@@ -12,7 +13,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
       for plugin, i in plugins
         pluginOpts = plugin.testOpts
         racer.use plugin, pluginOpts if plugin.useWith.server
-      @store = racer.createStore(storeOpts)
+      opts = augmentStoreOpts storeOpts, 'lww'
+      @store = racer.createStore opts
       @store.flush done
 
     afterEach (done) ->

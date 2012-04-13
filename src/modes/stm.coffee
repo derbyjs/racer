@@ -52,14 +52,13 @@ Stm::commit = (txn, cb) ->
       # Copy txn to modify, to avoid mutating original
       journalTxn = copy txn
       journal.add journalTxn, addParams, (err, ver) ->
-        return cb err if err
+        return cb? err if err
         transaction.setVer journalTxn, ver
         txnApplier.add txn, ver, cb
 
 Stm::flush = (cb) -> @_journal.flush cb
 
-Stm::disconnect = ->
-  @_journal.disconnect?()
+Stm::disconnect = -> @_journal.disconnect?()
 
 # The server journal generates a startId, as a reference point for racer to
 # detect if the server journal has crashed. If the journal crashed, it may

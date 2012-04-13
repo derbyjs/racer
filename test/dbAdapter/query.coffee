@@ -5,6 +5,7 @@ racer = require '../../lib/racer'
 shouldFetchDataAsAQuery = require './query.fetch'
 shouldBeSubscribable = require './query.subscribe'
 shouldSupportPaginatedSubscribe = require './query.paginated'
+{augmentStoreOpts} = require '../journalAdapter/util'
 
 module.exports = (storeOpts = {}, plugins = []) ->
   describe 'store mutators', ->
@@ -16,7 +17,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
       for plugin in plugins
         pluginOpts = plugin.testOpts
         racer.use plugin, pluginOpts
-      @store = racer.createStore(storeOpts)
+      opts = augmentStoreOpts storeOpts, 'lww'
+      @store = racer.createStore opts
       setTimeout done, 200 # TODO Rm timeout
 
     afterEach (done) ->

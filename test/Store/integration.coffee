@@ -1,6 +1,7 @@
 # Theses tests should be run against each adapter
 {merge} = require '../../lib/util'
 racer = require '../../lib/racer'
+{augmentStoreOpts} = require '../journalAdapter/util'
 
 shouldPassPubSubIntegrationTests = require './integration.pubSub'
 shouldPassTransactionIntegrationTests = require './integration.txns'
@@ -14,10 +15,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         beforeEach (done) ->
           for plugin in plugins
             racer.use plugin, plugin.testOpts if plugin.useWith.server
-          opts = merge
-            mode:
-              type: mode
-          , storeOpts
+          opts = augmentStoreOpts storeOpts, mode
           store = @store = racer.createStore opts
           store.flush done
 

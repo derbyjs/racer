@@ -1,6 +1,7 @@
 {expect} = require './util'
 {mockFullSetup} = require './util/model'
 racer = require '../lib/racer'
+JournalMemory = require '../lib/adapters/journal-memory'
 shouldBehaveLikeJournalAdapter = require './journalAdapter'
 
 describe 'Memory journal adapter', ->

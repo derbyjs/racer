@@ -1,8 +1,8 @@
 {expect} = require '../util'
-{merge} = require '../../lib/util'
 racer = require '../../lib/racer'
 shouldCommitWithSTM = require './stmCommit'
 shouldPassStoreIntegrationTests = require '../Store/integration'
+{augmentStoreOpts} = require './util'
 
 module.exports = (storeOpts = {}, plugins = []) ->
 
@@ -11,15 +11,12 @@ module.exports = (storeOpts = {}, plugins = []) ->
   describe 'commit', ->
     transaction = require '../../lib/transaction'
 
-    for mode in racer.Store.MODES
+    racer.Store.MODES.forEach (mode) ->
       describe mode, ->
         beforeEach (done) ->
           for plugin in plugins
             racer.use plugin if plugin.useWith.server
-          opts = merge
-            mode:
-              type: mode
-          , storeOpts
+          opts = augmentStoreOpts storeOpts, mode
           store = @store = racer.createStore opts
           store.flush done
 
@@ -44,7 +41,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
     beforeEach (done) ->
       for plugin in plugins
         racer.use plugin if plugin.useWith.server
-      store = @store = racer.createStore storeOpts
+      opts = augmentStoreOpts storeOpts, 'lww'
+      store = @store = racer.createStore opts
       store.flush done
 
     afterEach (done) ->

@@ -2,6 +2,7 @@
 {merge} = require '../../lib/util'
 transaction = require '../../lib/transaction'
 racer = require '../../lib/racer'
+{augmentStoreOpts} = require './util'
 
 module.exports = (storeOpts = {}, plugins = []) ->
   describe 'STM commit', ->
@@ -9,10 +10,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
     beforeEach (done) ->
       for plugin in plugins
         racer.use plugin if plugin.useWith.server
-      opts = merge
-        mode:
-          type: 'stm'
-      , storeOpts
+      opts = augmentStoreOpts storeOpts, 'stm'
       store = @store = racer.createStore opts
       store.flush done
 

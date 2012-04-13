@@ -3,6 +3,7 @@ racer = require '../../lib/racer'
 transaction = require '../../lib/transaction'
 shouldPassStoreIntegrationTests = require '../Store/integration'
 {deepEqual} = require '../../lib/util'
+{augmentStoreOpts} = require '../journalAdapter/util'
 
 shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}, plugins = []) ->
 
@@ -13,7 +14,8 @@ shouldBehaveLikePubSubAdapter = module.exports = (storeOpts = {}, plugins = []) 
     beforeEach (done) ->
       for plugin in plugins
         racer.use plugin, plugin.testOpts if plugin.useWith.server
-      @store = racer.createStore storeOpts
+      opts = augmentStoreOpts storeOpts, 'lww'
+      @store = racer.createStore opts
       @store.flush done
 
     afterEach (done) ->
