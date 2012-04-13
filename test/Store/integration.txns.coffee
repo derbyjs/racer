@@ -31,6 +31,7 @@ module.exports = (plugins) ->
           expect(model.get('_test.color')).to.equal 'blue'
           oldVer = model._memory.version
         postConnect: (model, done) ->
-          expect(model.get('_test.color')).to.equal 'green'
-          expect(model._memory.version).to.equal oldVer+1
-          done()
+          process.nextTick -> process.nextTick ->
+            expect(model.get('_test.color')).to.equal 'green'
+            expect(model._memory.version).to.equal oldVer+1
+            done()
