@@ -8,9 +8,9 @@ module.exports = patternInterface = (pubSub) ->
   # subscriberId -> (patternString -> true)
   reverseIndex = {}
 
-  interface = {}
+  intf = {}
 
-  interface.subscribe = (subscriberId, pattern, ackCb) ->
+  intf.subscribe = (subscriberId, pattern, ackCb) ->
     (reverseIndex[subscriberId] ||= {})[pattern] = true
 
     unless subsForPattern = forwardIndex[pattern]
@@ -20,7 +20,7 @@ module.exports = patternInterface = (pubSub) ->
     subsForPattern.subscribers[subscriberId] = true
     ackCb? null
 
-  interface.publish = (msg) ->
+  intf.publish = (msg) ->
     {type, params} = msg
     switch type
       when 'txn', 'ot'
@@ -29,7 +29,7 @@ module.exports = patternInterface = (pubSub) ->
           for subscriberId of subscribers
             pubSub.emit type, subscriberId, params.data
 
-  interface.unsubscribe = (subscriberId, pattern, ackCb) ->
+  intf.unsubscribe = (subscriberId, pattern, ackCb) ->
     if typeof pattern isnt 'string'
       ackCb = pattern
 
@@ -59,11 +59,11 @@ module.exports = patternInterface = (pubSub) ->
 
     ackCb? null
 
-  interface.hasSubscriptions = (subscriberId) ->
+  intf.hasSubscriptions = (subscriberId) ->
     return subscriberId of reverseIndex
 
-  interface.subscribedTo = (subscriberId, pattern) ->
+  intf.subscribedTo = (subscriberId, pattern) ->
     return false unless patterns = reverseIndex[subscriberId]
     return pattern of patterns
 
-  return interface
+  return intf

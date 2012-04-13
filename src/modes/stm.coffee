@@ -2,7 +2,7 @@ transaction = require '../transaction.server'
 MemoryJournal = require '../adapters/journal-memory'
 Serializer = require '../Serializer'
 
-module.exports = creaateStm = ({store, journal}) ->
+module.exports = ({store, journal}) ->
   if !journal
     journal = new MemoryJournal
   else if journal.constructor == Object
@@ -37,7 +37,7 @@ Stm::commit = (txn, cb) ->
         return next err
       next null
   else
-    eachCb = (_, _, next) -> next null
+    eachCb = (err, loggedTxn, next) -> next null
 
   journal = @_journal
   store = @_store

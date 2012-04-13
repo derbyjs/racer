@@ -26,11 +26,6 @@ module.exports =
       return true
     return false
 
-  deepIndexOf: (arr, x) ->
-    for mem in arr
-      return i if deepEqual mem, x
-    return -1
-
   # Ported to coffeescript from node.js assert.js
   deepEqual: deepEqual = (actual, expected) ->
     # 7.1. All identical values are equivalent, as determined by ==.
@@ -102,13 +97,13 @@ module.exports =
       return ret
     return obj
 
-  deepIndexOf: (list, obj) ->
-    return indexOf list, obj, deepEqual
-
   indexOf: indexOf = (list, obj, isEqual) ->
     for v, i in list
       return i if isEqual obj, v
     return -1
+
+  deepIndexOf: (list, obj) ->
+    return indexOf list, obj, deepEqual
 
   equalsNaN: equalsNaN = (x) -> x != x
 

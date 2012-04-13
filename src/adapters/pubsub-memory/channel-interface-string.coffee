@@ -13,9 +13,9 @@ module.exports = stringInterface = (pubSub) ->
   # subscriberId -> (string -> true)
   reverseIndex = {}
 
-  interface = {}
+  intf = {}
 
-  interface.subscribe = (subscriberId, str, ackCb) ->
+  intf.subscribe = (subscriberId, str, ackCb) ->
     subscribers = forwardIndex[str] ||= {}
     subscribers[subscriberId] = true
 
@@ -24,7 +24,7 @@ module.exports = stringInterface = (pubSub) ->
 
     ackCb? null
 
-  interface.publish = ({type, params}) ->
+  intf.publish = ({type, params}) ->
     switch type
       when 'direct'
         if subscribers = forwardIndex[params.channel]
@@ -44,7 +44,7 @@ module.exports = stringInterface = (pubSub) ->
             pubSub.emit 'rmDoc', subscriberId, params.data
     return
 
-  interface.unsubscribe = (subscriberId, str, ackCb) ->
+  intf.unsubscribe = (subscriberId, str, ackCb) ->
     if typeof str isnt 'string'
       # Detects fn signature: unsubscribe(subscriberId, ackCb)
       # This fn sig means unsubscribe the subscriberId from everything
@@ -74,11 +74,11 @@ module.exports = stringInterface = (pubSub) ->
 
     ackCb? null
 
-  interface.hasSubscriptions = (subscriberId) ->
+  intf.hasSubscriptions = (subscriberId) ->
     return subscriberId of reverseIndex
 
-  interface.subscribedTo = (subscriberId, str) ->
+  intf.subscribedTo = (subscriberId, str) ->
     return false unless strings = reverseIndex[subscriberId]
     return str of strings
 
-  return interface
+  return intf

@@ -1,7 +1,7 @@
 # TODO Add in redis adapter for version clock
 transaction = require '../transaction.server'
 
-module.exports = createLww = ({store}) ->
+module.exports = ({store}) ->
   new Lww {store}
 
 Lww = (store: @_store) ->

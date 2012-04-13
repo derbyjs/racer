@@ -13,9 +13,9 @@ module.exports = queryInterface = (pubSub, store) ->
 
   liveQueries = store._liveQueries
 
-  interface = {}
+  intf = {}
 
-  interface.subscribe = (subscriberId, query, ackCb) ->
+  intf.subscribe = (subscriberId, query, ackCb) ->
     hash = query.hash()
 
     hashes = reverseIndex[subscriberId] ||= {}
@@ -24,7 +24,7 @@ module.exports = queryInterface = (pubSub, store) ->
     liveQueries[hash] ||= new LiveQuery query
     pubSub.string.subscribe subscriberId, ["$q.#{hash}"], ackCb
 
-  interface.publish = ({type, params}, meta) ->
+  intf.publish = ({type, params}, meta) ->
     return unless type == 'txn' && meta
     {data: txn} = params
     unless origDoc = meta.origDoc
@@ -39,7 +39,7 @@ module.exports = queryInterface = (pubSub, store) ->
     newDoc = applyTxn txn, newDoc
     publish store, params, origDoc, newDoc
 
-  interface.unsubscribe = (subscriberId, query, ackCb) ->
+  intf.unsubscribe = (subscriberId, query, ackCb) ->
     unless query?.isQuery
       hashes = reverseIndex[subscriberId]
       delete reverseIndex[subscriberId]
@@ -52,14 +52,14 @@ module.exports = queryInterface = (pubSub, store) ->
     return ackCb? null unless channels.length
     pubSub.unsubscribe subscriberId, channels, ackCb
 
-  interface.hasSubscriptions = (subscriberId) ->
+  intf.hasSubscriptions = (subscriberId) ->
     return subscriberId of reverseIndex
 
-  interface.subscribedTo = (subscriberId, query) ->
+  intf.subscribedTo = (subscriberId, query) ->
     # TODO Probably a more efficient way to do this
     return pubSub.subscribedTo subscriberId, "$q.#{query.hash()}"
 
-  return interface
+  return intf
 
 publish = (store, params, origDoc, newDoc) ->
   {data: txn} = params

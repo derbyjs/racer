@@ -70,9 +70,9 @@ PubSub:: =
   subscribedTo: (subscriberId, channel) ->
     return @_channelType(channel).subscribedTo subscriberId, channel
 
-  defChannelInterface: (channelType, interface) ->
+  defChannelInterface: (channelType, intf) ->
     type = @_channelTypes[channelType]
-    for name, fn of interface
+    for name, fn of intf
       type[name] = fn
     return
 

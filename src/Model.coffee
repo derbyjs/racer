@@ -120,8 +120,10 @@ eventListener = (method, pattern, callback, at) ->
 
   # on(method, pattern, callback)
   re = eventRegExp pattern
-  return ([path, args...], out, isLocal, pass) ->
+  return (methodArgs, out, isLocal, pass) ->
+    path = methodArgs[0]
     if re.test path
+      args = methodArgs.slice(1)
       argsForEmit = re.exec(path).slice(1).concat args
       argsForEmit.push out, isLocal, pass
       callback argsForEmit...
