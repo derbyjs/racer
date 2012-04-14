@@ -66,7 +66,9 @@ module.exports =
     _startTxnBuffer: (clientId, timeoutAfter = 3000) ->
       txnBuffers = @_txnBuffers
       if clientId of txnBuffers
-        throw new Error "Already buffering transactions for client #{clientId}"
+        console.warn "Already buffering transactions for client #{clientId}"
+        console.trace()
+        return
       txnBuffers[clientId] =
         buffer: buffer = []
         timeout: setTimeout =>
