@@ -83,13 +83,19 @@ module.exports =
       model._specModel()
       # Wait for all pending transactions to complete before returning
       if model._txnQueue.length
-        model.__removeTxn = model._removeTxn
+        model.__removeTxn__ = model._removeTxn
         model._removeTxn = (txnId) ->
-          model.__removeTxn txnId
+          model.__removeTxn__ txnId
           model._specModel()
           return if model._txnQueue.length
-          process.nextTick ->
+
+          # Wait for the transaction to be applied. @_applyMutation follows
+          # @_removeTxn in @_applyTxn
+          model.__applyMutation__ = model._applyMutation
+          model._applyMutation = (extractor, txn, ver, data, doEmit, isLocal) ->
+            out = model.__applyMutation__ extractor, txn, ver, data, doEmit, isLocal
             model._txnsPromise.resolve()
+            return out
 
         return
       model._txnsPromise.resolve()
