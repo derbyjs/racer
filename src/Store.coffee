@@ -83,6 +83,7 @@ Store:: =
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
       clientId = socket.handshake.query.clientId
+      return socket.emit 'fatalErr', 'missing clientId' unless clientId
       @mixinEmit 'socket', this, socket, clientId
 
   flushMode: (cb) -> @_mode.flush cb
