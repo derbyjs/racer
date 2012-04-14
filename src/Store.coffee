@@ -165,9 +165,9 @@ Store:: =
     # Instert route after the first route with the same or lesser priority
     routes = @_routes[method]
     for {2: currPriority}, i in routes
-      if priority <= currPriority
-        routes.splice i+1, 0, handler
-        return this
+      continue if priority <= currPriority
+      routes.splice i, 0, handler
+      return this
 
     # Insert route at the end if it is the lowest priority
     routes.push handler
