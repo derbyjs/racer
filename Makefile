@@ -1,8 +1,11 @@
 compile:
+	@mkdir -p 'dev'
+	@make compile-macro & make compile-coffee && fg
+compile-coffee:
 	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src ./dev
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
-macro:
+compile-macro:
 	./scripts/watch-macro
 
 ROOT := $(shell pwd)
