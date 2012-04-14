@@ -9,7 +9,7 @@ app = express.createServer()
 
 store = racer.createStore
   listen: app    # A port or http server
-  mode: 'stm'    # Enable STM conflict detection. Last-writer-wins by default
+  mode: {type: 'stm'}    # Enable STM conflict detection. Last-writer-wins by default
 
 # Clear all existing data on restart
 store.flush()
