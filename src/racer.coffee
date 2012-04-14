@@ -17,7 +17,7 @@ racer.use(__dirname + '/racer.server')  if isServer
 racer
   .use(require './mutators')
   .use(require './refs')
-  .use(require './PubSub')
+  .use(require './pubSub')
   .use(require './txns')
 
 racer.use(require './adapters/pubsub-memory') if isServer
