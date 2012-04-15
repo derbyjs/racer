@@ -70,7 +70,25 @@ module.exports =
         liveQueries[hash] = new LiveQuery query
       return
 
-    query: (namespace) -> new Query namespace
+    query: (namespace, opts) ->
+      q = new Query namespace
+      if opts then for k, v of opts
+        switch k
+          when 'byKey', 'skip', 'limit', 'sort'
+            q = q[k] v
+          when 'where'
+            for property, conditions of v
+              q = q.where(property)
+              if conditions.constructor == Object
+                for method, args of conditions
+                  q = q[method] args
+              else
+                q = q.equals conditions
+          when 'only', 'except'
+            q = q[k] v...
+          else
+            throw new Error "Unsupported key #{k}"
+      return q
 
     fetch: (targets...) ->
       # For fetch(targets..., callback)

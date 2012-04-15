@@ -30,12 +30,14 @@ Query::=
     for [method, args] in calls
       switch method
         when 'from' then continue
+        when 'byKey'
+          byKeyHash = '$k' + sep + JSON.stringify args[0]
         when 'where'
           group = {path: args[0]}
           pathCalls = group.calls = []
           groups.push group
         when 'equals', 'notEquals', 'gt', 'gte', 'lt', 'lte'
-          pathCalls.push [ABBREVS[method], args]
+          pathCalls.push [ABBREVS[method], JSON.stringify args]
         when 'within', 'contains'
           args[0].sort()
           pathCalls.push [ABBREVS[method], args]
@@ -55,6 +57,7 @@ Query::=
           limitHash = '$L' + sep + args[0]
 
     hash = @namespace
+    hash += sep + byKeyHash if byKeyHash
     hash += sep + sortHash if sortHash
     hash += sep + selectHash if selectHash
     hash += sep + skipHash if skipHash
@@ -77,7 +80,7 @@ Query::=
       for [method, args] in calls
         hash += sep + method
         for arg in args
-          hash += sep + if typeof arg is 'object' then JSON.stringify arg else arg
+          hash += sep + JSON.stringify arg
 
     return hash
 
