@@ -1,7 +1,7 @@
 {isPrivate, regExpPathOrParent, regExpPathsOrChildren} = require '../path'
 {derefPath} = require './util'
-Ref = require './Ref'
-RefList = require './RefList'
+createRef = require './ref'
+createRefList = require './refList'
 {diffArrays} = require '../diffMatchPatch'
 {isServer, equal} = require '../util'
 
@@ -61,18 +61,18 @@ mixin =
 
     _ensurePrivateRefPath: (from, modelMethod) ->
       unless isPrivate @dereference(from, true)
-        throw new Error "cannot create #{modelMethod} on public path '#{from}'"
+        throw new Error "Cannot create #{modelMethod} on public path '#{from}'"
 
     dereference: (path, getRef = false) ->
       @_memory.get path, data = @_specModel(), getRef
       return derefPath data, path
 
-    ref: (from, to, key) -> @_createRef Ref, 'ref', from, to, key
+    ref: (from, to, key) -> @_createRef createRef, 'ref', from, to, key
 
-    refList: (from, to, key) -> @_createRef RefList, 'refList', from, to, key
+    refList: (from, to, key) -> @_createRef createRefList, 'refList', from, to, key
 
-    _createRef: (RefType, modelMethod, from, to, key) ->
-      # Normalize from, to, key if we are a model scope
+    _createRef: (refFactory, modelMethod, from, to, key) ->
+      # Normalize `from`, `to`, `key` if we are a model scope
       if @_at
         key = to
         to = from
@@ -84,7 +84,7 @@ mixin =
       model = @_root
 
       model._ensurePrivateRefPath from, modelMethod
-      {get} = new RefType model, from, to, key
+      get = refFactory model, from, to, key
 
       # Prevent emission of the next set event, since we are setting
       # the dereferencing function and not its value
@@ -113,7 +113,7 @@ mixin =
     fn: (inputs..., fn) ->
       # Convert scoped models into paths
       for input, i in inputs
-        inputs[i] = input._at || input
+        inputs[i] = fullPath if fullPath = input._at
       # If we are a scoped model, scoped to @_at
       path = @_at || inputs.shift()
       model = @_root
