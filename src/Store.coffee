@@ -201,6 +201,8 @@ Store:: =
       unless handler = routes[i++]
         throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
       [re, fn] = handler
+      # TODO Move this next line into a process.nextTick callback to avoid
+      # growing the stack
       return next() unless path == '' || (match = path.match re)
       captures = if path == ''
           ['']

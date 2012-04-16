@@ -25,6 +25,8 @@ exports = module.exports = (racer) ->
 
       racer.emit 'init', model
 
+      # TODO If socket is passed into racer, make sure to add clientId query
+      # param
       model._setSocket socket || io.connect ioUri,
         'reconnection delay': 100
         'max reconnection attempts': 20
