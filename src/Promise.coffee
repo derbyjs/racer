@@ -1,3 +1,4 @@
+# TODO Move into util/Promise
 {finishAfter} = require './util/async'
 
 Promise = module.exports = ->
