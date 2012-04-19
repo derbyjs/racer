@@ -1,4 +1,7 @@
-# NOTE: All racer modules for the browser should be included in racer.coffee
+{mergeAll} = require './util'
+
+#### WARNING: ####
+# All racer modules for the browser should be included in racer.coffee
 # and not in this file
 
 # Static isReady and model variables are used, so that the ready function
@@ -7,13 +10,13 @@
 isReady = model = null
 
 exports = module.exports = (racer) ->
-  racer.merge
+  mergeAll racer,
 
     # `init` should be called (by the developer) with the specified arguments
     # when the browser loads the app.
     # `socket` argument makes it easier to test - see test/util/model
     init: ([clientId, memory, count, onLoad, startId, ioUri], socket) ->
-      model = new racer.Model
+      model = new racer.protected.Model
       model._clientId = clientId
       model._startId = startId
       model._memory.init memory

@@ -1,11 +1,12 @@
 {EventEmitter} = require 'events'
 socketio = require 'socket.io'
-{Model} = racer = require './racer'
+racer = require './racer'
 Promise = require './util/Promise'
 {createAdapter} = require './adapters'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
+{Model} = racer.protected
 
 # store = new Store
 #   mode:

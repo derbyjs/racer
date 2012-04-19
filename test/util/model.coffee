@@ -13,7 +13,7 @@ exports.createBrowserRacer = createBrowserRacer = (plugins) ->
   changeEnvTo 'server'
   return browserRacer
 
-exports.BrowserModel = BrowserModel = createBrowserRacer().Model
+exports.BrowserModel = BrowserModel = createBrowserRacer().protected.Model
 transaction = require '../../lib/transaction'
 
 
@@ -57,7 +57,7 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
         socket.emit 'txnOk', transaction.getId(txn), ++ver, ++num
   browserSocket = new BrowserSocketMock(serverSockets, clientId)
   model = if plugins = options.plugins
-    new (createBrowserRacer(options.plugins).Model)
+    new (createBrowserRacer(options.plugins).protected.Model)
   else
     new BrowserModel
   model._clientId = clientId
@@ -124,6 +124,6 @@ exports.mockFullSetup = (store, done, plugins, callback) ->
       preBundle: preBundle
       postBundle: postBundle
       preConnect: preConnect
-      postConnect: (model) =>
+      postConnect: (model) ->
         browserModels.push model
         --numBrowsers || callback browserModels..., allDone

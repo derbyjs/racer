@@ -5,10 +5,9 @@ plugin = require './plugin'
 
 racer = module.exports = new EventEmitter
 
-racer.merge = -> mergeAll this, arguments...
-
-racer.merge plugin,
-  Model: require './Model'
+mergeAll racer, plugin,
+  protected:
+    Model: require './Model'
   util: util
 
 # Note that this plugin is passed by string to prevent

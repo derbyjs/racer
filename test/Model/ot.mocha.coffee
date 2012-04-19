@@ -7,7 +7,7 @@ racer = require '../../lib/racer'
 otPlugin = require '../../lib/ot'
 racer.use otPlugin
 plugins = [otPlugin]
-{Model} = createBrowserRacer plugins
+{Model} = createBrowserRacer(plugins).protected
 
 describe 'Model.ot', ->
 
@@ -85,8 +85,8 @@ describe 'Model.ot', ->
   describe 'connected to a store', ->
     beforeEach (done) ->
       racer.use plugin for plugin in plugins
-      store = @store = racer.createStore()
-      store.flush done
+      @store = racer.createStore()
+      @store.flush done
 
     afterEach (done) ->
       @store.flush done

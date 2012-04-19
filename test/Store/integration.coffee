@@ -10,7 +10,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
   describe 'Store integration tests', ->
 
-    racer.Store.MODES.forEach (mode) ->
+    racer.protected.Store.MODES.forEach (mode) ->
       describe mode, ->
         beforeEach (done) ->
           for plugin in plugins

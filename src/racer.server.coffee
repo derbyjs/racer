@@ -4,7 +4,8 @@ socketio = require 'socket.io'
 socketioClient = require 'socket.io-client'
 uglify = require 'uglify-js'
 {registerAdapter} = require './adapters'
-{isProduction} = require './util'
+Store = require './Store'
+{mergeAll, isProduction} = require './util'
 
 module.exports = (racer) ->
 
@@ -14,16 +15,15 @@ module.exports = (racer) ->
 
   ## For use by plugins ##
 
-  racer.protected =
+  mergeAll racer.protected,
     pubSub:
       LiveQuery: require './pubSub/LiveQuery'
       Query: require './pubSub/Query'
     diffMatchPatch: require './diffMatchPatch'
     Memory: require './Memory'
-    Model: require './Model'
     path: require './path'
     Serializer: require './Serializer'
-    Store: require './Store'
+    Store: Store
     transaction: require './transaction.server'
 
 
@@ -51,10 +51,9 @@ module.exports = (racer) ->
 
   ## Racer Store ##
 
-  racer.Store = require './Store'
   racer.createStore = (options = {}) ->
     # TODO: Provide full configuration for socket.io
-    store = new @Store options
+    store = new Store options
     if sockets = options.sockets
       store.setSockets sockets, options.socketUri
     else if listen = options.listen

@@ -13,8 +13,9 @@ exports.calls = (num, fn) ->
     fn.call @, ->
       done() if ++n >= num
 
-modulesToCache = [
+modulesToClear = [
   require.resolve '../../lib/racer'
+  require.resolve '../../lib/racer.server'
   require.resolve '../../lib/util'
   require.resolve '../../lib/plugin'
   require.resolve '../../lib/Model'
@@ -23,7 +24,7 @@ modulesToCache = [
 
 exports.clearRequireCache = ->
   cache = require.cache
-  for k in modulesToCache
+  for k in modulesToClear
     delete cache[k]
   return
 

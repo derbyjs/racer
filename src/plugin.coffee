@@ -40,8 +40,8 @@ module.exports =
 
       unless type = mixin.type
         throw new Error "Mixins require a type parameter"
-      unless Klass = @[type]
-        throw new Error "Cannot find racer.#{type}"
+      unless Klass = @protected[type]
+        throw new Error "Cannot find racer.protected.#{type}"
 
       if Klass.mixins
         Klass.mixins.push mixin

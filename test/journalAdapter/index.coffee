@@ -11,7 +11,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
   describe 'commit', ->
     transaction = require '../../lib/transaction'
 
-    racer.Store.MODES.forEach (mode) ->
+    racer.protected.Store.MODES.forEach (mode) ->
       describe mode, ->
         beforeEach (done) ->
           for plugin in plugins
