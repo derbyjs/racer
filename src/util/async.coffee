@@ -1,4 +1,6 @@
-module.exports =
+util = require './index'
+
+util.async = module.exports =
   finishAfter: finishAfter = (count, callback) ->
     callback ||= (err) ->
       throw err if err
