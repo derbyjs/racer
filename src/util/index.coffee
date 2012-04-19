@@ -2,6 +2,8 @@ toString = Object::toString
 
 module.exports =
   async: require './async'
+  Promise: require './Promise'
+  speculative: require './speculative'
 
   isServer: isServer = typeof window is 'undefined'
   isProduction: isServer && process.env.NODE_ENV is 'production'

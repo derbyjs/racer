@@ -1,7 +1,7 @@
 {EventEmitter} = require 'events'
 socketio = require 'socket.io'
 {Model} = racer = require './racer'
-Promise = require './Promise'
+Promise = require './util/Promise'
 {createAdapter} = require './adapters'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'

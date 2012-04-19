@@ -1,4 +1,4 @@
-{clone, create, createObject, createArray} = require './speculative'
+{clone, create, createObject, createArray} = require './util/speculative'
 {isPrivate} = require './path'
 
 Memory = module.exports = ->

@@ -1,6 +1,6 @@
 {mergeAll, deepCopy} = require '../../util'
 {lookup, assign} = require '../../path'
-Promise = require '../../Promise'
+Promise = require '../../util/Promise'
 LiveQuery = require '../../pubSub/LiveQuery'
 
 module.exports = MemoryQuery = (query) ->

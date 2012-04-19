@@ -12,6 +12,21 @@ module.exports = (racer) ->
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
 
 
+  ## For use by plugins ##
+
+  racer.protected =
+    pubSub:
+      LiveQuery: require './pubSub/LiveQuery'
+      Query: require './pubSub/Query'
+    diffMatchPatch: require './diffMatchPatch'
+    Memory: require './Memory'
+    Model: require './Model'
+    path: require './path'
+    Serializer: require './Serializer'
+    Store: require './Store'
+    transaction: require './transaction.server'
+
+
   ## Racer Server-side Configuration ##
 
   racer.settings =

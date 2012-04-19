@@ -1,9 +1,9 @@
 Memory = require '../Memory'
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 Serializer = require '../Serializer'
 transaction = require '../transaction'
 {isPrivate} = require '../path'
-{create: specCreate} = require '../speculative'
+{create: specCreate} = require '../util/speculative'
 # AtomicModel = require './AtomicModel'
 {mergeTxn} = require './diff'
 arrayMutator = null
