@@ -1,5 +1,5 @@
 {inspect} = require 'util'
-speculative = require '../../lib/speculative'
+speculative = require '../../lib/util/speculative'
 require 'console.color'
 exports.expect = expect = require 'expect.js'
 

@@ -1,4 +1,4 @@
-{merge} = require './util'
+{merge} = require './index'
 
 module.exports =
 
