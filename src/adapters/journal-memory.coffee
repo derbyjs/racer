@@ -1,6 +1,11 @@
 transaction = require '../transaction.server'
 
-module.exports = JournalMemory = ->
+exports = module.exports = (racer) ->
+  racer.registerAdapter 'journal', 'Memory', JournalMemory
+
+exports.useWith = server: true, browser: false
+
+JournalMemory = ->
   @flush()
   return
 

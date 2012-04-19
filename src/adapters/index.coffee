@@ -3,6 +3,7 @@ console.assert require('../util').isServer
 adapters =
   db: {}
   clientId: {}
+  journal: {}
 
 exports.registerAdapter = (adapterType, type, AdapterKlass) ->
   adapters[adapterType][type] = AdapterKlass

@@ -3,7 +3,6 @@ browserify = require 'browserify'
 socketio = require 'socket.io'
 socketioClient = require 'socket.io-client'
 uglify = require 'uglify-js'
-{registerAdapter} = require './adapters'
 Store = require './Store'
 {mergeAll, isProduction} = require './util'
 
@@ -47,9 +46,7 @@ module.exports = (racer) ->
     @set 'minify', true
 
 
-  racer.session = require './session'
-
-  ## Racer Store ##
+  ## Racer built-in features ##
 
   racer.createStore = (options = {}) ->
     # TODO: Provide full configuration for socket.io
@@ -83,13 +80,13 @@ module.exports = (racer) ->
     socketioClient.builder racer.get('transports'), {minify}, (err, value) ->
       callback err, value + ';' + browserify.bundle options
 
-
-  racer.registerAdapter = (type, name, AdapterKlass) ->
-    registerAdapter type, name, AdapterKlass
+  racer.session = require './session'
+  racer.registerAdapter = require('./adapters').registerAdapter
 
   racer
     .use(require './bundle.Model')
     .use(require './adapters/db-memory')
+    .use(require './adapters/journal-memory')
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')
     .use(require './adapters/clientid-rfc4122_v4')

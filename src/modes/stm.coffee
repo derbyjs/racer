@@ -1,15 +1,10 @@
 transaction = require '../transaction.server'
-MemoryJournal = require '../adapters/journal-memory'
 Serializer = require '../Serializer'
+{createJournal} = require './shared'
 
-module.exports = ({store, journal}) ->
-  if !journal
-    journal = new MemoryJournal
-  else if journal.constructor == Object
-    {klass, opts} = journal
-    klass ||= MemoryJournal
-    journal = new klass opts
-  return new Stm store, journal
+module.exports = (storeOptions) ->
+  journal = createJournal storeOptions
+  return new Stm storeOptions.store, journal
 
 Stm = (store, journal) ->
   @_store = store

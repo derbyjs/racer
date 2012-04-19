@@ -12,8 +12,11 @@ transaction = require './transaction.server'
 #   mode:
 #     type: 'lww' || 'stm' || 'ot'
 #     [journal]:
-#       klass: RedisJournal
-#       opts: {port, host, db, password}
+#       type: 'Redis'
+#       port:
+#       host:
+#       db:
+#       password:
 #   db:        options literal or db adapter instance
 #   clientId:  options literal or clientId adapter instance
 #
@@ -27,20 +30,10 @@ Store = module.exports = (options = {}) ->
   @_localModels = {}
 
   # Set up the conflict resolution mode
-  if modeOpts = options.mode
-    # e.g.,
-    # mode:
-    #   type: 'stm'
-    #   journal:
-    #     klass: MemoryJournal
-    createMode = require './modes/' + modeOpts.type
-    delete modeOpts.type
-    modeOpts.store = @
-  else
-    # TODO Default should be 'ot' once supported
-    createMode = require './modes/lww'
-    modeOpts = store: @
-  @_mode = createMode modeOpts
+  modeOptions = if options.mode then Object.create options.mode else {type: 'lww'}
+  modeOptions.store = this
+  createMode = require './modes/' + modeOptions.type
+  @_mode = createMode modeOptions
 
   @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}

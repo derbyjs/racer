@@ -1,5 +1,4 @@
 {deepCopy} = require '../../lib/util'
-JournalMemory = require '../../lib/adapters/journal-memory'
 
 modesWithJournal =
   lww: false
@@ -10,7 +9,7 @@ exports.augmentStoreOpts = (storeOpts, mode) ->
   opts.mode ||= {}
   opts.mode.type = mode
   if modesWithJournal[mode] == true
-    opts.mode.journal ||= klass: JournalMemory
+    opts.mode.journal ||= type: 'Memory'
   else if modesWithJournal[mode] == false
     delete opts.mode.journal
   else

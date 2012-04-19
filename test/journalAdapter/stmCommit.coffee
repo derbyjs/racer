@@ -5,6 +5,7 @@ racer = require '../../lib/racer'
 {augmentStoreOpts} = require './util'
 
 module.exports = (storeOpts = {}, plugins = []) ->
+
   describe 'STM commit', ->
 
     beforeEach (done) ->

@@ -9,12 +9,9 @@ module.exports = (racer, opts = {}) ->
     events:
       init: (store) ->
         pubSub = store._pubSub
-        pubSub.defChannelInterface 'pattern', patternInterface pubSub
-
-        pubSub.defChannelInterface 'prefix', prefixInterface pubSub
-
-        pubSub.defChannelInterface 'string', stringInterface pubSub
-
-        pubSub.defChannelInterface 'query', queryInterface pubSub, store
+        pubSub.addChannelInterface 'pattern', patternInterface pubSub
+        pubSub.addChannelInterface 'prefix', prefixInterface pubSub
+        pubSub.addChannelInterface 'string', stringInterface pubSub
+        pubSub.addChannelInterface 'query', queryInterface pubSub, store
 
   return
