@@ -85,7 +85,7 @@ addListener = (model, from, getter, listeners, pattern, callback) ->
       path = callback re.exec(path), mutator, args
       return if path is null
       args[0] = path
-      model.emit mutator, args, args.out, _arguments[2], _arguments[1]
+      model.emit mutator, args, args.out, _arguments[2], _arguments[3]
     return
   listeners.push listener
   model.on 'mutator', listener
