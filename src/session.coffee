@@ -15,8 +15,8 @@ module.exports = (store) ->
 sessionFactory = (store) ->
   (req, res, next) ->
     # Make sure to use only the unsalted id in data exposed to the client
+    console.log req.sessionID
     sid = req.sessionID
-    sid = sid.substr 0, sid.indexOf('.')
 
     model = req.model ||= store.createModel()
     model.subscribe "sessions.#{sid}", (err, session) ->
