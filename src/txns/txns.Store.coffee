@@ -1,4 +1,4 @@
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 transaction = require '../transaction'
 
 module.exports =

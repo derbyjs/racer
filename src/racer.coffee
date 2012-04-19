@@ -1,4 +1,4 @@
-{mergeAll, isServer} = require './util'
+{mergeAll, isServer} = util = require './util'
 require 'es5-shim' unless isServer
 {EventEmitter} = require 'events'
 plugin = require './plugin'
@@ -9,6 +9,7 @@ racer.merge = -> mergeAll this, arguments...
 
 racer.merge plugin,
   Model: require './Model'
+  util: util
 
 # Note that this plugin is passed by string to prevent
 # Browserify from including it

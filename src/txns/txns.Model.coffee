@@ -1,5 +1,5 @@
 Memory = require '../Memory'
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 Serializer = require '../Serializer'
 transaction = require '../transaction'
 {isPrivate} = require '../path'

@@ -1,4 +1,4 @@
-Promise = require './Promise'
+Promise = require './util/Promise'
 
 exports = module.exports = (racer) ->
   BUNDLE_TIMEOUT = racer.get('bundle timeout') || racer.set('bundle timeout', 1000)

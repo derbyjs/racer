@@ -1,5 +1,5 @@
 text = require '../../node_modules/share/lib/types/text'
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 Serializer = require '../Serializer'
 {isSpeculative} = require '../speculative'
 
