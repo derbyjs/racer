@@ -15,7 +15,6 @@ module.exports = (store) ->
 sessionFactory = (store) ->
   (req, res, next) ->
     # Make sure to use only the unsalted id in data exposed to the client
-    console.log req.sessionID
     sid = req.sessionID
 
     model = req.model ||= store.createModel()
