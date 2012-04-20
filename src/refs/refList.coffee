@@ -1,8 +1,7 @@
 {mergeAll, hasKeys} = require '../util'
-Ref = require './Ref'
 {derefPath, lookupPath} = require './util'
 Model = require '../Model'
-{addListener} = require './Ref'
+{addListener} = ref = require './ref'
 
 module.exports = (model, from, to, key) ->
   unless from && to && key
