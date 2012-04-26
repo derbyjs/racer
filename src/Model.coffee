@@ -69,7 +69,11 @@ mergeAll Model::, EventEmitter::,
     segments = at.split '.'
     return @at segments.slice(0, segments.length - levels).join('.'), true
 
-  path: -> @_at || ''
+  path: (rest) ->
+    if @_at
+      return @_at + '.' + rest if rest
+      return @_at
+    return rest || ''
 
   leaf: (path = @_at || '') ->
     i = path.lastIndexOf '.'
