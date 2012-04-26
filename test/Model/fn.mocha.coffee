@@ -148,10 +148,10 @@ describe 'Model.fn', ->
 
   it 'supports specifying path via model.at', ->
     model = new Model
-    out = model.at '_out'
+    out = model.at 'users.1'
     model.set 'arg', 5
-    out.fn 'arg', (arg) -> arg * 2
-    expect(model.get '_out').to.equal 10
+    out.fn '_out', 'arg', (arg) -> arg * 2
+    expect(model.get 'users.1._out').to.equal 10
 
   it 'only emits events when the output value differs', (done) ->
     model = new Model

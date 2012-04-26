@@ -115,7 +115,10 @@ mixin =
       for input, i in inputs
         inputs[i] = fullPath if fullPath = input._at
       # If we are a scoped model, scoped to @_at
-      path = @_at || inputs.shift()
+      if @_at
+        path = @_at + '.' + inputs.shift()
+      else
+        path = inputs.shift()
       model = @_root
 
       model._ensurePrivateRefPath path, 'fn'
