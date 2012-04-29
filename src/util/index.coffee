@@ -106,3 +106,7 @@ module.exports =
   equalsNaN: equalsNaN = (x) -> x != x
 
   equal: (a, b) -> a == b || (equalsNaN(a) && equalsNaN(b))
+
+  Promise: require './Promise'
+
+  async: require './async'
