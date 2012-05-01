@@ -1,6 +1,6 @@
 compile:
 	@mkdir -p 'dev'
-	@make compile-macro & make compile-coffee && fg
+	@make compile-macro & make compile-coffee & ./scripts/watch-src-js && fg
 compile-coffee:
 	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src ./dev
 compile-examples:

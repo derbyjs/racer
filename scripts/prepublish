@@ -2,3 +2,4 @@
 ./scripts/compile-macro
 ./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src ./dev
 ./node_modules/coffee-script/bin/coffee -bc ./examples/*/*.coffee
+find ./src/ ! -name *.js -exec cp -R {} ./lib/ \;
