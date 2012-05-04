@@ -6,10 +6,9 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.3.2",
+  "version": "0.3.3",
   "main": "./lib/racer.js",
   "scripts": {
-    "prepublish": "./scripts/prepublish"
   },
   "dependencies": {
     "socket.io": ">=0.9.6",
