@@ -5,6 +5,10 @@ expect = require 'expect.js'
 query = (ns, params) -> new Query ns, params
 
 describe 'Query', ->
+  it '#isQuery should be true', ->
+    q = new Query 'users'
+    expect(q.isQuery).to.be.ok()
+
   describe '#hash', ->
     it 'should create the same hash for 2 equivalent queries that exhibit different method call ordering', ->
       q1 = query('users').where('name').equals('brian').where('age').equals(26)
