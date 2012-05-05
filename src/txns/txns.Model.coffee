@@ -83,19 +83,16 @@ module.exports =
       model._specModel()
       # Wait for all pending transactions to complete before returning
       if model._txnQueue.length
-        model.__removeTxn__ = model._removeTxn
+        # TODO: This code is really confusing. Refactor
+        model.__removeTxn__ ||= model._removeTxn
         model._removeTxn = (txnId) ->
           model.__removeTxn__ txnId
+          len = model._txnQueue.length
           model._specModel()
-          return if model._txnQueue.length
+          return if len
 
-          # Wait for the transaction to be applied. @_applyMutation follows
-          # @_removeTxn in @_applyTxn
-          model.__applyMutation__ = model._applyMutation
-          model._applyMutation = (extractor, txn, ver, data, doEmit, isLocal) ->
-            out = model.__applyMutation__ extractor, txn, ver, data, doEmit, isLocal
+          process.nextTick ->
             model._txnsPromise.resolve()
-            return out
 
         return
       model._txnsPromise.resolve()
