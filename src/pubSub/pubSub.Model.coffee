@@ -112,7 +112,7 @@ module.exports =
         out.push @at root, true
 
       @_fetch newTargets, (err, data) =>
-        @_initSubData data
+        @_initSubData data unless err
         callback err, out...
 
     subscribe: (targets...) ->
