@@ -107,7 +107,15 @@ function compileSortComparator (sortParams) {
 
 MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
   var promise = (new Promise).on(cb)
-    , filter = this._filter
+    , matches = this.syncRun(memoryAdapter);
+
+  promise.resolve(null, matches);
+
+  return promise;
+};
+
+MemoryQuery.prototype.syncRun = function syncRun (memoryAdapter) {
+  var filter = this._filter
     , matches = memoryAdapter.filter( function (doc, nsPlusId) {
         return filter.test(doc, nsPlusId);
       });
@@ -141,8 +149,5 @@ MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
       return projectObject(doc, fields);
     });
   }
-
-  promise.resolve(null, matches);
-
-  return promise;
-};
+  return matches
+}
