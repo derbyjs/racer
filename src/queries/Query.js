@@ -95,6 +95,39 @@ var proto = Query.prototype = {
   , toJSON: function () { return this._json; }
 };
 
+Query.fromJSON = function fromJSON (json) {
+  var q = new Query
+  for (var param in json) {
+    switch (param) {
+      case 'from':
+      case 'byKey':
+      case 'sort':
+      case 'skip':
+      case 'limit':
+      case 'only':
+      case 'except':
+        q[param](json[param]);
+        break;
+      case 'equals':
+      case 'notEquals':
+      case 'gt':
+      case 'gte':
+      case 'lt':
+      case 'lte':
+      case 'within':
+      case 'contains':
+        var fields = json[param];
+        for (var field in fields) {
+          q.where(field)[param](fields[field]);
+        }
+        break;
+      default:
+        throw new Error("Un-identified Query json property '" + param + "'");
+    }
+  }
+  return q;
+};
+
 var ABBREVS = {
         equals: '$eq'
       , notEquals: '$ne'
@@ -233,8 +266,8 @@ var methods = [
   , 'except'
 ];
 
-for (var method, i = methods.length; i--; ) {
-  method = methods[i];
+for (var i = methods.length; i--; ) {
+  var method = methods[i];
   proto[method] = (function (method) {
     return function (arg) {
       this._json[method] = arg;

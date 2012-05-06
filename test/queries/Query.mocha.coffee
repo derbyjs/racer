@@ -11,6 +11,13 @@ describe 'Query', ->
     q = new Query from: 'users'
     expect(q.isQuery).to.be.ok()
 
+  describe 'fromJSON', ->
+    it 'should instantiate the correct query', ->
+      q0 = query('users').where('name').equals('brian').where('age').equals(26).sort(['name', 'asc']).limit(5).skip(10)
+      json = q0.toJSON()
+      qf = Query.fromJSON(json)
+      expect(qf).to.eql(q0)
+
   describe '#hash', ->
     it 'should create the same hash for 2 equivalent queries that exhibit different method call ordering', ->
       q1 = query('users').where('name').equals('brian').where('age').equals(26)
