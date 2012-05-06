@@ -2,11 +2,13 @@ Query = require '../../lib/queries/Query'
 expect = require 'expect.js'
 {deepEqual} = require '../../lib/util'
 
-query = (ns, params) -> new Query ns, params
+query = (ns, params = {}) ->
+  params.from = ns
+  return new Query params
 
 describe 'Query', ->
   it '#isQuery should be true', ->
-    q = new Query 'users'
+    q = new Query from: 'users'
     expect(q.isQuery).to.be.ok()
 
   describe '#hash', ->

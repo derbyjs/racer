@@ -12,7 +12,8 @@ var reserved = {
 };
 
 var validQueryParams = {
-    byKey: 1
+    from: 1
+  , byKey: 1
   , where: 1
   , skip: 1
   , limit: 1
@@ -22,10 +23,10 @@ var validQueryParams = {
 };
 
 // Query constructor
-// @param {String} ns is the namespace to query
 // @param {Object} params looks like:
 //   {
-//     where: {
+//     from: 'someNamespace'
+//   , where: {
 //       name: 'Gnarls'
 //     , gender: { notEquals: 'female' }
 //     , age: { gt: 21, lte: 30 }
@@ -36,13 +37,11 @@ var validQueryParams = {
 //   , skip: 10
 //   , limit: 5
 //   }
-function Query (ns, params) {
+function Query (params) {
   this._json = {};
 
-  this.from(ns);
-
   if (params) for (var k in params) {
-    if (! validQueryParams[k]) {
+    if (! (k in validQueryParams)) {
       throw new Error("Un-identified operator '" + k + "'");
     }
     this[k](params[k]);
@@ -59,7 +58,8 @@ function keyMatch (obj, fn) {
 function isReserved (key) { return key in reserved; }
 
 var proto = Query.prototype = {
-    from: function (from) {
+    isQuery: true
+  , from: function (from) {
       this._json.from = from;
       return this;
     }
@@ -133,6 +133,7 @@ proto.hash = function hash () {
     switch (method) {
       case 'from':
         nsHash = val;
+        break;
       case 'byKey':
         byKeyHash = ABBREVS.byKey + SEP + JSON.stringify(val);
         break;
