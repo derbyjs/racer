@@ -1,6 +1,5 @@
 var Filter = require('./Filter')
   , util = require('../util')
-  , deepCopy = util.deepCopy
   , Promise = util.Promise
   , merge = util.merge
   , path = require('../path')
