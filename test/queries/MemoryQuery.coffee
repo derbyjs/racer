@@ -76,6 +76,14 @@ describe 'MemoryQuery', ->
         expect(doc).to.only.have.keys('id', 'name')
         expect(doc.name).to.only.have.keys('first')
 
+    it 'should throw if you try to exclude "id" via `except`', ->
+      fn = ->
+        q = new MemoryQuery
+          from: 'users'
+          equals: { 'name.first': 'John' }
+          except: { 'name.last': 1, age: 1, id: 1}
+      expect(fn).to.throwException 'You cannot ignore `id`'
+
     it 'should do simple sorts', ->
       q = new MemoryQuery
         from: 'users'

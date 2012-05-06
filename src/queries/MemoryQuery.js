@@ -22,6 +22,9 @@ function MemoryQuery (json) {
   }
 }
 
+// Specify that documents in the result set are stripped of all fields except
+// the ones specified in `paths`
+// @param {Object} paths to include. The Object maps String -> 1
 MemoryQuery.prototype.only = function only (paths) {
   if (this._except) {
     throw new Error("You can't specify both query(...).except(...) and query(...).only(...)");
@@ -31,6 +34,9 @@ MemoryQuery.prototype.only = function only (paths) {
   return this;
 };
 
+// Specify that documents in the result set are stripped of the fields
+// specified in `paths`. You aren't allowed to exclude the path "id"
+// @param {Object} paths to exclude. The Object maps String -> 1
 MemoryQuery.prototype.except = function except (paths) {
   if (this._only) {
     throw new Error("You can't specify both query(...).except(...) and query(...).only(...)");
