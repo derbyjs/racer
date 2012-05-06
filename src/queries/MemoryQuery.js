@@ -11,7 +11,7 @@ var Filter = require('./Filter')
 module.exports = MemoryQuery;
 
 // @param {Object} json representing a query that is typically created via
-// convenient QueryBuilder instances
+// convenient QueryBuilder instances. See QueryBuilder.js for more details.
 function MemoryQuery (json) {
   var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort']);
   this._filter = new Filter(filteredJson);
@@ -49,12 +49,17 @@ MemoryQuery.prototype.except = function except (paths) {
   return this;
 };
 
+// Specify that the result set includes no more than `lim` results
+// @param {Number} lim is the number of results to which to limit the result set
 MemoryQuery.prototype.limit = function limit (lim) {
   this.isPaginated = true;
   this._limit = lim;
   return this;
 };
 
+// Specify that the result set should skip the first `howMany` results out of
+// the entire set of results that match the equivlent query without a skip or
+// limit.
 MemoryQuery.prototype.skip = function skip (howMany) {
   this.isPaginated = true;
   this._skip = howMany;
