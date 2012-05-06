@@ -1,4 +1,4 @@
-module.exports = Query;
+module.exports = QueryBuilder;
 
 var reserved = {
     equals: 1
@@ -22,7 +22,7 @@ var validQueryParams = {
   , only: 1
 };
 
-// Query constructor
+// QueryBuilder constructor
 // @param {Object} params looks like:
 //   {
 //     from: 'someNamespace'
@@ -37,7 +37,7 @@ var validQueryParams = {
 //   , skip: 10
 //   , limit: 5
 //   }
-function Query (params) {
+function QueryBuilder (params) {
   this._json = {};
 
   if (params) for (var k in params) {
@@ -57,9 +57,8 @@ function keyMatch (obj, fn) {
 
 function isReserved (key) { return key in reserved; }
 
-var proto = Query.prototype = {
-    isQuery: true
-  , from: function (from) {
+var proto = QueryBuilder.prototype = {
+    from: function (from) {
       this._json.from = from;
       return this;
     }
@@ -95,8 +94,8 @@ var proto = Query.prototype = {
   , toJSON: function () { return this._json; }
 };
 
-Query.fromJSON = function fromJSON (json) {
-  var q = new Query
+QueryBuilder.fromJSON = function fromJSON (json) {
+  var q = new QueryBuilder
   for (var param in json) {
     switch (param) {
       case 'from':
@@ -149,9 +148,9 @@ var ABBREVS = {
       , limit: '$L'
     }
   , SEP = ':';
-proto.hash = function hash () {
-  var json = this._json
-    , groups = []
+
+QueryBuilder.hash = function (json) {
+  var groups = []
     , nsHash
     , byKeyHash
     , selectHash
@@ -249,6 +248,10 @@ proto.hash = function hash () {
   }
 
   return hash;
+};
+
+proto.hash = function hash () {
+  return QueryBuilder.hash(this._json);
 };
 
 function comparator (pairA, pairB) {

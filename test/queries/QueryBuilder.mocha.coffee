@@ -1,21 +1,17 @@
-Query = require '../../lib/queries/Query'
+QueryBuilder = require '../../lib/queries/QueryBuilder'
 expect = require 'expect.js'
 {deepEqual} = require '../../lib/util'
 
 query = (ns, params = {}) ->
   params.from = ns
-  return new Query params
+  return new QueryBuilder params
 
-describe 'Query', ->
-  it '#isQuery should be true', ->
-    q = new Query from: 'users'
-    expect(q.isQuery).to.be.ok()
-
+describe 'QueryBuilder', ->
   describe 'fromJSON', ->
     it 'should instantiate the correct query', ->
       q0 = query('users').where('name').equals('brian').where('age').equals(26).sort(['name', 'asc']).limit(5).skip(10)
       json = q0.toJSON()
-      qf = Query.fromJSON(json)
+      qf = QueryBuilder.fromJSON(json)
       expect(qf).to.eql(q0)
 
   describe '#hash', ->
