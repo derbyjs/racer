@@ -10,6 +10,11 @@ var Filter = require('./Filter')
 
 module.exports = MemoryQuery;
 
+// MemoryQuery instances are used:
+// - On the server when DbMemory database adapter is used
+// - On QueryNodes stored inside a QueryHub to figure out which transactions
+//   trigger query result changes to publish to listeners.
+// - Inside the browser for in-browser queries
 // @param {Object} json representing a query that is typically created via
 // convenient QueryBuilder instances. See QueryBuilder.js for more details.
 function MemoryQuery (json) {
