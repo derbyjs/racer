@@ -149,5 +149,5 @@ MemoryQuery.prototype.syncRun = function syncRun (memoryAdapter) {
       return projectObject(doc, fields);
     });
   }
-  return matches
+  return matches;
 }
