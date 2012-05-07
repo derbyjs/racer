@@ -1,0 +1,188 @@
+var hasKeys = require('./util').hasKeys;
+
+// Test to see if path name contains a segment that starts with an underscore.
+// Such a path is private to the current session and should not be stored
+// in persistent storage or synced with other clients.
+exports.isPrivate = function isPrivate (name) { return /(?:^_)|(?:\._)/.test(name); };
+
+exports.isPattern = function isPattern (x) { return -1 === x.indexOf('*'); };
+
+exports.eventRegExp = function eventRegExp (pattern) {
+  if (pattern instanceof RegExp) return pattern;
+  var self = this;
+  return new RegExp('^' + pattern.replace(/[,.*]/g, function (match, index) {
+    // Escape periods
+    if (match === '.') return '\\.';
+
+    // Commas can be used for or, as in path.(one,two)
+    if (match === ',') return '|';
+
+    // An asterisk matches any single path segment in the middle and any path
+    // or paths at the end
+    if (pattern.length - index === 1) return '(.+)';
+
+    return '([^.]+)';
+  }) + '$');
+};
+
+exports.regExp = function regExp (pattern) {
+  // Match anything if there is no pattern or the pattern is ''
+  if (! pattern) return /^/;
+
+  return new RegExp('^' + pattern.replace(/[.*]/g, function (match, index) {
+    // Escape periods
+    if (match === '.') return '\\.';
+
+    // An asterisk matches any single path segment in the middle
+    return '[^.]+';
+
+    // All subscriptions match the root and any path below the root
+  }) + '(?:\\.|$)');
+};
+
+// Create regular expression matching the path or any of its parents
+exports.regExpPathOrParent = function regExpPathOrParent (path) {
+  var p = ''
+    , parts = path.split('.')
+    , source = [];
+
+  for (var i = 0, l = parts.length; i < l; i++) {
+    var segment = parts[i];
+    p += i ? '\\.' + segment
+           : segment;
+    source.push( '(?:' + p + ')' );
+  }
+  source = source.join('|');
+  return new RegExp('^(?:' + source + ')$');
+};
+
+// Create regular expression matching any of the paths or child paths of any of
+// the paths
+exports.regExpPathsOrChildren = function regExpPathsOrChildren (paths) {
+  var source = [];
+  for (var i = 0, l = paths.length; i < l; i++) {
+    var path = paths[i];
+    source.push( '?:' + path + "(?:\\..+)?)" );
+  }
+  source = source.join('|');
+  return new RegExp('^(?:' + source + ')$');
+};
+
+exports.lookup = function lookup (path, obj) {
+  if (path.indexOf('.') === -1) return obj[path];
+
+  var parts = path.split('.');
+  for (var i = 0, l = parts.length; i < l; i++) {
+    if (!obj) return obj;
+
+    var prop = parts[i];
+    obj = obj[prop];
+  }
+  return obj;
+};
+
+exports.assign = function assign (obj, path, val) {
+  var parts = path.split('.')
+    , lastIndex = parts.length - 1;
+  for (var i = 0, l = parts.length; i < l; i++) {
+    var prop = parts[i];
+    if (i === lastIndex) obj[prop] = val;
+    else                 obj = obj[prop] || (obj[prop] = {});
+  }
+};
+
+exports.objectWithOnly = function objectWithOnly (obj, paths) {
+  var projectedDoc = {};
+  for (var i = 0, l = paths.length; i < l; i++) {
+    var path = paths[i];
+    assign(projectedDoc, path, lookup(path, obj));
+  }
+  return projectedDoc;
+};
+
+exports.objectExcept = function objectExcept (from, exceptions) {
+  if (! from) return;
+  var to = Array.isArray(from) ? [] : {};
+  for (var key in from) {
+    // Skip exact exception matches
+    if (~exceptions.indexOf(key)) continue;
+
+    var nextExceptions = [];
+    for (var i = exceptions.length; i--; ) {
+      var except = exceptions[i]
+        , periodPos = except.indexOf('.')
+        , prefix = except.substring(0, periodPos);
+      if (prefix === key) {
+        nextExceptions.push(except.substring(periodPos + 1), except.length);
+      }
+    }
+    if (nextExceptions.length) {
+      var nested = objectExcept( from[key], nextExceptions );
+      if (hasKeys(nested)) to[key] = nested;
+    } else {
+      if (Array.isArray(from)) key = parseInt(key, 10);
+      to[key] = from[key];
+    }
+    return to;
+  }
+};
+
+exports.isSubPathOf = function isSubPathOf (path, fullPath) {
+  return path === fullPath.substring(0, path.length);
+};
+
+exports.split = function split (path) {
+  return path.split(/\.?[(*]\.?/);
+};
+
+exports.expand = function expand (path) {
+  // Remove whitespace and line break characters
+  path = path.replace(/[\s\n]/g, '');
+
+  // Return right away if path doesn't contain any groups
+  if (! ~path.indexOf('(')) return [path];
+
+  // Break up path groups into a list of equivalent paths that contain only
+  // names and *
+  var paths = [''], out = []
+    , stack = { paths: paths, out: out}
+    , lastClosed;
+  while (path) {
+    var match = /^([^,()]*)([,()])(.*)/.exec(path);
+    if (! match) return out.map( function (val) { return val + path; });
+    var pre = match[1]
+      , token = match[2]
+      , path = match[3];
+
+    if (pre) {
+      paths = paths.map( function (val) { return val + path; });
+      if (token !== '(') {
+        var out = lastClosed ? paths : out.concat(paths);
+      }
+    }
+    lastClosed = false;
+    if (token === ',') {
+      stack.out = stack.out.concat(paths);
+      paths = stack.paths;
+    } else if (token === '(') {
+      out = [];
+      stack = { parent: stack, paths: paths, out: out };
+    } else if (token === ')') {
+      lastClosed = true;
+      paths = out = stack.out.concat(paths);
+      stack = stack.parent;
+    }
+  }
+  return out;
+};
+
+// Given a `path`, returns an array of length 3 with the namespace, id, and
+// relative path to the attribute
+exports.triplet = function triplet (path) {
+  var parts = path.split('.');
+  return [parts[0], parts[1], parts.slice(2).join('.')];
+};
+
+exports.subPathToDoc = function subPathToDoc (path) {
+  return path.split('.').slice(0, 2).join('.');
+};
