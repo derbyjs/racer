@@ -1,3 +1,15 @@
+publish / subscribe
+====================
+
+The pubSub module mixes in pubsub capabilities into the Model and Store.
+
+The Model mixin:
+1. Creates a `subscribe` and `publish` method
+2. Has its connection (socket.io) listen for events:
+   - "resyncWithStore"
+   - "addDoc"
+   - "rmDoc"
+
 ## Race conditions
 
 1. ClientA sends a subscription request to pubSub
