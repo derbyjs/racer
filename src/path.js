@@ -113,7 +113,7 @@ exports.objectExcept = function objectExcept (from, exceptions) {
         , periodPos = except.indexOf('.')
         , prefix = except.substring(0, periodPos);
       if (prefix === key) {
-        nextExceptions.push(except.substring(periodPos + 1), except.length);
+        nextExceptions.push(except.substring(periodPos + 1, except.length));
       }
     }
     if (nextExceptions.length) {
@@ -123,8 +123,8 @@ exports.objectExcept = function objectExcept (from, exceptions) {
       if (Array.isArray(from)) key = parseInt(key, 10);
       to[key] = from[key];
     }
-    return to;
   }
+  return to;
 };
 
 exports.isSubPathOf = function isSubPathOf (path, fullPath) {
@@ -151,11 +151,11 @@ exports.expand = function expand (path) {
     var match = /^([^,()]*)([,()])(.*)/.exec(path);
     if (! match) return out.map( function (val) { return val + path; });
     var pre = match[1]
-      , token = match[2]
-      , path = match[3];
+      , token = match[2];
+    path = match[3]
 
     if (pre) {
-      paths = paths.map( function (val) { return val + path; });
+      paths = paths.map( function (val) { return val + pre; });
       if (token !== '(') {
         var out = lastClosed ? paths : out.concat(paths);
       }
