@@ -6,23 +6,23 @@ describe 'Filter', ->
     it 'should return false for non-namespace matches', ->
       f = new Filter
         from: 'blogs'
-      expect(f.test({id: 'x'}, 'users.x')).to.not.be.ok()
+      expect(f.test({id: 'x'}, 'users')).to.not.be.ok()
 
     describe 'for namespace matches', ->
       it 'should return true if only testing for namespace match', ->
         f = new Filter
           from: 'blogs'
-        expect(f.test({id: 'x'}, 'blogs.x')).to.be.ok()
+        expect(f.test({id: 'x'}, 'blogs')).to.be.ok()
 
       describe 'byKey', ->
         keyFilter = new Filter
           from: 'blogs'
           byKey: 'x'
         it 'should return false if key does not match', ->
-          expect(keyFilter.test({id: 'y'}, 'blogs.y')).to.not.be.ok()
+          expect(keyFilter.test({id: 'y'}, 'blogs')).to.not.be.ok()
 
         it 'should return true if key does match', ->
-          expect(keyFilter.test({id: 'x'}, 'blogs.x')).to.be.ok()
+          expect(keyFilter.test({id: 'x'}, 'blogs')).to.be.ok()
 
       describe 'single equals', ->
         describe 'with non-object comparables', ->
@@ -32,11 +32,11 @@ describe 'Filter', ->
 
           it 'should return false for non-matching docs', ->
             doc = id: 'x', name: 'rails'
-            expect(oneEqualsFilter.test(doc, 'frameworks.x')).to.not.be.ok()
+            expect(oneEqualsFilter.test(doc, 'frameworks')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             doc = id: 'x', name: 'derby'
-            expect(oneEqualsFilter.test(doc, 'frameworks.x')).to.be.ok()
+            expect(oneEqualsFilter.test(doc, 'frameworks')).to.be.ok()
 
         describe 'with object comparables', ->
           oneEqualsFilter = new Filter
@@ -52,7 +52,7 @@ describe 'Filter', ->
               name:
                 first: 'Chris'
                 last: 'Paul'
-            expect(oneEqualsFilter.test(doc, 'athletes.x')).to.not.be.ok()
+            expect(oneEqualsFilter.test(doc, 'athletes')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             doc =
@@ -60,7 +60,7 @@ describe 'Filter', ->
               name:
                 first: 'Jeremy'
                 last: 'Lin'
-            expect(oneEqualsFilter.test(doc, 'athletes.x')).to.be.ok()
+            expect(oneEqualsFilter.test(doc, 'athletes')).to.be.ok()
 
       describe 'multiple equals', ->
         multiEqualsFilter = new Filter
@@ -75,7 +75,7 @@ describe 'Filter', ->
             name:
               first: 'michael'
               last: 'jackson'
-          expect(multiEqualsFilter.test(doc, 'celebs.x')).to.not.be.ok()
+          expect(multiEqualsFilter.test(doc, 'celebs')).to.not.be.ok()
 
         it 'should return true for matching docs', ->
           doc =
@@ -83,7 +83,7 @@ describe 'Filter', ->
             name:
               first: 'michael'
               last: 'jordan'
-          expect(multiEqualsFilter.test(doc, 'celebs.x')).to.be.ok()
+          expect(multiEqualsFilter.test(doc, 'celebs')).to.be.ok()
 
       describe 'single notEquals', ->
         describe 'with non-object comparables', ->
@@ -95,13 +95,13 @@ describe 'Filter', ->
             doc =
               id: 'x'
               name: 'Roger Federer'
-            expect(oneNonEqualsFilter.test(doc, 'athletes.x')).to.not.be.ok()
+            expect(oneNonEqualsFilter.test(doc, 'athletes')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             doc =
               id: 'x'
               name: 'Rafael Nadal'
-            expect(oneNonEqualsFilter.test(doc, 'athletes.x')).to.be.ok()
+            expect(oneNonEqualsFilter.test(doc, 'athletes')).to.be.ok()
 
         describe 'with object comparables', ->
           oneNonEqualsFilter = new Filter
@@ -117,7 +117,7 @@ describe 'Filter', ->
               name:
                 first: 'Roger'
                 last: 'Federer'
-            expect(oneNonEqualsFilter.test(doc, 'athletes.x')).to.not.be.ok()
+            expect(oneNonEqualsFilter.test(doc, 'athletes')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             doc =
@@ -125,7 +125,7 @@ describe 'Filter', ->
               name:
                 first: 'Rafael'
                 last: 'Nadal'
-            expect(oneNonEqualsFilter.test(doc, 'athletes.x')).to.be.ok()
+            expect(oneNonEqualsFilter.test(doc, 'athletes')).to.be.ok()
 
       describe 'multiple notEquals', ->
         multiNonEqualsFilter = new Filter
@@ -139,14 +139,14 @@ describe 'Filter', ->
             id: 'x'
             origin: 'San Francisco'
             destination: 'Mountain View'
-          expect(multiNonEqualsFilter.test(doc, 'trips.x')).to.not.be.ok()
+          expect(multiNonEqualsFilter.test(doc, 'trips')).to.not.be.ok()
 
         it 'should return true for matching docs', ->
           doc =
             id: 'x'
             origin: 'Redwood City'
             destination: 'Menlo Park'
-          expect(multiNonEqualsFilter.test(doc, 'trips.x')).to.be.ok()
+          expect(multiNonEqualsFilter.test(doc, 'trips')).to.be.ok()
 
       inequalities =
         gt:
@@ -175,11 +175,11 @@ describe 'Filter', ->
 
           it 'should return false for non-matching docs', ->
             doc = id: 'x', age: nonMatching
-            expect(ineqFilter.test(doc, 'users.x')).to.not.be.ok()
+            expect(ineqFilter.test(doc, 'users')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             doc = id: 'x', age: matching
-            expect(ineqFilter.test(doc, 'users.x')).to.be.ok()
+            expect(ineqFilter.test(doc, 'users')).to.be.ok()
 
       describe 'within', ->
         describe 'with non-object comparables', ->
@@ -188,7 +188,7 @@ describe 'Filter', ->
             within: { age: [20, 30, 40] }
           it 'should return false for non-matching docs', ->
             doc = id: 'x', age: 50
-            expect(withinFilter.test(doc, 'users.x')).to.not.be.ok()
+            expect(withinFilter.test(doc, 'users')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             docs = [
@@ -197,7 +197,7 @@ describe 'Filter', ->
               { id: 'c', age: 40 }
             ]
             for doc in docs
-              expect(withinFilter.test(doc, "users.#{doc.id}")).to.be.ok()
+              expect(withinFilter.test(doc, 'users')).to.be.ok()
             return
 
         describe 'with object comparables', ->
@@ -214,7 +214,7 @@ describe 'Filter', ->
               id: 'x'
               pet: { name: 'Pogo' }
 
-            expect(withinFilter.test(doc, 'users.x')).to.not.be.ok()
+            expect(withinFilter.test(doc, 'users')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             docA =
@@ -223,8 +223,8 @@ describe 'Filter', ->
             docB =
               id: 'b'
               pet: { name: 'Squeak' }
-            expect(withinFilter.test(docA, 'users.a')).to.be.ok()
-            expect(withinFilter.test(docB, 'users.b')).to.be.ok()
+            expect(withinFilter.test(docA, 'users')).to.be.ok()
+            expect(withinFilter.test(docB, 'users')).to.be.ok()
 
       describe 'contains', ->
         describe 'with non-object comparables', ->
@@ -235,14 +235,14 @@ describe 'Filter', ->
           it 'should return false for non-matching docs', ->
             docA = id: 'a', nums: [6, 12, 18]
             docB = id: 'b', numss: [5, 10]
-            expect(containsFilter.test(docA, 'users.a')).to.not.be.ok()
-            expect(containsFilter.test(docB, 'users.b')).to.not.be.ok()
+            expect(containsFilter.test(docA, 'users')).to.not.be.ok()
+            expect(containsFilter.test(docB, 'users')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             docA = id: 'a', nums: [5, 10, 15]
             docB = id: 'b', nums: [0, 5, 10, 15, 20]
-            expect(containsFilter.test(docA, 'users.a')).to.be.ok()
-            expect(containsFilter.test(docB, 'users.b')).to.be.ok()
+            expect(containsFilter.test(docA, 'users')).to.be.ok()
+            expect(containsFilter.test(docB, 'users')).to.be.ok()
 
         describe 'with object comparables', ->
           containsFilter = new Filter
@@ -265,8 +265,8 @@ describe 'Filter', ->
               pets: [
                 { name: 'Squeak' }
               ]
-            expect(containsFilter.test(docA, 'users.a')).to.not.be.ok()
-            expect(containsFilter.test(docB, 'users.b')).to.not.be.ok()
+            expect(containsFilter.test(docA, 'users')).to.not.be.ok()
+            expect(containsFilter.test(docB, 'users')).to.not.be.ok()
 
           it 'should return true for matching docs', ->
             docA =
@@ -283,5 +283,5 @@ describe 'Filter', ->
                 { name: 'Squeak' }
                 { name: 'Spotty' }
               ]
-            expect(containsFilter.test(docA, 'users.a')).to.be.ok()
-            expect(containsFilter.test(docB, 'users.b')).to.be.ok()
+            expect(containsFilter.test(docA, 'users')).to.be.ok()
+            expect(containsFilter.test(docB, 'users')).to.be.ok()

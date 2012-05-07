@@ -7,7 +7,10 @@ var lookup = require('../path').lookup
 
 module.exports = Filter;
 
-// params look like:
+// @param {Object} json representing a query that is typically created via
+// convenient QueryBuilder instances
+//
+// json looks like:
 // {
 //   from: 'collectionName'
 // , byKey: keyVal
@@ -19,29 +22,27 @@ module.exports = Filter;
 //   }
 // , sort: ['fieldA', 'asc', 'fieldB', 'desc']
 // }
-function Filter (params) {
+function Filter (json) {
   // Stores a list of predicate functions that take a document and return a
   // Boolean. If all predicate functions return true, then the document passes
   // through the filter. If not, the document is blocked by the filter
   this._predicates = [];
 
-  if (params) for (var method in params) {
-    this[method].call(this, params[method]);
+  if (json) for (var method in json) {
+    this[method].call(this, json[method]);
   }
 }
 
 Filter.prototype.from = function from (ns) {
-  this._predicates.push( function (doc, channel) {
-    var docNs = channel.slice(0, channel.indexOf('.'));
+  this._predicates.push( function (doc, docNs) {
     return ns === docNs;
   });
   return this;
 };
 
 Filter.prototype.byKey = function byKey (keyVal) {
-  this._predicates.push( function (doc, channel) {
-    var id = channel.split('.')[1];
-    return id === keyVal
+  this._predicates.push( function (doc) {
+    return doc.id === keyVal
   });
   return this;
 };
@@ -113,10 +114,10 @@ for (var method in predicateBuilders) {
   })(predicateBuilders[method]);
 }
 
-Filter.prototype.test = function test (doc, channel) {
+Filter.prototype.test = function test (doc, ns) {
   // Lazy compile the aggregate doc predicate
   this.test = compileDocFilter(this._predicates);
-  return this.test(doc, channel);
+  return this.test(doc, ns);
 }
 
 function compileDocFilter (predicates) {
@@ -124,10 +125,10 @@ function compileDocFilter (predicates) {
     case 0: return evalToTrue;
     case 1: return predicates[0];
   }
-  return function test (doc, channel) {
+  return function test (doc, ns) {
     if (typeof doc === 'undefined') return false;
     for (var i = 0, l = predicates.length; i < l; i++) {
-      if (! predicates[i](doc, channel)) return false;
+      if (! predicates[i](doc, ns)) return false;
     }
     return true;
   };
