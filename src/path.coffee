@@ -1,8 +1,12 @@
+{hasKeys} = require './util'
+
 module.exports =
   # Test to see if path name contains a segment that starts with an underscore.
   # Such a path is private to the current session and should not be stored
   # in persistent storage or synced with other clients.
   isPrivate: (name) -> /(?:^_)|(?:\._)/.test name
+
+  isPattern: (x) -> -1 != x.indexOf '*'
 
   eventRegExp: (pattern) ->
    if pattern instanceof RegExp then pattern else
@@ -41,7 +45,7 @@ module.exports =
     source = ("(?:#{path}(?:\\..+)?)" for path in paths).join '|'
     new RegExp '^(?:' + source + ')$'
 
-  lookup: (path, obj) ->
+  lookup: lookup = (path, obj) ->
     if path.indexOf('.') == -1
       return obj[path]
     parts = path.split '.'
@@ -50,7 +54,7 @@ module.exports =
       obj = obj[prop]
     return obj
 
-  assign: (obj, path, val) ->
+  assign: assign = (obj, path, val) ->
     parts = path.split '.'
     lastIndex = parts.length-1
     for prop, i in parts
@@ -59,6 +63,39 @@ module.exports =
       else
         obj = obj[prop] ||= {}
     return
+
+  objectWithOnly: (obj, paths) ->
+    projectedDoc = {}
+    for path in paths
+      assign projectedDoc, path, lookup(path, obj)
+    return projectedDoc
+
+  objectExcept: objectExcept = (from, exceptions) ->
+    return unless from
+    to = if Array.isArray from then [] else {}
+    for key of from
+      # Skip exact exception matches
+      continue if ~exceptions.indexOf key
+
+      nextExceptions = []
+      for except in exceptions
+        periodPos = except.indexOf '.'
+        prefix = except[0...periodPos]
+        if prefix == key
+          nextExceptions.push except[periodPos+1..]
+
+      if nextExceptions.length
+        nested = objectExcept from[key], nextExceptions
+        if hasKeys nested
+          to[key] = nested
+      else
+        if Array.isArray from
+          key = parseInt key, 10
+        to[key] = from[key]
+    return to
+
+  isSubPathOf: isSubPathOf = (path, fullPath) ->
+    path == fullPath.substring 0, path.length
 
   split: (path) -> path.split /\.?[(*]\.?/
 
