@@ -22,6 +22,7 @@
   "devDependencies": {
     "mocha": ">=0.9.0",
     "expect.js": ">=0.1.2",
+    "sinon": "1.3.x",
     "coffee-script": "1.3.x",
     "console.color": ">=0.0.4",
     "racer-journal-redis": "*",
