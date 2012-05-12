@@ -1,17 +1,28 @@
 {expect} = require '../util'
-{adapter} = require '../util/store'
+shouldWorkWithStoreMutators = require './storeMutators'
+shouldBeAbleToQuery = require './query'
+shouldPassStoreIntegrationTests = require '../Store/integration'
+racer = require '../../lib/racer'
 
-# `adapter('db', block)` generates the exported
-# function (dbOptions, plugin, moreTests)
-# that runs `block` for the given `plugin`
-module.exports = adapter 'db', (run) ->
+shouldBehaveLikeDbAdapter = module.exports = (storeOpts = {}, plugins = []) ->
+  shouldWorkWithStoreMutators(storeOpts, plugins)
+  shouldBeAbleToQuery(storeOpts, plugins)
 
-  run 'store mutators', require './storeMutators'
-  run 'query', {noFlush: true}, require './query'
+  describe 'db flushing', ->
+    beforeEach (done) ->
+      for plugin, i in plugins
+        pluginOpts = plugin.testOpts
+        racer.use plugin, pluginOpts if plugin.useWith.server
+      @store = racer.createStore(storeOpts)
+      @store.flush done
 
-  run 'db flushing', (getStore) ->
+    afterEach (done) ->
+      @store.flush =>
+        @store.disconnect()
+        done()
+
     it 'should delete all db contents', (done) ->
-      store = getStore()
+      store = @store
       store.set 'globals._.color', 'green', 1, (err) ->
         expect(err).to.be.null()
         store.get 'globals._.color', (err, value, ver) ->
@@ -23,3 +34,5 @@ module.exports = adapter 'db', (run) ->
               expect(err).to.be.null()
               expect(value).to.be(undefined)
               done()
+
+  shouldPassStoreIntegrationTests storeOpts

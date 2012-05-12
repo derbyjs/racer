@@ -1,4 +1,5 @@
-{finishAfter} = require './util/async'
+util = require './index'
+{finishAfter} = require './async'
 
 Promise = module.exports = ->
   @callbacks = []

@@ -4,9 +4,10 @@
 
 clearRequireCache()
 racer = require '../../lib/racer'
-racer.use ot = require '../../lib/ot'
-{run} = require '../util/store'
-{Model} = createBrowserRacer plugins = [ot]
+otPlugin = require '../../lib/ot'
+racer.use otPlugin
+plugins = [otPlugin]
+{Model} = createBrowserRacer(plugins).protected
 
 describe 'Model.ot', ->
 
@@ -81,93 +82,101 @@ describe 'Model.ot', ->
       done()
     sockets.emit 'otOp', path: 'some.ot.path', op: [{d: 'bcd', p: 1}], v: 0
 
+  describe 'connected to a store', ->
+    beforeEach (done) ->
+      racer.use plugin for plugin in plugins
+      @store = racer.createStore()
+      @store.flush done
 
-run 'Model.ot connected to a store', (getStore) ->
+    afterEach (done) ->
+      @store.flush done
 
-  # TODO: This test should pass; right now OT operations don't work on server-side models
-  # 
-  # it 'otInsert events should be emitted in server-side subscribed models', (done) ->
-  #   model = getStore().createModel()
-  #   model.subscribe 'test', (err, test) ->
-  #     test.on 'otInsert', 'text', (pos, inserted) ->
-  #       expect(pos).to.equal 1
-  #       expect(inserted).to.equal 'def'
-  #       expect(test.get 'text').to.equal 'adefbc'
-  #       done()
-  #     test.ot 'text', 'abc'
-  #     test.otInsert 'text', 1, 'def'
+    # TODO: This test should pass; right now OT operations don't work on server-side models
+    # 
+    # it 'otInsert events should be emitted in server-side subscribed models', (done) ->
+    #   model = @store.createModel()
+    #   model.subscribe 'test', (err, test) ->
+    #     test.on 'otInsert', 'text', (pos, inserted) ->
+    #       expect(pos).to.equal 1
+    #       expect(inserted).to.equal 'def'
+    #       expect(test.get 'text').to.equal 'adefbc'
+    #       done()
+    #     test.ot 'text', 'abc'
+    #     test.otInsert 'text', 1, 'def'
 
-  it 'otInsert events should be emitted in remote subscribed models',
-    mockFullSetup getStore, {plugins}, (modelA, modelB, done) ->
-      modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
-        expect(insertedStr).to.equal 'xyz'
-        expect(pos).to.equal 1
-        expect(modelB.get '_test.text').to.equal 'axyzbcdef'
-        done()
-      modelA.ot '_test.text', 'abcdef'
-      modelA.otInsert '_test.text', 1, 'xyz'
+    it 'otInsert events should be emitted in remote subscribed models XXX', (done) ->
+      mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
+        modelB.on 'otInsert', '_test.text', (pos, insertedStr) ->
+          expect(insertedStr).to.equal 'xyz'
+          expect(pos).to.equal 1
+          expect(modelB.get '_test.text').to.equal 'axyzbcdef'
+          done()
+        modelA.ot '_test.text', 'abcdef'
+        modelA.otInsert '_test.text', 1, 'xyz'
 
-  testOtOps = (options, callback, beforeDone) ->
-    mockFullSetup getStore, {plugins}, (modelA, modelB, done) ->
-      finish = finishAfter 2, ->
-        textA = modelA.get '_test.text'
-        textB = modelB.get '_test.text'
-        if options.expected
-          expect(textA).to.equal options.expected
-        expect(textA).to.equal textB
-        return beforeDone? modelA, modelB, done  if beforeDone
-        done()
+    testOtOps = (options, callback, beforeDone) ->
+      return (done) ->
+        testContext = this
+        mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
+          finish = finishAfter 2, ->
+            textA = modelA.get '_test.text'
+            textB = modelB.get '_test.text'
+            if options.expected
+              expect(textA).to.equal options.expected
+            expect(textA).to.equal textB
+            return beforeDone.call testContext, modelA, modelB, done  if beforeDone
+            done()
 
-      [modelA, modelB].forEach (model) ->
-        onOp = finishAfter options.numOps + 1, finish
-        model.on 'otInsert', '_test.text', -> onOp()
-        model.on 'otDel', '_test.text', -> onOp()
-        model.on 'set', '_test.text', -> onOp()
+          [modelA, modelB].forEach (model) ->
+            onOp = finishAfter options.numOps + 1, finish
+            model.on 'otInsert', '_test.text', -> onOp()
+            model.on 'otDel', '_test.text', -> onOp()
+            model.on 'set', '_test.text', -> onOp()
 
-      callback modelA, modelB
+          callback.call testContext, modelA, modelB
 
-  it '1 otInsert by window A and 1 otInsert by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
-    testOtOps numOps: 2, expected: 'axyzbtuvcdef', (modelA, modelB) ->
-      modelB.on 'set', '_test.text', ->
-        modelB.otInsert '_test.text', 2, 'tuv'
-      modelA.ot '_test.text', 'abcdef'
-      modelA.otInsert '_test.text', 1, 'xyz'
+    it '1 otInsert by window A and 1 otInsert by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
+      testOtOps numOps: 2, expected: 'axyzbtuvcdef', (modelA, modelB) ->
+        modelB.on 'set', '_test.text', ->
+          modelB.otInsert '_test.text', 2, 'tuv'
+        modelA.ot '_test.text', 'abcdef'
+        modelA.otInsert '_test.text', 1, 'xyz'
 
-  it '1 otInsert by window A and 1 otDel by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
-    testOtOps numOps: 2, expected: 'atuvef', (modelA, modelB) ->
-      modelB.on 'set', '_test.text', ->
-        modelB.otInsert '_test.text', 2, 'tuv'
-      modelA.ot '_test.text', 'abcdef'
-      modelA.otDel '_test.text', 1, 3
+    it '1 otInsert by window A and 1 otDel by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
+      testOtOps numOps: 2, expected: 'atuvef', (modelA, modelB) ->
+        modelB.on 'set', '_test.text', ->
+          modelB.otInsert '_test.text', 2, 'tuv'
+        modelA.ot '_test.text', 'abcdef'
+        modelA.otDel '_test.text', 1, 3
 
-  it '1 otDel by window A and 1 otDel by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
-    testOtOps numOps: 2, expected: 'afghijk', (modelA, modelB) ->
-      modelB.on 'set', '_test.text', ->
-        modelB.otDel '_test.text', 2, 3
-      modelA.ot '_test.text', 'abcdefghijk'
-      modelA.otDel '_test.text', 1, 3
+    it '1 otDel by window A and 1 otDel by window B on the same path should result in the same "valid" text in both windows after both ops have propagated, transformed, and applied both ops',
+      testOtOps numOps: 2, expected: 'afghijk', (modelA, modelB) ->
+        modelB.on 'set', '_test.text', ->
+          modelB.otDel '_test.text', 2, 3
+        modelA.ot '_test.text', 'abcdefghijk'
+        modelA.otDel '_test.text', 1, 3
 
-  it 'an OT op in window A should be reflected in the data of a window Cs server model that loads after window A and its OT op',
-    testOtOps numOps: 1, (modelA, modelB) ->
-      modelA.ot '_test.text', 'abcdefg'
-      modelA.otInsert '_test.text', 1, 'xyz'
-    , (modelA, modelB, done) ->
-      modelC = getStore().createModel()
-      testPath = modelA.dereference '_test.text'
-      modelC.subscribe testPath, ->
-        expect(modelC.get testPath).to.equal 'axyzbcdefg'
-        done()
+    it 'an OT op in window A should be reflected in the data of a window Cs server model that loads after window A and its OT op',
+      testOtOps numOps: 1, (modelA, modelB) ->
+        modelA.ot '_test.text', 'abcdefg'
+        modelA.otInsert '_test.text', 1, 'xyz'
+      , (modelA, modelB, done) ->
+        modelC = @store.createModel()
+        testPath = modelA.dereference '_test.text'
+        modelC.subscribe testPath, ->
+          expect(modelC.get testPath).to.equal 'axyzbcdefg'
+          done()
 
-  it 'an OT op in window A should be reflected in the data of a window Cs browser model that loads after window A and its OT op',
-    testOtOps numOps: 1, (modelA, modelB) ->
-      modelA.ot '_test.text', 'abcdefg'
-      modelA.otInsert '_test.text', 1, 'xyz'
-    , (modelA, modelB, done) ->
-      testPath = modelA.dereference '_test.text'
-      createBrowserModel getStore(), testPath, {plugins}, (modelC) ->
-        expect(modelC.get testPath).to.equal 'axyzbcdefg'
-        done()
+    it 'an OT op in window A should be reflected in the data of a window Cs browser model that loads after window A and its OT op',
+      testOtOps numOps: 1, (modelA, modelB) ->
+        modelA.ot '_test.text', 'abcdefg'
+        modelA.otInsert '_test.text', 1, 'xyz'
+      , (modelA, modelB, done) ->
+        testPath = modelA.dereference '_test.text'
+        createBrowserModel @store, testPath, plugins, (modelC) ->
+          expect(modelC.get testPath).to.equal 'axyzbcdefg'
+          done()
 
- # # TODO ## Realtime mode conflicts (w/STM) ##
+   # # TODO ## Realtime mode conflicts (w/STM) ##
 
- # # TODO Speculative workspaces with immediate OT
+   # # TODO Speculative workspaces with immediate OT

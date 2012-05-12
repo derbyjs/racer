@@ -1,9 +1,9 @@
 Memory = require '../Memory'
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 Serializer = require '../Serializer'
 transaction = require '../transaction'
 {isPrivate} = require '../path'
-{create: specCreate} = require '../speculative'
+{create: specCreate} = require '../util/speculative'
 # AtomicModel = require './AtomicModel'
 {mergeTxn} = require './diff'
 arrayMutator = null
@@ -33,10 +33,6 @@ module.exports =
           delete @data
           delete @lastTxnId
 
-      # TODO: Finish implementation of atomic transactions
-      # atomic models that have been generated stored by atomic transaction id.
-      # model._atomicModels = {}
-
       model._count.txn = 0
       model._txns = txns = {}  # transaction id -> transaction
       model._txnQueue = txnQueue = []  # [transactionIds...]
@@ -64,8 +60,9 @@ module.exports =
           txn.callback = txnQ.callback
           txn.emitted = txnQ.emitted
 
-        unless isLocal = 'callback' of txn
-          mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
+        isLocal = 'callback' of txn
+#        unless isLocal = 'callback' of txn
+#          mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
 
         ver = transaction.getVer txn
         if ver > memory.version || ver == -1
@@ -73,33 +70,95 @@ module.exports =
         return
 
     bundle: (model) ->
+      model._txnsPromise.on (err) ->
+        throw err if err
+        store = model.store
+        clientId = model._clientId
+        store._unregisterLocalModel clientId
+        # Start buffering subsequently received transactions. They will be
+        # sent to the browser upon browser connection. This also occurs on 'disconnect'
+        store._startTxnBuffer clientId
       # Get the speculative model, which will apply any pending private path
       # transactions that may get stuck in the first position of the queue
       model._specModel()
       # Wait for all pending transactions to complete before returning
       if model._txnQueue.length
-        model.__removeTxn = model._removeTxn
+        # TODO: This code is really confusing. Refactor
+        model.__removeTxn__ ||= model._removeTxn
         model._removeTxn = (txnId) ->
-          model.__removeTxn txnId
+          model.__removeTxn__ txnId
+          len = model._txnQueue.length
           model._specModel()
-          return if model._txnQueue.length
+          return if len
+
           process.nextTick ->
             model._txnsPromise.resolve()
+
         return
       model._txnsPromise.resolve()
 
     socket: (model, socket) ->
-      memory = model._memory
-      txns = model._txns
-      txnQueue = model._txnQueue
-      removeTxn = model._removeTxn
-      onTxn = model._onTxn
+      {_memory: memory, _txns: txns, _txnQueue: txnQueue, _removeTxn: removeTxn, _onTxn: onTxn} = model
 
       # The startId is the ID of the last Journal restart. This is sent along with
       # each versioned message from the Model so that the Store can map the model's
       # version number to the version number of the Journal in case of a failure
 
-      notReady = true
+      # These events are triggered by the 'resyncWithStore' events and the
+      # txnApplier timeout below. A request is made to the server to fetch the
+      # most recent snapshot, which is returned to the browser in one of many
+      # forms on a channel prefixed with "snapshotUpdate:*"
+      socket.on 'snapshotUpdate:replace', (data, num) ->
+        # TODO Over-ride and replay diff as events?
+
+        # Clear and remember any locally queued transactions. We recall the
+        # remembered transactions later when we replay them on top of the
+        # incoming snapshot.
+        toReplay = (txns[txnId] for txnId in txnQueue)
+        txnQueue.length = 0
+        model._txns = txns = {}
+        model._specCache.invalidate()
+
+        # Reset the number used to keep track of pending transactions
+        txnApplier.clearPending()
+        txnApplier.setIndex num + 1 if num?
+
+        memory.eraseNonPrivate()
+        model._initData data
+
+        model.emit 'reInit'
+
+        for txn in toReplay
+          # See mutators/mutators.Model
+          model[transaction.getMethod txn] transaction.getArgs(txn)...
+
+        return
+
+      socket.on 'snapshotUpdate:newTxns', (newTxns, num) ->
+        # Apply any missed transactions first
+        onTxn txn for txn in newTxns
+
+        # Reset the number used to keep track of pending transactions
+        txnApplier.clearPending()
+        txnApplier.setIndex num + 1  if num?
+
+        # Resend all transactions in the queue
+        for id in txnQueue
+          commit txns[id]
+        return
+
+
+      txnApplier = new Serializer
+        withEach: onTxn
+        # This timeout is for scenarios when a service that the server proxies to fails. This is for remote transactions.
+        onTimeout: ->
+          # TODO Make sure to set up the timeout again if we are disconnected
+          return unless model.connected
+          # TODO Don't do this if we are also responding to a resyncWithStore
+          socket.emit 'fetchCurrSnapshot', memory.version + 1, model._startId, model._subs()
+
+      # Set an interval to check for transactions that have been in the queue
+      # for too long and resend them
       resendInterval = null
       resend = ->
         now = +new Date
@@ -108,41 +167,22 @@ module.exports =
           return if !txn || txn.timeout > now
           commit txn
         return
-
-      fetchNewTxns = ->
-        socket.emit 'txnsSince', memory.version + 1, model._startId, (err, newTxns, num) ->
-          throw err if err
-
-          # Apply any missed transactions first
-          for txn in newTxns
-            onTxn txn
-
-          # Reset the number used to keep track of pending transactions
-          txnApplier.clearPending()
-          txnApplier.setIndex num + 1  if num?
-          notReady = false
-
-          # Resend all transactions in the queue
-          for id in txnQueue
-            commit txns[id]
-          return
-
-      txnApplier = new Serializer
-        withEach: onTxn
-        onTimeout: fetchNewTxns
-
-      socket.on 'connect', ->
-        fetchNewTxns()
-
-        # Set an interval to check for transactions that have been in the queue
-        # for too long and resend them
-        resendInterval = setInterval resend, RESEND_INTERVAL unless resendInterval
-
-      socket.on 'disconnect', ->
-        notReady = true
-        # Stop resending transactions while disconnected
+      setupResendInterval = ->
+        resendInterval ||= setInterval resend, RESEND_INTERVAL
+      teardownResendInterval = ->
         clearInterval resendInterval if resendInterval
         resendInterval = null
+      if model.connected
+        setupResendInterval()
+      else
+        model.once 'connect', ->
+          setupResendInterval()
+
+      socket.on 'disconnect', ->
+        # Stop resending transactions until reconnect
+        teardownResendInterval()
+
+        # TODO Stop asking for missed remote transactions until reconnect
 
       model._addRemoteTxn = addRemoteTxn = (txn, num) ->
         if num?
@@ -152,26 +192,34 @@ module.exports =
       socket.on 'txn', addRemoteTxn
 
       # The model receives 'txnOk' from the server/store after the server/store
-      # applies the transaction successfully
+      # applies a transaction that originated from this model successfully
       socket.on 'txnOk', (txnId, ver, num) ->
         return unless txn = txns[txnId]
         transaction.setVer txn, ver
         addRemoteTxn txn, num
 
+      # The model receives 'txnErr' from the server/store after the
+      # server/store attempts to apply this transaction but fails
       socket.on 'txnErr', (err, txnId) ->
         txn = txns[txnId]
         if txn && (callback = txn.callback)
           if transaction.isCompound txn
             callbackArgs = transaction.ops txn
           else
-            callbackArgs = transaction.getArgs(txn).slice 0
+            callbackArgs = transaction.copyArgs txn
           callbackArgs.unshift err
           callback callbackArgs...
         removeTxn txnId
 
       model._commit = commit = (txn) ->
-        return if txn.isPrivate || notReady
+        return if txn.isPrivate
         txn.timeout = +new Date + SEND_TIMEOUT
+
+        # Don't queue this up in socket.io's message buffer. Instead, we
+        # explicitly send over any txns in the @_txnQueue during reconnect
+        # synchronization.
+        return unless model.connected
+
         socket.emit 'txn', txn, model._startId
 
   server:
@@ -216,6 +264,7 @@ module.exports =
       id = @_nextTxnId()
       txn = transaction.create {ver, id, method, args}
       txn.isPrivate = isPrivate path
+      txn.emitted = args.cancelEmit
 
       # Add remove index as txn metadata. Null if transaction does nothing
       if method is 'pop'
@@ -223,8 +272,9 @@ module.exports =
       else if method is 'unshift'
         txn.push (@get(path) || null) && 0
 
-      # Queue and evaluate the transaction
+      # Queue and ...
       @_queueTxn txn, callback
+      # ... evaluate the transaction
       out = @_specModel().$out
 
       # Add insert index as txn metadata

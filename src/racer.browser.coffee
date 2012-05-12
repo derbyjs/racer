@@ -1,6 +1,7 @@
-require 'es5-shim'
+{mergeAll} = require './util'
 
-# NOTE: All racer modules for the browser should be included in racer.coffee
+#### WARNING: ####
+# All racer modules for the browser should be included in racer.coffee
 # and not in this file
 
 # Static isReady and model variables are used, so that the ready function
@@ -8,12 +9,14 @@ require 'es5-shim'
 # is running, which should be the case in the browser.
 isReady = model = null
 
-module.exports = (racer) ->
-  racer.merge
+exports = module.exports = (racer) ->
+  mergeAll racer,
 
-    # socket argument makes it easier to test - see test/util/model
+    # `init` should be called (by the developer) with the specified arguments
+    # when the browser loads the app.
+    # `socket` argument makes it easier to test - see test/util/model
     init: ([clientId, memory, count, onLoad, startId, ioUri], socket) ->
-      model = new racer.Model
+      model = new racer.protected.Model
       model._clientId = clientId
       model._startId = startId
       model._memory.init memory
@@ -25,9 +28,12 @@ module.exports = (racer) ->
 
       racer.emit 'init', model
 
+      # TODO If socket is passed into racer, make sure to add clientId query
+      # param
       model._setSocket socket || io.connect ioUri,
         'reconnection delay': 100
         'max reconnection attempts': 20
+        query: 'clientId=' + clientId
 
       isReady = true
       racer.emit 'ready', model
@@ -36,10 +42,7 @@ module.exports = (racer) ->
     # This returns a function that can be passed to a DOM ready function
     ready: (onready) -> ->
       if isReady
-        connected = model.socket.socket.connected
-        onready model
-        # Republish the Socket.IO connect event after the ready callback
-        # if Socket.IO previously connected
-        model.socket.socket.publish 'connect'  if connected
-        return
+        return onready model
       racer.on 'ready', onready
+
+exports.useWith = server: false, browser: true

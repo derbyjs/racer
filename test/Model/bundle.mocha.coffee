@@ -1,10 +1,16 @@
 {expect} = require '../util'
-{run} = require '../util/store'
+racer = require '../../lib/racer'
 
-run 'Model.bundle', (store) ->
+describe 'Model bundle', ->
+  beforeEach (done) ->
+    @store = racer.createStore()
+    @store.flush done
+
+  afterEach (done) ->
+    @store.flush done
 
   it 'should wait for the model transactions to be committed', (done) ->
-    model = store().createModel()
+    model = @store.createModel()
     model.subscribe 'presos.racer', (err, presos) ->
       presos.set {slides: []}
       model.bundle (bundle) ->
@@ -16,14 +22,14 @@ run 'Model.bundle', (store) ->
         done()
 
   it 'a private path transaction should not get stuck in the queue', (done) ->
-    model = store().createModel()
+    model = @store.createModel()
     model.subscribe 'presos.racer', (err, presos) ->
       presos.set {slides: []}
       model.set '_role', 'presenter'
       model.bundle (bundle) -> done()
 
-  it 'bundle invocation before all txns have been applied should wait for all txns to be applied', (done) ->
-    store = store()
+  it '(before all txns have been applied) should wait for all txns to be applied', (done) ->
+    store = @store
     model = store.createModel()
 
     model.subscribe 'groups.racer', (err, group) ->
@@ -32,14 +38,12 @@ run 'Model.bundle', (store) ->
       # Simulate this latency scenario
       flush = ->
         fn() for fn in buffer
+        return
       commit = store._commit
       buffer = []
       store._commit = ->
         args = arguments
         buffer.push -> commit.apply(store, args)
-      _bundle = model.bundle
-      model.bundle = ->
-        _bundle.apply model, arguments
 
       group.set 'age', 1
       model.bundle (bundle) ->
@@ -48,3 +52,7 @@ run 'Model.bundle', (store) ->
         done()
 
       process.nextTick flush
+
+  it 'should buffer any transactions received after its own txn application, and send those down to the browser upon socket.io connection'
+
+  it 'should expire the local model after the expiry period'

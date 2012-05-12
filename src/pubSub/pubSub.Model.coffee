@@ -2,6 +2,7 @@ transaction = require '../transaction'
 {expand: expandPath, split: splitPath} = require '../path'
 LiveQuery = require './LiveQuery'
 {deserialize} = Query = require './Query'
+{merge} = require '../util'
 empty = ->
 
 module.exports =
@@ -16,21 +17,20 @@ module.exports =
       model._liveQueries = {}  # maps hash -> liveQuery
 
     bundle: (model) ->
-      querySubs = []
-      for hash, query of model._querySubs
-        querySubs.push query
+      querySubs = (query for _, query of model._querySubs)
       model._onLoad.push ['_loadSubs', model._pathSubs, querySubs]
 
     socket: (model, socket) ->
-      socket.on 'connect', ->
-        # Establish subscriptions upon connecting and get any transactions
-        # that may have been missed
-        subs = Object.keys model._pathSubs
-        for hash, query of model._querySubs
-          subs.push query
-        socket.emit 'sub', model._clientId, subs, model._memory.version, model._startId
-
       memory = model._memory
+
+      # When the store asks the browser model to resync with the store, then
+      # the model should send the store its subscriptions and handle the
+      # receipt of instructions to get the model state back in sync with the
+      # store state (e.g., in the form of applying missed transaction, or in
+      # the form of diffing to a received store state)
+      socket.on 'resyncWithStore', (fn) ->
+        fn model._subs(), memory.version, model._startId
+
       socket.on 'addDoc', ({doc, ns, ver}, num) ->
         # If the doc is already in the model, don't add it
         if (data = memory.get ns) && data[doc.id]
@@ -70,7 +70,25 @@ module.exports =
         liveQueries[hash] = new LiveQuery query
       return
 
-    query: (namespace) -> new Query namespace
+    query: (namespace, opts) ->
+      q = new Query namespace
+      if opts then for k, v of opts
+        switch k
+          when 'byKey', 'skip', 'limit', 'sort'
+            q = q[k] v
+          when 'where'
+            for property, conditions of v
+              q = q.where(property)
+              if conditions.constructor == Object
+                for method, args of conditions
+                  q = q[method] args
+              else
+                q = q.equals conditions
+          when 'only', 'except'
+            q = q[k] v...
+          else
+            throw new Error "Unsupported key #{k}"
+      return q
 
     fetch: (targets...) ->
       # For fetch(targets..., callback)
@@ -131,7 +149,7 @@ module.exports =
       # Callback immediately if already subscribed to everything
       return callback null, out...  unless newTargets.length
 
-      @_subAdd newTargets, (err, data) =>
+      @_addSub newTargets, (err, data) =>
         return callback err if err
         @_initSubData data
         callback null, out...
@@ -164,10 +182,13 @@ module.exports =
       # Callback immediately if already unsubscribed from everything
       return callback()  unless newTargets.length
 
-      @_subRemove newTargets, callback
+      @_removeSub newTargets, callback
 
     _initSubData: (data) ->
       @emit 'subInit', data
+      @_initData data
+
+    _initData: (data) ->
       memory = @_memory
       for [path, value, ver] in data.data
         memory.set path, value, ver
@@ -175,15 +196,20 @@ module.exports =
 
     _fetch: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'fetch', @_clientId, targets, callback
+      @socket.emit 'fetch', targets, callback
 
-    _subAdd: (targets, callback) ->
+    _addSub: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subAdd', @_clientId, targets, callback
+      @socket.emit 'addSub', targets, callback
 
-    _subRemove: (targets, callback) ->
+    _removeSub: (targets, callback) ->
       return callback 'disconnected'  unless @connected
-      @socket.emit 'subRemove', @_clientId, targets, callback
+      @socket.emit 'removeSub', targets, callback
+
+    _subs: ->
+      subs = Object.keys @_pathSubs
+      subs.push query for _, query of @_querySubs
+      return subs
 
   server:
 
@@ -193,14 +219,14 @@ module.exports =
         return callback err if err
         store.fetch clientId, targets, callback
 
-    _subAdd: (targets, callback) ->
+    _addSub: (targets, callback) ->
       @_clientIdPromise.on (err, clientId) =>
         return callback err if err
         # Subscribe while the model still only resides on the server
         # The model is unsubscribed before sending to the browser
         @store.subscribe clientId, targets, callback
 
-    _subRemove: (targets, callback) ->
+    _removeSub: (targets, callback) ->
       store = @store
       @_clientIdPromise.on (err, clientId) ->
         return callback err if err

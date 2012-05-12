@@ -1,22 +1,13 @@
+{mergeAll, isServer} = util = require './util'
+require 'es5-shim' unless isServer
 {EventEmitter} = require 'events'
 plugin = require './plugin'
-{mergeAll, isServer} = util = require './util'
 
 racer = module.exports = new EventEmitter
 
-racer.merge = -> mergeAll this, arguments...
-
-racer.merge plugin,
-
-  diffMatchPatch: require './diffMatchPatch'
-  Memory: require './Memory'
-  Model: require './Model'
-  path: require './path'
-  plugin: plugin
-  Promise: require './Promise'
-  Serializer: require './Serializer'
-  speculative: require './speculative'
-  transaction: require './transaction'
+mergeAll racer, plugin,
+  protected:
+    Model: require './Model'
   util: util
 
 # Note that this plugin is passed by string to prevent
@@ -28,6 +19,8 @@ racer
   .use(require './refs')
   .use(require './pubSub')
   .use(require './txns')
+
+racer.use(__dirname + '/adapters/pubsub-memory')  if isServer
 
 # The browser module must be included last, since it creates a
 # model instance, before which all plugins should be included

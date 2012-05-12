@@ -16,6 +16,7 @@ module.exports =
 
   bufferifyMethods: (Klass, methodNames, {await}) ->
     fns = {}
+    buffer = null
     methodNames.forEach (methodName) ->
       fns[methodName] = Klass::[methodName]
       Klass::[methodName] = ->

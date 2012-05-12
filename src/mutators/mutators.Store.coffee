@@ -1,5 +1,5 @@
 Async = require './Async'
-{static, proto: modelProto} = require './mutators.Model'
+{static: modelStatic, proto: modelProto} = require './mutators.Model'
 
 proto =
   get:
@@ -10,4 +10,4 @@ for name, fn of Async::
   proto[name] =
     if obj = modelProto[name] then {type: obj.type, fn} else fn
 
-module.exports = {type: 'Store', static, proto}
+module.exports = {type: 'Store', static: modelStatic, proto}

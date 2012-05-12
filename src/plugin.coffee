@@ -10,7 +10,12 @@ module.exports =
       return this unless isServer
       plugin = _require plugin
 
-    plugin this, options
+    this._plugins ||= []
+    # Don't include a plugin more than once -- useful in tests where race
+    # conditions exist regarding require and clearing require.cache
+    if -1 == this._plugins.indexOf plugin
+      this._plugins.push plugin
+      plugin this, options
     return this
 
   # A mixin is an object literal with:
@@ -35,14 +40,15 @@ module.exports =
 
       unless type = mixin.type
         throw new Error "Mixins require a type parameter"
-      unless Klass = @[type]
-        throw new Error "Cannot find racer.#{type}"
+      unless Klass = @protected[type]
+        throw new Error "Cannot find racer.protected.#{type}"
 
       if Klass.mixins
         Klass.mixins.push mixin
       else
         Klass.mixins = [mixin]
-        Klass::mixinEmit = emitFn this, type
+        Klass::mixinEmit = (name, args...) =>
+          @emit type + ':' + name, args...
 
       mergeAll Klass, mixin.static
 
@@ -77,6 +83,3 @@ mergeProto = (protoSpec, Klass) ->
           methods[name] = fn
         else fn[key] = value
   return
-
-emitFn = (self, type) ->
-  (name, args...) -> self.emit type + ':' + name, args...

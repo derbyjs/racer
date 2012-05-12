@@ -134,6 +134,8 @@ LiveQuery::=
     return 'after'  if  1 == comparator doc, @_paginatedCache[@_paginatedCache.length-1]
     return 'curr'
 
+  # TODO Clean this up. Too much pointing btwn modules. queryPubSub points to
+  # @updateCache points to store points back to queryPubSub
   updateCache: (store, callback) ->
     cache = @_paginatedCache
     store.query @query, (err, found, ver) =>

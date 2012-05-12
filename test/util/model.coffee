@@ -1,23 +1,20 @@
-{calls, clearRequireCache} = require './index'
+{calls, changeEnvTo} = require './index'
 {ServerSocketsMock, BrowserSocketMock} = require './sockets'
-racerPath = require.resolve '../../lib/racer'
 
 exports.createBrowserRacer = createBrowserRacer = (plugins) ->
-  # Delete the cache of all modules extended for the server
-  clearRequireCache()
+  changeEnvTo 'browser'
   # Pretend like we are in a browser and require again
-  global.window = {}
-  browserRacer = require racerPath
+  browserRacer = require '../../lib/racer'
+  browserRacer.setMaxListeners 0
   if plugins
-    browserRacer.use plugin  for plugin in plugins
-  # Reset state and delete the cache again, so that the next
-  # time racer is required it will be for the server
-  delete global.window
-  clearRequireCache()
+    for plugin in plugins
+      pluginOpts = plugin.testOpts
+      browserRacer.use plugin, pluginOpts if plugin.useWith.browser
+  changeEnvTo 'server'
   return browserRacer
 
-exports.BrowserModel = BrowserModel = createBrowserRacer().Model
-{transaction} = require racerPath
+exports.BrowserModel = BrowserModel = createBrowserRacer().protected.Model
+transaction = require '../../lib/transaction'
 
 
 # Create a model connected to a server sockets mock. Good for testing
@@ -27,16 +24,16 @@ exports.BrowserModel = BrowserModel = createBrowserRacer().Model
 # name:           Name of browser-side socket event to handle
 # onName:         Handler function for browser-side socket event
 exports.mockSocketModel = (clientId = '', name, onName = ->) ->
-  serverSockets = new ServerSocketsMock()
+  serverSockets = new ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
+    return unless name
+    return unless socket._browserSocket._clientId == clientId
     socket.on name, onName
-    socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback null, [], 1
-  browserSocket = new BrowserSocketMock serverSockets
+  browserSocket = new BrowserSocketMock serverSockets, clientId
   model = new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
-  browserSocket._connect()
+  browserSocket.socket.connect()
   return [model, serverSockets]
 
 # Create a model connected to a server socket mock & pass all transactions
@@ -48,76 +45,85 @@ exports.mockSocketModel = (clientId = '', name, onName = ->) ->
 #   txnErr:       Respond to transactions with a 'txnErr message' if true
 #   plugins:      Racer plugins to include
 exports.mockSocketEcho = (clientId = '', options = {}) ->
-  num = 0
+  num = 0 # The client txn serializing number
   ver = 0
   newTxns = []
-  serverSockets = new ServerSocketsMock()
-  serverSockets._queue = (txn) ->
-    transaction.setVer txn, ++ver
-    newTxns.push txn
+  serverSockets = new ServerSocketsMock
   serverSockets.on 'connection', (socket) ->
-    socket.on 'txnsSince', (ver, clientStartId, callback) ->
-      callback null, newTxns, ++num
-      newTxns = []
     socket.on 'txn', (txn) ->
       if err = options.txnErr
         socket.emit 'txnErr', err
       else
         socket.emit 'txnOk', transaction.getId(txn), ++ver, ++num
-  browserSocket = new BrowserSocketMock(serverSockets)
+  browserSocket = new BrowserSocketMock(serverSockets, clientId)
   model = if plugins = options.plugins
-    new (createBrowserRacer(plugins).Model)
+    new (createBrowserRacer(options.plugins).protected.Model)
   else
     new BrowserModel
   model._clientId = clientId
   model._setSocket browserSocket
-  browserSocket._connect()  unless options.unconnected
+  browserSocket.socket.connect()  unless options.unconnected
   return [model, serverSockets]
 
-exports.createBrowserModel = createBrowserModel = (store, testPath, options, callback) ->
-  if typeof options is 'function'
-    callback = options
-    options = {}
-  options ||= {}
+exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, callback) ->
+  if typeof plugins is 'function'
+    callback = plugins
+    plugins = []
+  if typeof callback is 'object'
+    {preBundle, postBundle, preConnect, postConnect: callback} = callback
+  plugins ||= []
   model = store.createModel()
   model.subscribe testPath, (err, sandbox) ->
     model.ref '_test', sandbox
+    preBundle?(model)
     model.bundle (bundle) ->
-      browserRacer = createBrowserRacer options.plugins
-      browserSocket = new BrowserSocketMock store.sockets
-      browserRacer.on 'ready', (model) ->
-        browserSocket._connect()
-        callback model
-      browserRacer.init JSON.parse(bundle), browserSocket
+      setupBrowser = ->
+        browserRacer = createBrowserRacer plugins
+        browserSocket = new BrowserSocketMock store.sockets, model._clientId
+        browserRacer.on 'ready', (model) ->
+          preConnect?(model)
+          browserSocket.socket.connect()
+          process.nextTick ->
+            callback model
+        browserRacer.init JSON.parse(bundle), browserSocket
+      if postBundle
+        if postBundle.length == 1
+          postBundle model
+          setupBrowser()
+        else
+          postBundle model, setupBrowser
+      else
+        setupBrowser()
 
 # Create one or more browser models that are connected to a store over a
 # mock Socket.IO connection
 #
-# options:
-#   calls:        Expected number of calls to the done() function
-#   plugins:      Racer plugins to include in browser instances
+# plugins:      Racer plugins to include in browser instances
 ns = 0
-exports.mockFullSetup = (getStore, options, callback) ->
-  if typeof options is 'function'
-    callback = options
-    options = {}
-  options ||= {}
+exports.mockFullSetup = (store, done, plugins, callback) ->
+  if typeof plugins is 'function'
+    callback = plugins
+    plugins = []
+  if typeof callback is 'object'
+    {postBundle, preBundle, preConnect, postConnect: callback} = callback
+  plugins ||= []
   numBrowsers = callback.length - 1 # subtract 1 for the done parameter
-  numCalls = options.calls || 1
   serverSockets = new ServerSocketsMock()
   testPath = "tests.#{++ns}"
 
-  return calls numCalls, (done) ->
-    allDone = (err) ->
-      return done err if err
-      serverSockets._disconnect()
-      done()
+  allDone = (err) ->
+    return done err if err
+    serverSockets._disconnect()
+    done()
 
-    browserModels = []
-    i = numBrowsers
-    store = getStore()
-    store.setSockets serverSockets
-    while i--
-      createBrowserModel store, testPath, options, (model) ->
+  browserModels = []
+  i = numBrowsers
+  store.setSockets serverSockets
+  while i--
+    createBrowserModel store, testPath, plugins,
+      preBundle: preBundle
+      postBundle: postBundle
+      preConnect: preConnect
+      postConnect: (model) ->
         browserModels.push model
         --numBrowsers || callback browserModels..., allDone

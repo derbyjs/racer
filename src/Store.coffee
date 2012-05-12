@@ -1,97 +1,109 @@
+{EventEmitter} = require 'events'
 socketio = require 'socket.io'
-{Promise, Model, createAdapter} = racer = require './racer'
+racer = require './racer'
+Promise = require './util/Promise'
+{createAdapter} = require './adapters'
 transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
+{Model} = racer.protected
 
 # store = new Store
-#   mode:      'lww' || 'stm' || 'ot'
-#   journal:   options literal or journal adapter instance
-#   pubSub:    options literal or pubSub adapter instance
+#   mode:
+#     type: 'lww' || 'stm' || 'ot'
+#     [journal]:
+#       type: 'Redis'
+#       port:
+#       host:
+#       db:
+#       password:
 #   db:        options literal or db adapter instance
 #   clientId:  options literal or clientId adapter instance
 #
-# If an options literal is passed for journal, pubSub, db, or clientId,
+# If an options literal is passed for db or clientId,
 # it must contain a `type` property with the name of the adapter under
 # `racer.adapters`. If the adapter has a `connect` method, it will be
 # immediately called after instantiation.
 
 Store = module.exports = (options = {}) ->
+  EventEmitter.call this
   @_localModels = {}
-  @_journal = journal = racer.createAdapter 'journal', options.journal || {type: 'Memory'}
-  @_db = db = racer.createAdapter 'db', options.db || {type: 'Memory'}
-  @io = options.io
+
+  # Set up the conflict resolution mode
+  modeOptions = if options.mode then Object.create options.mode else {type: 'lww'}
+  modeOptions.store = this
+  createMode = require './modes/' + modeOptions.type
+  @_mode = createMode modeOptions
+
+  @_db = db = createAdapter 'db', options.db || {type: 'Memory'}
   @_writeLocks = {}
   @_waitingForUnlock = {}
 
-  @_clientId = clientId = racer.createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
-
-  # Add a @_commit method to this store based on the conflict resolution mode
-  # TODO: Default mode should be 'ot' once supported
-  @_commit = journal.commitFn this, options.mode || 'lww'
+  @_clientId = clientId = createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
 
   @_generateClientId = clientId.generateFn()
 
   @mixinEmit 'init', this, options
 
-  @_persistenceRoutes = persistenceRoutes = {}
-  @_defaultPersistenceRoutes = defaultPersistenceRoutes = {}
+  # Maps method => [function]
+  @_routes = routes = {}
   for type in ['accessor', 'mutator']
     for method of Store[type]
-      persistenceRoutes[method] = []
-      defaultPersistenceRoutes[method] = []
-  db.setupDefaultPersistenceRoutes this
+      routes[method] = []
+  db.setupRoutes this
 
   return
 
 Store:: =
 
+  __proto__: EventEmitter::
+
+  _commit: (txn, cb) ->
+    @_mode.commit txn, cb
+
   listen: (to, namespace) ->
-    @io ?= socketio.listen to
-    @io.configure =>
-      @io.set 'browser client', false
-      @io.set 'transports', racer.transports
-    @io.configure 'production', =>
-      @io.set 'log level', 1
+    io = socketio.listen to
+    io.configure ->
+      io.set 'browser client', false
+      io.set 'transports', racer.get('transports')
+    io.configure 'production', ->
+      io.set 'log level', 1
     socketUri = if typeof to is 'number' then ':' + to else ''
     if namespace
-      @setSockets @io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
+      @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
     else
-      @setSockets @io.sockets, socketUri
+      @setSockets io.sockets, socketUri
 
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
-      @mixinEmit 'socket', this, socket
+      clientId = socket.handshake.query.clientId
+      return socket.emit 'fatalErr', 'missing clientId' unless clientId
+      @mixinEmit 'socket', this, socket, clientId
 
-  flushJournal: (callback) -> @_journal.flush callback
+  flushMode: (cb) -> @_mode.flush cb
   flushDb: (callback) -> @_db.flush callback
   flush: (callback) ->
     finish = finishAfter 2, callback
-    @flushJournal finish
+    @flushMode finish
     @flushDb finish
 
   disconnect: ->
-    @_journal.disconnect?()
+    @_mode.disconnect?()
     @_pubSub.disconnect?()
     @_db.disconnect?()
     @_clientId.disconnect?()
 
-  _checkVersion: (socket, ver, clientStartId, callback) ->
-    # TODO: Map the client's version number to the journal's and update
-    # the client with the new startId & version when possible
-    @_journal.startId (err, startId) ->
-      return callback err if err
-      if clientStartId != startId
-        err = "clientStartId != startId (#{clientStartId} != #{startId})"
-        socket.emit 'fatalErr', err
-        return callback err
-      callback null
+  _checkVersion: (ver, clientStartId, cb) ->
+    if @_mode.checkStartMarker
+      return @_mode.checkStartMarker clientStartId, cb
+    return cb null
 
   # This method is used by mutators on Store::
   _nextTxnId: (callback) ->
     @_txnCount = 0
+    # Generate a special client id for store
     @_generateClientId (err, clientId) =>
-      throw err if err
+      return callback err if err
       @_clientId = clientId
       @_nextTxnId = (callback) ->
         callback null, '#' + @_clientId + '.' + @_txnCount++
@@ -99,10 +111,10 @@ Store:: =
 
   _finishCommit: (txn, ver, callback) ->
     transaction.setVer txn, ver
-    args = transaction.getArgs(txn).slice()
+    dbArgs = transaction.copyArgs txn
     method = transaction.getMethod txn
-    args.push ver
-    @_sendToDb method, args, (err, origDoc) =>
+    dbArgs.push ver
+    @_sendToDb method, dbArgs, (err, origDoc) =>
       @publish transaction.getPath(txn), 'txn', txn, {origDoc}
       callback err, txn if callback
 
@@ -111,25 +123,24 @@ Store:: =
     model.store = this
     model._ioUri = @_ioUri
 
-    model._startIdPromise = startIdPromise = new Promise
-    @_journal.startId (err, startId) ->
-      model._startId = startId
-      startIdPromise.resolve err, startId
+    if @_mode.startId
+      model._startIdPromise = startIdPromise = new Promise
+      model._bundlePromises.push startIdPromise
+      @_mode.startId (err, startId) ->
+        model._startId = startId
+        startIdPromise.resolve err, startId
 
     localModels = @_localModels
     model._clientIdPromise = clientIdPromise = new Promise
+    model._bundlePromises.push clientIdPromise
     @_generateClientId (err, clientId) ->
       model._clientId = clientId
       localModels[clientId] = model
       clientIdPromise.resolve err, clientId
 
-    model._bundlePromises.push startIdPromise, clientIdPromise
     return model
 
   _unregisterLocalModel: (clientId) ->
-    # Unsubscribe the model from PubSub events. It will be resubscribed
-    # when the model connects over socket.io
-    @unsubscribe clientId
     localModels = @_localModels
     delete localModels[clientId].store
     delete localModels[clientId]
@@ -137,14 +148,24 @@ Store:: =
 
   ## ACCESSOR ROUTERS/MIDDLEWARE ##
 
-  route: (method, path, fn) ->
+  route: (method, path, priority, fn) ->
+    if typeof priority is 'function'
+      fn = priority
+      priority = 0
+    else
+      priority ||= 0
     re = eventRegExp path
-    @_persistenceRoutes[method].push [re, fn]
-    return this
+    handler = [re, fn, priority]
 
-  defaultRoute: (method, path, fn) ->
-    re = eventRegExp path
-    @_defaultPersistenceRoutes[method].push [re, fn]
+    # Instert route after the first route with the same or lesser priority
+    routes = @_routes[method]
+    for {2: currPriority}, i in routes
+      continue if priority <= currPriority
+      routes.splice i, 0, handler
+      return this
+
+    # Insert route at the end if it is the lowest priority
+    routes.push handler
     return this
 
   _sendToDb: (method, args, done) ->
@@ -167,14 +188,15 @@ Store:: =
     else
       lockingDone = done
 
-    # TODO Don't concat every time
-    routes = @_persistenceRoutes[method].concat @_defaultPersistenceRoutes[method]
+    routes = @_routes[method]
 
     i = 0
     do next = ->
       unless handler = routes[i++]
         throw new Error "No persistence handler for #{method}(#{args.join(', ')})"
       [re, fn] = handler
+      # TODO Move this next line into a process.nextTick callback to avoid
+      # growing the stack
       return next() unless path == '' || (match = path.match re)
       captures = if path == ''
           ['']
@@ -190,7 +212,9 @@ bufferifyMethods Store, ['_sendToDb'],
   await: (done) ->
     db = @_db
     return done() if db.version isnt undefined
-    @_journal.version (err, ver) ->
+    # Assign the db version to match the journal version
+    # TODO This isn't necessary for LWW
+    @_mode.version (err, ver) ->
       throw err if err
-      db.version = parseInt(ver, 10)
+      db.version = ver
       return done()

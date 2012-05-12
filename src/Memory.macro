@@ -1,4 +1,4 @@
-{clone, create, createObject, createArray} = require './speculative'
+{clone, create, createObject, createArray} = require './util/speculative'
 {isPrivate} = require './path'
 
 Memory = module.exports = ->
@@ -14,6 +14,12 @@ Memory:: =
   init: (obj) ->
     @_data = world: obj.data
     @version = obj.ver
+
+  eraseNonPrivate: ->
+    {world} = @_data
+    for path of world
+      delete world[path] unless isPrivate path
+    return
 
   toJSON: -> data: @_data.world, ver: @version
 
@@ -32,8 +38,9 @@ Memory:: =
     @setVersion ver
     [obj, parent, prop] = lookupSet path, data || @_data, `ver == null`, 'object'
     parent[prop] = value
-    if path.split('.').length == 2 && value?.constructor == Object
-      value.id ?= path.split('.')[1]
+    segments = path.split '.'
+    if segments.length == 2 && value && value.constructor == Object
+      value.id ?= segments[1]
     return obj
 
   del: (path, ver, data) ->
@@ -143,21 +150,24 @@ lookupSet = (path, data, speculative, pathType) ->
     if curr?
       curr = parent[prop] = create curr  if speculative && typeof curr is 'object'
     else
-      switch pathType
-        when 'object'
-          unless i == len
-            curr = parent[prop] = if speculative then createObject() else {}
-            curr.id = prop if i == 2 && ! isPrivate firstProp
-        when 'array'
-          if i == len
-            curr = parent[prop] = if speculative then createArray() else []
-          else
-            curr = parent[prop] = if speculative then createObject() else {}
-            curr.id = prop if i == 2 && ! isPrivate firstProp
+      if pathType is 'object'
+        # Cover case where property is a number and it NOT a doc id
+        # We treat the value at <collection>.<docid> as an Object, not an Array
+        if i != 1 && /^[0-9]+$/.test(props[i])
+          curr = parent[prop] = if speculative then createArray() else []
+        else if i != len
+          curr = parent[prop] = if speculative then createObject() else {}
+          curr.id = prop if i == 2 && ! isPrivate firstProp
+      else if pathType is 'array'
+        if i == len
+          curr = parent[prop] = if speculative then createArray() else []
         else
-          unless i == len
-            parent = curr = undefined
-          return [curr, parent, prop]
+          curr = parent[prop] = if speculative then createObject() else {}
+          curr.id = prop if i == 2 && ! isPrivate firstProp
+      else
+        if i != len
+          parent = curr = undefined
+        return [curr, parent, prop]
     #else
     # The absolute path traversed so far
     path = if path then path + '.' + prop else prop

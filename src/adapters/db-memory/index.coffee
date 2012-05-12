@@ -5,8 +5,10 @@ Query = require './Query'
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
 
-module.exports = (racer) ->
-  racer.adapters.db.Memory = DbMemory
+exports = module.exports = (racer) ->
+  racer.registerAdapter 'db', 'Memory', DbMemory
+
+exports.useWith = server: true, browser: false
 
 DbMemory = ->
   @_flush()
@@ -42,9 +44,9 @@ mergeAll DbMemory::, Memory::,
       results.push newResults...
     return results
 
-  setupDefaultPersistenceRoutes: (store) ->
+  setupRoutes: (store) ->
     MUTATORS.forEach (method) =>
-      store.defaultRoute method, '*', (path, args..., ver, done, next) =>
+      store.route method, '*', -1000, (path, args..., ver, done, next) =>
         args = deepCopy args
         match = routePattern.exec path
         docPath = match && match[0]
@@ -58,5 +60,4 @@ mergeAll DbMemory::, Memory::,
           done null, doc
 
     getFn = (path, done, next) => @get path, done
-    store.defaultRoute 'get', '*', getFn
-    store.defaultRoute 'get', '', getFn
+    store.route 'get', '*', -1000, getFn

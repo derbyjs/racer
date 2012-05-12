@@ -27,6 +27,7 @@ module.exports =
   setMethod: (txn, name) -> txn[2] = name
 
   getArgs: (txn) -> txn[3]
+  copyArgs: (txn) -> @getArgs(txn).slice()
   setArgs: (txn, vals) -> txn[3] = vals
 
   getPath: (txn) -> @getArgs(txn)[0]

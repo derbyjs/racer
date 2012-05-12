@@ -9,14 +9,14 @@ app = express.createServer()
 
 store = racer.createStore
   listen: app    # A port or http server
-  mode: 'stm'    # Enable STM conflict detection. Last-writer-wins by default
+  mode: {type: 'stm'}    # Enable STM conflict detection. Last-writer-wins by default
 
 # Clear all existing data on restart
 store.flush()
 
 # racer.js returns a browserify bundle of the racer client side code and the
 # socket.io client side code as well as any additional browserify options
-racer.js entry: __dirname + '/client.js', (js) ->
+racer.js entry: __dirname + '/client.js', (err, js) ->
   fs.writeFileSync __dirname + '/script.js', js
   
 colors = ['red', 'yellow', 'blue', 'orange', 'green']

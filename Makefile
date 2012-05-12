@@ -1,8 +1,11 @@
 compile:
+	@mkdir -p 'dev'
+	@make compile-macro & make compile-coffee & ./scripts/watch-src-js && fg
+compile-coffee:
 	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src ./dev
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
-macro:
+compile-macro:
 	./scripts/watch-macro
 
 ROOT := $(shell pwd)
@@ -13,7 +16,6 @@ OUT_FILE = "test-output.tmp"
 g = "."
 
 test-mocha:
-	$(ROOT)/scripts/prepublish;
 	@NODE_ENV=test $(MOCHA) \
 		--grep "$(g)" \
 		$(MOCHA_TESTS) | tee $(OUT_FILE)

@@ -1,5 +1,7 @@
-module.exports = (racer) ->
-  racer.adapters.clientId.Redis = ClientIdRedis
+exports = module.exports = (racer) ->
+  racer.registerAdapter 'clientId', 'Redis', ClientIdRedis
+
+exports.useWith = server: true, browser: false
 
 ClientIdRedis = (@_options) ->
   return

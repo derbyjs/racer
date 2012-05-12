@@ -28,18 +28,18 @@ module.exports =
       ) + '(?:\\.|$)'
 
   # Create regular expression matching the path or any of its parents
-  regExpMatchingPathOrParent: (path) ->
+  regExpPathOrParent: (path) ->
     p = ''
     source = (for segment, i in path.split '.'
       "(?:#{p += if i then '\\.' + segment else segment})"
     ).join '|'
-    new RegExp '^' + source + '$'
+    new RegExp '^(?:' + source + ')$'
 
   # Create regular expression matching any of the paths or
   # child paths of any of the paths
-  regExpMatchingPathsOrChildren: (paths) ->
+  regExpPathsOrChildren: (paths) ->
     source = ("(?:#{path}(?:\\..+)?)" for path in paths).join '|'
-    new RegExp '^' + source + '$'
+    new RegExp '^(?:' + source + ')$'
 
   lookup: (path, obj) ->
     if path.indexOf('.') == -1

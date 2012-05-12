@@ -1,5 +1,5 @@
 {inspect} = require 'util'
-speculative = require '../../lib/speculative'
+speculative = require '../../lib/util/speculative'
 require 'console.color'
 exports.expect = expect = require 'expect.js'
 
@@ -10,21 +10,32 @@ ignore[speculative.identifier] = 1
 exports.calls = (num, fn) ->
   (done) ->
     done() if num == n = 0
-    fn -> done() if ++n >= num
+    fn.call @, ->
+      done() if ++n >= num
 
-extended = [
+modulesToClear = [
   require.resolve '../../lib/racer'
+  require.resolve '../../lib/racer.server'
   require.resolve '../../lib/util'
   require.resolve '../../lib/plugin'
   require.resolve '../../lib/Model'
   require.resolve '../../lib/Store'
-  require.resolve './store'
 ]
+
 exports.clearRequireCache = ->
   cache = require.cache
-  for path in extended
-    delete cache[path]
+  for k in modulesToClear
+    delete cache[k]
   return
+
+exports.changeEnvTo = (type) ->
+  console.assert(type == 'browser' || type == 'server')
+
+  switch env = type
+    when 'browser' then global.window = {}
+    when 'server' then delete global.window
+
+  return exports.clearRequireCache()
 
 flatten = (a) ->
   if typeof a is 'object'
@@ -81,7 +92,7 @@ expect.Assertion::protoEql = (val) ->
   return this
 
 specEql = (a, b) ->
-  exception = (objA, objB, prop) -> ignore[prop]
+  exception = (objA, objB, prop) -> ignore[prop] || typeof objA[prop] == 'function'
   protoSubset(a, b, exception) && protoSubset(b, a, exception)
 
 expect.Assertion::specEql = (val) ->

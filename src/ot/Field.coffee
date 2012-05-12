@@ -1,7 +1,7 @@
 text = require '../../node_modules/share/lib/types/text'
-Promise = require '../Promise'
+Promise = require '../util/Promise'
 Serializer = require '../Serializer'
-{isSpeculative} = require '../speculative'
+{isSpeculative} = require '../util/speculative'
 
 Field = module.exports = (@model, @path, @version = 0, @type = text) ->
   # @type.apply(snapshot, op)

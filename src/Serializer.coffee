@@ -3,53 +3,54 @@
 # to buffer and defer handling until later, if the incoming message
 # has to wait first for another message.
 
-DEFAULT_TIMEOUT = 1000
+DEFAULT_EXPIRY = 1000
 
 # TODO Respect Single Responsibility -- place waiter code elsewhere
-module.exports = Serializer = ({@withEach, onTimeout, timeout, init}) ->
-  if onTimeout
-    timeout = DEFAULT_TIMEOUT if timeout is undefined
-    @_setWaiter = ->
-      return if @_waiter
-      @_waiter = setTimeout =>
-        onTimeout()
-        @_clearWaiter()
-      , timeout
-    @_clearWaiter = ->
-      if @_waiter
-        clearTimeout @_waiter
-        @_waiter = null
+module.exports = Serializer = ({@withEach, @onTimeout, @expiry, init}) ->
+  if @onTimeout
+    @expiry ?= DEFAULT_EXPIRY
 
-  # Maps future indexes -> transaction
+  # Maps future indexes -> messages
   @_pending = {}
-  @_index = init ? 1  # Corresponds to ver in Store and txnNum in Model
+
+  # Corresponds to ver in Store and txnNum in Model
+  @_index = init ? 1
+
   return
 
 Serializer::=
-  _clearWaiter: ->
   _setWaiter: ->
+    return if !@onTimeout || @_waiter
+    @_waiter = setTimeout =>
+      @onTimeout()
+      @_clearWaiter()
+    , @expiry
+
+  _clearWaiter: ->
+    return unless @onTimeout
+    if @_waiter
+      clearTimeout @_waiter
+      delete @_waiter
+
   add: (msg, msgIndex, arg) ->
-    index = @_index
     # Cache this message to be applied later if it is not the next index
-    if msgIndex > index
+    if msgIndex > @_index
       @_pending[msgIndex] = msg
       @_setWaiter()
       return true
 
     # Ignore this message if it is older than the current index
-    return false if msgIndex < index
+    return false if msgIndex < @_index
 
     # Otherwise apply it immediately
-    @withEach msg, index, arg
+    @withEach msg, @_index++, arg
     @_clearWaiter()
 
     # And apply any messages that were waiting for txn
-    index++
     pending = @_pending
-    while msg = pending[index]
-      @withEach msg, index, arg
-      delete pending[index++]
-    @_index = index
+    while msg = pending[@_index]
+      @withEach msg, @_index, arg
+      delete pending[@_index++]
     return true
 
   setIndex: (@_index) ->

@@ -1,6 +1,8 @@
 {expect, calls} = require '../util'
-{transaction} = require '../../lib/racer'
-{mockSocketModel, mockSocketEcho, BrowserModel: Model} = require '../util/model'
+transaction = require '../../lib/transaction'
+{mockFullSetup, mockSocketModel, mockSocketEcho, BrowserModel: Model} = require '../util/model'
+{BrowserSocketMock} = require '../util/sockets'
+racer = require '../../lib/racer'
 
 describe 'Model transaction handling', ->
 
@@ -102,27 +104,33 @@ describe 'Model transaction handling', ->
     expect(model.get 'colors').to.specEql ['green']
     sockets._disconnect()
 
-  it 'transactions should be requested if pending longer than timeout @slow', (done) ->
+  it 'transactions should be requested if it has not received its next expected txn in a while @slow', (done) ->
+    # Txn serializer timeout is 1 second
     @timeout 2000
-    ignoreFirst = true
-    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
-      # A txnsSince request is sent immediately upon connecting,
-      # so the first one should be ignored
-      return ignoreFirst = false  if ignoreFirst
-      expect(ver).to.eql 3
-      sockets._disconnect()
-      done()
-    sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
-    sockets.emit 'txn', transaction.create(ver: 2, id: '1.2', method: 'set', args: ['color', 'green']), 2
-    sockets.emit 'txn', transaction.create(ver: 4, id: '1.4', method: 'set', args: ['color', 'green']), 4
-    sockets.emit 'txn', transaction.create(ver: 5, id: '1.5', method: 'set', args: ['color', 'green']), 5
+    store = racer.createStore()
+    mockFullSetup store, done, [], (modelA, modelB, done) ->
+      serverSocketA = modelA.socket._serverSocket # ServerSocketMock
+
+      __emit__ = serverSocketA.emit
+      serverSocketA.emit = (name, args...) ->
+        # Don't send the 2nd txn, so we trigger txn serializer to time out
+        return if name == 'txn' && transaction.getVer(args[0]) == 2
+        # Send all other pub sub messages
+        __emit__.call @, name, args...
+
+      serverSocketA.listeners('fetchCurrSnapshot').unshift ->
+        expect(modelA.get '_test.color').to.eql 'red'
+        modelA.on 'reInit', ->
+          expect(modelA.get '_test.color').to.eql 'yellow'
+          done()
+
+      modelB.set '_test.color', 'red'
+      modelB.set '_test.color', 'orange'
+      modelB.set '_test.color', 'yellow'
+
 
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
-    ignoreFirst = true
-    [model, sockets] = mockSocketModel '0', 'txnsSince', (ver) ->
-      # A txnsSince request is sent immediately upon connecting,
-      # so the first one should be ignored
-      return ignoreFirst = false  if ignoreFirst
+    [model, sockets] = mockSocketModel '0', 'fetchCurrSnapshot', (ver) ->
       done()
     sockets.emit 'txn', transaction.create(ver: 1, id: '1.1', method: 'set', args: ['color', 'green']), 1
     sockets.emit 'txn', transaction.create(ver: 3, id: '1.3', method: 'set', args: ['color', 'green']), 3

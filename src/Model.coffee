@@ -23,6 +23,13 @@ mergeAll Model::, EventEmitter::,
   _setSocket: (@socket) ->
     @mixinEmit 'socket', this, socket
 
+    @disconnect = ->
+      socket.disconnect()
+
+    @connect = (cb) ->
+      if cb then socket.once 'connect', cb
+      socket.socket.connect()
+
     @canConnect = true
     socket.on 'fatalErr', (msg) =>
       @canConnect = false
@@ -62,10 +69,13 @@ mergeAll Model::, EventEmitter::,
     segments = at.split '.'
     return @at segments.slice(0, segments.length - levels).join('.'), true
 
-  path: -> @_at || ''
+  path: (rest) ->
+    if @_at
+      return @_at + '.' + rest if rest
+      return @_at
+    return rest || ''
 
-  leaf: (path) ->
-    path = @_at || '' unless path?
+  leaf: (path = @_at || '') ->
     i = path.lastIndexOf '.'
     return path.substr i + 1
 
@@ -114,8 +124,10 @@ eventListener = (method, pattern, callback, at) ->
 
   # on(method, pattern, callback)
   re = eventRegExp pattern
-  return ([path, args...], out, isLocal, pass) ->
+  return (methodArgs, out, isLocal, pass) ->
+    path = methodArgs[0]
     if re.test path
+      args = methodArgs.slice(1)
       argsForEmit = re.exec(path).slice(1).concat args
       argsForEmit.push out, isLocal, pass
       callback argsForEmit...

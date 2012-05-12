@@ -1,7 +1,6 @@
 toString = Object::toString
 
 module.exports =
-
   isServer: isServer = typeof window is 'undefined'
   isProduction: isServer && process.env.NODE_ENV is 'production'
 
@@ -24,11 +23,6 @@ module.exports =
       continue if key is ignore
       return true
     return false
-
-  deepIndexOf: (arr, x) ->
-    for mem in arr
-      return i if deepEqual mem, x
-    return -1
 
   # Ported to coffeescript from node.js assert.js
   deepEqual: deepEqual = (actual, expected) ->
@@ -101,12 +95,18 @@ module.exports =
       return ret
     return obj
 
-  deepIndexOf: (list, obj) ->
-    return indexOf list, obj, deepEqual
-
   indexOf: indexOf = (list, obj, isEqual) ->
     for v, i in list
       return i if isEqual obj, v
     return -1
 
-  equalsNaN: (x) -> ! (x == x)
+  deepIndexOf: (list, obj) ->
+    return indexOf list, obj, deepEqual
+
+  equalsNaN: equalsNaN = (x) -> x != x
+
+  equal: (a, b) -> a == b || (equalsNaN(a) && equalsNaN(b))
+
+  Promise: require './Promise'
+
+  async: require './async'

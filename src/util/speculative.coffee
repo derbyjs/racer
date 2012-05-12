@@ -1,6 +1,6 @@
-{merge} = require './util'
+{merge} = util = require './index'
 
-module.exports =
+util.speculative = module.exports =
 
   createObject: -> $spec: true
 

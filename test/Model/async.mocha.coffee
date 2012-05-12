@@ -1,10 +1,18 @@
 {expect} = require '../util'
-{run} = require '../util/store'
+racer = require '../../lib/racer'
 
-run 'Model.async', {mode: 'stm'}, (getStore) ->
+describe 'Model.async', ->
+  beforeEach (done) ->
+    store = @store= racer.createStore
+      mode:
+        type: 'stm'
+    store.flush done
+
+  afterEach (done) ->
+    @store.flush done
 
   it 'test model.async.retry', (done) ->
-    model = getStore().createModel()
+    model = @store.createModel()
     incr = (path, callback) ->
       model.async.retry (atomic) ->
         atomic.get path, (count = 0) ->
