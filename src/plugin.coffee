@@ -3,19 +3,31 @@
 # This tricks Browserify into not logging an error when bundling this file
 _require = require
 
+plugable = {}
+
 module.exports =
+
+  _makePlugable: (name, object) ->
+    plugable[name] = object
 
   use: (plugin, options) ->
     if typeof plugin is 'string'
       return this unless isServer
       plugin = _require plugin
 
-    this._plugins ||= []
+    decorate = plugin.decorate
+    # TODO: Make decorate required instead of defaulting to racer?
+    target = if `decorate == null` || decorate is 'racer' then this else plugable[decorate]
+
+    unless target
+      throw new Error 'invalid plugin.decorate value: ' + decorate
+
+    target._plugins ||= []
     # Don't include a plugin more than once -- useful in tests where race
     # conditions exist regarding require and clearing require.cache
-    if -1 == this._plugins.indexOf plugin
-      this._plugins.push plugin
-      plugin this, options
+    if -1 == target._plugins.indexOf plugin
+      target._plugins.push plugin
+      plugin target, options
     return this
 
   # A mixin is an object literal with:
