@@ -118,3 +118,21 @@ expect.Assertion::null = ->
     'expected ' + inspect(@obj) + ' to be null or undefined',
     'expected ' + inspect(@obj) + ' to not be null or undefined'
   return
+
+sinon = require 'sinon'
+expect.Assertion::calledWith = (args) ->
+  @assert @obj.calledWith(args),
+    'expected ' + sinon.functionName(@obj) + ' to be called with ' + inspect(args),
+    'expected ' + sinon.functionName(@obj) + ' to not be called with ' + inspect(args)
+  return
+
+expect.Assertion::calledOnce = ->
+  @assert @obj.calledOnce,
+    'expected ' + sinon.functionName(@obj) + ' to be called once',
+    'expected ' + sinon.functionName(@obj) + ' to not be called once'
+  return
+
+expect.Assertion::callCount = (count) ->
+  @assert @obj.callCount == count,
+    'expected ' + sinon.functionName(@obj) + ' to be called ' + count + ' times; actually called ' + @obj.callCount + ' times.',
+    'expected ' + sinon.functionName(@obj) + ' to not be called ' + count + ' times; actually called ' + @obj.callCount + ' times.'

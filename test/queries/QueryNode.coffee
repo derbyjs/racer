@@ -1,8 +1,16 @@
 QueryNode = require '../../lib/queries/QueryNode'
 QueryBuilder = require '../../lib/queries/QueryBuilder'
 transaction = require '../../lib/transaction'
-expect = require 'expect.js'
+{expect} = require '../util'
 sinon = require 'sinon'
+
+exports.publishArgs = publishArgs = (type, channel, data) ->
+  return {
+    type: type
+    params:
+      channel: channel
+      data: data
+  }
 
 describe 'QueryNode', ->
   queryJson =
@@ -24,14 +32,6 @@ describe 'QueryNode', ->
 
   describe '#maybePublish(newDoc, oldDoc, txn, pubSub, cb)', ->
 
-    publishArgs = (type, channel, data) ->
-      return {
-        type: type
-        params:
-          channel: channel
-          data: data
-      }
-
     it 'should publish an "addDoc" event when the document change should result in it being added to the query result set', ->
       pubSub = publish: sinon.spy()
 
@@ -45,12 +45,8 @@ describe 'QueryNode', ->
 
       qnode.maybePublish newDoc, oldDoc, txn, pubSub
 
-      expect(pubSub.publish.calledOnce).to.be.ok()
-      expect(
-        pubSub.publish.calledWith(
-          publishArgs('addDoc', qnode.channel, {ns: 'users', doc: newDoc, ver: ver})
-        )
-      ).to.be.ok()
+      expect(pubSub.publish).to.be.calledOnce()
+      expect(pubSub.publish).to.be.calledWith publishArgs('addDoc', qnode.channel, {ns: 'users', doc: newDoc, ver: ver})
 
     it 'should publish "rmDoc" when the document change should result in the doc being removed from the query result set', ->
       pubSub = publish: sinon.spy()
@@ -65,10 +61,8 @@ describe 'QueryNode', ->
 
       qnode.maybePublish newDoc, oldDoc, txn, pubSub
 
-      expect(pubSub.publish.calledOnce).to.be.ok()
-      expect(
-        pubSub.publish.calledWith(publishArgs('rmDoc', qnode.channel, {ns: 'users', id: '1', ver: ver}))
-      ).to.be.ok()
+      expect(pubSub.publish).to.be.calledOnce()
+      expect(pubSub.publish).to.be.calledWith publishArgs('rmDoc', qnode.channel, {ns: 'users', id: '1', ver: ver})
 
     it 'should publish the transaction when the document change does not influence the query result set which already contained the doc prior to mutation', ->
       pubSub = publish: sinon.spy()
@@ -83,10 +77,8 @@ describe 'QueryNode', ->
 
       qnode.maybePublish newDoc, oldDoc, txn, pubSub
 
-      expect(pubSub.publish.calledOnce).to.be.ok()
-      expect(
-        pubSub.publish.calledWith(publishArgs('txn', qnode.channel, txn))
-      ).to.be.ok()
+      expect(pubSub.publish).to.be.calledOnce()
+      expect(pubSub.publish).to.be.calledWith publishArgs('txn', qnode.channel, txn)
 
     it 'should publish nothing if neither the oldDoc or the newDoc are in the result set', ->
       pubSub = publish: sinon.spy()
@@ -101,4 +93,4 @@ describe 'QueryNode', ->
 
       qnode.maybePublish newDoc, oldDoc, txn, pubSub
 
-      expect(pubSub.publish.callCount).to.equal 0
+      expect(pubSub.publish).to.have.callCount(0)
