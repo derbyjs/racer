@@ -1,6 +1,6 @@
 Memory = require '../../Memory'
 {mergeAll, deepCopy} = require '../../util'
-Query = require './Query'
+Query = require '../../queries/MemoryQuery'
 
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
@@ -10,7 +10,7 @@ exports = module.exports = (racer) ->
 
 exports.useWith = server: true, browser: false
 
-DbMemory = ->
+exports.adapter = DbMemory = ->
   @_flush()
   return
 
@@ -31,18 +31,6 @@ mergeAll DbMemory::, Memory::,
     catch err
       return callback err
     callback null, val, @version
-
-  filter: (predicate, namespace) ->
-    data = @_get()
-    if namespace
-      docs = data[namespace]
-      return (doc for id, doc of docs when predicate doc, "#{namespace}.#{id}")
-
-    results = []
-    for namespace, docs of data
-      newResults = (doc for id, doc of docs when predicate doc, "#{namespace}.#{id}")
-      results.push newResults...
-    return results
 
   setupRoutes: (store) ->
     MUTATORS.forEach (method) =>
