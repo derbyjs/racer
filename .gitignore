@@ -6,3 +6,4 @@ node_modules/
 lib/
 dev/
 examples/*/*.js
+scratch/
