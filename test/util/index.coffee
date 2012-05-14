@@ -126,11 +126,12 @@ expect.Assertion::calledWith = (args) ->
     'expected ' + sinon.functionName(@obj) + ' to not be called with ' + inspect(args)
   return
 
-expect.Assertion::calledOnce = ->
-  @assert @obj.calledOnce,
-    'expected ' + sinon.functionName(@obj) + ' to be called once',
-    'expected ' + sinon.functionName(@obj) + ' to not be called once'
-  return
+[['calledOnce', 'called once'], ['calledTwice', 'called twice']].forEach ([property, phrase]) ->
+  expect.Assertion::[property] = ->
+    @assert @obj[property],
+      'expected ' + sinon.functionName(@obj) + ' to be ' + phrase,
+      'expected ' + sinon.functionName(@obj) + ' to not be ' + phrase
+    return
 
 expect.Assertion::callCount = (count) ->
   @assert @obj.callCount == count,
