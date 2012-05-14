@@ -1,5 +1,10 @@
 {expect} = require './util'
-{isPrivate, regExp, eventRegExp, split, expand} = require '../lib/path'
+{ isPrivate
+, regExp
+, eventRegExp
+, split
+, expand
+, objectExcept} = require '../lib/path'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList
@@ -166,3 +171,24 @@ describe 'path', ->
       ['colorx']
     ]
     testRegExps reList, sources, matches, nonMatches
+
+  describe 'path.objectExcept', ->
+    it 'should return a new Object without the exceptions', ->
+      obj = a: 1, b: 2, c: 3
+      exceptions = ['a', 'c']
+      newObj = objectExcept obj, exceptions
+      expect(newObj).to.only.have.key('b')
+
+    it 'should handle nested exceptions', ->
+      obj =
+        city: 'SF'
+        name:
+          first: 'B'
+          middle: 'N'
+          last: 'N'
+      exceptions = ['name.first', 'name.middle']
+      newObj = objectExcept obj, exceptions
+      expect(newObj).to.only.have.key('city', 'name')
+      expect(newObj.name).to.only.have.key('last')
+
+    it 'should handle array index exceptions'
