@@ -107,6 +107,14 @@ module.exports =
 
   equal: (a, b) -> a == b || (equalsNaN(a) && equalsNaN(b))
 
+  noop: ->
+
+  countWhile: (array, predicate) ->
+    count = 0
+    for x, i in array
+      return count++ unless predicate x, i
+    return count
+
   Promise: require './Promise'
 
   async: require './async'
