@@ -25,12 +25,13 @@ function publishFn (pubSub, type, channel, data) {
 }
 
 // TODO Where do we need to use cb?
-QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, pubSub, cb) {
-  var filter = this.query._filter
+QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, services, cb) {
+  var pubSub = services.pubSub
+    , filter = this.query._filter
     , path = transaction.getPath(txn)
     , ns = path.substring(0, path.indexOf('.'))
-    , oldDocPasses = oldDoc && filter.test(oldDoc, ns)
-    , newDocPasses = filter.test(newDoc, ns);
+    , oldDocPasses = oldDoc && filter(oldDoc, ns)
+    , newDocPasses = filter(newDoc, ns);
 
   // Handle all permutations of oldDocPasses x newDocPasses
 
