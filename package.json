@@ -13,6 +13,7 @@
   "dependencies": {
     "socket.io": ">=0.9.6",
     "socket.io-client": ">=0.9.6",
+    "connect": ">=2.2.0",
     "es5-shim": ">=1.2.10",
     "browserify": ">=1.10.8",
     "uglify-js": ">=1.2.6",

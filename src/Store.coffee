@@ -7,6 +7,7 @@ transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
 {Model} = racer.protected
+{utils:{parseCookie},session:{MemoryStore},session} = require 'connect'
 
 # store = new Store
 #   mode:
@@ -40,6 +41,7 @@ Store = module.exports = (options = {}) ->
   @_waitingForUnlock = {}
 
   @_clientId = clientId = createAdapter 'clientId', options.clientId || {type: 'Rfc4122_v4'}
+  @_sessionSockets = {}
 
   @_generateClientId = clientId.generateFn()
 
@@ -68,6 +70,7 @@ Store:: =
       io.set 'transports', racer.get('transports')
     io.configure 'production', ->
       io.set 'log level', 1
+    @socketAuth io
     socketUri = if typeof to is 'number' then ':' + to else ''
     if namespace
       @setSockets io.of("/#{namespace}"), "#{socketUri}/#{namespace}"
@@ -76,9 +79,36 @@ Store:: =
 
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
+      socket.session = socket.handshake.session
       clientId = socket.handshake.query.clientId
+
+      ss = @_sessionSockets[socket.handshake.sessionID] ?= []
+      ss.push socket if socket not in ss
+      socket.on 'disconnect', ->
+        for s, i in ss
+          ss.splice i, 1 if s.id is socket.id
+
       return socket.emit 'fatalErr', 'missing clientId' unless clientId
       @mixinEmit 'socket', this, socket, clientId
+
+  socketAuth: (io) ->
+    io.set 'authorization', (req, accept) =>
+      unless @_sessionStore
+        return accept 'No session store', false
+      unless req.headers.cookie
+        return accept 'No cookie containing session id', false
+      req.cookie = parseCookie req.headers.cookie
+      req.sessionID = req.cookie[@_sessionKey].split('.')[0]
+      @_sessionStore.load req.sessionID, (e, session) ->
+        if e or !session
+          return accept 'Error retrieving session', false
+        req.session = session
+        accept null, true
+
+  session: (opts = {}) ->
+    @_sessionStore = opts.store ||= new MemoryStore
+    @_sessionKey = opts.key ||= 'connect.sid'
+    session opts
 
   flushMode: (cb) -> @_mode.flush cb
   flushDb: (callback) -> @_db.flush callback
