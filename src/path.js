@@ -68,7 +68,9 @@ exports.regExpPathsOrChildren = function regExpPathsOrChildren (paths) {
   return new RegExp('^(?:' + source + ')$');
 };
 
-exports.lookup = function lookup (path, obj) {
+exports.lookup = lookup;
+
+function lookup (path, obj) {
   if (path.indexOf('.') === -1) return obj[path];
 
   var parts = path.split('.');
@@ -81,7 +83,9 @@ exports.lookup = function lookup (path, obj) {
   return obj;
 };
 
-exports.assign = function assign (obj, path, val) {
+exports.assign = assign;
+
+function assign (obj, path, val) {
   var parts = path.split('.')
     , lastIndex = parts.length - 1;
   for (var i = 0, l = parts.length; i < l; i++) {
