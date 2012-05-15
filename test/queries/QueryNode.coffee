@@ -30,7 +30,7 @@ describe 'QueryNode', ->
   describe '#results(db, cb)', ->
     it 'should pass back the results in the db'
 
-  describe '#maybePublish(newDoc, oldDoc, txn, pubSub, cb)', ->
+  describe '#maybePublish(newDoc, oldDoc, txn, services, cb)', ->
 
     it 'should publish an "addDoc" event when the document change should result in it being added to the query result set', ->
       pubSub = publish: sinon.spy()
@@ -43,7 +43,7 @@ describe 'QueryNode', ->
       oldDoc = id: '1', name: 'Brian', age: 21
       newDoc = id: '1', name: 'Brian', age: 22
 
-      qnode.maybePublish newDoc, oldDoc, txn, pubSub
+      qnode.maybePublish newDoc, oldDoc, txn, {pubSub}
 
       expect(pubSub.publish).to.be.calledOnce()
       expect(pubSub.publish).to.be.calledWith publishArgs('addDoc', qnode.channel, {ns: 'users', doc: newDoc, ver: ver})
@@ -59,7 +59,7 @@ describe 'QueryNode', ->
       oldDoc = id: '1', name: 'Brian', age: 22
       newDoc = id: '1', name: 'Brian', age: 20
 
-      qnode.maybePublish newDoc, oldDoc, txn, pubSub
+      qnode.maybePublish newDoc, oldDoc, txn, {pubSub}
 
       expect(pubSub.publish).to.be.calledOnce()
       expect(pubSub.publish).to.be.calledWith publishArgs('rmDoc', qnode.channel, {ns: 'users', id: '1', ver: ver})
@@ -75,7 +75,7 @@ describe 'QueryNode', ->
       oldDoc = id: '1', name: 'Brian', age: 22
       newDoc = id: '1', name: 'Brian', age: 23
 
-      qnode.maybePublish newDoc, oldDoc, txn, pubSub
+      qnode.maybePublish newDoc, oldDoc, txn, {pubSub}
 
       expect(pubSub.publish).to.be.calledOnce()
       expect(pubSub.publish).to.be.calledWith publishArgs('txn', qnode.channel, txn)
@@ -91,6 +91,6 @@ describe 'QueryNode', ->
       oldDoc = id: '1', name: 'Brian', age: 19
       newDoc = id: '1', name: 'Brian', age: 20
 
-      qnode.maybePublish newDoc, oldDoc, txn, pubSub
+      qnode.maybePublish newDoc, oldDoc, txn, {pubSub}
 
       expect(pubSub.publish).to.have.callCount(0)
