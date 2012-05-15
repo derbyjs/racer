@@ -305,11 +305,11 @@ for (method, i = methods.length; i--; ) {
 }
 
 proto.find = function find () {
-  this.type = 'find';
+  this._json.type = 'find';
   return this;
 }
 
 proto.findOne = function findOne () {
-  this.type = 'findOne';
+  this._json.type = 'findOne';
   return this;
 }
