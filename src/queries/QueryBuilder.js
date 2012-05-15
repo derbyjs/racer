@@ -98,6 +98,9 @@ QueryBuilder.fromJSON = function fromJSON (json) {
   var q = new QueryBuilder
   for (var param in json) {
     switch (param) {
+      case 'type':
+        q[json[param]]()
+        break;
       case 'from':
       case 'byKey':
       case 'sort':
@@ -127,6 +130,7 @@ QueryBuilder.fromJSON = function fromJSON (json) {
   return q;
 };
 
+// We use ABBREVS for query hashing, so our hashes are more compressed.
 var ABBREVS = {
         equals: '$eq'
       , notEquals: '$ne'
@@ -298,4 +302,14 @@ for (method, i = methods.length; i--; ) {
       return this;
     };
   })(method);
+}
+
+proto.find = function find () {
+  this.type = 'find';
+  return this;
+}
+
+proto.findOne = function findOne () {
+  this.type = 'findOne';
+  return this;
 }
