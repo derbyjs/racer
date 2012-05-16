@@ -15,9 +15,14 @@ module.exports = (racer) ->
   ## For use by plugins ##
 
   mergeAll racer.protected,
-    pubSub:
-      LiveQuery: require './pubSub/LiveQuery'
-      Query: require './pubSub/Query'
+    queries:
+      QueryBuilder: require './queries/QueryBuilder'
+      ModelQueryBuilder: require './queries/ModelQueryBuilder'
+      MemoryQuery: require './queries/MemoryQuery'
+      QueryHub: require './queries/QueryHub'
+      QueryNode: require './queries/QueryNode'
+      PaginatedQueryNode: require './queries/PaginatedQueryNode'
+      filter: require './queries/filter'
     diffMatchPatch: require './diffMatchPatch'
     Memory: require './Memory'
     path: require './path'
