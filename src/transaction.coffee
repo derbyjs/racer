@@ -59,6 +59,9 @@ module.exports =
   isCompound: (txn) ->
     return Array.isArray txn[2]
 
+  applyTxn: (txn, data, memoryAdapter, ver) ->
+    applyTxn @, txn, data, memoryAdapter, ver
+
   op:
     create: (obj) ->
       op = [obj.method, obj.args]
@@ -69,3 +72,14 @@ module.exports =
 
     getArgs: (op) -> op[1]
     setArgs: (op, vals) -> op[1] = vals
+
+    applyTxn: (txn, data, memoryAdapter, ver) ->
+      applyTxn @, txn, data, memoryAdapter, ver
+
+applyTxn = (extractor, txn, data, memoryAdapter, ver) ->
+  method = extractor.getMethod txn
+  return if method is 'get'
+  args = extractor.getArgs txn
+  unless ver is null
+    ver = extractor.getVer txn
+  return memoryAdapter[method] args..., ver, data
