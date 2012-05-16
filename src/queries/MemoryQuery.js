@@ -1,4 +1,4 @@
-var Filter = require('./Filter')
+var createFilter = require('./filter')
   , util = require('../util')
   , Promise = util.Promise
   , merge = util.merge
@@ -18,10 +18,14 @@ module.exports = MemoryQuery;
 // @param {Object} json representing a query that is typically created via
 // convenient QueryBuilder instances. See QueryBuilder.js for more details.
 function MemoryQuery (json) {
-  var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort']);
-  this._filter = new Filter(filteredJson);
+  this._json = json;
+  var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort', 'type']);
+  this._filter = createFilter(filteredJson);
   for (var k in json) {
-    if (k in this) {
+    if (k === 'type') {
+      // find() or findOne()
+      this[json[k]]();
+    } else if (k in this) {
       this[k](json[k]);
     }
   }
@@ -88,11 +92,14 @@ MemoryQuery.prototype.sort = function sort (params) {
 // if a < b, a == b, or a > b respectively, according to the ordering criteria
 // defined by sortParams
 // , e.g., sortParams = ['field1', 'asc', 'field2', 'desc']
-function compileSortComparator (sortParams) {
-  return function (a, b) {
-    var factor, path, aVal, bVal;
+function compileSortComparator (__sortParams__) {
+  return function comparator (a, b, sortParams) {
+    sortParams || (sortParams = __sortParams__);
+    var dir, path, factor, aVal, bVal
+      , aIsIncomparable, bIsIncomparable;
     for (var i = 0, l = sortParams.length; i < l; i+=2) {
-      switch (sortParams[i+1]) {
+      var dir = sortParams[i+1];
+      switch (dir) {
         case 'asc' : factor =  1; break;
         case 'desc': factor = -1; break;
         default: throw new Error('Must be "asc" or "desc"');
@@ -100,33 +107,58 @@ function compileSortComparator (sortParams) {
       path = sortParams[i];
       aVal = lookup(path, a);
       bVal = lookup(path, b);
-      // TODO Handle undefined aVal or bVal
+
+      // Handle undefined, null, or in-comparable aVal and/or bVal.
+      aIsIncomparable = isIncomparable(aVal)
+      bIsIncomparable = isIncomparable(bVal);
+
+      // Incomparables always come last.
+      if ( aIsIncomparable && !bIsIncomparable) return factor;
+      // Incomparables always come last, even in reverse order.
+      if (!aIsIncomparable &&  bIsIncomparable) return -factor;
+
+      // Tie-break 2 incomparable fields by comparing more downstream ones
+      if ( aIsIncomparable &&  bIsIncomparable) continue;
+
+      // Handle comparable field values
       if      (aVal < bVal) return -factor;
       else if (aVal > bVal) return factor;
+
+      // Otherwise, the field values for both docs so far are equivalent
     }
     return 0;
   };
 }
 
-// TODO find and findOne
+function isIncomparable (x) {
+  return (typeof x === 'undefined') || x === null;
+}
+
+MemoryQuery.prototype.find = function find () {
+  this._type = 'find';
+  return this;
+};
+
+MemoryQuery.prototype.findOne = function findOne () {
+  this._type = 'findOne';
+  return this;
+};
 
 MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
   var promise = (new Promise).on(cb)
-    , matches = this.syncRun(memoryAdapter);
+    , world = memoryAdapter._get()
+    , matches = this.syncRun(world);
 
   promise.resolve(null, matches);
 
   return promise;
 };
 
-MemoryQuery.prototype.syncRun = function syncRun (memoryAdapter) {
+MemoryQuery.prototype.syncRun = function syncRun (world) {
   var filter = this._filter
-    , matches = memoryAdapter.filter( function (doc, nsPlusId) {
-        return filter.test(doc, nsPlusId);
-      });
-
-  var comparator = this._comparator;
-  if (comparator) matches.sort(comparator);
+    , matches = filterWorld(world, filter, this._json.from)
+    , comparator = this._comparator;
+  if (comparator) matches = matches.sort(comparator);
 
   // Handle skip/limit for pagination
   var skip = this._skip
@@ -137,6 +169,11 @@ MemoryQuery.prototype.syncRun = function syncRun (memoryAdapter) {
   if (typeof limit !== 'undefined') {
     if (typeof skip === 'undefined') skip = 0;
     matches = matches.slice(skip, skip + limit);
+  }
+
+  if (this._type === 'findOne') {
+    // Do this to limit the work of the next field filtering step
+    matches = [matches[0]];
   }
 
   // Finally, selectively return the documents with a subset of fields based on
@@ -154,5 +191,33 @@ MemoryQuery.prototype.syncRun = function syncRun (memoryAdapter) {
       return projectObject(doc, fields);
     });
   }
+  if (this._type === 'findOne') return matches[0];
   return matches;
+}
+
+function filterObject (obj, filterFn, extra, start) {
+  var filtered = start || {}
+    , isArray = Array.isArray(filtered)
+    , i = 0;
+  for (var k in obj) {
+    if (filterFn(obj[k], extra)) {
+      filtered[isArray ? i++ : k] = obj[k];
+    }
+  }
+  return filtered;
+};
+
+function filterWorld (world, filterFn, ns) {
+  var docs;
+  if (ns) {
+    docs = world[ns];
+    return filterObject(docs, filterFn, ns, []);
+  }
+  var results = {};
+  for (ns in data) {
+    docs = data[ns];
+    var newResults = filterObject(docs, filterFn, ns, []);
+    results = results.concat(newResults);
+  }
+  return results;
 }
