@@ -21,6 +21,7 @@ The Model mixin:
 5. ClientB's write to the db succeeds
 6. However, now we're in a state where ClientA has a copy of the data
    without the mutation.
+
 Solution: We take care of this after the replicated data is sent to the
 browser. The browser model asks the server for any updates like this it
 may have missed.
@@ -39,7 +40,7 @@ from and (b) which queries to add this doc to
                                          do nothing to curr
 
 +  <page prev> <page curr> <page next>
-                   -                     push to curr from next
+                   +  <<<<<<<  -         push to curr from next
 
 +  <page prev> <page curr> <page next>
        +   <<<<<   -                     unshift to curr from prev
