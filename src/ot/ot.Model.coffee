@@ -13,7 +13,7 @@ module.exports =
     init: (model) ->
       model._otFields = otFields = {}
 
-      model.on 'subInit', (data) ->
+      model.on 'addSubData', (data) ->
         if ot = data.ot
           otFields[path] = field  for path, field of ot
       return
