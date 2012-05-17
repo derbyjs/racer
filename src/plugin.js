@@ -3,21 +3,41 @@ var util = require('./util')
   , isServer = util.isServer
 
     // This tricks Browserify into not logging an error when bundling this file
-  , _require = require;
+  , _require = require
+
+  , plugable = {};
 
 module.exports = {
-  use: function (plugin, options) {
+
+  _makePlugable: function (name, object) {
+    plugable[name] = object;
+  }
+
+  // @param {Function} plugin(racer, options)
+  // @param {Object} options that we pass to the plugin invocation
+, use: function (plugin, options) {
     if (typeof plugin === 'string') {
       if (!isServer) return this;
       plugin = _require(plugin);
     }
-    var plugins = this._plugins || (this._plugins = []);
+
+    var decorate = plugin.decorate;
+    // TODO: Make decorate required instead of defaulting to racer?
+    var target = (decorate === null || decorate === 'racer')
+               ? this
+               : plugable[decorate];
+
+    if (!target) {
+      throw new Error('Invalid plugin.decorate value: ' + decorate);
+    }
+
+    var plugins = target._plugins || (target._plugins = []);
 
     // Don't include a plugin more than once -- useful in tests where race
     // conditions exist regarding require and clearing require.cache
     if (-1 === plugins.indexOf(plugin)) {
       plugins.push(plugin);
-      plugin(this, options);
+      plugin(target, options);
     }
     return this;
   }
@@ -37,6 +57,7 @@ module.exports = {
   //             This is useful for grouping several methods together.
   //   <other>:  All other key-value pairings are added as properties of the method
 , mixin: function () {
+    var protected = this.protected;
     for (var i = 0, l = arguments.length; i < l; i++) {
       var mixin = arguments[i];
       if (typeof mixin === 'string') {
@@ -45,22 +66,19 @@ module.exports = {
       }
 
       var type = mixin.type;
-      if (!type) {
-        throw new Error('Mixins require a type parameter');
-      }
-      var Klass = this.protected[type];
-      if (!Klass) {
-        throw new Error('Cannot find racer.protected.' + type);
-      }
+      if (!type) throw new Error('Mixins require a type parameter');
+      var Klass = protected[type];
+      if (!Klass) throw new Error('Cannot find racer.protected.' + type);
 
       if (Klass.mixins) {
         Klass.mixins.push(mixin);
       } else {
         Klass.mixins = [mixin];
+        var self = this;
         Klass.prototype.mixinEmit = function (name) {
           var eventName = type + ':' + name
             , eventArgs = Array.prototype.slice.call(arguments, 1);
-          this.emit.apply(this, [eventName].concat(eventArgs));
+          self.emit.apply(self, [eventName].concat(eventArgs));
         };
       }
 
