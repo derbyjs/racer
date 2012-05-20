@@ -6,7 +6,7 @@ uglify = require 'uglify-js'
 Store = require './Store'
 {mergeAll, isProduction} = require './util'
 
-module.exports = (racer) ->
+exports = module.exports = (racer) ->
 
   Object.defineProperty racer, 'version',
     get: -> JSON.parse(fs.readFileSync __dirname + '/../package.json', 'utf8').version
@@ -95,3 +95,6 @@ module.exports = (racer) ->
     .use(require './adapters/clientid-mongo')
     .use(require './adapters/clientid-redis')
     .use(require './adapters/clientid-rfc4122_v4')
+
+exports.decorate = 'racer'
+exports.useWith = server: true, browser: false
