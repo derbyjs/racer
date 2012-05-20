@@ -11,6 +11,7 @@ exports = module.exports = (racer) ->
   racer.mixin mixin
 
 exports.useWith = server: true, browser: true
+exports.decorate = 'racer'
 
 mixin =
   type: 'Model'
