@@ -390,7 +390,7 @@ describe 'PaginatedQueryNode', ->
               @qnode.maybePublish @newDoc, origDoc, @txn, {@store, @pubSub}
               done(err)
 
-          it 'should publish a "rmDoc" of the first doc on the old page aaa', ->
+          it 'should publish a "rmDoc" of the first doc on the old page', ->
             expect(@pubSub.publish).to.be.calledTwice()
             expect(@pubSub.publish).to.be.calledWith publishArgs('rmDoc', @qnode.channel, {ns: 'users', id: 'd', ver: transaction.getVer @txn})
 
