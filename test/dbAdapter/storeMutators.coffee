@@ -1,6 +1,7 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
 racer = require '../../lib/racer'
+{isServer} = require '../../lib/util'
 {augmentStoreOpts} = require '../journalAdapter/util'
 
 # TODO Add remove tests
