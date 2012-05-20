@@ -20,16 +20,16 @@ module.exports = {
       // to re-subscribe to the data on behalf of the client. The paths and
       // queries get cached in Model#subscribe.
       model._pathSubs = {} // path -> 1
-      model._querySubs = {} // hash -> QueryBuilder
+      model._querySubs = {} // query hash -> MemoryQuery
     }
 
   , bundle: function (model, addToBundle) {
       var querySubs = model._querySubs
-        , query
+        , memoryQuery
         , queryJsons = [];
-      for (var k of querySubs) {
-        query = querySubs[k];
-        queryJsons.push(query.toJSON());
+      for (var k in querySubs) {
+        memoryQuery = querySubs[k];
+        queryJsons.push(memoryQuery.toJSON());
       }
       addToBundle('_loadSubs', model._pathSubs, queryJsons);
     }
@@ -41,12 +41,13 @@ module.exports = {
       // new or existing document in the cloud to become a member of one of the
       // result sets corresponding to a query that this model is currently subscribed.
       socket.on('addDoc', function (payload, num) {
-        var doc = payload.doc
-          , ns  = payload.ns
-          , ver = payload.ver
-          , data = memory.get(ns);
+        var data = payload.data
+          , doc = data.doc
+          , ns  = data.ns
+          , ver = data.ver
+          , collection = memory.get(ns);
         // If the doc is already in the model, don't add it
-        if (data && data[doc.id]) {
+        if (collection && collection[doc.id]) {
           // But add a null transaction anyway, so that `txnApplier` doesn't
           // hang because it never sees `num`
           return model._addRemoteTxn(null, num);
@@ -68,23 +69,27 @@ module.exports = {
       // the result sets corresponding to a query that this model is currently
       // subscribed.
       socket.on('rmDoc', function (payload, num) {
-        // TODO Optimize the bandwidth by sending only "#{ns}.#{id}" via
-        //      socket.io
-        var doc  = payload.doc
-          , ns   = payload.ns
-          , hash = payload.hash
-          , id   = payload.id
-          , ver  = payload.ver
-          , pathToDoc = ns + '.' + id;
+        var hash = payload.channel
+          , data = payload.data
+          , ns   = data.ns
+          , id   = data.id
+          , ver  = data.ver
+          , pathToDoc = ns + '.' + id
+          , doc = model.get(pathToDoc);
 
         // Don't remove the doc if any other queries match the doc
-        var queries = this._querySubs
-        for (var k in queries) {
+        var querySubs = model._querySubs;
+        for (var k in querySubs) {
 
-          // If the "rmDoc" was triggered by the same query, we expect it not to match the query, so ignore it
-          if (hash === k) continue;
+          // If "rmDoc" was triggered by the same query, we expect it not to match the query, so ignore it
+          if (hash.substring(3) === k) continue; // `substring` strips the leading "$q."
 
-          if (query.test(doc, pathToDoc)) {
+          var memoryQuery = querySubs[k];
+          // If the doc belongs in an existing subscribed query's result set,
+          // then don't remove it, but instead apply a "null" transaction to
+          // make sure the transaction counter `num` is acknowledged, so other
+          // remote transactions with a higher counter can be applied.
+          if (memoryQuery.filterTest(doc, ns)) {
             return model._addRemoteTxn(null, num);
           }
         }
@@ -114,7 +119,7 @@ module.exports = {
     // subscribe(targets..., callback)
   , subscribe: function () {
       var pathSubs = this._pathSubs
-        , querySubs = this._querySubs
+        , querySubs = this._querySubs;
 
       this._compileTargets(arguments, {
         compileModelAliases: true
@@ -172,7 +177,7 @@ module.exports = {
       });
     }
 
-  , addData: function (data) {
+  , _addData: function (data) {
       var memory = this._memory
         , data = data.data;
       for (var i = data.length; i--; ) {
@@ -198,7 +203,7 @@ module.exports = {
       var subs = Object.keys(this._pathSubs)
         , querySubs = this._querySubs;
       for (var hash in querySubs) {
-        subs.push(querySubs[hash]);
+        subs.push(querySubs[hash].toJSON());
       }
       return subs;
     }
