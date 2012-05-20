@@ -7,6 +7,7 @@ transaction = require './transaction.server'
 {eventRegExp, subPathToDoc} = require './path'
 {bufferifyMethods, finishAfter} = require './util/async'
 {Model} = racer.protected
+debug = require('debug')('socket-client-id')
 
 # store = new Store
 #   mode:
@@ -43,6 +44,8 @@ Store = module.exports = (options = {}) ->
 
   @_generateClientId = clientId.generateFn()
 
+  @_clientSockets = {}
+
   @mixinEmit 'init', this, options
 
   # Maps method => [function]
@@ -58,6 +61,7 @@ Store:: =
 
   __proto__: EventEmitter::
 
+  # TODO Move to txns/txn.Store
   _commit: (txn, cb) ->
     @_mode.commit txn, cb
 
@@ -77,7 +81,10 @@ Store:: =
   setSockets: (@sockets, @_ioUri = '') ->
     sockets.on 'connection', (socket) =>
       clientId = socket.handshake.query.clientId
+      # TODO Replace with DEBUG
+      debug "ON CONNECTION", clientId
       return socket.emit 'fatalErr', 'missing clientId' unless clientId
+      @_clientSockets[clientId] = socket
       @mixinEmit 'socket', this, socket, clientId
 
   flushMode: (cb) -> @_mode.flush cb
@@ -115,8 +122,11 @@ Store:: =
     method = transaction.getMethod txn
     dbArgs.push ver
     @_sendToDb method, dbArgs, (err, origDoc) =>
+      if err
+        return callback err if callback
+        return callback.error err
       @publish transaction.getPath(txn), 'txn', txn, {origDoc}
-      callback err, txn if callback
+      callback null, txn if callback
 
   createModel: ->
     model = new Model
