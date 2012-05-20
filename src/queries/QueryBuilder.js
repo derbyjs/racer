@@ -94,41 +94,47 @@ var proto = QueryBuilder.prototype = {
   , toJSON: function () { return this._json; }
 };
 
-QueryBuilder.fromJSON = function fromJSON (json) {
-  var q = new QueryBuilder
-  for (var param in json) {
-    switch (param) {
-      case 'type':
-        q[json[param]]()
-        break;
-      case 'from':
-      case 'byKey':
-      case 'sort':
-      case 'skip':
-      case 'limit':
-      case 'only':
-      case 'except':
-        q[param](json[param]);
-        break;
-      case 'equals':
-      case 'notEquals':
-      case 'gt':
-      case 'gte':
-      case 'lt':
-      case 'lte':
-      case 'within':
-      case 'contains':
-        var fields = json[param];
-        for (var field in fields) {
-          q.where(field)[param](fields[field]);
-        }
-        break;
-      default:
-        throw new Error("Un-identified Query json property '" + param + "'");
+QueryBuilder._createFromJsonFn = function (QueryBuilderKlass) {
+  return function (json) {
+    var q = new QueryBuilderKlass;
+    for (var param in json) {
+      switch (param) {
+        case 'type':
+          QueryBuilder.prototype[json[param]].call(q);
+          break;
+        case 'from':
+        case 'byKey':
+        case 'sort':
+        case 'skip':
+        case 'limit':
+          q[param](json[param]);
+          break;
+        case 'only':
+        case 'except':
+          q[param](json[param]);
+          break;
+        case 'equals':
+        case 'notEquals':
+        case 'gt':
+        case 'gte':
+        case 'lt':
+        case 'lte':
+        case 'within':
+        case 'contains':
+          var fields = json[param];
+          for (var field in fields) {
+            q.where(field)[param](fields[field]);
+          }
+          break;
+        default:
+          throw new Error("Un-identified Query json property '" + param + "'");
+      }
     }
+    return q;
   }
-  return q;
 };
+
+QueryBuilder.fromJSON = QueryBuilder._createFromJsonFn(QueryBuilder);
 
 // We use ABBREVS for query hashing, so our hashes are more compressed.
 var ABBREVS = {
@@ -265,23 +271,48 @@ function comparator (pairA, pairB) {
   return 1;
 }
 
+proto.sort = function (params) {
+  if (arguments.length > 1) {
+    params = Array.prototype.slice.call(arguments);
+  }
+  this._json.sort = params;
+  return this;
+};
+
 var methods = [
-    'sort'
-  , 'skip'
+    'skip'
   , 'limit'
-  , 'only'
-  , 'except'
 ];
 
-for (var i = methods.length; i--; ) {
-  var method = methods[i];
-  proto[method] = (function (method) {
-    return function (arg) {
-      this._json[method] = arg;
-      return this;
+methods.forEach( function (method) {
+  proto[method] = function (arg) {
+    this._json[method] = arg;
+    return this;
+  }
+});
+
+methods = ['only', 'except'];
+
+methods.forEach( function (method) {
+  proto[method] = function (paths) {
+    if (arguments.length > 1 || ! Array.isArray(arguments[0])) {
+      paths = Array.prototype.slice.call(arguments);
     }
-  })(method);
-}
+    var json = this._json
+      , fields = json[method] || (json[method] = {});
+    if (Array.isArray(paths)) {
+      for (var i = paths.length; i--; ) {
+        fields[paths[i]] = 1;
+      }
+    } else if (paths.constructor === Object) {
+      merge(fields, paths);
+    } else {
+      console.error(paths);
+      throw new Error('Un-supported paths format');
+    }
+    return this;
+  }
+});
 
 methods = [
     'equals'
@@ -290,19 +321,16 @@ methods = [
   , 'within', 'contains'
 ];
 
-for (method, i = methods.length; i--; ) {
-  method = methods[i];
-  proto[method] = (function (method) {
-    // Each method `equals`, `notEquals`, etc. just populates a `json` property
-    // that is a JSON representation of the query that can be passed around
-    return function (val) {
-      var json = this._json
-        , cond = json[method] || (json[method] = {});
-      cond[this._currField] = val;
-      return this;
-    };
-  })(method);
-}
+methods.forEach( function (method) {
+  // Each method `equals`, `notEquals`, etc. just populates a `json` property
+  // that is a JSON representation of the query that can be passed around
+  proto[method] = function (val) {
+    var json = this._json
+      , cond = json[method] || (json[method] = {});
+    cond[this._currField] = val;
+    return this;
+  };
+});
 
 proto.find = function find () {
   this._json.type = 'find';
