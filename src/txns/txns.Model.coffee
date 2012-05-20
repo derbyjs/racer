@@ -72,9 +72,14 @@ module.exports =
     bundle: (model) ->
       model._txnsPromise.on (err) ->
         throw err if err
-        store = model.store
         clientId = model._clientId
-        store._unregisterLocalModel clientId
+        if store = model.store
+          # In case we already unregistered local model
+          # TODO Investigate why this is the case
+          store._unregisterLocalModel clientId
+        else
+          console.warn "ALREADY UNREGISTERED SERVER MODEL"
+          console.trace()
         # Start buffering subsequently received transactions. They will be
         # sent to the browser upon browser connection. This also occurs on 'disconnect'
         store._startTxnBuffer clientId
@@ -124,7 +129,8 @@ module.exports =
         txnApplier.setIndex num + 1 if num?
 
         memory.eraseNonPrivate()
-        model._initData data
+        # TODO memory.flush?
+        model._addData data
 
         model.emit 'reInit'
 
@@ -184,7 +190,7 @@ module.exports =
 
         # TODO Stop asking for missed remote transactions until reconnect
 
-      model._addRemoteTxn = addRemoteTxn = (txn, num) ->
+      model._addRemoteTxn = addRemoteTxn = (txn, num, ok) ->
         if num?
           txnApplier.add txn, num
         else
@@ -299,6 +305,7 @@ module.exports =
       @_removeTxn txnId if txnId = transaction.getId txn
       data = @_memory._data
       doEmit = !txn.emitted
+      # TODO Do we need Math.floor anymore?
       ver = Math.floor transaction.getVer txn
       if isCompound = transaction.isCompound txn
         ops = transaction.ops txn
@@ -314,16 +321,16 @@ module.exports =
           callback null, transaction.getArgs(txn)..., out
       return out
 
+    # `extractor` is either `transaction` or `transaction.op`
     _applyMutation: (extractor, txn, ver, data, doEmit, isLocal) ->
-      method = extractor.getMethod txn
-      return if method is 'get'
-      args = extractor.getArgs txn
-      out = @_memory[method] args..., ver, data
+      out = extractor.applyTxn txn, data, @_memory, ver
       if doEmit
         if patch = txn.patch
           for {method, args} in patch
             @emit method, args, null, isLocal, @_pass
         else
+          method = transaction.getMethod txn
+          args = transaction.getArgs txn
           @emit method, args, out, isLocal, @_pass
           txn.emitted = true
       return out
