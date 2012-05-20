@@ -8,7 +8,18 @@ module.exports =
     init: (store) ->
       clientSockets = store._clientSockets
       localModels = store._localModels
-      txnClock = store._txnClock
+
+      nextTxnNum = {}
+      store._txnClock = txnClock =
+        unregister: (clientId) ->
+          delete nextTxnNum[clientId]
+
+        register: (clientId) ->
+          nextTxnNum[clientId] = 1
+
+        nextTxnNum: (clientId) ->
+          @register clientId unless clientId of nextTxnNum
+          nextTxnNum[clientId]++
 
       # clientId -> {timeout, buffer}
       store._txnBuffers = {}
@@ -58,8 +69,32 @@ module.exports =
             num = txnClock.nextTxnNum clientId
             socket.emit 'txnOk', txnId, ver, num
 
-      socket.on 'fetchCurrSnapshot', (ver, clientStartId, subs) ->
-        store._onSnapshotRequest ver, clientStartId, clientId, socket, subs
+      socket.on 'disconnect', ->
+        delete store._clientSockets[clientId]
+        # Start buffering transactions on behalf of this disconnected client.
+        # Buffering occurs for up to 3 seconds.
+        store._startTxnBuffer clientId, 3000
+
+      # Check to see if this socket connection is
+      # 1. The first connection after the server ships the bundled model to the browser.
+      # 2. A connection that occurs shortly after an aberrant disconnect
+      if store._txnBuffer clientId
+        # If so, the store has been buffering any transactions meant to be
+        # received by the (disconnected) browser model because of model subscriptions.
+
+        # So stop buffering the transactions
+        store._cancelTxnBufferExpiry clientId
+        # And send the buffered transactions to the browser
+        store._flushTxnBuffer clientId, socket
+      else
+        # Otherwise, the server store has completely forgotten about this
+        # client because it has been disconnected too long. In this case, the
+        # store should
+        # 1. Ask the browser model what it is subscribed to, so we can re-establish subscriptions
+        # 2. Send the browser model enough data to bring it up to speed with
+        #    the current data snapshot according to the server. When the store uses a journal, then it can send the browser a set of missing transactions. When the store does not use a journal, then it sends the browser a new snapshot of what the browser is interested in; the browser can then set itself to the new snapshot and diff it against its stale snapshot to reply the diff to the DOM, which reflects the stale state.
+        socket.emit 'resyncWithStore', (subs, clientVer, clientStartId) ->
+          store._onSnapshotRequest clientVer, clientStartId, clientId, socket, subs, 'shouldSubscribe'
 
   proto:
 
