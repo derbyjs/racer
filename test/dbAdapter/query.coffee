@@ -18,6 +18,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         pluginOpts = plugin.testOpts
         racer.use plugin, pluginOpts
       opts = augmentStoreOpts storeOpts, 'lww'
+      @racer = racer
       @store = racer.createStore opts
       setTimeout done, 200 # TODO Rm timeout
 
@@ -101,6 +102,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         {store, currNs} = this
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val]) ->
+            return if path.substring(0, 9) == '_$queries' # Ignore setting queries
             if path == "#{currNs}.3"
               expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
               done()
@@ -124,6 +126,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         {store, currNs} = this
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val], ver) ->
+            return if path.substring(0, 9) == '_$queries' # Ignore setting queries
             if path == "#{currNs}.3.name.last"
               expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
             else
