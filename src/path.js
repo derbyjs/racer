@@ -62,7 +62,7 @@ exports.regExpPathsOrChildren = function regExpPathsOrChildren (paths) {
   var source = [];
   for (var i = 0, l = paths.length; i < l; i++) {
     var path = paths[i];
-    source.push( '?:' + path + "(?:\\..+)?)" );
+    source.push( '(?:' + path + "(?:\\..+)?)" );
   }
   source = source.join('|');
   return new RegExp('^(?:' + source + ')$');
