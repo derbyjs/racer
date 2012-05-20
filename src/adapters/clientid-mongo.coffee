@@ -2,6 +2,7 @@ exports = module.exports = (racer) ->
   racer.registerAdapter 'clientId', 'Mongo', ClientIdMongo
 
 exports.useWith = server: true, browser: false
+exports.decorate = 'racer'
 
 ClientIdMongo = (@_options) ->
   return
