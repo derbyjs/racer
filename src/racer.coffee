@@ -18,7 +18,9 @@ racer
   .use(require './mutators')
   .use(require './refs')
   .use(require './pubSub')
+  .use(require './queries')
   .use(require './txns')
+  .use(require './reconnect')
 
 racer.use(__dirname + '/adapters/pubsub-memory')  if isServer
 
