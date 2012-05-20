@@ -8,8 +8,7 @@ module.exports = {
 , events: {
     init: function (store, opts) {
       var pubSub = store._pubSub = new PubSub
-        , clientSockets = store._clientSockets
-        , self = this;
+        , clientSockets = store._clientSockets;
 
       // TODO Move this behind the channel-interface-query abstraction
       pubSub.on('noSubscribers', function (path) {
@@ -23,11 +22,11 @@ module.exports = {
       // to/from the data set enclosed by the live queries the client
       // subscribes to.
       ['addDoc', 'rmDoc'].forEach( function (messageType) {
-        pubSub.on(messageType, function (clientId, data) {
-          var num = self._txnClock.nextTxnNum(clientId)
-            , socket = self._clientSockets[clientId];
+        pubSub.on(messageType, function (clientId, params) {
+          var num = store._txnClock.nextTxnNum(clientId)
+            , socket = store._clientSockets[clientId];
           if (!socket) return;
-          return socket.emit(messageType, data);
+          return socket.emit(messageType, params, num);
         });
       });
     }
