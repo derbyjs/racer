@@ -17,7 +17,7 @@ module.exports = ->
     it 'should work for one parameter `equals` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('name').equals('brian')
+      query = @racer.query(currNs).where('name').equals('brian')
       model.subscribe query, ->
         expect(model.get "#{currNs}.0").to.eql users[0]
         expect(model.get "#{currNs}.1").to.equal undefined
@@ -27,7 +27,7 @@ module.exports = ->
     it 'should work for one parameter `gt` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').gt(25)
+      query = @racer.query(currNs).where('age').gt(25)
       model.subscribe query, ->
         expect(model.get "#{currNs}.0").to.equal undefined
         for i in [1, 2]
@@ -37,7 +37,7 @@ module.exports = ->
     it 'should work for one parameter `gte` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').gte(26)
+      query = @racer.query(currNs).where('age').gte(26)
       model.subscribe query, ->
         expect(model.get "#{currNs}.0").to.equal undefined
         for i in [1, 2]
@@ -47,7 +47,7 @@ module.exports = ->
     it 'should work for one parameter `lt` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').lt(27)
+      query = @racer.query(currNs).where('age').lt(27)
       model.subscribe query, ->
         for i in [0, 1]
           expect(model.get currNs + '.' + i).to.eql users[i]
@@ -57,7 +57,7 @@ module.exports = ->
     it 'should work for one parameter `lte` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').lte(26)
+      query = @racer.query(currNs).where('age').lte(26)
       model.subscribe query, ->
         for i in [0, 1]
           expect(model.get currNs + '.' + i).to.eql users[i]
@@ -67,7 +67,7 @@ module.exports = ->
     it 'should work for one parameter `within` queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('name').within(['brian', 'x'])
+      query = @racer.query(currNs).where('name').within(['brian', 'x'])
       model.subscribe query, ->
         for i in [0, 2]
           expect(model.get currNs + '.' + i).to.eql users[i]
@@ -77,7 +77,7 @@ module.exports = ->
     it 'should work for one parameter `contains` scalar queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('workdays').contains(['mon', 'wed'])
+      query = @racer.query(currNs).where('workdays').contains(['mon', 'wed'])
       model.subscribe query, ->
         for i in [0, 1]
           expect(model.get currNs + '.' + i).to.eql users[i]
@@ -87,7 +87,7 @@ module.exports = ->
     it 'should work for compound queries', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('workdays').contains(['wed']).where('age').gt(25)
+      query = @racer.query(currNs).where('workdays').contains(['wed']).where('age').gt(25)
       model.subscribe query, ->
         for i in [0, 2]
           expect(model.get currNs + '.' + i).to.equal undefined
@@ -97,7 +97,7 @@ module.exports = ->
     it 'should only retrieve paths specified in `only`', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').gt(20).only('name', 'age')
+      query = @racer.query(currNs).where('age').gt(20).only('name', 'age')
       model.subscribe query, ->
         for i in [0..2]
           expect(model.get currNs + '.' + i + '.id').to.equal users[i].id
@@ -109,7 +109,7 @@ module.exports = ->
     it 'should exclude paths specified in `except`', (done) ->
       {store, currNs} = this
       model = store.createModel()
-      query = model.query(currNs).where('age').gt(20).except('name', 'workdays')
+      query = @racer.query(currNs).where('age').gt(20).except('name', 'workdays')
       model.subscribe query, ->
         for i in [0..2]
           expect(model.get currNs + '.' + i + '.id').to.equal users[i].id
