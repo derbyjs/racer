@@ -1,6 +1,7 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
+sinon = require 'sinon'
 
 module.exports = (plugins) ->
   describe 'subscribe', ->
@@ -85,10 +86,12 @@ module.exports = (plugins) ->
             ]
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
-            model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
-            model.on 'set', "#{@currNs}.1.greeting", (value) ->
-              expect(value).to.equal 'hello'
-              onMutation()
+            # TODO Rm line below
+            model.on 'rmDoc', -> throw new Error
+            model.on 'rmDoc', spy = sinon.spy()
+            expect(spy).to.have.callCount(0)
+
+            model.on 'set', "#{@currNs}.1.greeting", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', greeting: 'foo', age: 21}
           postCondition: (model) ->
@@ -107,7 +110,7 @@ module.exports = (plugins) ->
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
             model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
-            model.on 'set', onMutation
+            model.on 'set', "#{@currNs}.1.age", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -150,7 +153,7 @@ module.exports = (plugins) ->
             ]
           listenForMutation: (model, onMutation, finish) ->
             model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
-            model.on 'set', onMutation
+            model.on 'set', "#{@currNs}.1.age", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', age: 23}
           postCondition: (model) ->
@@ -194,7 +197,7 @@ module.exports = (plugins) ->
               query(@currNs).where('age').within([27, 30])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'set', onMutation
+            model.on 'set', "#{@currNs}.1.age", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -213,7 +216,7 @@ module.exports = (plugins) ->
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
             model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
-            model.on 'set', onMutation
+            model.on 'set', "#{@currNs}.1.age", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', age: 27}
           postCondition: (model) ->
@@ -419,11 +422,11 @@ module.exports = (plugins) ->
           mutate: (model) ->
             model.unshift "#{@currNs}.1.tags", 'hi'
 
-        it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
+        it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation aaa', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'unshift', onMutation
+            model.on 'unshift', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -463,7 +466,7 @@ module.exports = (plugins) ->
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'insert', onMutation
+            model.on 'insert', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -496,7 +499,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains(['venti'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'pop', onMutation
+            model.on 'pop', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
           postCondition: (model) ->
@@ -513,7 +516,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').equals(['walter'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'pop', onMutation
+            model.on 'pop', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
           postCondition: (model) ->
@@ -546,7 +549,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'shift', onMutation
+            model.on 'shift', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['venti', 'grande']}
           postCondition: (model) ->
@@ -563,7 +566,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').equals(['white'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'shift', onMutation
+            model.on 'shift', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['walter', 'white']}
           postCondition: (model) ->
@@ -596,7 +599,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'remove', onMutation
+            model.on 'remove', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['piquito', 'venti', 'grande']}
           postCondition: (model) ->
@@ -613,7 +616,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').equals(['white', 'white'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'remove', onMutation
+            model.on 'remove', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['walter', 'jesse', 'white']}
           postCondition: (model) ->
@@ -656,7 +659,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains(['conquer', 'command', 'and'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'move', onMutation
+            model.on 'move', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['command', 'and', 'conquer']}
           postCondition: (model) ->
@@ -673,7 +676,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'move', onMutation
+            model.on 'move', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}
           postCondition: (model) ->
