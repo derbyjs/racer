@@ -6,3 +6,4 @@ exports = module.exports = function (racer) {
 };
 
 exports.useWith = { server: true, browser: true };
+exports.decorate = 'racer';
