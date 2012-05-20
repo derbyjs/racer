@@ -31,6 +31,8 @@ function MemoryQuery (json) {
   }
 }
 
+MemoryQuery.prototype.toJSON = function toJSON () { return this._json; };
+
 // Specify that documents in the result set are stripped of all fields except
 // the ones specified in `paths`
 // @param {Object} paths to include. The Object maps String -> 1
@@ -142,6 +144,10 @@ MemoryQuery.prototype.find = function find () {
 MemoryQuery.prototype.findOne = function findOne () {
   this._type = 'findOne';
   return this;
+};
+
+MemoryQuery.prototype.filterTest = function filterTest (doc, ns) {
+  return this._filter(doc, ns);
 };
 
 MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
