@@ -3,6 +3,8 @@ exports = module.exports = (racer) ->
 
 exports.useWith = server: true, browser: false
 
+exports.decorate = 'racer'
+
 ClientIdRedis = (@_options) ->
   return
 

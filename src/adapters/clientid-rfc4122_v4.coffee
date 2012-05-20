@@ -5,6 +5,8 @@ exports = module.exports = (racer) ->
 
 exports.useWith = server: true, browser: false
 
+exports.decorate = 'racer'
+
 ClientIdRfc4122_v4 = (@_options) ->
   return
 
