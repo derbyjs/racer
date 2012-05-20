@@ -8,6 +8,9 @@ proto =
 
 for name, fn of Async::
   proto[name] =
-    if obj = modelProto[name] then {type: obj.type, fn} else fn
+    if obj = modelProto[name]
+      {type: obj.type, fn} # {type, fn} is interpreted by mixin
+    else
+      fn
 
 module.exports = {type: 'Store', static: modelStatic, proto}
