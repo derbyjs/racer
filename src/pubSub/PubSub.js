@@ -110,6 +110,7 @@ PubSub.prototype.addChannelInterface = function addChannelInterface (channelType
 PubSub.prototype._channelType = function _channelType (x) {
   var channelTypes = this._channelTypes;
   for (var typeName in channelTypes) {
+    var type = channelTypes[typeName];
     if (type(x)) return type;
   }
   return;
