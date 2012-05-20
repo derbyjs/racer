@@ -6,6 +6,7 @@ exports = module.exports = (racer) ->
   racer.mixin mixin
 
 exports.useWith = server: true, browser: true
+exports.decorate = 'racer'
 
 mixin =
   type: "Model"
@@ -16,19 +17,21 @@ mixin =
       model._onLoad = []
 
   server:
-    bundle: (callback) ->
+    # What the end-developer calls on the server to bundle the app up to send
+    # with a response.
+    bundle: (cb) ->
       # This event can be used by Model mixins to add items to onLoad before bundling
-      addToBundle = (key) ->
-        model._onLoad.push Array.prototype.slice.call arguments
+      addToBundle = (key) =>
+        @_onLoad.push Array.prototype.slice.call arguments
       # TODO Only pass addToBundle to the event handlers
       @mixinEmit 'bundle', this, addToBundle
       timeout = setTimeout onBundleTimeout, mixin.static.BUNDLE_TIMEOUT
       Promise.parallel(@_bundlePromises).on =>
         clearTimeout timeout
-        @_bundle callback
+        @_bundle cb
 
-    _bundle: (callback) ->
-      callback JSON.stringify [@_clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
+    _bundle: (cb) ->
+      cb JSON.stringify [@_clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
 
 onBundleTimeout = ->
   throw new Error "Model bundling took longer than #{mixin.static.BUNDLE_TIMEOUT} ms"
