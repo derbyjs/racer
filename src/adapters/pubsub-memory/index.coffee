@@ -3,7 +3,7 @@ prefixInterface = require './channel-interface-prefix'
 stringInterface = require './channel-interface-string'
 queryInterface = require './channel-interface-query'
 
-module.exports = (racer, opts = {}) ->
+exports = module.exports = (racer, opts = {}) ->
   racer.mixin
     type: 'Store'
     events:
@@ -15,3 +15,6 @@ module.exports = (racer, opts = {}) ->
         pubSub.addChannelInterface 'query', queryInterface pubSub, store
 
   return
+
+exports.useWith = server: true, browser: false
+exports.decorate = 'racer'

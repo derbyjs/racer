@@ -4,6 +4,7 @@ exports = module.exports = (racer) ->
   racer.registerAdapter 'journal', 'Memory', JournalMemory
 
 exports.useWith = server: true, browser: false
+exports.decorate = 'racer'
 
 JournalMemory = ->
   @flush()

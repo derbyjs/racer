@@ -9,6 +9,7 @@ exports = module.exports = (racer) ->
   racer.registerAdapter 'db', 'Memory', DbMemory
 
 exports.useWith = server: true, browser: false
+exports.decorate = 'racer'
 
 exports.adapter = DbMemory = ->
   @_flush()
