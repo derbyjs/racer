@@ -1,17 +1,20 @@
 // TODO Cache more results than we need (cache >= 1 prev page result)
 // TODO Handle all errors
-var QueryNode = require('./QueryNode')
-  , QueryBuilder = require('./QueryBuilder')
-  , transaction = require('../transaction')
-  , pathUtils = require('../path')
-  , lookup = pathUtils.lookup
-  , objectExcept = pathUtils.objectExcept
-  , util = require('../util')
-  , countWhile = util.countWhile
-  , indexOf = util.indexOf
-  , deepCopy = util.deepCopy
-  , deepEqual = util.deepEqual
-  , DbMemory = require('../adapters/db-memory').adapter
+var QueryNode     = require('./QueryNode')
+  , publishFn     = QueryNode.publishFn
+  , publishAddDoc = QueryNode.publishAddDoc
+  , publishRmDoc  = QueryNode.publishRmDoc
+  , QueryBuilder  = require('./QueryBuilder')
+  , transaction   = require('../transaction')
+  , pathUtils     = require('../path')
+  , lookup        = pathUtils.lookup
+  , objectExcept  = pathUtils.objectExcept
+  , util          = require('../util')
+  , countWhile    = util.countWhile
+  , indexOf       = util.indexOf
+  , deepCopy      = util.deepCopy
+  , deepEqual     = util.deepEqual
+  , DbMemory      = require('../adapters/db-memory').adapter
   ;
 
 function equivIds (docA, docB) {
@@ -36,34 +39,22 @@ PaginatedQueryNode.prototype.results = function results (db, cb) {
     , cache = this._cache
     , self = this;
 
-  if (cache) return cb(err, cache);
+  if (cache) return cb(null, cache);
 
   return dbQuery.run(db, function (err, found) {
     if (Array.isArray(found)) {
-      self._cache = found;
+      var cache = self._cache = found;
 
       if (db instanceof DbMemory) {
         // So the cache members don't update in place when the memory adapter
         // changes them in a different context/scenario. Only need to do this
         // if we're using DbMemory
-        self._cache = self._cache.map(deepCopy);
+        self._cache = cache.map(deepCopy);
       }
     }
     cb(err, found);
   });
 };
-
-function publishFn (pubSub, type, channel, data) {
-  pubSub.publish({type: type, params: { channel: channel, data: data }});
-}
-
-function publishAddDoc (pubSub, channel, ns, doc, ver) {
-  publishFn(pubSub, 'addDoc', channel, {ns: ns, doc: doc, ver: ver});
-}
-
-function publishRmDoc (pubSub, channel, ns, doc, ver) {
-  publishFn(pubSub, 'rmDoc', channel, {ns: ns, id: doc.id, ver: ver});
-}
 
 PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, services, cb) {
   var cache = this._cache
@@ -117,7 +108,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         }
         var docToRm = cache.shift();
         publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
-        publishAddDoc(pubSub, self.channel, ns, newDoc, ver);
+        publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
         return;
       case 'mv-prior->later':
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
@@ -130,7 +121,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             , docToAdd  = docs[1];
           if (docToAdd && deepEqual(sanityDoc, cache[cache.length-1])) {
             cache.push(docToAdd);
-            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
 
           var docToRm = cache.shift();
@@ -149,7 +140,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           if (isSane) {
             if (-1 === indexOf(cache, docToAdd, equivIds)) {
               publishRmDoc(pubSub, self.channel, ns, newDoc, ver);
-              publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+              publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
             } else { // This means the the mv is meant to be curr->curr
               publishFn(pubSub, 'txn', self.channel, txn);
             }
@@ -180,7 +171,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           // TODO Replace strict equals with deepEquals
           if (docToAdd && deepEqual(sanityCheck, cache[cache.length - 1])) {
             cache.push(docToAdd);
-            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
 
           cache.splice(delta.from, 1);
@@ -197,14 +188,14 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             , docToAdd    = docs[0];
           if (deepEqual(sanityCheck, cache[0])) {
             cache.unshift(docToAdd);
-            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
           var docToRm = cache.pop();
           publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
         });
       case 'mv-later->curr':
         cache.splice(delta.to, 0, newDoc);
-        publishAddDoc(pubSub, self.channel, ns, newDoc, ver);
+        publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
         var docToRm = cache.pop();
         publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
       case 'mv-later->later': return;
@@ -226,7 +217,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             , docToAdd  = docs[1];
           if (docToAdd && deepEqual(sanityDoc, cache[cache.length-1])) {
             cache.push(docToAdd);
-            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
           var docToRm = cache.shift();
           publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
@@ -244,7 +235,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             , docToAdd  = docs[1];
           if (docToAdd && deepEqual(sanityDoc, cache[cache.length-1])) {
             cache.push(docToAdd);
-            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver);
+            publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
           publishRmDoc(pubSub, self.channel, ns, oldDoc, ver);
         });
@@ -265,7 +256,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
           }
           cache.unshift(newDoc);
-          return publishAddDoc(pubSub, self.channel, ns, newDoc, ver);
+          return publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
         }
 
         // Otherwise, grab the first 2 results of this page from the db. This
@@ -285,7 +276,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
               publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
             }
             cache.unshift(docs[0]);
-            publishAddDoc(pubSub, self.channel, ns, docs[0], ver);
+            publishAddDoc(pubSub, self.channel, ns, docs[0], ver, txn);
           }
         });
 
@@ -295,7 +286,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           publishRmDoc(pubSub, this.channel, ns, docToRm, ver);
         }
         cacheInsert(cache, newDoc, delta.to);
-        publishAddDoc(pubSub, this.channel, ns, newDoc, ver);
+        publishAddDoc(pubSub, this.channel, ns, newDoc, ver, txn);
         return;
     }
   }
