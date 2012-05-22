@@ -190,11 +190,12 @@ module.exports =
 
         # TODO Stop asking for missed remote transactions until reconnect
 
-      model._addRemoteTxn = addRemoteTxn = (txn, num, ok) ->
+      model._addRemoteTxn = addRemoteTxn = (txn, num) ->
         if num?
           txnApplier.add txn, num
         else
           onTxn txn
+
       socket.on 'txn', addRemoteTxn
 
       # The model receives 'txnOk' from the server/store after the server/store
