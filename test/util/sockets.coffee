@@ -3,10 +3,9 @@
 
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
-  clonedArgs = deepCopy(args)
   if async then return process.nextTick ->
-    callEmit target, name, clonedArgs
-  EventEmitter::emit.call target, name, clonedArgs...
+    callEmit target, name, args
+  EventEmitter::emit.call target, name, deepCopy(args)...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
