@@ -1,6 +1,8 @@
 var MemoryQuery = require('./MemoryQuery')
   , QueryBuilder = require('./QueryBuilder')
-  , transaction = require('../transaction');
+  , transaction = require('../transaction')
+  , DbMemory    = require('../adapters/db-memory').adapter
+  , deepCopy = require('../util').deepCopy;
 
 exports = module.exports = QueryNode;
 
@@ -17,7 +19,13 @@ function QueryNode (queryJson) {
 
 QueryNode.prototype.results = function results (db, cb) {
   var dbQuery = new db.Query(this.json);
-  return dbQuery.run(db, cb);
+  return dbQuery.run(db, function (err, found) {
+    if (db instanceof DbMemory) {
+      if (err) return cb(err);
+      return cb(null, deepCopy(found));
+    }
+    return cb(err, found);
+  });
 };
 
 // TODO Where do we need to use cb?

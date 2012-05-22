@@ -31,7 +31,7 @@ mergeAll DbMemory::, Memory::,
       val = @_get path
     catch err
       return callback err
-    callback null, val, @version
+    callback null, deepCopy(val), @version
 
   setupRoutes: (store) ->
     MUTATORS.forEach (method) =>

@@ -422,7 +422,7 @@ module.exports = (plugins) ->
           mutate: (model) ->
             model.unshift "#{@currNs}.1.tags", 'hi'
 
-        it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation aaa', test
+        it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
