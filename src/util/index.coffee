@@ -87,9 +87,7 @@ module.exports =
   deepCopy: deepCopy = (obj) ->
     if typeof obj is 'object'
       if Array.isArray obj
-        ret = []
-        ret.push deepCopy v for v in obj
-        return ret
+        return (deepCopy v for v in obj)
       ret = {}
       ret[k] = deepCopy v for k, v of obj
       return ret
