@@ -20,7 +20,7 @@ function createQueryInterface (pubSub, store) {
         var params = msg.params
           , txn = params.data
           , origDoc = meta.origDoc
-          , newDoc = origDoc
+          , newDoc = (origDoc)
                    ? deepCopy(origDoc)
                      // Otherwise this is a new doc
                    : transaction.getArgs(txn)[1];
