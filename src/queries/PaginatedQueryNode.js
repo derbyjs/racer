@@ -108,7 +108,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           cache.splice(delta.to, 0, newDoc);
         }
         var docToRm = cache.shift();
-        publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+        publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
         publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
         return;
       case 'mv-prior->later':
@@ -126,7 +126,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           }
 
           var docToRm = cache.shift();
-          publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+          publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
         });
       case 'mv-curr->prior':
         return fetchSlice(json, 0, 2, store._db, function (err, docs) {
@@ -140,7 +140,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             , isSane = deepEqual(sanityDoc, cache[0]);
           if (isSane) {
             if (-1 === indexOf(cache, docToAdd, equivIds)) {
-              publishRmDoc(pubSub, self.channel, ns, newDoc, ver);
+              publishRmDoc(pubSub, self.channel, ns, newDoc, newDoc.id, ver);
               publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
             } else { // This means the the mv is meant to be curr->curr
               publishFn(pubSub, 'txn', self.channel, txn);
@@ -176,7 +176,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           }
 
           cache.splice(delta.from, 1);
-          publishRmDoc(pubSub, self.channel, ns, newDoc, ver);
+          publishRmDoc(pubSub, self.channel, ns, newDoc, newDoc.id, ver);
         });
       case 'mv-later->prior':
         return fetchSlice(json, 0, 2, store._db, function (err, docs) {
@@ -192,13 +192,13 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
           var docToRm = cache.pop();
-          publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+          publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
         });
       case 'mv-later->curr':
         cache.splice(delta.to, 0, newDoc);
         publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
         var docToRm = cache.pop();
-        publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+        publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
       case 'mv-later->later': return;
       default: throw new Error();
     }
@@ -221,7 +221,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
           var docToRm = cache.shift();
-          publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+          publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
         });
       default:
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
@@ -238,7 +238,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
             cache.push(docToAdd);
             publishAddDoc(pubSub, self.channel, ns, docToAdd, ver, txn);
           }
-          publishRmDoc(pubSub, self.channel, ns, oldDoc, ver);
+          publishRmDoc(pubSub, self.channel, ns, newDoc, oldDoc.id, ver);
         });
     }
   }
@@ -254,7 +254,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         if (skip === 0) {
           if (cache.length === json.limit) {
             var docToRm = cache.pop();
-            publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+            publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
           }
           cache.unshift(newDoc);
           return publishAddDoc(pubSub, self.channel, ns, newDoc, ver, txn);
@@ -274,7 +274,8 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
           if (deepEqual(docs[1], cache[0])) {
             if (cache.length === json.limit) {
               var docToRm = cache.pop();
-              publishRmDoc(pubSub, self.channel, ns, docToRm, ver);
+              // TODO Make sure docToRm is with the change
+              publishRmDoc(pubSub, self.channel, ns, docToRm, docToRm.id, ver);
             }
             cache.unshift(docs[0]);
             publishAddDoc(pubSub, self.channel, ns, docs[0], ver, txn);
@@ -284,7 +285,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
       default:
         if (cache.length === json.limit) {
           var docToRm = cache.pop();
-          publishRmDoc(pubSub, this.channel, ns, docToRm, ver);
+          publishRmDoc(pubSub, this.channel, ns, docToRm, docToRm.id, ver);
         }
         cacheInsert(cache, newDoc, delta.to);
         publishAddDoc(pubSub, this.channel, ns, newDoc, ver, txn);

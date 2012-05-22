@@ -46,6 +46,7 @@ module.exports = {
           , ns  = data.ns
           , ver = data.ver
           , collection = memory.get(ns);
+
         // If the doc is already in the model, don't add it
         if (collection && collection[doc.id]) {
           // But add a null transaction anyway, so that `txnApplier` doesn't
@@ -71,11 +72,10 @@ module.exports = {
       socket.on('rmDoc', function (payload, num) {
         var hash = payload.channel
           , data = payload.data
-          , ns   = data.ns
+          , doc  = data.doc
           , id   = data.id
-          , ver  = data.ver
-          , pathToDoc = ns + '.' + id
-          , doc = model.get(pathToDoc);
+          , ns   = data.ns
+          , ver  = data.ver;
 
         // Don't remove the doc if any other queries match the doc
         var querySubs = model._querySubs;
@@ -94,14 +94,16 @@ module.exports = {
           }
         }
 
-        var txn = transaction.create({
-            ver: ver
-          , id: null
-          , method: 'del'
-          , args: [pathToDoc]
-        });
+        var pathToDoc = ns + '.' + id
+          , txn = transaction.create({
+                ver: ver
+              , id: null
+              , method: 'del'
+              , args: [pathToDoc]
+            });
+        var oldDoc = model.get(pathToDoc);
         model._addRemoteTxn(txn, num);
-        model.emit('rmDoc', pathToDoc, doc);
+        model.emit('rmDoc', pathToDoc, oldDoc);
       });
     }
   }

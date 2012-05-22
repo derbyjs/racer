@@ -56,7 +56,9 @@ QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, s
   // The query no longer contains the document, so tell any subscribed
   // clients to remove it.
   if (oldDocPasses && !newDocPasses) {
-    return publishRmDoc(pubSub, this.channel, ns, oldDoc, ver);
+    // Publish the newDoc, so we can see if the doc with the mutation still
+    // satisfies some queries once received in the browser.
+    return publishRmDoc(pubSub, this.channel, ns, newDoc, oldDoc.id, ver);
   }
 
   // The query didn't contain the doc pre-mutation, but now it does contain
@@ -78,7 +80,7 @@ function publishAddDoc (pubSub, channel, ns, doc, ver, txn) {
   publishFn(pubSub, 'txn', channel, txn);
 }
 
-function publishRmDoc (pubSub, channel, ns, doc, ver) {
-  publishFn(pubSub, 'rmDoc', channel, {ns: ns, id: doc.id, ver: ver});
+function publishRmDoc (pubSub, channel, ns, doc, id, ver) {
+  publishFn(pubSub, 'rmDoc', channel, {ns: ns, doc: doc, ver: ver, id: id});
 }
 
