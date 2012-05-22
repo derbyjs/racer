@@ -15,6 +15,7 @@ var QueryNode     = require('./QueryNode')
   , deepCopy      = util.deepCopy
   , deepEqual     = util.deepEqual
   , DbMemory      = require('../adapters/db-memory').adapter
+  , debug         = require('debug')('error')
   ;
 
 function equivIds (docA, docB) {
@@ -42,17 +43,17 @@ PaginatedQueryNode.prototype.results = function results (db, cb) {
   if (cache) return cb(null, cache);
 
   return dbQuery.run(db, function (err, found) {
-    if (Array.isArray(found)) {
-      var cache = self._cache = found;
+    var cache = self._cache = found;
 
+    if (Array.isArray(found)) {
       if (db instanceof DbMemory) {
         // So the cache members don't update in place when the memory adapter
         // changes them in a different context/scenario. Only need to do this
         // if we're using DbMemory
-        self._cache = cache.map(deepCopy);
+        cache = self._cache = cache.map(deepCopy);
       }
     }
-    cb(err, found);
+    cb(err, cache);
   });
 };
 
@@ -114,7 +115,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           var sanityDoc = docs[0]
@@ -131,7 +132,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, 0, 2, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           var sanityDoc = docs[1]
@@ -163,7 +164,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           var sanityCheck = docs[0]
@@ -181,7 +182,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, 0, 2, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           var sanityCheck = docs[1]
@@ -210,7 +211,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           var sanityDoc = docs[0]
@@ -226,7 +227,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
 
           cache.splice(delta.from, 1);
@@ -268,7 +269,7 @@ PaginatedQueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDo
         return dbQuery.run(store._db, function (err, docs) {
           if (err) {
             if (cb) return cb(err);
-            return console.error(err);
+            return debug(err);
           }
           if (deepEqual(docs[1], cache[0])) {
             if (cache.length === json.limit) {
