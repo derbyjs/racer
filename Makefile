@@ -10,7 +10,7 @@ compile-macro:
 
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
-MOCHA := ./node_modules/mocha/bin/mocha
+MOCHA := ./node_modules/mocha/bin/mocha --compilers coffee:coffee-script
 OUT_FILE = "test-output.tmp"
 
 g = "."
