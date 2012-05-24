@@ -1,4 +1,4 @@
-{merge} = util = require './index'
+{merge, deepCopy} = util = require './index'
 
 util.speculative = module.exports =
 
@@ -21,7 +21,10 @@ util.speculative = module.exports =
       obj.$spec = true
       return obj
 
-    return Object.create proto, $spec: value: true
+    obj = deepCopy(proto)
+    obj.__proto__ = proto
+    obj.$spec = true
+    return obj
 
   clone: (proto) ->
     if Array.isArray proto
