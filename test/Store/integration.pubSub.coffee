@@ -19,13 +19,16 @@ module.exports = (plugins = []) ->
       store = @store
       store.set 'globals._.a', {b: 1, c: 2, d: [1, 2]}, null, ->
         store.set 'globals._.e', {c: 7}, null, ->
-          patterns.forEach (pattern) ->
-            expected = tests[pattern]
-            methods.forEach (method) ->
-              model = store.createModel()
-              model[method] pattern, ->
-                expect(model.get('globals._')).to.eql expected
-                finish()
+          methods.forEach (method) ->
+            model = store.createModel()
+            model[method] 'notDefined', ->
+              expect(model.get 'notDefined').to.eql undefined
+              patterns.forEach (pattern) ->
+                model = store.createModel()
+                expected = tests[pattern]
+                model[method] pattern, ->
+                  expect(model.get 'globals._').to.eql expected
+                  finish()
 
     it 'should distribute events to refs remotely', (done) ->
       mockFullSetup @store, done, plugins, (modelA, modelB, done) ->
