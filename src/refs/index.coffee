@@ -20,9 +20,6 @@ mixin =
   events:
 
     init: (model) ->
-      # Used for model scopes
-      model._root = model
-
       # [[from, get, item], ...]
       model._refsToBundle = []
 

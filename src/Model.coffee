@@ -8,6 +8,9 @@ Model = module.exports = ->
   @_count = id: 0
   # Set max listeners to unlimited
   @setMaxListeners 0
+
+  # Used for model scopes
+  this._root = this
   @mixinEmit 'init', this
   return
 
