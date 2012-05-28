@@ -15,7 +15,7 @@ module.exports = {
       // The following 2 private variables `_pathSubs` and _querySubs` remember
       // subscriptions. This memory is useful when the client may have been
       // disconnected from the server for quite some time and needs to re-send
-      // it subscriptions upon re-connection in order for the server (1) to
+      // its subscriptions upon re-connection in order for the server (1) to
       // figure out what data the client needs to re-sync its snapshot and (2)
       // to re-subscribe to the data on behalf of the client. The paths and
       // queries get cached in Model#subscribe.
@@ -45,13 +45,14 @@ module.exports = {
           , doc = data.doc
           , ns  = data.ns
           , ver = data.ver
+          , txn = data.txn
           , collection = memory.get(ns);
 
         // If the doc is already in the model, don't add it
         if (collection && collection[doc.id]) {
-          // But add a null transaction anyway, so that `txnApplier` doesn't
-          // hang because it never sees `num`
-          return model._addRemoteTxn(null, num);
+          // But apply the transaction that resulted in the document that is
+          // added to the query result set.
+          return model._addRemoteTxn(txn, num);
         }
 
         var pathToDoc = ns + '.' + doc.id
