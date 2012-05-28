@@ -61,7 +61,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'rmDoc', ->
-            expect(modelA._getVersion()).to.equal(oldVer + 1)
+            expect(modelA._getVersion()).to.be.greaterThan(oldVer)
             done()
           query = modelA.query(currNs).where('ranking').lt(10)
           modelA.subscribe query, ->
@@ -73,7 +73,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'addDoc', ->
-            expect(modelA._getVersion()).to.equal(oldVer + 1)
+            expect(modelA._getVersion()).to.be.greaterThan(oldVer)
             done()
           query = modelA.query(currNs).where('ranking').gt(2)
           modelA.subscribe query, ->
@@ -86,7 +86,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
       it 'should apply a txn if a document is still in a query result set after a mutation', (done) ->
         {store, currNs} = this
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
-          modelA.on 'set', ->
+          modelA.on 'set', "#{currNs}.3.name.last", ->
             expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
             done()
           query = modelA.query(currNs).where('ranking').equals(1)
