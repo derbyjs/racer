@@ -31,18 +31,19 @@ module.exports = (plugins) ->
           , ->
             checkItems currNs, modelA, definedAfter
             done()
-          target = query modelA.query(currNs).where('ranking')
+          target = query modelA.query(currNs).where('ranking').sort('ranking', 'asc')
           modelA.subscribe target, ->
             checkItems currNs, modelA, definedBefore
             onSubscribe.call testContext, modelB, currNs
 
     describe 'for non-saturated result sets (e.g., limit=10, sizeof(resultSet) < 10)', ->
-      it 'should add a document that satisfies the query', test
-        query: (ranking) -> ranking.gte(3).limit(2)
-        onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 4
-        events: ['addDoc']
-        definedBefore: [2]
-        definedAfter:  [1, 2]
+      # TODO Uncomment the test body below when we support pagination
+      it 'should add a document that satisfies the query'#, test
+#        query: (ranking) -> ranking.gte(3).limit(2)
+#        onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 4
+#        events: ['addDoc']
+#        definedBefore: [2]
+#        definedAfter:  [1, 2]
 
       it 'should remove a document that no longer satisfies the query', test
         query: (ranking) -> ranking.lt(2).limit(2)
@@ -72,14 +73,15 @@ module.exports = (plugins) ->
         definedBefore: [1, 3]
         definedAfter:  [1, 2]
 
-      it 'should keep a document that just re-orders the query result set', test
-      #   <page prev> <page curr> <page next>
-      #                   -><-                  re-arrange curr members
-        query: (ranking) -> ranking.lt(10).sort('ranking', 'asc').limit(2)
-        onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 0
-        events: ['set']
-        definedBefore: [1, 3]
-        definedAfter:  [1, 3]
+      # TODO Uncomment the test body below when we support pagination
+      it 'should keep a document that just re-orders the query result set'#, test
+#      #   <page prev> <page curr> <page next>
+#      #                   -><-                  re-arrange curr members
+#        query: (ranking) -> ranking.lt(10).sort('ranking', 'asc').limit(2)
+#        onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 0
+#        events: ['set']
+#        definedBefore: [1, 3]
+#        definedAfter:  [1, 3]
 
 
       testSetup = (store, currNs, done, callback) ->
@@ -93,18 +95,19 @@ module.exports = (plugins) ->
             store.set "#{currNs}.#{player.id}", player, null, finish
           , -> callback allPlayers, modelA, modelB, done
 
-      test = ({query, expectedRange, onSubscribe}) ->
+      test = ({query: augmentQuery, expectedRange, onSubscribe}) ->
         return (done) ->
           {store, currNs} = testContext = this
           testSetup store, currNs, done, (allPlayers, modelA, modelB, done) ->
             forEach ['rmDoc', 'addDoc'], (method, finish) ->
-              modelA.on method, -> finish()
+              modelA.on method, ->
+                finish()
             , ->
               modelPlayers = modelA.get currNs
               for id, player of modelPlayers
                 expect(player.ranking).to.be.within expectedRange...
               done()
-            target = query modelA.query(currNs).where('ranking')
+            target = augmentQuery modelA.query(currNs).where('ranking')
             modelA.subscribe target, ->
               for player in allPlayers
                 if player.ranking not in [3, 4]
