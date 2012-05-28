@@ -109,15 +109,58 @@ QueryHub.prototype.subscribedTo = function subscribedTo (subscriberId, queryJson
 // @param {Object} oldDoc is our document before applying txn
 // @param {Array} txn is the transaction applied to oldDoc to get newDoc
 QueryHub.prototype.publish = function publish (newDoc, oldDoc, txn) {
-  var queryNodes = minSearchSpace(newDoc, oldDoc, txn, this._queryNodes);
+  var queryNodes = minSearchSpace(newDoc, oldDoc, txn, this._queryNodes)
+    , pubSub = this._pubSub
+    , baseVer = transaction.getVer(txn);
+  function pseudoVer () {
+    return baseVer += 1e-6;
+  }
   for (var hash in queryNodes) {
     var queryNode = queryNodes[hash];
-    queryNode.maybePublish(newDoc, oldDoc, txn, {
-        store: this._store
-      , pubSub: this._pubSub
+    queryNode.shouldPublish(newDoc, oldDoc, txn, this._store, function (err, messages) {
+      if (err) {
+        return console.error(err);
+      }
+      if (!messages) return;
+      var channel = queryNode.channel;
+      for (var i = 0, l = messages.length; i < l; i++) {
+        var msg = messages[i];
+        switch (msg[0]) {
+          case 'txn':
+            transaction.setVer(txn, pseudoVer());
+            publishFn(pubSub, 'txn', channel, txn);
+            break;
+          case 'addDoc':
+            var ns       = msg[1]
+              , docToAdd = msg[3];
+            transaction.setVer(txn, pseudoVer());
+            publishAddDoc(pubSub, channel, ns, docToAdd, pseudoVer, txn);
+            break;
+          case 'rmDoc':
+            var ns      = msg[1]
+              , docToRm = msg[3]
+              , docId   = msg[4];
+            publishRmDoc(pubSub, channel, ns, docToRm, docId, pseudoVer);
+            break;
+          default:
+            throw new Error('Unsupported message type ' + msg[0]);
+        }
+      }
     });
   }
 };
+
+function publishFn (pubSub, type, channel, data) {
+  pubSub.publish({type: type, params: { channel: channel, data: data }});
+}
+
+function publishAddDoc (pubSub, channel, ns, doc, pseudoVer, txn) {
+  publishFn(pubSub, 'addDoc', channel, {ns: ns, doc: doc, ver: pseudoVer(), txn: txn});
+}
+
+function publishRmDoc (pubSub, channel, ns, doc, id, pseudoVer) {
+  publishFn(pubSub, 'rmDoc', channel, {ns: ns, doc: doc, ver: pseudoVer(), id: id});
+}
 
 function minSearchSpace (newDoc, oldDoc, txn, queryNodes) {
   var path = transaction.getPath(txn)

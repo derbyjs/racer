@@ -28,10 +28,8 @@ QueryNode.prototype.results = function results (db, cb) {
   });
 };
 
-// TODO Where do we need to use cb?
-QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, services, cb) {
-  var pubSub = services.pubSub
-    , filter = this.query._filter
+QueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, store, cb) {
+  var filter = this.query._filter
     , path = transaction.getPath(txn)
     , ns = path.substring(0, path.indexOf('.'))
     , oldDocPasses = oldDoc && filter(oldDoc, ns)
@@ -46,7 +44,7 @@ QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, s
   // The query contains the document pre- and post-mutation, so just publish
   // the mutation
   if (oldDocPasses && newDocPasses) {
-    return publishFn(pubSub, 'txn', this.channel, txn);
+    return cb(null, [['txn']]);
   }
 
   var ver = transaction.getVer(txn)
@@ -58,29 +56,11 @@ QueryNode.prototype.maybePublish = function maybePublish (newDoc, oldDoc, txn, s
   if (oldDocPasses && !newDocPasses) {
     // Publish the newDoc, so we can see if the doc with the mutation still
     // satisfies some queries once received in the browser.
-    return publishRmDoc(pubSub, this.channel, ns, newDoc, oldDoc.id, ver);
+    return cb(null, [['rmDoc', ns, ver, newDoc, oldDoc.id]]);
   }
 
   // The query didn't contain the doc pre-mutation, but now it does contain
   // it, so tell the subscribed clients to add the doc.
   if (!oldDocPasses && newDocPasses)
-    return publishAddDoc(pubSub, this.channel, ns, newDoc, ver, txn);
+    return cb(null, [['addDoc', ns, ver, newDoc]]);
 };
-
-exports.publishFn     = publishFn;
-exports.publishAddDoc = publishAddDoc;
-exports.publishRmDoc  = publishRmDoc;
-
-function publishFn (pubSub, type, channel, data) {
-  pubSub.publish({type: type, params: { channel: channel, data: data }});
-}
-
-function publishAddDoc (pubSub, channel, ns, doc, ver, txn) {
-  publishFn(pubSub, 'addDoc', channel, {ns: ns, doc: doc, ver: ver});
-  publishFn(pubSub, 'txn', channel, txn);
-}
-
-function publishRmDoc (pubSub, channel, ns, doc, id, ver) {
-  publishFn(pubSub, 'rmDoc', channel, {ns: ns, doc: doc, ver: ver, id: id});
-}
-
