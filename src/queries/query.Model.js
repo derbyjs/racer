@@ -64,21 +64,18 @@ module.exports = {
     }
 
     // _arguments is an Array-like arguments whose members are either
-    // QueryBuilder instances
+    // QueryBuilder instances or Strings that represent paths or path patterns
   , _compileTargets: function (_arguments, opts) {
       var arglen = _arguments.length
         , last = _arguments[arglen-1]
-        , hasCb = (typeof last === 'function')
-        , cb = hasCb ? last : noop
-        , i = hasCb ? arglen-1 : arglen
+        , argumentsHaveCallback = (typeof last === 'function')
+        , cb = argumentsHaveCallback ? last : noop
 
         , newTargets = []
 
         , eachQueryTarget = opts.eachQueryTarget
         , eachPathTarget = opts.eachPathTarget
-        , done = opts.done
-
-        , self = this;
+        , done = opts.done;
 
       if (opts.compileModelAliases) {
         var modelAliases = []
@@ -89,6 +86,7 @@ module.exports = {
         newTargets.push(target);
       }
 
+      var i = argumentsHaveCallback ? arglen-1 : arglen;
       // Transform incoming targets into full set of `newTargets`.
       // Compile the list `out` of model aliases representative of the fetched
       // results, to pass back to the callback `cb`

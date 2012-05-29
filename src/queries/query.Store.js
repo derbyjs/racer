@@ -46,6 +46,8 @@ module.exports = {
         var fetchFn = ('string' === typeof target)
                     ? this._fetchPathData
                     : this._fetchQueryData;
+        // TODO We need to pass back array of document ids to assign to
+        //      queries.someid.resultIds
         fetchFn.call(this, target, function (path, datum, ver) {
           data.push([path, datum, ver]);
         }, finish);
