@@ -2,16 +2,21 @@
 {derefPath, lookupPath} = require './util'
 Model = require '../Model'
 
-exports = module.exports = (model, from, to, key) ->
+exports = module.exports = (model, from, to, key, hardLink) ->
   throw new Error 'Missing `from` in `model.ref(from, to, key)`' unless from
   throw new Error 'Missing `to` in `model.ref(from, to, key)`' unless to
 
   if key
-    return setupRefWithKey model, from, to, key
+    return setupRefWithKey model, from, to, key, hardLink
 
-  return setupRefWithoutKey model, from, to
+  return setupRefWithoutKey model, from, to, hardLink
 
-setupRefWithKey = (model, from, to, key) ->
+derefFn = (len, i, path, currPath, hardLink) ->
+  return if hardLink then -> currPath else
+    (method) ->
+      if i == len && method of Model.basicMutator then path else currPath
+
+setupRefWithKey = (model, from, to, key, hardLink) ->
   listeners = []
 
   getter = (lookup, data, path, props, len, i) ->
@@ -22,8 +27,7 @@ setupRefWithKey = (model, from, to, key) ->
     curr = lookup dereffed, data
     currPath = lookupPath dereffed, props, i
 
-    data.$deref = (method) ->
-      if i == len && method of Model.basicMutator then path else currPath
+    data.$deref = derefFn len, i, path, currPath, hardLink
 
     return [curr, currPath, i]
 
@@ -49,7 +53,7 @@ setupRefWithKey = (model, from, to, key) ->
 
   return getter
 
-setupRefWithoutKey = (model, from, to) ->
+setupRefWithoutKey = (model, from, to, hardLink) ->
   listeners = []
 
   getter = (lookup, data, path, props, len, i) ->
@@ -57,8 +61,7 @@ setupRefWithoutKey = (model, from, to) ->
     dereffed = derefPath data, to
     currPath = lookupPath dereffed, props, i
 
-    data.$deref = (method) ->
-      if i == len && method of Model.basicMutator then path else currPath
+    data.$deref = derefFn len, i, path, currPath, hardLink
 
     return [curr, currPath, i]
 

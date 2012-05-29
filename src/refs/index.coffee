@@ -21,9 +21,6 @@ mixin =
   events:
 
     init: (model) ->
-      # Used for model scopes
-      model._root = model
-
       # [[from, get, item], ...]
       model._refsToBundle = []
 
@@ -40,7 +37,8 @@ mixin =
       model.on 'beforeTxn', (method, args) ->
         if path = args[0]
           # Dereference transactions to operate on their absolute path
-          obj = memory.get path, data = model._specModel()
+          data = model._specModel()
+          obj = memory.get path, data
           if fn = data.$deref
             args[0] = fn method, args, model, obj
         return
@@ -68,13 +66,16 @@ mixin =
       @_memory.get path, data = @_specModel(), getRef
       return derefPath data, path
 
-    ref: (from, to, key) -> @_createRef createRef, 'ref', from, to, key
+    ref: (from, to, key, hardLink) ->
+      @_createRef createRef, 'ref', from, to, key, hardLink
 
-    refList: (from, to, key) -> @_createRef createRefList, 'refList', from, to, key
+    refList: (from, to, key, hardLink) ->
+      @_createRef createRefList, 'refList', from, to, key, hardLink
 
-    _createRef: (refFactory, modelMethod, from, to, key) ->
+    _createRef: (refFactory, modelMethod, from, to, key, hardLink) ->
       # Normalize `from`, `to`, `key` if we are a model scope
       if @_at
+        hardLink = key
         key = to
         to = from
         from = @_at
@@ -85,7 +86,7 @@ mixin =
       model = @_root
 
       model._ensurePrivateRefPath from, modelMethod
-      get = refFactory model, from, to, key
+      get = refFactory model, from, to, key, hardLink
 
       # Prevent emission of the next set event, since we are setting
       # the dereferencing function and not its value

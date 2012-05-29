@@ -3,7 +3,7 @@
 
 describe 'Model.at', ->
 
- it 'supports being created and accessed', ->
+  it 'supports being created and accessed', ->
     model = new Model
 
     expect(model.at('path').path()).to.equal 'path'

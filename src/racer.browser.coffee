@@ -45,5 +45,6 @@ exports = module.exports = (racer) ->
         return onready model
       racer.on 'ready', onready
 
+exports.decorate = 'racer'
 exports.useWith = server: false, browser: true
 exports.decorate = 'racer'

@@ -8,6 +8,9 @@ Model = module.exports = ->
   @_count = id: 0
   # Set max listeners to unlimited
   @setMaxListeners 0
+
+  # Used for model scopes
+  this._root = this
   @mixinEmit 'init', this
   return
 
@@ -120,7 +123,7 @@ eventListener = (method, pattern, callback, at) ->
     # on(type, listener)
     # Test for function by looking for call, since pattern can be a regex,
     # which has a typeof == 'function' as well
-    return pattern if pattern.call
+    return pattern if (typeof pattern == 'function') && pattern.call
 
   # on(method, pattern, callback)
   re = eventRegExp pattern
