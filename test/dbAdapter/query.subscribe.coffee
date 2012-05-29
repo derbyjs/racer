@@ -262,7 +262,7 @@ module.exports = (plugins) ->
         mutate: (model) ->
           model.del "#{@currNs}.1.name"
 
-      it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' + 
+      it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
          'and (2) a query matching the doc both pre- and post-mutation', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', name: 'Brian', age: 27}]
         queries: (query) ->
@@ -272,7 +272,7 @@ module.exports = (plugins) ->
           ]
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
-          model.on 'del', onMutation
+          model.on 'del', "#{@currNs}.1.age", onMutation
         preCondition: (model) ->
           expect(model.get "#{@currNs}.1").to.eql {id: '1', name: 'Brian', age: 27}
         postCondition: (model) ->
@@ -291,7 +291,7 @@ module.exports = (plugins) ->
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
           model.on 'addDoc', -> throw new Error 'Should not addDoc'
-          model.on 'del', onMutation
+          model.on 'del', "#{@currNs}.1.name", onMutation
         preCondition: (model) ->
           expect(model.get "#{@currNs}.1").to.eql {id: '1', name: 'Brian'}
         postCondition: (model) ->
@@ -329,7 +329,7 @@ module.exports = (plugins) ->
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
           queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
-            model.on 'push', onMutation
+            model.on 'push', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['hi', 'there']}
           postCondition: (model) ->
@@ -371,7 +371,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains(['command'])
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'push', onMutation
+            model.on 'push', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['command']}
           postCondition: (model) ->
@@ -388,7 +388,7 @@ module.exports = (plugins) ->
               query(@currNs).where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
-            model.on 'push', onMutation
+            model.on 'push', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: [{a: 1, b: 2}]}
           postCondition: (model) ->

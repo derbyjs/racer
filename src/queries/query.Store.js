@@ -3,6 +3,7 @@ var QueryHub = require('./QueryHub')
   , splitPath = path.split
   , lookup = path.lookup
   , finishAfter = require('../util/async').finishAfter
+  , privateQueryResultPointerPath = require('./util').privateQueryResultPointerPath
   ;
 
 module.exports = {
@@ -53,27 +54,29 @@ module.exports = {
         }, finish);
       }
     }
-    // TODO Add in an optimization later since query._paginatedCache
-    // can be read instead of going to the db. However, we must make
-    // sure that the cache is a consistent snapshot of a given moment
-    // in time. i.e., no versions of the cache should exist between
-    // an add/remove combined action that should be atomic but currently
-    // isn't
-    // TODO Get version consistency right in face of concurrent writes
-    // during query
   , _fetchQueryData: function (queryJson, eachDatumCb, finish) {
       this.query(queryJson, function (err, result, version) {
         if (err) return finish(err);
         var path;
         if (Array.isArray(result)) {
+          var resultIds = [];
           for (var i = result.length; i--; ) {
             var doc = result[i];
             path = queryJson.from + '.' + doc.id;
             eachDatumCb(path, doc, version);
+            resultIds.push(doc.id);
           }
+
+          // '_$queries.some-query-hash.resultIds'
+          path = privateQueryResultPointerPath(queryJson);
+          eachDatumCb(path, resultIds, version);
         } else if (result) {
           path = queryJson.from + '.' + result.id;
           eachDatumCb(path, result, version);
+
+          // '_$queries.some-query-hash.resultId'
+          path = privateQueryResultPointerPath(queryJson);
+          eachDatumCb(path, result.id, version);
         }
         finish(null);
       });

@@ -38,6 +38,19 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
     shouldSupportPaginatedSubscribe plugins
 
+    # These are queries whose parameter values can dynamically change. For
+    # example, this could come in handy in the following scenario:
+    #
+    # model.subscribe 'groups.' + id, (err, group) ->
+    #   alias = group.at('todoIds')
+    #   model.subscribe racer.query('todos').byKey(alias), (err, todos) ->
+    #     console.log(todos.get()); // => an array of todos
+    #
+    # In the above example, we want the second subscribe to subscribe to all
+    # todos corresponding to ids managed in "group.todoIds". The array of
+    # document ids at "group.todoIds" can change, and we want the second
+    # subscribe to be able to react to any such change and add/remove Todo
+    # documents to the todos results alias `todos`.
     describe 'dependent queries', ->
       it "should send updates when they react to their depedency queries' updates"
       it "should not send updates if its dependency queries emit updates that don't impact the dependent query"

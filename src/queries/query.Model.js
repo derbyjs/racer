@@ -3,6 +3,9 @@ var ModelQueryBuilder = require('./ModelQueryBuilder')
   , path = require('../path')
   , splitPath = path.split
   , expandPath = path.expand
+  , queryUtils = require('./util')
+  , privateQueryResultAliasPath = queryUtils.privateQueryResultAliasPath
+  , privateQueryResultPointerPath = queryUtils.privateQueryResultPointerPath
   ;
 
 module.exports = {
@@ -75,9 +78,10 @@ module.exports = {
 
         , eachQueryTarget = opts.eachQueryTarget
         , eachPathTarget = opts.eachPathTarget
-        , done = opts.done;
+        , done = opts.done
+        , compileModelAliases = opts.compileModelAliases;
 
-      if (opts.compileModelAliases) {
+      if (compileModelAliases) {
         var modelAliases = []
           , aliasPath;
       }
@@ -94,9 +98,18 @@ module.exports = {
         var target = _arguments[i];
         if (target instanceof QueryBuilder || target instanceof ModelQueryBuilder) {
           var queryJson = target.toJSON();
-          if (modelAliases) aliasPath = '_$queries.' + QueryBuilder.hash(queryJson) + '._results';
+          if (compileModelAliases) {
+            aliasPath = privateQueryResultAliasPath(queryJson);
+
+            // Refs, assemble!
+            var pointerPath = privateQueryResultPointerPath(queryJson);
+            if (queryJson.type === 'findOne') {
+              this.ref(aliasPath, queryJson.from, pointerPath);
+            } else {
+              this.refList(aliasPath, queryJson.from, pointerPath);
+            }
+          }
           eachQueryTarget.call(this, queryJson, addToTargets, aliasPath);
-          newTargets.push(queryJson);
         } else { // Otherwise, target is a path or model alias
           if (target._at) target = target._at;
           if (modelAliases) aliasPath = splitPath(target)[0];

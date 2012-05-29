@@ -110,7 +110,6 @@ module.exports = {
   }
 
 , proto: {
-    // TODO Change DS?
     _loadSubs: function (pathSubs, querySubList) {
       this._pathSubs = pathSubs;
       for (var queryJson in querySubList) {
@@ -126,13 +125,11 @@ module.exports = {
 
       this._compileTargets(arguments, {
         compileModelAliases: true
-      , eachQueryTarget: function (queryJson, addToTargets, aliasPath) {
+      , eachQueryTarget: function (queryJson, addToTargets) {
           var hash = QueryBuilder.hash(queryJson);
           if (! (hash in querySubs)) {
             querySubs[hash] = new MemoryQuery(queryJson);
             addToTargets(queryJson);
-            var pointerListPath = '_$queries.' + hash + '._resultIds';
-            this.refList(aliasPath, queryJson.from, pointerListPath);
           }
         }
       , eachPathTarget: function (path, addToTargets) {
