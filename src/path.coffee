@@ -6,9 +6,11 @@ module.exports =
 
   eventRegExp: (pattern) ->
    if pattern instanceof RegExp then pattern else
-      new RegExp '^' + pattern.replace(/[,.*]/g, (match, index) ->
+      new RegExp '^' + pattern.replace(/[,.*$]/g, (match, index) ->
         # Escape periods
         if match is '.' then '\\.'
+        # Escape dollar sign
+        else if match is '$' then '\\$'
         # Commas can be used for or, as in path.(one,two)
         else if match is ',' then '|'
         # An asterisk matches any single path segment in the middle
@@ -19,9 +21,11 @@ module.exports =
   regExp: (pattern) ->
     # Match anything if there is no pattern or the pattern is ''
     if !pattern then /^/ else
-      new RegExp '^' + pattern.replace(/[.*]/g, (match, index) ->
+      new RegExp '^' + pattern.replace(/[.*$]/g, (match, index) ->
         # Escape periods
         if match is '.' then '\\.'
+        # Escape dollar sign
+        else if match is '$' then '\\$'
         # An asterisk matches any single path segment in the middle
         else '[^.]+'
         # All subscriptions match the root and any path below the root
