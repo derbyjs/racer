@@ -109,6 +109,20 @@ mergeAll Model::, EventEmitter::,
 
 Model::addListener = Model::on
 
+# Returns a function that is assigned as an event listener on method events
+# such as 'set', 'insert', etc.
+#
+# Possible signatures are:
+#
+# eventListener(method, pattern, callback, at)
+# eventListener(method, pattern, callback)
+# eventListener(method, callback)
+#
+# @param {String} method
+# @param {String} pattern
+# @param {Function} callback
+# @param {String} at
+# @return {Function} function ([path, args...], out, isLocal, pass)
 eventListener = (method, pattern, callback, at) ->
   if at
     if typeof pattern is 'string'
@@ -127,11 +141,8 @@ eventListener = (method, pattern, callback, at) ->
 
   # on(method, pattern, callback)
   re = eventRegExp pattern
-  return (methodArgs, out, isLocal, pass) ->
-    path = methodArgs[0]
+  return ([path, args...], out, isLocal, pass) ->
     if re.test path
-      args = methodArgs.slice(1)
-      argsForEmit = re.exec(path).slice(1).concat args
-      argsForEmit.push out, isLocal, pass
-      callback argsForEmit...
+      captures = re.exec(path).slice(1)
+      callback captures..., args..., out, isLocal, pass
       return true
