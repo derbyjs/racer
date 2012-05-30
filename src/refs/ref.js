@@ -5,7 +5,9 @@ var eventRegExp = require('../path').eventRegExp
   , Model = require('../Model')
   ;
 
-exports = module.exports = function (model, from, to, key, hardLink) {
+exports = module.exports = createRef;
+
+function createRef (model, from, to, key, hardLink) {
   if (!from) {
     throw new Error('Missing `from` in `model.ref(from, to, key)`');
   }
@@ -15,7 +17,7 @@ exports = module.exports = function (model, from, to, key, hardLink) {
 
   if (key) return setupRefWithKey(model, from, to, key, hardLink);
   return setupRefWithoutKey(model, from, to, hardLink);
-};
+}
 
 exports.addListener = addListener;
 
@@ -91,13 +93,23 @@ function setupRefWithoutKey (model, from, to, hardLink) {
   return getter;
 }
 
+/**
+ * Add a listener function (method, path, arguments) on the 'mutator' event.
+ * The listener ignores mutator events that fire on paths that do not match
+ * `pattern`
+ * @param {Model} model is the model we are adding the listener to
+ * @param {String} from is the private path of the ref
+ * @param {Function} getter
+ * @param {String} pattern
+ * @param {Function} callback(match, mutator, args)
+ */
 function addListener (model, from, getter, listeners, pattern, callback) {
   var re = eventRegExp(pattern);
   function listener (mutator, path, _arguments) {
     if (! re.test(path)) return;
 
+    // Lazy cleanup of listeners
     if (model._getRef(from) !== getter) {
-      // Clean up listeners
       for (var i = listeners.length; i--; ) {
         model.removeListener('mutator', listeners[i]);
       }
