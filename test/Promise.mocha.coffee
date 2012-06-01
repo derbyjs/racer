@@ -66,11 +66,12 @@ describe 'Promise', ->
     p1 = new Promise
     p2 = new Promise
     p1Val = p2Val = null
-    p1.on (val) -> p1Val = val
-    p2.on (val) -> p2Val = val
-    p = Promise.parallel([p1, p2]).on ->
+    p1.on (err, val) -> p1Val = val
+    p2.on (err, val) -> p2Val = val
+    p = Promise.parallel([p1, p2]).on (err, values) ->
       expect(p1Val).to.eql 'hello'
       expect(p2Val).to.eql 'world'
+      expect(values).to.eql ['hello', 'world']
       done()
-    p1.resolve 'hello'
-    p2.resolve 'world'
+    p1.resolve null, 'hello'
+    p2.resolve null, 'world'
