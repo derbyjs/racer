@@ -194,3 +194,18 @@ exports.triplet = function triplet (path) {
 exports.subPathToDoc = function subPathToDoc (path) {
   return path.split('.').slice(0, 2).join('.');
 };
+
+exports.join = function join () {
+  var joinedPath = [];
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    var component = arguments[i];
+    if (typeof component === 'string') {
+      joinedPath.push(component);
+    } else if (Array.isArray(component)) {
+      joinedPath.push.apply(joinedPath, component);
+    } else {
+      throw new Error('path.join only takes strings and Arrays as arguments');
+    }
+  }
+  return joinedPath.join('.');
+};
