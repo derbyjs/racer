@@ -60,7 +60,7 @@ module.exports = {
         var path;
         if (Array.isArray(result)) {
           var resultIds = [];
-          for (var i = result.length; i--; ) {
+          for (var i = 0, l = result.length; i < l; i++) {
             var doc = result[i];
             path = queryJson.from + '.' + doc.id;
             eachDatumCb(path, doc, version);
