@@ -13,7 +13,7 @@ exports.decorate = 'racer';
 exports.useWith = { server: true, browser: false };
 
 function plugin (racer) {
-  racer.version = require('../package.json').version;
+  racer.version = require('../package').version;
 
   /* For use by all other plugins */
   mergeAll(racer.protected, {
