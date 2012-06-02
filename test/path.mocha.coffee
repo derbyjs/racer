@@ -4,7 +4,8 @@
 , eventRegExp
 , split
 , expand
-, objectExcept} = require '../lib/path'
+, objectExcept
+, join} = require '../lib/path'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList
@@ -192,3 +193,13 @@ describe 'path', ->
       expect(newObj.name).to.only.have.key('last')
 
     it 'should handle array index exceptions'
+
+  describe '#join', ->
+    it 'should work on 2 strings', ->
+      expect(join 'a', 'b').to.equal 'a.b'
+
+    it 'should work on 2 arrays', ->
+      expect(join ['a', 'b'], ['c', 'd']).to.equal 'a.b.c.d'
+
+    it 'should work on a string and an array', ->
+      expect(join 'a.b', ['c', 'd']).to.equal 'a.b.c.d'
