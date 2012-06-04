@@ -10,11 +10,13 @@ exports.isPattern = function isPattern (x) { return -1 === x.indexOf('*'); };
 exports.eventRegExp = function eventRegExp (pattern) {
   if (pattern instanceof RegExp) return pattern;
   var self = this;
-  return new RegExp('^' + pattern.replace(/[,.*$]/g, function (match, index) {
+  return new RegExp('^' + pattern.replace(/[,.*$^]/g, function (match, index) {
     // Escape periods
     if (match === '.') return '\\.';
 
     if (match === '$') return '\\$';
+
+    if (match === '^') return '\\^';
 
     // Commas can be used for or, as in path.(one,two)
     if (match === ',') return '|';
