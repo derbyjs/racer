@@ -188,12 +188,12 @@ function eventListener (method, pattern, callback, at) {
   var regexp = eventRegExp(pattern);
   return function (args, out, isLocal, pass) {
     var path = args[0];
-    if (regexp.test(path)) {
-      args = args.slice(1);
-      var captures = regexp.exec(path).slice(1)
-        , callbackArgs = captures.concat(args).concat([out, isLocal, pass]);
-      callback.apply(null, callbackArgs);
-      return true;
-    }
+    if (! regexp.test(path)) return;
+
+    args = args.slice(1);
+    var captures = regexp.exec(path).slice(1)
+      , callbackArgs = captures.concat(args).concat([out, isLocal, pass]);
+    callback.apply(null, callbackArgs);
+    return true;
   };
 }
