@@ -1,14 +1,12 @@
 var pathUtils             = require('../path')
-  , isPrivate             = pathUtils.isPrivate
   , regExpPathOrParent    = pathUtils.regExpPathOrParent
   , regExpPathsOrChildren = pathUtils.regExpPathsOrChildren
-  , derefPath             = require('./util').derefPath
+  , refUtils              = require('./util')
+  , derefPath             = refUtils.derefPath
+  , assertPrivateRefPath  = refUtils.assertPrivateRefPath
   , createRef             = require('./ref')
   , createRefList         = require('./refList')
-  , util                  = require('../util')
-  , isServer              = util.isServer
-  , equal                 = util.equal
-  , racer                 = require('../racer')
+  , equal                 = require('../util').equal
   ;
 
 exports = module.exports = plugin;
@@ -36,8 +34,7 @@ var mixin = {
       for (var method in Model.mutator) {
         model.on(method, (function (method) {
           return function (args) {
-            var path = args[0];
-            model.emit('mutator', method, path, arguments);
+            model.emit('mutator', method, arguments);
           };
         })(method));
       }
@@ -50,6 +47,9 @@ var mixin = {
         // De-reference transactions to operate on their absolute path
         var data = model._specModel()
           , obj  = memory.get(path, data)
+
+            // $deref may be assigned by a getter during the lookup of path in
+            // data via memory.get(path, data)
           , fn   = data.$deref;
         if (fn) {
           args[0] = fn(method, args, model, obj);
@@ -65,9 +65,9 @@ var mixin = {
       for (var i = 0, l = refsToBundle.length; i < l; i++) {
         var triplet = refsToBundle[i]
           , from    = triplet[0]
-          , get     = triplet[1]
+          , getter  = triplet[1]
           , item    = triplet[2];
-        if (model._getRef(from) === get) {
+        if (model._getRef(from) === getter) {
           onLoad.push(item);
         }
       }
@@ -80,27 +80,66 @@ var mixin = {
   }
 
 , proto: {
+    /**
+     * Assuming that a ref getter was assigned to `path`, this function will
+     * return that ref getter function.
+     * @param {String} path
+     * @return {Function} the ref getter
+     */
     _getRef: function (path) {
+      // The 3rd argument `true` below tells Memory#get to return the ref
+      // getter function, instead of invoking the getter function and resolve
+      // the dereferenced value of the ref.
       return this._memory.get(path, this._specModel(), true);
     }
-  , _ensurePrivateRefPath: function (from, modelMethod) {
-      if (! isPrivate(this.dereference(from, true)) ) {
-        throw new Error('Cannot create ' + modelMethod + ' on public path ' + from);
-      }
-    }
+
+    /**
+     * @param {String} path
+     * @param {Boolean} getRef
+     * @return {String}
+     */
   , dereference: function (path, getRef) {
       if (!getRef) getRef = false;
       var data = this._specModel();
       this._memory.get(path, data, getRef);
       return derefPath(data, path);
     }
+
+    /**
+     * Creates a ref at `from` that points to `to`, with an optional `key`
+     * @param {String} from path
+     * @param {String} to path
+     * @param {String} @optional key path
+     * @param {Boolean} hardLink
+     * @return {Model} a model alias scoped to `from`
+     */
   , ref: function (from, to, key, hardLink) {
       return this._createRef(createRef, 'ref', from, to, key, hardLink);
     }
+
+    /**
+     * Creates a refList at `from` with an array of pointers at `key` that
+     * point to documents in `to`.
+     * @param {String} from path
+     * @param {String} to path
+     * @param {String} key path
+     * @param {Boolean} hardLink
+     * @return {Model} a model alias scoped to `from`
+     */
   , refList: function (from, to, key, hardLink) {
       return this._createRef(createRefList, 'refList', from, to, key, hardLink);
     }
-  , _createRef: function (refFactory, modelMethod, from, to, key, hardLink) {
+
+    /**
+     * @param {Function} refFactory
+     * @param {String} refType is either 'ref' or 'refList'
+     * @param {String} from path
+     * @param {String} to path
+     * @param {key} key path
+     * @param {Boolean} hardLink
+     * @return {Model} a model alias scoped to the `from` path
+     */
+  , _createRef: function (refFactory, refType, from, to, key, hardLink) {
       // Normalize `from`, `to`, `key` if we are a model scope
       if (this._at) {
         hardLink = key;
@@ -115,59 +154,70 @@ var mixin = {
 
       var model = this._root;
 
-      model._ensurePrivateRefPath(from, modelMethod);
-      var get = refFactory(model, from, to, key, hardLink);
+      assertPrivateRefPath(model, from, refType);
+      var getter = refFactory(model, from, to, key, hardLink);
 
       // Prevent emission of the next set event, since we are setting the
       // dereferencing function and not its value.
       var listener = model.on('beforeTxn', function (method, args) {
         // Supress emission of set events when setting a function, which is
         // what happens when a ref is created
-        if (method === 'set' && args[1] === get) {
+        if (method === 'set' && args[1] === getter) {
           args.cancelEmit = true;
           model.removeListener('beforeTxn', listener);
         }
       });
 
-      var previous = model.set(from, get);
+      // Now, set the dereferencing function
+      var prevValue = model.set(from, getter);
       // Emit a set event with the expected de-referenced values
-      var value = model.get(from);
-      model.emit('set', [from, value], previous, true, undefined);
+      var newValue = model.get(from);
+      model.emit('set', [from, newValue], prevValue, true);
 
-      // The server model adds [from, get, [modelMethod, from, to, key]] to
+      // The server model adds [from, getter, [refType, from, to, key]] to
       // this._refsToBundle
       if (this._onCreateRef) {
-        this._onCreateRef(modelMethod, from, to, key, get);
+        this._onCreateRef(refType, from, to, key, getter);
       }
 
       return model.at(from);
     }
 
-    // model.fn(inputs... ,fn);
-    //
-    // Defines a reactive value that depends on the paths represented by
-    // `inputs`, which are used by `fn` to re-calculate a return value every
-    // time any of the `inputs` change.
-  , fn: function () {
+    /**
+     * TODO
+     * Works similar to model.fn(inputs..., fn) but without having to declare
+     * inputs. This means that fn also takes no arguments
+     */
+  , autofn: function (fn) {
+      autodep(this, fn);
+    }
+
+    /**
+     * model.fn(inputs... ,fn);
+     *
+     * Defines a reactive value that depends on the paths represented by
+     * `inputs`, which are used by `fn` to re-calculate a return value every
+     * time any of the `inputs` change.
+     */
+  , fn: function (/* inputs..., fn */) {
       var arglen = arguments.length
         , inputs = Array.prototype.slice.call(arguments, 0, arglen-1)
         , fn = arguments[arglen-1];
 
       // Convert scoped models into paths
       for (var i = 0, l = inputs.length; i < l; i++) {
-        var input = inputs[i]
-          , fullPath = input._at;
-        if (fullPath) inputs[i] = fullPath;
+        var scopedPath = inputs[i]._at;
+        if (scopedPath) inputs[i] = scopedPath;
       }
 
-      var path = (this._at) // If we are a scoped model, scoped to this._at
-               ? this._at + '.' + inputs.shift()
-               : inputs.shift();
-      var model = this._root;
+      var path  = (this._at) // If we are a scoped model, scoped to this._at
+                ? this._at + '.' + inputs.shift()
+                : inputs.shift()
+        , model = this._root;
 
-      model._ensurePrivateRefPath(path, 'fn');
+      assertPrivateRefPath(this, path, 'fn');
       if (typeof fn === 'string') {
-        fn = (new Function('return + fn'))();
+        fn = (new Function('return ' + fn))();
       }
       return model._createFn(path, inputs, fn);
     }
@@ -186,7 +236,8 @@ var mixin = {
         , destroy = this._onCreateFn && this._onCreateFn(path, inputs, fn)
         , self = this;
 
-      var listener = this.on('mutator', function (mutator, mutatorPath, _arguments) {
+      var listener = this.on('mutator', function (mutator, _arguments) {
+        var mutatorPath = _arguments[0][0];
         // Ignore mutations created by this reactive function
         if (_arguments[3] === listener) return;
 

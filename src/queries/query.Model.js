@@ -12,6 +12,8 @@ module.exports = {
   type: 'Model'
 , events: {
     init: function (model) {
+      // TODO We use neither of these data structures
+
       // maps hash -> 1
       model._privateQueries = {}
 
@@ -83,7 +85,9 @@ module.exports = {
 
       if (compileModelAliases) {
         var modelAliases = []
-          , aliasPath;
+          , aliasPath
+          , modelAlias
+          , querySubs = this._querySubs;
       }
 
       function addToTargets (target) {
@@ -96,6 +100,7 @@ module.exports = {
       // results, to pass back to the callback `cb`
       while (i--) {
         var target = _arguments[i];
+        // TODO Reduce to 1 instanceof by making ModelQueryBuilder inherit from QueryBuilder
         if (target instanceof QueryBuilder || target instanceof ModelQueryBuilder) {
           var queryJson = target.toJSON();
           if (compileModelAliases) {
@@ -104,27 +109,61 @@ module.exports = {
             // Refs, assemble!
             var pointerPath = privateQueryResultPointerPath(queryJson);
             if (queryJson.type === 'findOne') {
-              this.ref(aliasPath, queryJson.from, pointerPath);
+              // TODO Test findOne single query result
+              modelAlias = this.ref(aliasPath, queryJson.from, pointerPath);
             } else {
-              this.refList(aliasPath, queryJson.from, pointerPath);
+              modelAlias = this.refList(aliasPath, queryJson.from, pointerPath);
+              var hash = QueryBuilder.hash(queryJson)
+                , ns = queryJson.from;
+              var listener = (function (querySubs, hash, ns, modelAlias, model, pointerPath) {
+                return function (id, doc) {
+                  var memoryQuery = querySubs[hash]
+                  if (! memoryQuery.filterTest(doc, ns)) return;
+                  var comparator = memoryQuery._comparator;
+                  var currResults = modelAlias.get();
+                  if (!comparator) {
+                    return model.insert(pointerPath, currResults.length, doc);
+                  }
+                  for (var k = currResults.length; k--; ) {
+                    var currRes = currResults[k];
+                    var comparison = comparator(doc, currRes);
+                    if (comparison >= 0) {
+                      return model.insert(pointerPath, k+1, doc.id);
+                    }
+                  }
+                  return model.insert(pointerPath, 0, doc);
+                };
+              })(querySubs, hash, ns, modelAlias, this, pointerPath);
+              this.on('set', ns + '.*', listener);
+
+              listener = (function (model, pointerPath) {
+                return function (id) {
+                  var pos = model.get(pointerPath).indexOf(id);
+                  if (~pos) model.remove(pointerPath, pos, 1);
+                }
+              })(this, pointerPath);
+              this.on('del', ns + '.*', listener);
             }
           }
           eachQueryTarget.call(this, queryJson, addToTargets, aliasPath);
         } else { // Otherwise, target is a path or model alias
           if (target._at) target = target._at;
-          if (modelAliases) aliasPath = splitPath(target)[0];
+          if (compileModelAliases) {
+            aliasPath = splitPath(target)[0];
+            modelAlias = this.at(aliasPath);
+          }
           var paths = expandPath(target);
           for (var k = paths.length; k--; ) {
             var path = paths[k];
             eachPathTarget.call(this, path, addToTargets, aliasPath);
           }
         }
-        if (modelAliases) {
-          modelAliases.push(this.at(aliasPath, true));
+        if (compileModelAliases) {
+          modelAliases.push(modelAlias, true);
         }
       }
 
-      if (modelAliases) {
+      if (compileModelAliases) {
         done.call(this, newTargets, modelAliases, cb);
       } else {
         done.call(this, newTargets, cb);

@@ -56,7 +56,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql [users[2], users[1]]
+          expect(results).to.eql [users[1], users[2]]
           done()
 
     describe 'one parameter `gte` queries', ->
@@ -77,7 +77,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql([users[2], users[1]])
+          expect(results).to.eql([users[1], users[2]])
           done()
 
     describe 'one parameter `lt` queries', ->
@@ -98,7 +98,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql [users[1], users[0]]
+          expect(results).to.eql [users[0], users[1]]
           done()
 
     describe 'one parameter `lte` queries', ->
@@ -119,7 +119,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql [users[1], users[0]]
+          expect(results).to.eql [users[0], users[1]]
           done()
 
     describe 'one parameter `within` queries', ->
@@ -140,7 +140,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql [users[2], users[0]]
+          expect(results).to.eql [users[0], users[2]]
           done()
 
     describe 'one parameter `contains` scalar queries', ->
@@ -161,7 +161,7 @@ module.exports = ->
         @model.subscribe @query, (err, resultsAlias) ->
           results = resultsAlias.get()
           expect(results).to.have.length(2)
-          expect(results).to.eql [users[1], users[0]]
+          expect(results).to.eql [users[0], users[1]]
           done()
 
     describe 'compound queries', ->

@@ -5,35 +5,6 @@ sinon = require 'sinon'
 
 module.exports = (plugins) ->
   describe 'subscribe', ->
-    describe 'set <namespace>.<id>', ->
-      userLeo  = id: '1', name: 'leo'
-      userBill = id: '2', name: 'bill'
-      userSue  = id: '3', name: 'sue'
-
-      it 'should publish the txn *only* to relevant live `equals` queries', (done) ->
-        {store, currNs} = this
-        mockFullSetup store, done, plugins, (modelLeo, modelBill, done) ->
-          finish = finishAfter 2, ->
-            modelSue = store.createModel()
-            modelSue.set "#{currNs}.1", userLeo
-            modelSue.set "#{currNs}.2", userBill
-            modelSue.set "#{currNs}.3", userSue
-            done()
-
-          queryLeo = modelLeo.query(currNs).where('name').equals('leo')
-          modelLeo.subscribe queryLeo, ->
-            modelLeo.on 'set', "#{currNs}.*", (id, user) ->
-              expect(id).to.equal '1'
-              expect(user).to.eql userLeo
-            finish()
-
-          queryBill = modelBill.query(currNs).where('name').equals('bill')
-          modelBill.subscribe queryBill, ->
-            modelBill.on 'set', "#{currNs}.*", (id, user) ->
-              expect(id).to.equal '2'
-              expect(user).to.eql userBill
-            finish()
-
     storeId = 1
     test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
       return (done) ->
@@ -47,6 +18,63 @@ module.exports = (plugins) ->
             modelA.subscribe queries.call(testContext, modelA.query)..., ->
               preCondition.call testContext, modelA
               mutate.call testContext, modelB
+
+    describe 'set <namespace>.<id>', ->
+      it 'should publish the txn *only* to relevant live `equals` queries', (done) ->
+        userLeo  = id: '1', name: 'leo'
+        userBill = id: '2', name: 'bill'
+        userSue  = id: '3', name: 'sue'
+
+        {store, currNs} = this
+        mockFullSetup store, done, plugins, (modelLeo, modelBill, done) ->
+          finish = finishAfter 2, ->
+            modelSue = store.createModel()
+            modelSue.set "#{currNs}.1", userLeo
+            modelSue.set "#{currNs}.2", userBill
+            modelSue.set "#{currNs}.3", userSue
+            done()
+
+          queryLeo = modelLeo.query(currNs).where('name').equals('leo')
+          modelLeo.subscribe queryLeo, ->
+            modelLeo.on 'set', "#{currNs}.1", (user) ->
+              expect(user).to.eql userLeo
+            finish()
+
+          queryBill = modelBill.query(currNs).where('name').equals('bill')
+          modelBill.subscribe queryBill, ->
+            modelBill.on 'set', "#{currNs}.2", (user) ->
+              expect(user).to.eql userBill
+            finish()
+
+      it 'should update the relevant query results alias', (done) ->
+        {store, currNs} = this
+        docOne = id: '1', age: 20
+        docTwo = id: '2', age: 30
+        docThree = id: '3', age: 25
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+          store.set "#{currNs}.1", docOne, null, ->
+            store.set "#{currNs}.2", docTwo, null, ->
+              modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                expect(results.get()).to.eql [docOne, docTwo]
+                results.on 'insert', ->
+                  expect(results.get()).to.eql [docOne, docThree, docTwo]
+                  done()
+
+                modelB.set "#{currNs}.3", docThree
+
+      it 'should emit insert events on the refList of relevant query results for a new addition to the result set', (done) ->
+        {store, currNs} = this
+        docOne = id: '1', age: 20
+        docTwo = id: '2', age: 30
+        docThree = id: '3', age: 25
+        mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+          store.set "#{currNs}.1", docOne, null, ->
+            store.set "#{currNs}.2", docTwo, null, ->
+              modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                expect(results.get()).to.eql [docOne, docTwo]
+                results.on 'insert', ->
+                  done()
+                modelB.set "#{currNs}.3", docThree
 
     describe 'set <namespace>.<id>.*', ->
       describe 'for equals queries', ->

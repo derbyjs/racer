@@ -1,26 +1,37 @@
-var eventRegExp = require('../path').eventRegExp
-  , refUtils = require('./util')
+var refUtils = require('./util')
   , derefPath = refUtils.derefPath
-  , lookupPath = refUtils.lookupPath
+  , addListener = refUtils.addListener
+  , joinPaths = require('../path').join
   , Model = require('../Model')
   ;
 
 exports = module.exports = createRef;
 
 function createRef (model, from, to, key, hardLink) {
-  if (!from) {
+  if (!from)
     throw new Error('Missing `from` in `model.ref(from, to, key)`');
-  }
-  if (!to) {
+  if (!to)
     throw new Error('Missing `to` in `model.ref(from, to, key)`');
-  }
 
-  if (key) return setupRefWithKey(model, from, to, key, hardLink);
-  return setupRefWithoutKey(model, from, to, hardLink);
+  if (key) {
+    var getter = createGetterWithKey(to, key, hardLink);
+    setupRefWithKeyListeners(model, from, to, key, getter);
+    return getter;
+  }
+  var getter = createGetterWithoutKey(to, hardLink);
+  setupRefWithoutKeyListeners(model, from, to, getter);
+  return getter;
 }
 
-exports.addListener = addListener;
-
+/**
+ * Generates a function that is assigned to data.$deref
+ * @param {Number} len
+ * @param {Number} i
+ * @param {String} path
+ * @param {String} currPath
+ * @param {Boolean} hardLink
+ * @return {Function}
+ */
 function derefFn (len, i, path, currPath, hardLink) {
   if (hardLink) return function () { return currPath; };
   return function (method) {
@@ -28,21 +39,51 @@ function derefFn (len, i, path, currPath, hardLink) {
   };
 }
 
-function setupRefWithKey (model, from, to, key, hardLink) {
-  var listeners = [];
-
-  function getter (lookup, data, path, props, len, i) {
+/**
+ * Returns a getter function that is assigned to the ref's `from` path. When a
+ * lookup function encounters the getter, it invokes the getter in order to
+ * navigate to the proper node in `data` that is pointed to by the ref. The
+ * invocation also "expands" the current path to the absolute path pointed to
+ * by the ref.
+ *
+ * @param {String} to path
+ * @param {String} key path
+ * @param {Boolean} hardLink
+ * @return {Function} getter
+ */
+function createGetterWithKey (to, key, hardLink) {
+  /**
+   * @param {Function} lookup as defined in Memory.js
+   * @param {Object} data is all data in the Model or the spec model
+   * @param {String} path is the path traversed so far
+   * @param {[String]} props is the array of all properties that we want to traverse
+   * @param {Number} len is the number of properties in props
+   * @param {Number} i is the index in props representing the current property
+   * we are at in our traversal of props
+   * @return {[Object, String, Number]} [current node in data, current path,
+   * current props index]
+   */
+  return function getter (lookup, data, path, props, len, i) {
     lookup(to, data);
-    var dereffed = derefPath(data, to) + '.';
+    var dereffedPath = derefPath(data, to);
+
+    // Unset $deref
     data.$deref = null;
-    dereffed += lookup(key, data);
-    var curr = lookup(dereffed, data)
-      , currPath = lookupPath(dereffed, props, i);
+
+    dereffedPath += '.' + lookup(key, data);
+    var curr = lookup(dereffedPath, data)
+      , currPath = joinPaths(dereffedPath, props.slice(i));
+
+    // Reset $deref
     data.$deref = derefFn(len, i, path, currPath, hardLink);
+
     return [curr, currPath, i];
   }
+}
 
-  addListener(model, from, getter, listeners, to + '.*', function (match) {
+function setupRefWithKeyListeners (model, from, to, key, getter) {
+  var listeners = [];
+  addListener(listeners, model, from, getter, to + '.*', function (match) {
     var keyPath = model.get(key) + '' // Cast to string
       , remainder = match[1];
     if (remainder === keyPath) return from;
@@ -56,7 +97,7 @@ function setupRefWithKey (model, from, to, key, hardLink) {
     return null;
   });
 
-  addListener(model, from, getter, listeners, key, function (match, mutator, args) {
+  addListener(listeners, model, from, getter, key, function (match, mutator, args) {
     if (mutator === 'set') {
       args[1] = model.get(to + '.' + args[1]);
       args.out = model.get(to + '.' + args.out);
@@ -65,65 +106,28 @@ function setupRefWithKey (model, from, to, key, hardLink) {
     }
     return from;
   });
-
-  return getter;
 }
 
-function setupRefWithoutKey (model, from, to, hardLink) {
-  var listeners = [];
-
-  function getter (lookup, data, path, props, len, i) {
+function createGetterWithoutKey (to, hardLink) {
+  // TODO Bleeding abstraction - This is very much coupled to Memory's implementation and internals.
+  return function getter (lookup, data, path, props, len, i) {
     var curr = lookup(to, data)
-      , dereffed = derefPath(data, to)
-      , currPath = lookupPath(dereffed, props, i);
+      , dereffedPath = derefPath(data, to)
+      , currPath = joinPaths(dereffedPath, props.slice(i));
 
     data.$deref = derefFn(len, i, path, currPath, hardLink);
 
     return [curr, currPath, i];
-  }
+  };
+}
 
-  addListener(model, from, getter, listeners, to + '.*', function (match) {
+function setupRefWithoutKeyListeners(model, from, to, getter) {
+  var listeners = [];
+  addListener(listeners, model, from, getter, to + '.*', function (match) {
     return from + '.' + match[1];
   });
 
-  addListener(model, from, getter, listeners, to, function () {
+  addListener(listeners, model, from, getter, to, function () {
     return from;
   });
-
-  return getter;
-}
-
-/**
- * Add a listener function (method, path, arguments) on the 'mutator' event.
- * The listener ignores mutator events that fire on paths that do not match
- * `pattern`
- * @param {Model} model is the model we are adding the listener to
- * @param {String} from is the private path of the ref
- * @param {Function} getter
- * @param {String} pattern
- * @param {Function} callback(match, mutator, args)
- */
-function addListener (model, from, getter, listeners, pattern, callback) {
-  var re = eventRegExp(pattern);
-  function listener (mutator, path, _arguments) {
-    if (! re.test(path)) return;
-
-    // Lazy cleanup of listeners
-    if (model._getRef(from) !== getter) {
-      for (var i = listeners.length; i--; ) {
-        model.removeListener('mutator', listeners[i]);
-      }
-      return;
-    }
-
-    var args = _arguments[0].slice();
-    args.out = _arguments[1];
-    var path = callback(re.exec(path), mutator, args);
-    if (path === null) return;
-    args[0] = path;
-    model.emit(mutator, args, args.out, _arguments[2], _arguments[3]);
-  }
-
-  listeners.push(listener);
-  model.on('mutator', listener);
 }

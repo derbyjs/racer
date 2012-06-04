@@ -1,9 +1,9 @@
 var hasKeys = require('../util').hasKeys
   , refUtils = require('./util')
   , derefPath = refUtils.derefPath
-  , lookupPath = refUtils.lookupPath
+  , addListener = refUtils.addListener
+  , joinPaths = require('../path').join
   , Model = require('../Model')
-  , addListener = require('./ref').addListener
   ;
 
 module.exports = createRefList;
@@ -12,13 +12,13 @@ function createRefList (model, from, to, key) {
   if (!from || !to || !key) {
     throw new Error('Invalid arguments for model.refList');
   }
-  var listeners = []
-    , arrayMutators = Model.arrayMutator
+  var arrayMutators = Model.arrayMutator
+    , getter = createGetter(from, to, key)
+    , listeners = [];
 
-    , getter = createGetter(from, to, key);
-
-  addListener(model, from, getter, listeners, key, function (match, method, args) {
-    var i = arrayMutators[method] && arrayMutators[method].insertArgs;
+  addListener(listeners, model, from, getter, key, function (regexpMatch, method, args) {
+    var methodMeta = arrayMutators[method]
+      , i = methodMeta && methodMeta.insertArgs;
     if (i) {
       var id;
       while ((id = args[i]) && id != null) {
@@ -29,8 +29,8 @@ function createRefList (model, from, to, key) {
     return from;
   });
 
-  addListener(model, from, getter, listeners, to + '.*', function (match) {
-    var id = match[1]
+  addListener(listeners, model, from, getter, to + '.*', function (regexpMatch) {
+    var id = regexpMatch[1]
       , i = id.indexOf('.')
       , remainder;
     if (~i) {
@@ -75,7 +75,7 @@ function createGetter (from, to, key) {
 
     if (i === len) {
       // Method is on the refList itself
-      currPath = lookupPath(dereffed, props, i);
+      currPath = joinPaths(dereffed, props.slice(i));
 
       data.$deref = function (method, args, model) {
         if (method in basicMutators) return path;
@@ -134,7 +134,7 @@ function createGetter (from, to, key) {
 
       if (i === len) {
         // Method is on an index of refList
-        currPath = lookupPath(dereffed, props, i);
+        currPath = joinPaths(dereffed, props.slice(i));
 
         data.$deref = function (method, args, model, obj) {
           // TODO Additional model methods should be done atomically with the
@@ -168,7 +168,9 @@ function createGetter (from, to, key) {
 
       } else { // if (i !== len)
         // Method is on a child of the refList
-        currPath = lookupPath(dereffed + '.' + prop, props, i);
+        currPath = (prop == null)
+                 ? joinPaths(dereffed, props.slice(i))
+                 : joinPaths(dereffed, prop, props.slice(i));
 
         data.$deref = function (method) {
           if (method && prop == null) {
