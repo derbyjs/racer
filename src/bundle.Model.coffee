@@ -26,6 +26,10 @@ mixin =
 
     _bundle: (callback) ->
       callback JSON.stringify [@_clientId, @_memory, @_count, @_onLoad, @_startId, @_ioUri]
+      this._commit = errorOnCommit
 
 onBundleTimeout = ->
   throw new Error "Model bundling took longer than #{mixin.static.BUNDLE_TIMEOUT} ms"
+
+errorOnCommit = ->
+  throw new Error "Model mutation performed after bundling for clientId: " + @_clientId
