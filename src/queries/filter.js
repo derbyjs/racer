@@ -78,7 +78,7 @@ var fieldPredicates = {
   , within: function (fieldName, list, doc) {
       if (!list.length) return false;
       var x = lookup(fieldName, doc);
-      if (x.constructor === Object) return ~deepIndexOf(list, x);
+      if (x && x.constructor === Object) return ~deepIndexOf(list, x);
       return ~list.indexOf(x);
     }
   , contains: function (fieldName, list, doc) {
