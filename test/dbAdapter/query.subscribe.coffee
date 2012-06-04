@@ -146,6 +146,21 @@ module.exports = (plugins) ->
           mutate: (model) ->
             model.set "#{@currNs}.1.age", 28
 
+        it 'should update the relevant query results alias', (done) ->
+          {store, currNs} = this
+          docOne = id: '1', age: 20
+          docTwo = id: '2', age: 19
+          mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+            store.set "#{currNs}.1", docOne, null, ->
+              store.set "#{currNs}.2", docTwo, null, ->
+                modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                  expect(results.get()).to.eql [docOne]
+                  results.on 'insert', ->
+                    expect(results.get()).to.eql [docOne, {id: '2', age: 21}]
+                    done()
+
+                  modelB.set "#{currNs}.2.age", 21
+
       describe 'for gt queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
