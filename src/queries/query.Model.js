@@ -142,6 +142,7 @@ module.exports = {
                   if (~pos) model.remove(pointerPath, pos, 1);
                 }
               })(this, pointerPath);
+              // The 'del' event is triggered by a 'rmDoc'
               this.on('del', ns + '.*', listener);
             }
           }
