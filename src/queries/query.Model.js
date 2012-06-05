@@ -114,37 +114,11 @@ module.exports = {
             } else {
               modelAlias = this.refList(aliasPath, queryJson.from, pointerPath);
               var hash = QueryBuilder.hash(queryJson)
-                , ns = queryJson.from;
-              var listener = (function (querySubs, hash, ns, modelAlias, model, pointerPath) {
-                return function (id, doc) {
-                  var memoryQuery = querySubs[hash]
-                  if (! memoryQuery.filterTest(doc, ns)) return;
-                  var comparator = memoryQuery._comparator;
-                  var currResults = modelAlias.get();
-                  if (!comparator) {
-                    return model.insert(pointerPath, currResults.length, doc);
-                  }
-                  for (var k = currResults.length; k--; ) {
-                    var currRes = currResults[k];
-                    var comparison = comparator(doc, currRes);
-                    if (comparison >= 0) {
-                      return model.insert(pointerPath, k+1, doc.id);
-                    }
-                  }
-                  return model.insert(pointerPath, 0, doc);
-                };
-              })(querySubs, hash, ns, modelAlias, this, pointerPath);
-              this.on('set', ns + '.*', listener);
+                , ns = queryJson.from
+                , listener = createMutatorListener(this, pointerPath, hash, ns, modelAlias, querySubs);
 
-              listener = (function (model, pointerPath) {
-                return function (id) {
-                  var pos = model.get(pointerPath).indexOf(id);
-                  if (~pos) model.remove(pointerPath, pos, 1);
-                }
-              })(this, pointerPath);
-              // The 'del' event is triggered by a 'rmDoc'
-              this.on('del', ns + '.*', listener);
-            }
+              this.on('mutator', listener);
+            } // end else if queryJson.type === 'find'
           }
           eachQueryTarget.call(this, queryJson, addToTargets, aliasPath);
         } else { // Otherwise, target is a path or model alias
@@ -160,7 +134,7 @@ module.exports = {
           }
         }
         if (compileModelAliases) {
-          modelAliases.push(modelAlias, true);
+          modelAliases.unshift(modelAlias);
         }
       }
 
@@ -181,3 +155,39 @@ module.exports = {
     }
   }
 };
+
+function createMutatorListener (model, pointerPath, hash, ns, modelAlias, querySubs) {
+  return function (method, _arguments) {
+    var args = _arguments[0]
+      , path = args[0];
+    if (ns !== path.substring(0, path.indexOf('.'))) return;
+
+    var memoryQuery = querySubs[hash]
+      , properties = path.split('.')
+      , id = properties[1]
+      , docPath = ns + '.' + id
+      , doc = model.get(docPath)
+      , pos = model.get(pointerPath).indexOf(id);
+
+    if (!doc && ~pos) return model.remove(pointerPath, pos, 1);
+
+    var currResults = modelAlias.get();
+    if (memoryQuery.filterTest(doc, ns)) {
+      if (~pos) return;
+      var comparator = memoryQuery._comparator;
+      if (!comparator) {
+        return model.insert(pointerPath, currResults.length, doc.id);
+      }
+      for (var k = currResults.length; k--; ) {
+        var currRes = currResults[k];
+        var comparison = comparator(doc, currRes);
+        if (comparison >= 0) {
+          return model.insert(pointerPath, k+1, doc.id);
+        }
+      }
+      return model.insert(pointerPath, 0, doc.id);
+    } else {
+      if (~pos) model.remove(pointerPath, pos, 1);
+    }
+  };
+}

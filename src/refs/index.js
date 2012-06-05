@@ -33,7 +33,7 @@ var mixin = {
 
       for (var method in Model.mutator) {
         model.on(method, (function (method) {
-          return function (args) {
+          return function () {
             model.emit('mutator', method, arguments);
           };
         })(method));
