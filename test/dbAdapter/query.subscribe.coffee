@@ -146,20 +146,37 @@ module.exports = (plugins) ->
           mutate: (model) ->
             model.set "#{@currNs}.1.age", 28
 
-        it 'should update the relevant query results alias', (done) ->
-          {store, currNs} = this
-          docOne = id: '1', age: 20
-          docTwo = id: '2', age: 19
-          mockFullSetup store, done, plugins, (modelA, modelB, done) ->
-            store.set "#{currNs}.1", docOne, null, ->
-              store.set "#{currNs}.2", docTwo, null, ->
-                modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
-                  expect(results.get()).to.eql [docOne]
-                  results.on 'insert', ->
-                    expect(results.get()).to.eql [docOne, {id: '2', age: 21}]
-                    done()
+        describe 'that causes an addition to the query set', ->
+          it 'should update the relevant query results alias', (done) ->
+            {store, currNs} = this
+            docOne = id: '1', age: 20
+            docTwo = id: '2', age: 19
+            mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+              store.set "#{currNs}.1", docOne, null, ->
+                store.set "#{currNs}.2", docTwo, null, ->
+                  modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                    expect(results.get()).to.eql [docOne]
+                    results.on 'insert', ->
+                      expect(results.get()).to.eql [docOne, {id: '2', age: 21}]
+                      done()
 
-                  modelB.set "#{currNs}.2.age", 21
+                    modelB.set "#{currNs}.2.age", 21
+
+        describe 'that causes a deletion from the query set', ->
+          it 'should update the relevant query results alias', (done) ->
+            {store, currNs} = this
+            docOne = id: '1', age: 20
+            docTwo = id: '2', age: 21
+            mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+              store.set "#{currNs}.1", docOne, null, ->
+                store.set "#{currNs}.2", docTwo, null, ->
+                  modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                    expect(results.get()).to.eql [docOne, docTwo]
+                    results.on 'remove', ->
+                      expect(results.get()).to.eql [docOne]
+                      done()
+
+                    modelB.set "#{currNs}.2.age", 19
 
       describe 'for gt queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
@@ -379,6 +396,22 @@ module.exports = (plugins) ->
             expect(model.get "#{@currNs}.1").to.eql {id: '1', tags: ['hi', 'there', 'yo']}
           mutate: (model) ->
             model.push "#{@currNs}.1.tags", 'yo'
+
+        describe 'that causes an addition to the query set', ->
+          it 'should update the relevant query results alias', (done) ->
+            {store, currNs} = this
+            docOne = id: '1', tags: ['a', 'b', 'c']
+            docTwo = id: '2', tags: ['c', 'd']
+            mockFullSetup store, done, plugins, (modelA, modelB, done) ->
+              store.set "#{currNs}.1", docOne, null, ->
+                store.set "#{currNs}.2", docTwo, null, ->
+                  modelA.subscribe modelA.query(currNs).where('tags').contains(['b', 'c']).sort('id', 'asc'), (err, results) ->
+                    expect(results.get()).to.eql [docOne]
+                    results.on 'insert', ->
+                      expect(results.get()).to.eql [docOne, {id: '2', tags: ['b', 'c', 'd']}]
+                      done()
+                    modelB.unshift "#{currNs}.2.tags", 'b'
+
 
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
