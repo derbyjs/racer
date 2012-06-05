@@ -51,9 +51,9 @@ function addListener (listeners, model, from, getter, pattern, callback) {
     // alter args = _arguments[0].slice()
     var args = _arguments[0].slice();
     args.out = _arguments[1];
-    path = callback(regexp.exec(path), mutator, args);
-    if (path === null) return;
-    args[0] = path;
+    var dereffedPath = callback(regexp.exec(path), mutator, args);
+    if (dereffedPath === null) return;
+    args[0] = dereffedPath;
     var isLocal = _arguments[2]
       , pass    = _arguments[3];
     model.emit(mutator, args, args.out, isLocal, pass);
