@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.3.7",
+  "version": "0.3.8",
   "main": "./lib/racer.js",
   "scripts": {},
   "dependencies": {
