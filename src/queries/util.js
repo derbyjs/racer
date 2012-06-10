@@ -66,6 +66,8 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) 
 
     if (! isPrefixOf(ns, path)) return;
 
+    // From here on:  path = ns + suffix
+
     // Handle special edge case of when what we are querying over is an array
     // of documents (e.g., this is the case for query results)
     var arrayMutators = model.constructor.arrayMutator;
