@@ -19,8 +19,8 @@ module.exports = {
       // figure out what data the client needs to re-sync its snapshot and (2)
       // to re-subscribe to the data on behalf of the client. The paths and
       // queries get cached in Model#subscribe.
-      model._pathSubs = {} // path -> 1
-      model._querySubs = {} // query hash -> MemoryQuery
+      model._pathSubs  = {}; // path -> Boolean
+      model._querySubs = {}; // Maps query hash -> Boolean
     }
 
   , bundle: function (model, addToBundle) {
@@ -80,12 +80,12 @@ module.exports = {
 
         // Don't remove the doc if any other queries match the doc
         var querySubs = model._querySubs;
-        for (var k in querySubs) {
+        for (var currHash in querySubs) {
 
           // If "rmDoc" was triggered by the same query, we expect it not to match the query, so ignore it
-          if (hash.substring(3) === k) continue; // `substring` strips the leading "$q."
+          if (hash.substring(3) === currHash) continue; // `substring` strips the leading "$q."
 
-          var memoryQuery = querySubs[k];
+          var memoryQuery = model.locateQuery(currHash);
           // If the doc belongs in an existing subscribed query's result set,
           // then don't remove it, but instead apply a "null" transaction to
           // make sure the transaction counter `num` is acknowledged, so other
@@ -112,41 +112,43 @@ module.exports = {
 , proto: {
     _loadSubs: function (pathSubs, querySubList) {
       this._pathSubs = pathSubs;
+      var querySubs = this._querySubs;
       for (var queryJson in querySubList) {
-        var hash = QueryBuilder.hash(queryJson);
-        querySubs[hash] = new MemoryQuery(queryJson);
+        var hash = QueryBuilder.hash(queryJson)
+          , memoryQuery = new MemoryQuery(queryJson);
+        this.registerQuery(memoryQuery, querySubs);
       }
     }
 
     // subscribe(targets..., callback)
   , subscribe: function () {
       var pathSubs = this._pathSubs
-        , querySubs = this._querySubs;
+        , querySubs = this._querySubs
+        , self = this;
 
       this._compileTargets(arguments, {
-        compileModelAliases: true
-      , eachQueryTarget: function (queryJson, addToTargets) {
+        eachQueryTarget: function (queryJson, targets) {
           var hash = QueryBuilder.hash(queryJson);
           if (! (hash in querySubs)) {
-            querySubs[hash] = new MemoryQuery(queryJson);
-            addToTargets(queryJson);
+            self.registerQuery(new MemoryQuery(queryJson), querySubs);
+            targets.push(queryJson);
           }
         }
-      , eachPathTarget: function (path, addToTargets) {
+      , eachPathTarget: function (path, targets) {
           if (path in pathSubs) return;
-          pathSubs[path] = 1;
-          addToTargets(path); // TODO push unexpanded target or expanded path?
+          pathSubs[path] = true;
+          targets.push(path); // TODO push unexpanded target or expanded path?
         }
-      , done: function (targets, modelAliases, subscribeCb) {
+      , done: function (targets, modelScopes, subscribeCb) {
           if (! targets.length) {
-            return subscribeCb.apply(this, [null].concat(modelAliases));
+            return subscribeCb.apply(this, [null].concat(modelScopes));
           }
           var self = this;
           this._addSub(targets, function (err, data) {
             if (err) return subscribeCb(err);
             self._addData(data);
             self.emit('addSubData', data);
-            subscribeCb.apply(this, [null].concat(modelAliases));
+            subscribeCb.apply(this, [null].concat(modelScopes));
           });
         }
       });
@@ -155,20 +157,20 @@ module.exports = {
     // unsubscribe(targets..., callback)
   , unsubscribe: function () {
       var pathSubs = this._pathSubs
-        , querySubs = this._querySubs;
+        , querySubs = this._querySubs
+        , self = this;
 
       this._compileTargets(arguments, {
-        compileModelAliases: false
-      , eachQueryTarget: function (queryJson, addToTargets) {
+        eachQueryTarget: function (queryJson, targets) {
           var hash = QueryBuilder.hash(queryJson);
           if (! (hash in querySubs)) return;
-          delete querySubs[hash];
-          addToTargets(queryJson);
+          self.unregisterQuery(hash, querySubs);
+          targets.push(queryJson);
         }
-      , eachPathTarget: function (path, addToTargets) {
+      , eachPathTarget: function (path, targets) {
           if (! (path in pathSubs)) return;
           delete pathSubs[path];
-          addToTargets(path);
+          targets.push(path);
         }
       , done: function (targets, unsubscribeCb) {
           if (! targets.length) return unsubscribeCb();
@@ -203,7 +205,7 @@ module.exports = {
       var subs = Object.keys(this._pathSubs)
         , querySubs = this._querySubs;
       for (var hash in querySubs) {
-        subs.push(querySubs[hash].toJSON());
+        subs.push(this.locateQuery(hash).toJSON());
       }
       return subs;
     }

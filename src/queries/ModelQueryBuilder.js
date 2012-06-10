@@ -1,5 +1,7 @@
 var QueryBuilder = require('./QueryBuilder')
-  , MemoryQuery = require('./MemoryQuery');
+  , MemoryQuery = require('./MemoryQuery')
+  , setupQueryModelScope = require('./util').setupQueryModelScope
+  ;
 
 module.exports = ModelQueryBuilder;
 
@@ -12,16 +14,25 @@ ModelQueryBuilder.fromJSON = QueryBuilder._createFromJsonFn(ModelQueryBuilder);
 
 var proto = ModelQueryBuilder.prototype = new QueryBuilder();
 
+/**
+ * @return {Model} a scoped model scoped to 
+ */
 proto.find = function find () {
-  var memory = this._model.memory
-    , memoryQuery = new MemoryQuery(this.toJSON());
-  memoryQuery.find();
-  return memoryQuery.syncRun(memory.get());
+  var queryJson = this.toJSON()
+    , model = this._model
+    , memoryQuery = new MemoryQuery(queryJson).find()
+    , results = memoryQuery.syncRun(model.get());
+  // TODO Clean up local queries when we no longer need them
+  model.registerQuery(memoryQuery, model._localQueries);
+  // Returns a scoped model
+  return setupQueryModelScope(model, queryJson, results);
 };
 
+// TODO findOne should return a scoped model
 proto.findOne = function findOne () {
-  var memory = this._model.memory
-    , memoryQuery = new MemoryQuery(this.toJSON());
-  memoryQuery.findOne();
-  return memoryQuery.syncRun(memory.get());
-};
+  var queryJson = this.toJSON()
+    , scopedPath = resultRefPath(queryJson)
+    , memoryQuery = new MemoryQuery(this.toJSON()).findOne()
+    , results = memoryQuery.syncRun(model.get());
+  return results;
+}

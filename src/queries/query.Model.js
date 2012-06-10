@@ -4,28 +4,93 @@ var ModelQueryBuilder = require('./ModelQueryBuilder')
   , splitPath = path.split
   , expandPath = path.expand
   , queryUtils = require('./util')
-  , privateQueryResultAliasPath = queryUtils.privateQueryResultAliasPath
-  , privateQueryResultPointerPath = queryUtils.privateQueryResultPointerPath
+  , setupQueryModelScope = queryUtils.setupQueryModelScope
   ;
 
 module.exports = {
   type: 'Model'
 , events: {
     init: function (model) {
-      // TODO We use neither of these data structures
-
-      // maps hash -> 1
-      model._privateQueries = {}
-
-      // maps hash ->
-      //        query: QueryBuilder
-      //        memoryQuery: MemoryQuery
+      // A data structure containing all queries of interest to this model.
+      //
+      // Maps hash -> MemoryQuery
+      //        indexes: [Object]
+      //        query: MemoryQuery
       model._queries = {}
+
+      // An index of the local queries -- i.e., queries to which the model is
+      // not subscribed
+      //
+      // Maps hash -> Boolean
+      model._localQueries = {}
     }
   }
 , proto: {
 
-    query: function (namespace, queryParams) {
+    /**
+     * Registers both local queries and queries to which the model is subscribed.
+     * @param {MemoryQuery} memoryQuery
+     * @param {Object} index is an index of query hashes to a Boolean
+     * @return {Boolean} true if registered; false if already registered
+     */
+    registerQuery: function (memoryQuery, index) {
+      var queryJson = memoryQuery.toJSON()
+        , hash = QueryBuilder.hash(queryJson)
+        , queries = this._queries;
+      if (hash in queries) {
+        if (hash in index) return false;
+        queries[hash].indexes.push(index);
+        return index[hash] = true;
+      }
+      queries[hash] = {
+        query: memoryQuery
+      , indexes: [index]
+      }
+      index[hash] = true;
+      return true;
+    }
+
+  , unregisterQuery: function (queryRepresentation, index) {
+      var queries = this._queries
+        , hash;
+      if (typeof queryRepresentation === 'string') {
+        hash = queryRepresentation;
+      } else {
+        throw new Error('Arguments error');
+      }
+      if (! (hash in queries)) return false;
+      if (! (hash in index)) return false;
+
+      delete index[hash];
+
+      var meta = queries[hash]
+        , indexes = meta.indexes
+        , position = indexes.indexOf(index);
+      if (~position) {
+        indexes.splice(position, 1);
+      } else {
+        throw new Error('Expected index to be in indexes');
+      }
+      if (indexes.length === 0) {
+        delete queries[hash];
+      }
+      return true;
+    }
+
+  , locateQuery: function (queryRepresentation) {
+      var hash;
+      if (typeof queryRepresentation === 'string') {
+        hash = queryRepresentation;
+      } else if (queryRepresentation.constructor === Object) {
+        hash = QueryBuilder.hash(queryRepresentation);
+      } else {
+        throw new Error('Query representation must be json or the query hash string');
+      }
+      var meta = this._queries[hash];
+      return meta && meta.query;
+    }
+
+  , query: function (namespace, queryParams) {
       queryParams || (queryParams = {});
       queryParams.from = namespace;
       return new ModelQueryBuilder(queryParams, this);
@@ -46,18 +111,17 @@ module.exports = {
     // fetch(targets..., callback)
   , fetch: function () {
       this._compileTargets(arguments, {
-        compileModelAliases: true
-      , eachQueryTarget: function (queryJson, addToTargets) {
-          addToTargets(queryJson);
+        eachQueryTarget: function (queryJson, targets) {
+          targets.push(queryJson);
         }
-      , eachPathTarget: function (path, addToTargets) {
-          addToTargets(path);
+      , eachPathTarget: function (path, targets) {
+          targets.push(path);
         }
-      , done: function (targets, modelAliases, fetchCb) {
+      , done: function (targets, scopedModels, fetchCb) {
           var self = this;
           this._fetch(targets, function (err, data) {
               self._addData(data);
-              fetchCb.apply(null, [err].concat(modelAliases));
+              fetchCb.apply(null, [err].concat(scopedModels));
           });
         }
       });
@@ -73,75 +137,39 @@ module.exports = {
   , _compileTargets: function (_arguments, opts) {
       var arglen = _arguments.length
         , last = _arguments[arglen-1]
-        , argumentsHaveCallback = (typeof last === 'function')
-        , cb = argumentsHaveCallback ? last : noop
+        , argsHaveCallback = (typeof last === 'function')
+        , callback = argsHaveCallback ? last : noop
 
         , newTargets = []
 
-        , eachQueryTarget = opts.eachQueryTarget
-        , eachPathTarget = opts.eachPathTarget
         , done = opts.done
-        , compileModelAliases = opts.compileModelAliases;
+          // done(targets, callback) or done(targets, scopes, callback)
+        , compileModelScopes = opts.done.length === 3;
 
-      if (compileModelAliases) {
-        var modelAliases = []
-          , aliasPath
-          , modelAlias
-          , querySubs = this._querySubs;
+      if (compileModelScopes) {
+        var scopedModels = [], scopedModel;
       }
 
-      function addToTargets (target) {
-        newTargets.push(target);
-      }
-
-      var i = argumentsHaveCallback ? arglen-1 : arglen;
+      var i = argsHaveCallback ? arglen-1 : arglen;
       // Transform incoming targets into full set of `newTargets`.
-      // Compile the list `out` of model aliases representative of the fetched
-      // results, to pass back to the callback `cb`
+      // Compile the list `out` of model scopes representative of the fetched
+      // results, to pass back to the `callback`
       while (i--) {
         var target = _arguments[i];
-        // TODO Reduce to 1 instanceof by making ModelQueryBuilder inherit from QueryBuilder
-        if (target instanceof QueryBuilder || target instanceof ModelQueryBuilder) {
-          var queryJson = target.toJSON();
-          if (compileModelAliases) {
-            aliasPath = privateQueryResultAliasPath(queryJson);
+        var scopedModel = (target instanceof QueryBuilder)
+          ? handleQueryTarget(this, target, opts.eachQueryTarget, compileModelScopes, newTargets)
 
-            // Refs, assemble!
-            var pointerPath = privateQueryResultPointerPath(queryJson);
-            if (queryJson.type === 'findOne') {
-              // TODO Test findOne single query result
-              modelAlias = this.ref(aliasPath, queryJson.from, pointerPath);
-            } else {
-              modelAlias = this.refList(aliasPath, queryJson.from, pointerPath);
-              var hash = QueryBuilder.hash(queryJson)
-                , ns = queryJson.from
-                , listener = createMutatorListener(this, pointerPath, hash, ns, modelAlias, querySubs);
-
-              this.on('mutator', listener);
-            } // end else if queryJson.type === 'find'
-          }
-          eachQueryTarget.call(this, queryJson, addToTargets, aliasPath);
-        } else { // Otherwise, target is a path or model alias
-          if (target._at) target = target._at;
-          if (compileModelAliases) {
-            aliasPath = splitPath(target)[0];
-            modelAlias = this.at(aliasPath);
-          }
-          var paths = expandPath(target);
-          for (var k = paths.length; k--; ) {
-            var path = paths[k];
-            eachPathTarget.call(this, path, addToTargets, aliasPath);
-          }
-        }
-        if (compileModelAliases) {
-          modelAliases.unshift(modelAlias);
+            // Otherwise, target is a path or model scope
+          : handlePatternTarget(this, target, opts.eachPathTarget, compileModelScopes, newTargets);
+        if (compileModelScopes) {
+          scopedModels.unshift(scopedModel);
         }
       }
 
-      if (compileModelAliases) {
-        done.call(this, newTargets, modelAliases, cb);
+      if (compileModelScopes) {
+        done.call(this, newTargets, scopedModels, callback);
       } else {
-        done.call(this, newTargets, cb);
+        done.call(this, newTargets, callback);
       }
     }
   }
@@ -156,38 +184,27 @@ module.exports = {
   }
 };
 
-function createMutatorListener (model, pointerPath, hash, ns, modelAlias, querySubs) {
-  return function (method, _arguments) {
-    var args = _arguments[0]
-      , path = args[0];
-    if (ns !== path.substring(0, path.indexOf('.'))) return;
+function handleQueryTarget (model, target, eachQueryTarget, compileModelScopes, newTargets) {
+  var queryJson = target.toJSON()
+    , scopedModel;
+  if (compileModelScopes) {
+    scopedModel = setupQueryModelScope(model, queryJson);
+  }
+  eachQueryTarget.call(model, queryJson, newTargets);
+  return scopedModel;
+}
 
-    var memoryQuery = querySubs[hash]
-      , properties = path.split('.')
-      , id = properties[1]
-      , docPath = ns + '.' + id
-      , doc = model.get(docPath)
-      , pos = model.get(pointerPath).indexOf(id);
-
-    if (!doc && ~pos) return model.remove(pointerPath, pos, 1);
-
-    var currResults = modelAlias.get();
-    if (memoryQuery.filterTest(doc, ns)) {
-      if (~pos) return;
-      var comparator = memoryQuery._comparator;
-      if (!comparator) {
-        return model.insert(pointerPath, currResults.length, doc.id);
-      }
-      for (var k = currResults.length; k--; ) {
-        var currRes = currResults[k];
-        var comparison = comparator(doc, currRes);
-        if (comparison >= 0) {
-          return model.insert(pointerPath, k+1, doc.id);
-        }
-      }
-      return model.insert(pointerPath, 0, doc.id);
-    } else {
-      if (~pos) model.remove(pointerPath, pos, 1);
-    }
-  };
+function handlePatternTarget (model, target, eachPathTarget, compileModelScopes, newTargets) {
+  var scopedModel;
+  if (target._at) target = target._at;
+  if (compileModelScopes) {
+    var refPath = splitPath(target)[0];
+    scopedModel = model.at(refPath);
+  }
+  var paths = expandPath(target);
+  for (var k = paths.length; k--; ) {
+    var path = paths[k];
+    eachPathTarget.call(model, path, newTargets);
+  }
+  return scopedModel;
 }

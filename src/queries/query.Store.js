@@ -3,7 +3,7 @@ var QueryHub = require('./QueryHub')
   , splitPath = path.split
   , lookup = path.lookup
   , finishAfter = require('../util/async').finishAfter
-  , privateQueryResultPointerPath = require('./util').privateQueryResultPointerPath
+  , resultPointerPath = require('./util').resultPointerPath
   ;
 
 module.exports = {
@@ -68,14 +68,14 @@ module.exports = {
           }
 
           // '_$queries.some-query-hash.resultIds'
-          path = privateQueryResultPointerPath(queryJson);
+          path = resultPointerPath(queryJson);
           eachDatumCb(path, resultIds, version);
         } else if (result) {
           path = queryJson.from + '.' + result.id;
           eachDatumCb(path, result, version);
 
           // '_$queries.some-query-hash.resultId'
-          path = privateQueryResultPointerPath(queryJson);
+          path = resultPointerPath(queryJson);
           eachDatumCb(path, result.id, version);
         }
         finish(null);

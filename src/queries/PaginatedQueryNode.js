@@ -78,8 +78,7 @@ PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, stor
 
   if (!oldDocPasses && !newDocPasses) return cb(null, false);
 
-  var cache = this._cache
-    , json = this.json
+  var json = this.json
     , sort = json.sort
     , limit = json.limit
     , skip = json.skip
@@ -95,7 +94,7 @@ PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, stor
   if (oldDocPasses && newDocPasses) {
 
     switch (deltaType(delta, cache.length, json.limit)) {
-      case 'mv-prior->prior': return;
+      case 'mv-prior->prior': return cb(null, false);
       case 'mv-prior->curr':
         if (delta.to === Infinity) {
           cache.push(newDoc);
@@ -202,14 +201,14 @@ PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, stor
         var docToRm = cache.pop();
         messages.push(['rmDoc', ns, ver, docToRm, docToRm.id]);
         return cb(null, messages);
-      case 'mv-later->later': return cb(null);
+      case 'mv-later->later': return cb(null, false);
       default: throw new Error();
     }
   }
 
   if (oldDocPasses && !newDocPasses) {
     switch (delta.from) {
-      case Infinity: return;
+      case Infinity: return cb(null, false);
       case -Infinity:
         return fetchSlice(json, json.limit - 2, json.limit, store._db, function (err, docs) {
           if (err) {
@@ -252,7 +251,7 @@ PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, stor
 
   if (!oldDocPasses && newDocPasses) {
     switch (delta.to) {
-      case Infinity: return;
+      case Infinity: return cb(null, false);
       case null:
       case -Infinity:
 
