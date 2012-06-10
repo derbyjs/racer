@@ -111,7 +111,7 @@ var mixin = {
      * @param {String} to path
      * @param {String} @optional key path
      * @param {Boolean} hardLink
-     * @return {Model} a model alias scoped to `from`
+     * @return {Model} a model scope scoped to `from`
      */
   , ref: function (from, to, key, hardLink) {
       return this._createRef(createRef, 'ref', from, to, key, hardLink);
@@ -124,7 +124,7 @@ var mixin = {
      * @param {String} to path
      * @param {String} key path
      * @param {Boolean} hardLink
-     * @return {Model} a model alias scoped to `from`
+     * @return {Model} a model scope scoped to `from`
      */
   , refList: function (from, to, key, hardLink) {
       return this._createRef(createRefList, 'refList', from, to, key, hardLink);
@@ -137,7 +137,7 @@ var mixin = {
      * @param {String} to path
      * @param {key} key path
      * @param {Boolean} hardLink
-     * @return {Model} a model alias scoped to the `from` path
+     * @return {Model} a model scope scoped to the `from` path
      */
   , _createRef: function (refFactory, refType, from, to, key, hardLink) {
       // Normalize `from`, `to`, `key` if we are a model scope
