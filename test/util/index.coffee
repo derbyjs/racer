@@ -122,7 +122,18 @@ expect.Assertion::null = ->
 sinon = require 'sinon'
 expect.Assertion::calledWith = (args) ->
   @assert @obj.calledWith(args),
-    'expected ' + sinon.functionName(@obj) + ' to be called with ' + inspect(args),
+    'expected ' + sinon.functionName(@obj) + ' to be called with ' + inspect(args) + ', not with ' + inspect(args),
+    'expected ' + sinon.functionName(@obj) + ' to not be called with ' + inspect(args)
+  return
+
+expect.Assertion::calledWithEql = (args) ->
+  argsDidMatch = false
+  for actualArgs in @obj.args
+    if expect.eql(actualArgs, args)
+      argsDidMatch = true
+      break
+  @assert argsDidMatch,
+    'expected ' + sinon.functionName(@obj) + ' to be called with \n' + inspect(args, true, null, true) + ', not with \n' + inspect(actualArgs, true, null, true),
     'expected ' + sinon.functionName(@obj) + ' to not be called with ' + inspect(args)
   return
 
