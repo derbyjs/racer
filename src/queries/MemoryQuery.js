@@ -138,11 +138,13 @@ function isIncomparable (x) {
 
 MemoryQuery.prototype.find = function find () {
   this._type = 'find';
+  this._json.type = 'find';
   return this;
 };
 
 MemoryQuery.prototype.findOne = function findOne () {
   this._type = 'findOne';
+  this._json.type = 'findOne';
   return this;
 };
 
