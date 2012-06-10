@@ -40,6 +40,87 @@ describe 'In browser queries', ->
 
         model.set 'users.1.age', 31
 
+    describe 'among documents under a nested path', ->
+      describe 'organized in an Object', ->
+        it 'should return a scoped model with access to results', ->
+          model =  new Model
+
+          model.set 'a.b.c.A', id: 'A', age: 20
+          model.set 'a.b.c.B', docB = id: 'B', age: 30
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+
+        it 'should return a scoped model whose results are updated automatically in response to local mutations', ->
+          model =  new Model
+
+          model.set 'a.b.c.A', id: 'A', age: 20
+          model.set 'a.b.c.B', docB = id: 'B', age: 30
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+          model.set 'a.b.c.A.age', 31
+          expect(results.get()).to.specEql [docB, {id: 'A', age: 31}]
+
+        it 'should emit insert events on the results refList in response to relevant local mutations', (done) ->
+          model =  new Model
+
+          model.set 'a.b.c.A', id: 'A', age: 20
+          model.set 'a.b.c.B', docB = id: 'B', age: 30
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+
+          model.on 'insert', results.path(), (index, document, out, isLocal) ->
+            expect(index).to.equal 1
+            expect(document).to.specEql {id: 'A', age: 31}
+            done()
+
+          model.set 'a.b.c.A.age', 31
+
+      describe 'organized in an Array', ->
+        it 'should return a scoped model with access to results', ->
+          model =  new Model
+
+          model.set 'a.b.c', [
+            { id: 'A', age: 20 }
+          , docB = { id: 'B', age: 30 }
+          ]
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+
+        it 'should return a scoped model whose results are updated automatically in response to local mutations', ->
+          model =  new Model
+
+          model.set 'a.b.c', [
+            { id: 'A', age: 20 }
+          , docB = { id: 'B', age: 30 }
+          ]
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+          model.set 'a.b.c.0.age', 31
+          expect(results.get()).to.specEql [docB, {id: 'A', age: 31}]
+
+        it 'should emit insert events on the results refList in response to relevant local mutations', (done) ->
+          model =  new Model
+
+          model.set 'a.b.c', [
+            { id: 'A', age: 20 }
+          , docB = { id: 'B', age: 30 }
+          ]
+
+          results = model.query('a.b.c').where('age').gte(30).find()
+          expect(results.get()).to.eql [docB]
+
+          model.on 'insert', results.path(), (index, document, out, isLocal) ->
+            expect(index).to.equal 1
+            expect(document).to.specEql {id: 'A', age: 31}
+            done()
+
+          model.set 'a.b.c.0.age', 31
+
     describe 'among search results', ->
       it 'should return a scoped model with access to results', ->
         model =  new Model

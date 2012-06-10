@@ -115,7 +115,9 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) 
       return;
     }
 
-    var id = path.split('.')[1];
+    var suffix = path.substring(ns.length + 1)
+      , separatorPos = suffix.indexOf('.')
+      , id = suffix.substring(0, ~separatorPos ? separatorPos : suffix.length);
     doc = model.get(ns + '.' + id);
 
     var pos = model.get(pointerPath).indexOf(id);
