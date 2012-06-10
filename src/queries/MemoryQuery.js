@@ -152,17 +152,17 @@ MemoryQuery.prototype.filterTest = function filterTest (doc, ns) {
 
 MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
   var promise = (new Promise).on(cb)
-    , world = memoryAdapter._get()
-    , matches = this.syncRun(world);
+    , searchSpace = memoryAdapter._get(this._json.from)
+    , matches = this.syncRun(searchSpace);
 
   promise.resolve(null, matches);
 
   return promise;
 };
 
-MemoryQuery.prototype.syncRun = function syncRun (world) {
+MemoryQuery.prototype.syncRun = function syncRun (searchSpace) {
   var filter = this._filter
-    , matches = filterWorld(world, filter, this._json.from)
+    , matches = filterWorld(searchSpace, filter, this._json.from)
     , comparator = this._comparator;
   if (comparator) matches = matches.sort(comparator);
 
@@ -203,25 +203,31 @@ MemoryQuery.prototype.syncRun = function syncRun (world) {
 
 function filterObject (obj, filterFn, extra, start) {
   var filtered = start || {}
-    , isArray = Array.isArray(filtered)
-    , i = 0;
-  for (var k in obj) {
-    if (filterFn(obj[k], extra)) {
-      filtered[isArray ? i++ : k] = obj[k];
+    , outputAsArray = Array.isArray(filtered);
+  if (Array.isArray(obj)) {
+    for (var i = 0, l = obj.length; i < l; i++) {
+      if (filterFn(obj[i], extra)) {
+        filtered[filtered.length] = obj[i];
+      }
+    }
+  } else {
+    var i = 0
+    for (var k in obj) {
+      if (filterFn(obj[k], extra)) {
+        filtered[outputAsArray ? i++ : k] = obj[k];
+      }
     }
   }
   return filtered;
 };
 
-function filterWorld (world, filterFn, ns) {
-  var docs;
+function filterWorld (docs, filterFn, ns) {
   if (ns) {
-    docs = world[ns];
     return filterObject(docs, filterFn, ns, []);
   }
   var results = {};
-  for (ns in data) {
-    docs = data[ns];
+  for (ns in docs) {
+    docs = docs[ns];
     var newResults = filterObject(docs, filterFn, ns, []);
     results = results.concat(newResults);
   }

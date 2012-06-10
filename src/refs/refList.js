@@ -1,4 +1,6 @@
-var hasKeys = require('../util').hasKeys
+var util = require('../util')
+  , hasKeys = util.hasKeys
+  , indexOf = util.indexOf
   , refUtils = require('./util')
   , derefPath = refUtils.derefPath
   , addListener = refUtils.addListener
@@ -20,9 +22,13 @@ function createRefList (model, from, to, key) {
     var methodMeta = arrayMutators[method]
       , i = methodMeta && methodMeta.insertArgs;
     if (i) {
-      var id;
+      var id, docs;
       while ((id = args[i]) && id != null) {
-        args[i] = model.get(to + '.' + id);
+        docs = model.get(to);
+        args[i] = (Array.isArray(docs))
+                ? docs[ indexOf(docs, id, function (id, doc) { return doc.id === id; })  ]
+                : docs[id];
+        // args[i] = model.get(to + '.' + id);
         i++;
       }
     }
@@ -78,7 +84,7 @@ function createGetter (from, to, key) {
       currPath = joinPaths(dereffed, props.slice(i));
 
       data.$deref = function (method, args, model) {
-        if (method in basicMutators) return path;
+        if (!method || (method in basicMutators)) return path;
 
         var mutator, j, arg, indexArgs;
         if (mutator = arrayMutators[method]) {
@@ -116,8 +122,16 @@ function createGetter (from, to, key) {
       if (pointerList) {
         var curr = [];
         for (var k = 0, kk = pointerList.length; k < kk; k++) {
-          var prop = pointerList[k];
-          curr.push(obj[prop]);
+          var idVal = pointerList[k]
+            , docToAdd;
+          if (obj.constructor === Object) {
+            docToAdd = obj[idVal];
+          } else if (Array.isArray(obj)) {
+            docToAdd = obj[indexOf(obj, idVal, function (id, doc) { return doc.id === id; })];
+          } else {
+            throw new TypeError();
+          }
+          curr.push(docToAdd);
         }
         return [curr, currPath, i];
       }

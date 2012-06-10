@@ -3,8 +3,11 @@ var pathUtils = require('../path')
   , eventRegExp = pathUtils.eventRegExp;
 
 module.exports = {
-  // TODO This is a horribly named function. $deref is also invoked in
-  // refs/index.js in the 'beforeTxn' callback.
+  // TODO This is a horribly named function.
+  //
+  // $deref is invoked in:
+  // - via derefPath in refs/util.js
+  // - refs/index.js in the 'beforeTxn' callback.
   derefPath: function (data, to) {
     return data.$deref ? data.$deref() : to;
   }

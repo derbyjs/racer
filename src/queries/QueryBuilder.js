@@ -159,6 +159,11 @@ var ABBREVS = {
     }
   , SEP = ':';
 
+function noDots (path) {
+  return path.replace(/\./g, '$DOT$');
+}
+
+// TODO Close ABBREVS with reverse ABBREVS?
 QueryBuilder.hash = function (json) {
   var groups = []
     , nsHash
@@ -174,7 +179,7 @@ QueryBuilder.hash = function (json) {
     var val = json[method];
     switch (method) {
       case 'from':
-        nsHash = val;
+        nsHash = noDots(val);
         break;
       case 'byKey':
         byKeyHash = ABBREVS.byKey + SEP + JSON.stringify(val);
@@ -184,14 +189,14 @@ QueryBuilder.hash = function (json) {
         selectHash = ABBREVS[method];
         for (var i = 0, l = val.length; i < l; i++) {
           field = val[i];
-          selectHash += SEP + field;
+          selectHash += SEP + noDots(field);
         }
         break;
       case 'sort':
         sortHash = ABBREVS.sort + SEP;
         for (var i = 0, l = val.length; i < l; i+=2) {
           field = val[i];
-          sortHash += field + SEP + ABBREVS[val[i+1]];
+          sortHash += noDots(field) + SEP + ABBREVS[val[i+1]];
         }
         break;
       case 'skip':
@@ -253,7 +258,7 @@ QueryBuilder.hash = function (json) {
       var pair = fields[j]
         , field = pair[0]
         , val   = pair[1];
-      hash += SEP + field + SEP + val;
+      hash += SEP + noDots(field) + SEP + val;
     }
   }
 

@@ -90,9 +90,15 @@ module.exports = {
       return meta && meta.query;
     }
 
-  , query: function (namespace, queryParams) {
+  , query: function (source, queryParams) {
       queryParams || (queryParams = {});
-      queryParams.from = namespace;
+      var sourcePath;
+      if (typeof source === 'string') { // query(namespace, queryParams)
+        sourcePath = source;
+      } else { // query(scopedModel, queryParams)
+        sourcePath = source.path();
+      }
+      queryParams.from = sourcePath;
       return new ModelQueryBuilder(queryParams, this);
     }
 

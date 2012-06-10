@@ -21,7 +21,7 @@ proto.find = function find () {
   var queryJson = this.toJSON()
     , model = this._model
     , memoryQuery = new MemoryQuery(queryJson).find()
-    , results = memoryQuery.syncRun(model.get());
+    , results = memoryQuery.syncRun(model.get(queryJson.from));
   // TODO Clean up local queries when we no longer need them
   model.registerQuery(memoryQuery, model._localQueries);
   // Returns a scoped model
@@ -32,7 +32,7 @@ proto.find = function find () {
 proto.findOne = function findOne () {
   var queryJson = this.toJSON()
     , scopedPath = resultRefPath(queryJson)
-    , memoryQuery = new MemoryQuery(this.toJSON()).findOne()
-    , results = memoryQuery.syncRun(model.get());
+    , memoryQuery = new MemoryQuery(queryJson).findOne()
+    , results = memoryQuery.syncRun(model.get(queryJson.from));
   return results;
 }
