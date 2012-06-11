@@ -337,12 +337,7 @@ methods.forEach( function (method) {
   };
 });
 
-proto.find = function find () {
-  this._json.type = 'find';
-  return this;
-}
-
-proto.findOne = function findOne () {
+proto.one = function one () {
   this._json.type = 'findOne';
   return this;
-}
+};

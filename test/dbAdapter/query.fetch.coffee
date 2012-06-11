@@ -18,7 +18,7 @@ module.exports = ->
         done()
 
     describe 'one parameter `equals` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('name').equals('brian')
+      beforeEach -> @query = @model.query(@currNs).where('name').equals('brian')
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -39,7 +39,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `gt` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').gt(25)
+      beforeEach -> @query = @model.query(@currNs).where('age').gt(25)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -60,7 +60,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `gte` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').gte(26)
+      beforeEach -> @query = @model.query(@currNs).where('age').gte(26)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -81,7 +81,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `lt` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').lt(27)
+      beforeEach -> @query = @model.query(@currNs).where('age').lt(27)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -102,7 +102,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `lte` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').lte(26)
+      beforeEach -> @query = @model.query(@currNs).where('age').lte(26)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -123,7 +123,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `within` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('name').within(['brian', 'x'])
+      beforeEach -> @query = @model.query(@currNs).where('name').within(['brian', 'x'])
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -144,7 +144,7 @@ module.exports = ->
           done()
 
     describe 'one parameter `contains` scalar queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('workdays').contains(['mon', 'wed'])
+      beforeEach -> @query = @model.query(@currNs).where('workdays').contains(['mon', 'wed'])
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -165,7 +165,7 @@ module.exports = ->
           done()
 
     describe 'compound queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('workdays').contains(['wed']).where('age').gt(25)
+      beforeEach -> @query = @model.query(@currNs).where('workdays').contains(['wed']).where('age').gt(25)
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -186,7 +186,7 @@ module.exports = ->
           done()
 
     describe '`only` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').gt(20).only('name', 'age')
+      beforeEach -> @query = @model.query(@currNs).where('age').gt(20).only('name', 'age')
 
       it 'should only retrieve the paths specified in `only`', (done) ->
         @model.subscribe @query, =>
@@ -198,7 +198,7 @@ module.exports = ->
         done()
 
     describe '`except` queries', ->
-      beforeEach -> @query = @racer.query(@currNs).where('age').gt(20).except('name', 'workdays')
+      beforeEach -> @query = @model.query(@currNs).where('age').gt(20).except('name', 'workdays')
 
       it 'should exclude paths specified in `except`', (done) ->
         @model.subscribe @query, =>

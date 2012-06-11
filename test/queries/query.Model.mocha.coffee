@@ -3,7 +3,7 @@
 sinon = require 'sinon'
 
 describe 'In browser queries', ->
-  describe 'find', ->
+  describe 'find()', ->
     describe 'among documents under a top-level namespace', ->
       it 'should return a scoped model with access to results', ->
         model =  new Model
@@ -422,7 +422,7 @@ describe 'In browser queries', ->
 
           model.set 'users.2.age', 31
 
-  describe 'findOne', ->
+  describe 'one().find()', ->
     describe 'among documents under a top-level namespace', ->
       it 'should return a scoped model with access to the result', ->
         model = new Model
@@ -430,7 +430,7 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 21
         model.set 'users.2', id: '2', age: 22
 
-        result = model.query('users').where('age').gte(21).findOne()
+        result = model.query('users').where('age').gte(21).one().find()
         expect(result.get()).to.eql userOne
 
       # TODO Add more edge case testing to this describe
@@ -441,7 +441,7 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', id: '2', age: 21
 
-          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql userOne
           model.set 'users.2.age', 30
           expect(result.get()).to.specEql {id: '2', age: 30 }
@@ -452,7 +452,7 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', id: '2', age: 21
 
-          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql userOne
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -462,7 +462,7 @@ describe 'In browser queries', ->
           model.set 'users.2.age', 30
 
       describe 'in response to local mutations that would remove a result from an equiv find query', ->
-        describe 'equivalent to the findOne result', ->
+        describe 'equivalent to the one().find result', ->
           describe 'when the find query would have > 1 result', ->
             it 'should return a scoped model whose result updates automatically', ->
               model =  new Model
@@ -470,7 +470,7 @@ describe 'In browser queries', ->
               model.set 'users.1', userOne = id: '1', age: 30
               model.set 'users.2', userTwo = id: '2', age: 31
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
               expect(result.get()).to.eql userOne
               model.set 'users.1.age', 29
               expect(result.get()).to.specEql userTwo
@@ -481,7 +481,7 @@ describe 'In browser queries', ->
               model.set 'users.1', userOne = id: '1', age: 30
               model.set 'users.2', userTwo = id: '2', age: 31
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
 
               model.on 'set', result.path(), (document, out, isLocal, pass) ->
                 expect(document).to.eql userTwo
@@ -494,7 +494,7 @@ describe 'In browser queries', ->
 
               model.set 'users.1', userOne = id: '1', age: 30
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
               expect(result.get()).to.eql userOne
               model.set 'users.1.age', 29
               expect(result.get()).to.eql undefined
@@ -504,7 +504,7 @@ describe 'In browser queries', ->
 
               model.set 'users.1', userOne = id: '1', age: 30
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
 
               model.on 'set', result.path(), (document, out, isLocal, pass) ->
                 expect(document).to.eql undefined
@@ -518,7 +518,7 @@ describe 'In browser queries', ->
             model.set 'users.1', userOne = id: '1', age: 30
             model.set 'users.2', userTwo = id: '2', age: 31
 
-            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
             expect(result.get()).to.eql userOne
             model.set 'users.2.age', 29
             expect(result.get()).to.specEql userOne
@@ -529,7 +529,7 @@ describe 'In browser queries', ->
             model.set 'users.1', userOne = id: '1', age: 30
             model.set 'users.2', userTwo = id: '2', age: 31
 
-            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).findOne()
+            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
 
             callback = sinon.spy()
 
@@ -546,7 +546,7 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 21
           model.set 'a.b.c.B', id: 'B', age: 22
 
-          result = model.query('a.b.c').where('age').gte(21).findOne()
+          result = model.query('a.b.c').where('age').gte(21).one().find()
           expect(result.get()).to.eql docA
 
         it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -555,7 +555,7 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 31
           model.set 'a.b.c.B', id: 'B', age: 21
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql docA
           model.set 'a.b.c.B.age', 30
           expect(result.get()).to.specEql {id: 'B', age: 30 }
@@ -566,7 +566,7 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 31
           model.set 'a.b.c.B', id: 'B', age: 21
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql docA
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -584,7 +584,7 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(21).sort(['age', 'asc']).findOne()
+          result = model.query('a.b.c').where('age').gte(21).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql docA
 
         it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -595,7 +595,7 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql docA
           model.set 'a.b.c.1.age', 30
           expect(result.get()).to.specEql {id: 'B', age: 30 }
@@ -608,7 +608,7 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).findOne()
+          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
           expect(result.get()).to.eql docA
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -627,7 +627,7 @@ describe 'In browser queries', ->
         baseResults = model.query('users').where('age').gte(30).find()
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).findOne()
+        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
         expect(result.get()).to.eql userTwo
 
       it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -639,7 +639,7 @@ describe 'In browser queries', ->
         baseResults = model.query('users').where('age').gte(30).find()
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).findOne()
+        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
         expect(result.get()).to.eql userTwo
 
         model.set 'users.3', userThree = {id: '3', age: 31}
@@ -655,7 +655,7 @@ describe 'In browser queries', ->
         baseResults = model.query('users').where('age').gte(30).find()
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).findOne()
+        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
         expect(result.get()).to.eql userTwo
 
         model.on 'set', result.path(), (document, isLocal) ->
@@ -664,9 +664,9 @@ describe 'In browser queries', ->
 
         model.set 'users.3', userThree = {id: '3', age: 31}
 
-# TODO Add test to throw error if you forget to specify a sort on findOne
+# TODO Add test to throw error if you forget to specify a sort on one().find
 # TODO Test registerQuery, unregisterQuery, and locateQuery
 # TODO Test Model#query
-# TODO Test Model#findOne
+# TODO Test Model#one().find
 # TODO Test Model#find
 # TODO Test Model#fetch
