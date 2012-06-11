@@ -1,5 +1,6 @@
 var QueryBuilder = require('./QueryBuilder')
   , MemoryQuery = require('./MemoryQuery')
+  , indexOf = require('../util').indexOf
   , PRIVATE_COLLECTION = '_$queries';
 
 exports.resultPointerPath = resultPointerPath;
@@ -26,6 +27,18 @@ function resultRefPath (queryJson) {
   return privateQueryPath(queryJson, pathSuffix);
 }
 
+/**
+ * Given a model, query, and the query's initial result(s), this function sets
+ * up and returns a scoped model that is centered on a ref or refList that
+ * embodies the query result(s) and updates those result(s) whenever a relevant
+ * mutation should change the query result(s).
+ * @param {Model} model is the racer model
+ * @param {Object} queryJson is the json representation of the query
+ * @param {[Object]|Object} initialResult is either an array of documents or a
+ * single document that represents the initial result of the query over the
+ * data currently loaded into the model.
+ * @return {Model} a refList or ref scoped model that represents the query result(s)
+ */
 function setupQueryModelScope (model, queryJson, initialResult) {
   var refPath = resultRefPath(queryJson)
     , pointerPath = resultPointerPath(queryJson)
@@ -62,13 +75,19 @@ function setupQueryModelScope (model, queryJson, initialResult) {
   return scopedModel;
 }
 
+/**
+ * Returns true if `prefix` is a prefix of `path`. Otherwise, returns false.
+ * @param {String} prefix
+ * @param {String} path
+ * @return {Boolean}
+ */
 function isPrefixOf (prefix, path) {
   return path.substring(0, prefix.length) === prefix;
 }
 
 // TODO Re-factor createMutatorListener
 /**
- * @param {Model} model
+ * @param {Model} model is the racer model
  * @param {String} pointerPath is the path to the refList key
  * @param {String} ns is the query namespace that points to the set of data we
  * wish to query
@@ -102,163 +121,303 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) 
     // From here on:  path = ns + suffix
 
     var currResult = scopedModel.get()
-      , memoryQuery = model.locateQuery(queryJson);
+      , memoryQuery = model.locateQuery(queryJson)
 
-    var arrayMutators = model.constructor.arrayMutator;
-    if (method in arrayMutators) {
-      handleQueryOverDocArray(memoryQuery, model, path, pointerPath, currResult, ns);
-    } else {
-      handleQueryOverDocTree(memoryQuery, model, path, pointerPath, currResult, ns);
+    // The documents this query searches over, either as an Array or Object of
+    // documents. This set of documents reflects that the mutation has already
+    // taken place.
+      , searchSpace = model.get(ns);
+
+    var callbacks;
+    switch (memoryQuery._type) {
+      case 'find':
+        // All of these callbacks are semantically relative to our search
+        // space. Hence, onAddDoc means a listener for the event when a
+        // document is added to the search space to query.
+        callbacks = {
+          onRemoveNs: function () {
+            model.set(pointerPath, []);
+          }
+
+          // TODO Deal with either array of docs or tree of docs
+        , onOverwriteNs: function (docs, each) {
+            model.set(pointerPath, []);
+            each(docs, function (doc) {
+              if (memoryQuery.filterTest(doc, ns)) {
+                callbacks.onAddDoc(doc);
+              }
+            });
+          }
+
+        , onAddDoc: function (newDoc, oldDoc) {
+            if (!oldDoc) {
+              // If the new doc belongs in our query results...
+              if (memoryQuery.filterTest(newDoc, ns)) {
+                insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, newDoc);
+              }
+
+            // Otherwise, we are over-writing oldDoc with newDoc
+            } else {
+              callbacks.onUpdateDocProperty(newDoc);
+            }
+          }
+
+        , onRmDoc: function (oldDoc) {
+            // If the doc is no longer in our data, but our results have a reference to
+            // it, then remove the reference to the doc.
+            var pos = model.get(pointerPath).indexOf(oldDoc.id);
+            if (~pos) model.remove(pointerPath, pos, 1);
+          }
+
+        , onUpdateDocProperty: function (doc) {
+            var id = doc.id
+              , pos = model.get(pointerPath).indexOf(id);
+            // If the updated doc belongs in our query results...
+            if (memoryQuery.filterTest(doc, ns)) {
+              // ...and it is already recorded in our query result.
+              if (~pos) {
+                // Then, figure out if we need to re-order our results
+                var resortedResults = currResult.sort(memoryQuery._comparator)
+                  , newPos = indexOf(resortedResults, id, equivId);
+                if (pos === newPos) return;
+                return model.move(pointerPath, pos, newPos, 1);
+              }
+
+              // ...or it is not recorded in our query result
+              return insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, doc);
+            }
+
+            // Otherwise, if the doc does not belong in our query results, but
+            // it did belong to our query results prior to mutation...
+            if (~pos) model.remove(pointerPath, pos, 1);
+          }
+        };
+        break;
+      case 'findOne':
+        var equivFindQuery = new MemoryQuery(Object.create(memoryQuery.toJSON(), {
+              type: { value: 'find' }
+            }))
+
+          , docsAdded = [currResult]
+
+        callbacks = {
+          onRemoveNs: function () {
+            model.set(pointerPath, null);
+          }
+
+          // In this case, docs is the same as searchSpace.
+        , onOverwriteNs: function (docs) {
+            var results = equivFindQuery.syncRun(docs);
+            if (results.length) {
+              model.set(pointerPath, results[0]);
+            } else {
+              model.set(pointerPath, null);
+            }
+          }
+
+        , onAddDoc: function (newDoc, oldDoc) {
+            docsAdded.push(newDoc);
+          }
+
+        , onRmDoc: function (oldDoc) {
+            if (oldDoc.id === (currResult && currResult.id)) {
+              var results = equivFindQuery.syncRun(searchSpace);
+              if (!results.length) return;
+              model.set(pointerPath, results[0].id);
+            }
+          }
+
+        , onUpdateDocProperty: function (doc) {
+            if (! memoryQuery.filterTest(doc, ns)) {
+              if (currResult.id !== doc.id) return;
+              var results = equivFindQuery.syncRun(searchSpace);
+              if (results.length) {
+                return model.set(pointerPath, results[0].id);
+              }
+              return model.set(pointerPath, null);
+            }
+            var comparator = memoryQuery._comparator
+              , comparison = comparator(doc, currResult);
+            if (comparison < 0) model.set(pointerPath, doc.id);
+          }
+
+        , done: function () {
+            if (docsAdded.length > 1) {
+              docsAdded = docsAdded.sort(memoryQuery._comparator);
+              model.set(pointerPath, docsAdded[0].id);
+            }
+          }
+        };
+        break;
+
+      default:
+        throw new TypeError();
     }
 
+    var isSearchOverArray = Array.isArray(searchSpace);
+    var handleMutation = (isSearchOverArray)
+                       ? handleDocArrayMutation
+                       : handleDocTreeMutation;
+
+    handleMutation(model, method, _arguments, ns, searchSpace, callbacks);
   };
 }
 
-// Case 1: Handle when our query is over an array of documents
-function handleQueryOverDocArray (memoryQuery, model, path, pointerPath, currResult, ns) {
-      // The documents this query searches over, either as an Array
-      // or Object of documents. This set of documents reflects that the
-      // mutation has already taken place.
-  var searchSpace = model.get(ns);
+/**
+ * Fires callbacks by analyzing how model[method](_arguments...) has affected
+ * a query searching over the Array of documents pointed to by ns.
+ * @param {Model} model
+ * @param {String} method
+ * @param {Arguments} _arguments
+ * @param {String} ns
+ * @param {[Object]} docArray is the post-mutation array of documents to which ns points
+ * @param {Object} callbacks
+ */
+function handleDocArrayMutation (model, method, _arguments, ns, docArray, callbacks) {
+  var Model = model.constructor
+    , args = _arguments[0]
+    , path = args[0]
+    , out = _arguments[1]
+    , done = callbacks.done;
 
-  switch (memoryQuery._type) {
-    case 'find':
-      // List of document ids that match the query, as cached before the mutation
-      var pointers = model.get(pointerPath)
+  var handled = handleNsMutation(model, method, path, args, out, ns, callbacks, function (docs, cb) {
+    for (var i = docs.length; i--; ) cb(docs[i]);
+  });
 
-      // Maintain a list of document ids, starting off as the pointer list.
-      // As we evaluate the updated search space against the query and the
-      // query result cache via pointers, we remove the evaluated id's from
-      // remaining. After exhausting the search space, the documents left
-      // in remaining -- if any -- are documents that were in the result
-      // set prior to the mutation but that must be removed because the
-      // mutation removed that document from the search space, and we can
-      // only include results from the search space.
-        , remaining = pointers.slice()
+  if (handled) return done && done();
 
-        , pos;
+  handled = handleDocMutation(method, path, args, out, ns, callbacks);
 
-      // Update the pointer list of results by evaluating each document in the
-      // search space against the current pointer list and the query. This loop
-      // also clears out any pointers in the pointer list that no longer point
-      // to a document because the document has been removed from the search space.
-      for (var i = 0, l = searchSpace.length; i < l; i++) {
-        var currDoc = searchSpace[i]
-          , currId = currDoc.id;
-        pos = pointers.indexOf(currId);
-        if (~pos) {
-          remaining.splice(remaining.indexOf(currId), 1);
-          if (! memoryQuery.filterTest(currDoc, ns)) {
-            model.remove(pointerPath, pos, 1);
-          }
-        } else {
-          if (memoryQuery.filterTest(currDoc, ns)) {
-            insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, currDoc);
-          }
-        }
-      }
-      // Anything remaining is obviously not in the searchSpace, so we should
-      // remove it from our pointers
-      for (i = 0, l = remaining.length; i < l; i++) {
-        pos = pointers.indexOf(remaining[i]);
-        model.remove(pointerPath, pos, 1);
-      }
-      break;
+  if (handled) return done && done();
 
-    case 'findOne':
-      return maybeUpdateFindOnePointer(pointerPath, model, memoryQuery, ns, currResult);
-    default:
-      throw new TypeError();
-  }
+  // Handle mutation on a path inside a document that is an immediate child of the namespace
+  var suffix = path.substring(ns.length + 1)
+    , separatorPos = suffix.indexOf('.')
+    , index = parseInt(suffix.substring(0, ~separatorPos ? separatorPos : suffix.length), 10)
+    , doc = docArray && docArray[index];
+  if (doc) callbacks.onUpdateDocProperty(doc);
+  done && done();
 }
 
-// Case 2: Handle when our query is over an Object of documents
-function handleQueryOverDocTree (memoryQuery, model, path, pointerPath, currResult, ns) {
-  // `path` is the location of data on which the mutation acted. It could be on
-  // the level of the document or on a nested part of the document we are
-  // interested in. Whatever the case, extract the document of interest.
+function handleDocTreeMutation (model, method, _arguments, ns, docTree, callbacks) {
+  var Model = model.constructor
+    , args = _arguments[0]
+    , path = args[0]
+    , out = _arguments[1]
+    , done = callbacks.done;
+
+  var handled = handleNsMutation(model, method, path, args, out, ns, callbacks, function (docs, cb) {
+    for (var k in docs) cb(docs[k]);
+  });
+
+  if (handled) return done && done();
+
+  handled = handleDocMutation(method, path, args, out, ns, callbacks);
+
+  if (handled) return done && done();
+
+  // Handle mutation on a path inside a document that is an immediate child of the namespace
   var suffix = path.substring(ns.length + 1)
     , separatorPos = suffix.indexOf('.')
     , id = suffix.substring(0, ~separatorPos ? separatorPos : suffix.length)
-    , doc = model.get(ns + '.' + id);
+    , doc = docTree && docTree[id];
+  if (doc) callbacks.onUpdateDocProperty(doc);
+  done && done();
+}
 
-  switch (memoryQuery._type) {
-    case 'find':
-      // Is the  document already in our result set?
-      var pos = model.get(pointerPath).indexOf(id);
+/**
+ * Handle mutation directly on the path to a document that is an immediate
+ * child of the namespace.
+ */
+function handleDocMutation (method, path, args, out, ns, callbacks) {
+  // Or directly on the path to a document that is an immediate child of the namespace
+  if (path.substring(ns.length + 1).indexOf('.') !== -1) return false;
 
-      // If the doc is no longer in our data, but our results have a reference to
-      // it, then remove the reference to the doc.
-      if (!doc && ~pos) return model.remove(pointerPath, pos, 1);
+  // The mutation can:
+  switch (method) {
+    // (1) remove the document
+    case 'del':
+      callbacks.onRmDoc(out);
+      break;
 
-      // If the doc belongs in our query results...
-      if (memoryQuery.filterTest(doc, ns)) {
-        // ...and it is already recorded in our query result.
-        if (~pos) return;
+    // (2) add or over-write the document with a new version of the document
+    case 'set':
+    case 'setNull':
+      callbacks.onAddDoc(args[1], out);
+      break;
 
-        // ...or it is not recorded in our query result.
-        insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, doc);
+    default:
+      throw new Error('Uncaught edge case');
+  }
+  return true;
+}
 
-      // Otherwise, if the doc does not belong in our query results, but it did
-      // belong to our query results prior to the mutation...
-      } else if (~pos) {
-        model.remove(pointerPath, pos, 1);
+/**
+ * Handle occurrence when the mutation occured directly on the namespace
+ */
+function handleNsMutation (model, method, path, args, out, ns, callbacks, iterator) {
+  var Model = model.constructor;
+
+  if (path !== ns) return false;
+  switch (method) {
+    case 'del': callbacks.onRemoveNs(); break;
+
+    case 'set':
+    case 'setNull':
+      callbacks.onOverwriteNs(args[1], iterator);
+      break;
+
+    case 'push':
+    case 'insert':
+    case 'unshift':
+      var docsToAdd = args[Model.arrayMutator[method].insertArgs]
+        , onAddDoc = callbacks.onAddDoc;
+      if (Array.isArray(docsToAdd)) for (var i = docsToAdd.length; i--; ) {
+        onAddDoc(docsToAdd[i]);
+      } else {
+        onAddDoc(docsToAdd);
       }
       break;
-    case 'findOne':
-      // Because re-ordering a result set can change the findOne result, we
-      // should compare the updated document to the currently cached result.
 
-      var comparator = memoryQuery._comparator;
-
-      // If we updated a document that is our current cached result...
-      if (currResult && currResult.id === id) {
-        // TODO We can be more efficient here if we only deal with our before
-        // and after updated doc, and use comparator on them.
-
-        return maybeUpdateFindOnePointer(pointerPath, model, memoryQuery, ns, currResult);
-
-      // If we updated a document different than our currently cached result...
-      } else {
-        // Then check where the updated doc should be positioned relative to
-        // our cached result.
-        var comparison = comparator(doc, currResult);
-
-        // If later, then do not update our cached result.
-        if (comparison >= 0) return;
-
-        // Otherwise, make the updated doc our new findOne cached result
-        return model.set(pointerPath, doc.id);
+    case 'pop':
+    case 'shift':
+    case 'remove':
+    case 'move':
+      var docsToRm = out
+        , onRmDoc = callbacks.onRmDoc;
+      for (var i = docsToRm.length; i--; ) {
+        onRmDoc(docsToRm[i]);
       }
       break;
     default:
-      throw new TypeError();
+      throw new Error('Uncaught edge case');
   }
+  return true;
 }
 
+/**
+ * @param {Function} comparator is the sort comparator function of the query
+ * @param {Model} model is the racer model
+ * @param {String} pointerPath is the path where the list of pointers (i.e.,
+ * document ids) to documents resides
+ * @param {[Object]} currResults is the array of documents representing the
+ * results as cached prior to the mutation.
+ * @param {Object} doc is the document we want to insert into our query results
+ */
 function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
-      if (!comparator) {
-        return model.insert(pointerPath, currResults.length, doc.id);
-      }
-      for (var k = currResults.length; k--; ) {
-        var currRes = currResults[k]
-          , comparison = comparator(doc, currRes);
-        if (comparison >= 0) {
-          return model.insert(pointerPath, k+1, doc.id);
-        }
-      }
-      return model.insert(pointerPath, 0, doc.id);
+  if (!comparator) {
+    return model.insert(pointerPath, currResults.length, doc.id);
+  }
+  for (var k = currResults.length; k--; ) {
+    var currRes = currResults[k]
+      , comparison = comparator(doc, currRes);
+    if (comparison >= 0) {
+      return model.insert(pointerPath, k+1, doc.id);
+    }
+  }
+  return model.insert(pointerPath, 0, doc.id);
 }
 
-function maybeUpdateFindOnePointer (pointerPath, model, memoryQuery, ns, currResult) {
-  var equivFindQuery = new MemoryQuery(Object.create(memoryQuery.toJSON(), {
-        type: { value: 'find' }
-      }))
-
-  // If so, we need to see if a document that would have been in an
-  // equivalent find query is now positioned before the cached result.
-    , searchSpace = model.get(ns)
-    , results = equivFindQuery.syncRun(searchSpace);
-  if (!results[0] || !currResult || results[0].id === currResult.id) return;
-  return model.set(pointerPath, results[0].id);
+function equivId (id, doc) {
+  return doc.id === id;
 }
