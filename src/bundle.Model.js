@@ -40,10 +40,15 @@ var mixin = {
 
   , _bundle: function (callback) {
       callback(JSON.stringify([this._clientId, this._memory, this._count, this._onLoad, this._startId, this._ioUri]));
+      this._commit = errorOnCommit;
     }
   }
 };
 
 function onBundleTimeout () {
   throw new Error('Model bundling took longer than ' + mixin.static.BUNDLE_TIMEOUT + ' ms');
+}
+
+function errorOnCommit () {
+  throw new Error('Model mutation performed after bundling for clientId: ' + this._clientId)
 }
