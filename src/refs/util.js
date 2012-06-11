@@ -34,9 +34,9 @@ module.exports = {
  * @param {String} from is the private path of the ref
  * @param {Function} getter
  * @param {String} pattern
- * @param {Function} callback(match, mutator, args)
+ * @param {Function} generatePath(match, mutator, args)
  */
-function addListener (listeners, model, from, getter, pattern, callback) {
+function addListener (listeners, model, from, getter, pattern, generatePath) {
   var regexp = eventRegExp(pattern);
   function listener (mutator, _arguments) {
     var path = _arguments[0][0];
@@ -50,11 +50,11 @@ function addListener (listeners, model, from, getter, pattern, callback) {
       return;
     }
 
-    // Construct the next de-referenced path to emit on. callback may also
+    // Construct the next de-referenced path to emit on. generagePath may also
     // alter args = _arguments[0].slice()
     var args = _arguments[0].slice();
     args.out = _arguments[1];
-    var dereffedPath = callback(regexp.exec(path), mutator, args);
+    var dereffedPath = generatePath(regexp.exec(path), mutator, args);
     if (dereffedPath === null) return;
     args[0] = dereffedPath;
     var isLocal = _arguments[2]

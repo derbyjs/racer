@@ -2,6 +2,7 @@ var refUtils = require('./util')
   , derefPath = refUtils.derefPath
   , addListener = refUtils.addListener
   , joinPaths = require('../path').join
+  , indexOf = require('../util').indexOf
   , Model = require('../Model')
   ;
 
@@ -64,13 +65,20 @@ function createGetterWithKey (to, key, hardLink) {
    * current props index]
    */
   return function getter (lookup, data, path, props, len, i) {
-    lookup(to, data);
-    var dereffedPath = derefPath(data, to);
+    // Here, lookup(to, data) is called in order for derefPath to work because
+    // derefPath looks for data.$deref, which is lazily re-assigned on a lookup
+    var obj = lookup(to, data)
+      , dereffedPath = derefPath(data, to);
 
     // Unset $deref
     data.$deref = null;
 
-    dereffedPath += '.' + lookup(key, data);
+    var pointer = lookup(key, data);
+    if (Array.isArray(obj)) {
+      dereffedPath += '.' + indexOf(obj, pointer, equivId);
+    } else if (!obj || obj.constructor === Object) {
+      dereffedPath += '.' + pointer;
+    }
     var curr = lookup(dereffedPath, data)
       , currPath = joinPaths(dereffedPath, props.slice(i));
 
@@ -98,14 +106,30 @@ function setupRefWithKeyListeners (model, from, to, key, getter) {
   });
 
   addListener(listeners, model, from, getter, key, function (match, mutator, args) {
+    var docs = model.get(to)
+      , id;
     if (mutator === 'set') {
-      args[1] = model.get(to + '.' + args[1]);
-      args.out = model.get(to + '.' + args.out);
+      id = args[1];
+      if (Array.isArray(docs)) {
+        args[1] = docs && docs[ indexOf(docs, id, equivId) ];
+        args.out = docs && docs[ indexOf(docs, args.out, equivId) ];
+      } else {
+        args[1] = docs && docs[id];
+        args.out = docs && docs[args.out];
+      }
     } else if (mutator === 'del') {
-      args.out = model.get(to + '.' + args.out);
+      if (Array.isArray(docs)) {
+        args.out = docs && docs[ indexOf(docs, args.out, equivId) ];
+      } else {
+        args.out = docs && docs[args.out];
+      }
     }
     return from;
   });
+}
+
+function equivId (id, doc) {
+  return doc.id === id;
 }
 
 function createGetterWithoutKey (to, hardLink) {

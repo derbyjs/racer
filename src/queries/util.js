@@ -1,4 +1,5 @@
 var QueryBuilder = require('./QueryBuilder')
+  , MemoryQuery = require('./MemoryQuery')
   , PRIVATE_COLLECTION = '_$queries';
 
 exports.resultPointerPath = resultPointerPath;
@@ -118,11 +119,12 @@ function handleQueryOverDocArray (memoryQuery, model, path, pointerPath, currRes
       // The documents this query searches over, either as an Array
       // or Object of documents. This set of documents reflects that the
       // mutation has already taken place.
-  var searchSpace = model.get(path)
+  var searchSpace = model.get(ns);
 
-      // List of document ids that match the query, as cached before the
-      // mutation
-    , pointers = model.get(pointerPath)
+  switch (memoryQuery._type) {
+    case 'find':
+      // List of document ids that match the query, as cached before the mutation
+      var pointers = model.get(pointerPath)
 
       // Maintain a list of document ids, starting off as the pointer list.
       // As we evaluate the updated search space against the query and the
@@ -132,55 +134,105 @@ function handleQueryOverDocArray (memoryQuery, model, path, pointerPath, currRes
       // set prior to the mutation but that must be removed because the
       // mutation removed that document from the search space, and we can
       // only include results from the search space.
-    , remaining = pointers.slice()
+        , remaining = pointers.slice()
 
-    , pos;
+        , pos;
 
-  // Update the pointer list of results by evaluating each document in the
-  // search space against the current pointer list and the query. This loop
-  // also clears out any pointers in the pointer list that no longer point
-  // to a document because the document has been removed from the search space.
-  for (var i = 0, l = searchSpace.length; i < l; i++) {
-    var currDoc = searchSpace[i]
-      , currId = currDoc.id;
-    pos = pointers.indexOf(currId);
-    if (~pos) {
-      remaining.splice(remaining.indexOf(currId), 1);
-      if (! memoryQuery.filterTest(currDoc, ns)) {
+      // Update the pointer list of results by evaluating each document in the
+      // search space against the current pointer list and the query. This loop
+      // also clears out any pointers in the pointer list that no longer point
+      // to a document because the document has been removed from the search space.
+      for (var i = 0, l = searchSpace.length; i < l; i++) {
+        var currDoc = searchSpace[i]
+          , currId = currDoc.id;
+        pos = pointers.indexOf(currId);
+        if (~pos) {
+          remaining.splice(remaining.indexOf(currId), 1);
+          if (! memoryQuery.filterTest(currDoc, ns)) {
+            model.remove(pointerPath, pos, 1);
+          }
+        } else {
+          if (memoryQuery.filterTest(currDoc, ns)) {
+            insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, currDoc);
+          }
+        }
+      }
+      // Anything remaining is obviously not in the searchSpace, so we should
+      // remove it from our pointers
+      for (i = 0, l = remaining.length; i < l; i++) {
+        pos = pointers.indexOf(remaining[i]);
         model.remove(pointerPath, pos, 1);
       }
-    } else {
-      if (memoryQuery.filterTest(currDoc, ns)) {
-        insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, currDoc);
-      }
-    }
+      break;
+
+    case 'findOne':
+      return maybeUpdateFindOnePointer(pointerPath, model, memoryQuery, ns, currResult);
+    default:
+      throw new TypeError();
   }
-  // Anything remaining is obviously not in the searchSpace, so we should
-  // remove it from our pointers
-  for (i = 0, l = remaining.length; i < l; i++) {
-    pos = pointers.indexOf(remaining[i]);
-    model.remove(pointerPath, pos, 1);
-  }
-  return;
 }
 
 // Case 2: Handle when our query is over an Object of documents
 function handleQueryOverDocTree (memoryQuery, model, path, pointerPath, currResult, ns) {
+  // `path` is the location of data on which the mutation acted. It could be on
+  // the level of the document or on a nested part of the document we are
+  // interested in. Whatever the case, extract the document of interest.
   var suffix = path.substring(ns.length + 1)
     , separatorPos = suffix.indexOf('.')
     , id = suffix.substring(0, ~separatorPos ? separatorPos : suffix.length)
-    , doc = model.get(ns + '.' + id)
-    , pos = model.get(pointerPath).indexOf(id);
+    , doc = model.get(ns + '.' + id);
 
-  // If the doc is no longer in our data, but our results have a reference to
-  // it, then remove the reference to the doc.
-  if (!doc && ~pos) return model.remove(pointerPath, pos, 1);
+  switch (memoryQuery._type) {
+    case 'find':
+      // Is the  document already in our result set?
+      var pos = model.get(pointerPath).indexOf(id);
 
-  if (memoryQuery.filterTest(doc, ns)) {
-    if (~pos) return;
-    insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, doc);
-  } else if (~pos) {
-    model.remove(pointerPath, pos, 1);
+      // If the doc is no longer in our data, but our results have a reference to
+      // it, then remove the reference to the doc.
+      if (!doc && ~pos) return model.remove(pointerPath, pos, 1);
+
+      // If the doc belongs in our query results...
+      if (memoryQuery.filterTest(doc, ns)) {
+        // ...and it is already recorded in our query result.
+        if (~pos) return;
+
+        // ...or it is not recorded in our query result.
+        insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, doc);
+
+      // Otherwise, if the doc does not belong in our query results, but it did
+      // belong to our query results prior to the mutation...
+      } else if (~pos) {
+        model.remove(pointerPath, pos, 1);
+      }
+      break;
+    case 'findOne':
+      // Because re-ordering a result set can change the findOne result, we
+      // should compare the updated document to the currently cached result.
+
+      var comparator = memoryQuery._comparator;
+
+      // If we updated a document that is our current cached result...
+      if (currResult && currResult.id === id) {
+        // TODO We can be more efficient here if we only deal with our before
+        // and after updated doc, and use comparator on them.
+
+        return maybeUpdateFindOnePointer(pointerPath, model, memoryQuery, ns, currResult);
+
+      // If we updated a document different than our currently cached result...
+      } else {
+        // Then check where the updated doc should be positioned relative to
+        // our cached result.
+        var comparison = comparator(doc, currResult);
+
+        // If later, then do not update our cached result.
+        if (comparison >= 0) return;
+
+        // Otherwise, make the updated doc our new findOne cached result
+        return model.set(pointerPath, doc.id);
+      }
+      break;
+    default:
+      throw new TypeError();
   }
 }
 
@@ -196,4 +248,17 @@ function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
         }
       }
       return model.insert(pointerPath, 0, doc.id);
+}
+
+function maybeUpdateFindOnePointer (pointerPath, model, memoryQuery, ns, currResult) {
+  var equivFindQuery = new MemoryQuery(Object.create(memoryQuery.toJSON(), {
+        type: { value: 'find' }
+      }))
+
+  // If so, we need to see if a document that would have been in an
+  // equivalent find query is now positioned before the cached result.
+    , searchSpace = model.get(ns)
+    , results = equivFindQuery.syncRun(searchSpace);
+  if (!results[0] || !currResult || results[0].id === currResult.id) return;
+  return model.set(pointerPath, results[0].id);
 }

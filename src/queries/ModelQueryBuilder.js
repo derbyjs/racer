@@ -15,7 +15,8 @@ ModelQueryBuilder.fromJSON = QueryBuilder._createFromJsonFn(ModelQueryBuilder);
 var proto = ModelQueryBuilder.prototype = new QueryBuilder();
 
 /**
- * @return {Model} a scoped model scoped to 
+ * Registers, executes, and sets up listeners for a find model query.
+ * @return {Model} a scoped model scoped to a refList
  */
 proto.find = function find () {
   var queryJson = this.toJSON()
@@ -24,15 +25,19 @@ proto.find = function find () {
     , results = memoryQuery.syncRun(model.get(queryJson.from));
   // TODO Clean up local queries when we no longer need them
   model.registerQuery(memoryQuery, model._localQueries);
-  // Returns a scoped model
   return setupQueryModelScope(model, queryJson, results);
 };
 
-// TODO findOne should return a scoped model
+/**
+ * Registers, executes, and sets up listeners for a findOne model query.
+ * @return {Model} a scoped model scoped to a ref
+ */
 proto.findOne = function findOne () {
   var queryJson = this.toJSON()
-    , scopedPath = resultRefPath(queryJson)
+    , model = this._model
     , memoryQuery = new MemoryQuery(queryJson).findOne()
-    , results = memoryQuery.syncRun(model.get(queryJson.from));
-  return results;
+    , result = memoryQuery.syncRun(model.get(queryJson.from));
+  // TODO Clean up local queries when we no longer need them
+  model.registerQuery(memoryQuery, model._localQueries);
+  return setupQueryModelScope(model, queryJson, result);
 }

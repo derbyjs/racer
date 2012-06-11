@@ -26,8 +26,8 @@ function createRefList (model, from, to, key) {
       while ((id = args[i]) && id != null) {
         docs = model.get(to);
         args[i] = (Array.isArray(docs))
-                ? docs[ indexOf(docs, id, function (id, doc) { return doc.id === id; })  ]
-                : docs[id];
+                ? docs && docs[ indexOf(docs, id, function (id, doc) { return doc.id === id; })  ]
+                : docs && docs[id];
         // args[i] = model.get(to + '.' + id);
         i++;
       }

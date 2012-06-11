@@ -196,6 +196,10 @@ function handleQueryTarget (model, target, eachQueryTarget, compileModelScopes, 
   if (compileModelScopes) {
     scopedModel = setupQueryModelScope(model, queryJson);
   }
+  // Lazily assign type of 'find', if type was not set
+  if (!queryJson.type) {
+    queryJson.type = 'find';
+  }
   eachQueryTarget.call(model, queryJson, newTargets);
   return scopedModel;
 }
