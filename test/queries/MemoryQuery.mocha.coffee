@@ -64,7 +64,6 @@ describe 'MemoryQuery', ->
         expect(err).to.not.be.ok()
         doc = found[0]
         expect(doc).to.only.have.keys('id', 'name')
-        console.log found
 
     it 'should respect `only` compound paths', ->
       q = new MemoryQuery

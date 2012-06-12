@@ -27,7 +27,6 @@ module.exports = (plugins = []) ->
                 modelB = store.createModel()
                 expected = tests[pattern]
                 modelB[method] pattern, ->
-                  console.log(method, pattern, require('util').inspect(modelB.get(), false, null))
                   expect(modelB.get 'globals._').to.eql expected
                   finish()
 
