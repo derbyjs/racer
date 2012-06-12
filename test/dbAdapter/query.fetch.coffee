@@ -190,12 +190,12 @@ module.exports = ->
 
       it 'should only retrieve the paths specified in `only`', (done) ->
         @model.subscribe @query, =>
-        for i in [0..2]
-          expect(@model.get @currNs + '.' + i + '.id').to.equal users[i].id
-          expect(@model.get @currNs + '.' + i + '.name').to.equal users[i].name
-          expect(@model.get @currNs + '.' + i + '.age').to.equal users[i].age
-          expect(@model.get @currNs + '.' + i + '.workdays').to.equal undefined
-        done()
+          for i in [0..2]
+            expect(@model.get @currNs + '.' + i + '.id').to.equal users[i].id
+            expect(@model.get @currNs + '.' + i + '.name').to.equal users[i].name
+            expect(@model.get @currNs + '.' + i + '.age').to.equal users[i].age
+            expect(@model.get @currNs + '.' + i + '.workdays').to.equal undefined
+          done()
 
     describe '`except` queries', ->
       beforeEach -> @query = @model.query(@currNs).where('age').gt(20).except('name', 'workdays')

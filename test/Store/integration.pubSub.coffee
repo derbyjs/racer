@@ -21,13 +21,14 @@ module.exports = (plugins = []) ->
         store.set 'globals._.e', {c: 7}, null, ->
           methods.forEach (method) ->
             model = store.createModel()
-            model[method] 'notDefined', ->
-              expect(model.get 'notDefined').to.eql undefined
+            model[method] 'globals.notDefined', ->
+              expect(model.get 'globals.notDefined').to.eql undefined
               patterns.forEach (pattern) ->
-                model = store.createModel()
+                modelB = store.createModel()
                 expected = tests[pattern]
-                model[method] pattern, ->
-                  expect(model.get 'globals._').to.eql expected
+                modelB[method] pattern, ->
+                  console.log(method, pattern, require('util').inspect(modelB.get(), false, null))
+                  expect(modelB.get 'globals._').to.eql expected
                   finish()
 
     it 'should distribute events to refs remotely', (done) ->
