@@ -1,7 +1,7 @@
 var connect = require('connect')
   , parseCookie = connect.utils.parseCookie
   , createSessionMiddleware = connect.session
-  , MemoryStore = session.MemoryStore;
+  , MemoryStore = createSessionMiddleware.MemoryStore;
 
 /**
  * The following is a description of the lifecycle of a session and of a socket
