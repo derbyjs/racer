@@ -10,7 +10,7 @@ module.exports = {
 
 , _onCreateFn: function (path, inputs, callback) {
     var fnsToBundle = this._fnsToBundle
-      , len = fnsToBundle.push(['fn', path].concat(inputs).concat([bundledFunction(cb)]));
+      , len = fnsToBundle.push(['fn', path].concat(inputs).concat([bundledFunction(callback)]));
 
     return function () {
       delete fnsToBundle[len-1];
