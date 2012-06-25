@@ -98,6 +98,9 @@ module.exports =
 
   proto:
 
+    _commit: (txn, callback) ->
+      @_mode.commit txn, callback
+
     _startTxnBuffer: (clientId, timeoutAfter = 3000) ->
       txnBuffers = @_txnBuffers
       if clientId of txnBuffers

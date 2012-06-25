@@ -3,7 +3,6 @@ var transaction = require('../transaction')
   , expandPath = path.expand
   , splitPath = path.split
   , QueryBuilder = require('../queries/QueryBuilder')
-  , MemoryQuery = require('../queries/MemoryQuery')
   , noop = require('../util').noop
   ;
 
@@ -12,26 +11,18 @@ module.exports = {
 
 , events: {
     init: function (model) {
-      // The following 2 private variables `_pathSubs` and _querySubs` remember
-      // subscriptions. This memory is useful when the client may have been
+      // `_pathSubs` remembers path subscriptions.
+      // This memory is useful when the client may have been
       // disconnected from the server for quite some time and needs to re-send
       // its subscriptions upon re-connection in order for the server (1) to
       // figure out what data the client needs to re-sync its snapshot and (2)
       // to re-subscribe to the data on behalf of the client. The paths and
       // queries get cached in Model#subscribe.
       model._pathSubs  = {}; // path -> Boolean
-      model._querySubs = {}; // Maps query hash -> Boolean
     }
 
   , bundle: function (model, addToBundle) {
-      var querySubs = model._querySubs
-        , memoryQuery
-        , queryJsons = [];
-      for (var k in querySubs) {
-        memoryQuery = querySubs[k];
-        queryJsons.push(memoryQuery.toJSON());
-      }
-      addToBundle('_loadSubs', model._pathSubs, queryJsons);
+      addToBundle('_loadSubs', model._pathSubs, model._querySubs());
     }
 
   , socket: function (model, socket) {
@@ -71,21 +62,27 @@ module.exports = {
       // the result sets corresponding to a query that this model is currently
       // subscribed.
       socket.on('rmDoc', function (payload, num) {
-        var hash = payload.channel
+        var hash = payload.channel // TODO Remove
           , data = payload.data
           , doc  = data.doc
           , id   = data.id
           , ns   = data.ns
-          , ver  = data.ver;
+          , ver  = data.ver
+
+            // TODO Maybe just [clientId, queryId]
+          , queryTuple = data.q; // TODO Add q to data
 
         // Don't remove the doc if any other queries match the doc
-        var querySubs = model._querySubs;
-        for (var currHash in querySubs) {
+        var querySubs = model._querySubs();
+        for (var i = querySubs.length; i--; ) {
+          var currQueryTuple = querySubs[i];
 
-          // If "rmDoc" was triggered by the same query, we expect it not to match the query, so ignore it
-          if (hash.substring(3) === currHash) continue; // `substring` strips the leading "$q."
+          var memoryQuery = model.registeredMemoryQuery(currQueryTuple);
 
-          var memoryQuery = model.locateQuery(currHash);
+          // If "rmDoc" was triggered by the same query, we expect it not to
+          // match the query, so ignore it.
+          if (QueryBuilder.hash(memoryQuery.toJSON()) === hash.substring(3, hash.length)) continue;
+
           // If the doc belongs in an existing subscribed query's result set,
           // then don't remove it, but instead apply a "null" transaction to
           // make sure the transaction counter `num` is acknowledged, so other
@@ -101,8 +98,8 @@ module.exports = {
               , id: null
               , method: 'del'
               , args: [pathToDoc]
-            });
-        var oldDoc = model.get(pathToDoc);
+            })
+          , oldDoc = model.get(pathToDoc);
         model._addRemoteTxn(txn, num);
         model.emit('rmDoc', pathToDoc, oldDoc);
       });
@@ -112,83 +109,73 @@ module.exports = {
 , proto: {
     _loadSubs: function (pathSubs, querySubList) {
       this._pathSubs = pathSubs;
-      var querySubs = this._querySubs;
-      for (var queryJson in querySubList) {
-        var hash = QueryBuilder.hash(queryJson)
-          , memoryQuery = new MemoryQuery(queryJson);
-        this.registerQuery(memoryQuery, querySubs);
+
+      var querySubs = this._querySubs();
+      for (var i = querySubs.length; i--; ) {
+        var queryTuple = querySubs[i];
+        this.registerQuery(queryTuple, 'subs');
       }
     }
 
-    // subscribe(targets..., callback)
-  , subscribe: function () {
-      var pathSubs = this._pathSubs
-        , querySubs = this._querySubs
-        , self = this;
+  , _querySubs: function () {
+      return this._queryRegistry.lookupWithTag('subs');
+    }
 
-      this._compileTargets(arguments, {
-        eachQueryTarget: function (queryJson, targets) {
-          var hash = QueryBuilder.hash(queryJson);
-          if (! (hash in querySubs)) {
-            self.registerQuery(new MemoryQuery(queryJson), querySubs);
-            targets.push(queryJson);
-          }
+  , subscribe: function (/* targets..., callback */) {
+      var arglen = arguments.length
+        , lastArg = arguments[arglen-1]
+        , callback = (typeof lastArg === 'function') ? lastArg : noop
+        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
+
+        , pathSubs = this._pathSubs
+        , querySubs = this._querySubs();
+      this._compileTargets(targets, {
+        eachQueryTarget: function (queryTuple, targets) { /* this === model */
+          this.registerQuery(queryTuple, 'subs');
         }
-      , eachPathTarget: function (path, targets) {
+      , eachPathTarget: function (path, targets) { /* this === model */
           if (path in pathSubs) return;
           pathSubs[path] = true;
-          targets.push(path); // TODO push unexpanded target or expanded path?
         }
-      , done: function (targets, modelScopes, subscribeCb) {
+      , done: function (targets, modelScopes) { /* this === model */
           if (! targets.length) {
-            return subscribeCb.apply(this, [null].concat(modelScopes));
+            return callback.apply(this, [null].concat(modelScopes));
           }
           var self = this;
           this._addSub(targets, function (err, data) {
-            if (err) return subscribeCb(err);
+            if (err) return callback(err);
             self._addData(data);
             self.emit('addSubData', data);
-            subscribeCb.apply(this, [null].concat(modelScopes));
+            callback.apply(self, [null].concat(modelScopes));
           });
         }
       });
     }
 
-    // unsubscribe(targets..., callback)
-  , unsubscribe: function () {
-      var pathSubs = this._pathSubs
-        , querySubs = this._querySubs
-        , self = this;
+  , unsubscribe: function (/* targets..., callback */) {
+      var arglen = arguments.length
+        , lastArg = arguments[arglen-1]
+        , callback = (typeof lastArg === 'function') ? lastArg : noop
+        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
 
-      this._compileTargets(arguments, {
-        eachQueryTarget: function (queryJson, targets) {
+        , pathSubs = this._pathSubs
+        , querySubs = this._querySubs();
+
+      this._compileTargets(targets, {
+        eachQueryTarget: function (queryJson) { /* this === model */
           var hash = QueryBuilder.hash(queryJson);
           if (! (hash in querySubs)) return;
-          self.unregisterQuery(hash, querySubs);
-          targets.push(queryJson);
+          this.unregisterQuery(hash, querySubs);
         }
-      , eachPathTarget: function (path, targets) {
+      , eachPathTarget: function (path, targets) { /* this === model */
           if (! (path in pathSubs)) return;
           delete pathSubs[path];
-          targets.push(path);
         }
-      , done: function (targets, unsubscribeCb) {
-          if (! targets.length) return unsubscribeCb();
-          this._removeSub(targets, unsubscribeCb);
+      , done: function (targets) { /* this === model */
+          if (! targets.length) return callback();
+          this._removeSub(targets, callback);
         }
       });
-    }
-
-  , _addData: function (data) {
-      var memory = this._memory
-        , data = data.data;
-      for (var i = data.length; i--; ) {
-        var triplet = data[i]
-          , path = triplet[0]
-          , value = triplet[1]
-          , ver = triplet[2];
-        memory.set(path, value, ver);
-      }
     }
 
   , _addSub: function (targets, cb) {
@@ -203,9 +190,10 @@ module.exports = {
 
   , _subs: function () {
       var subs = Object.keys(this._pathSubs)
-        , querySubs = this._querySubs;
-      for (var hash in querySubs) {
-        subs.push(this.locateQuery(hash).toJSON());
+        , querySubs = this._querySubs();
+      for (var i = querySubs.length; i--; ) {
+        var queryTuple = querySubs[i];
+        subs.push(queryTuple);
       }
       return subs;
     }
@@ -218,7 +206,8 @@ module.exports = {
         if (err) return cb(err);
         // Subscribe while the model still only resides on the server.
         // The model is unsubscribed before sending to the browser.
-        store.subscribe(clientId, targets, cb);
+        var mockSocket = { clientId: clientId };
+        store.subscribe(mockSocket, targets, cb);
       });
     }
 
@@ -226,7 +215,8 @@ module.exports = {
       var store = this.store;
       this._clientIdPromises.on( function (err, clientId) {
         if (err) return cb(err);
-        store.unsubscribe(clientId, targets, cb);
+        var mockSocket = { clientId: clientId };
+        store.unsubscribe(mockSocket, targets, cb);
       });
     }
   }

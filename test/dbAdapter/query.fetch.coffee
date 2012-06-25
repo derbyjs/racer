@@ -13,12 +13,14 @@ module.exports = ->
     beforeEach (done) ->
       forEach users, (user, callback) =>
         @store.set "#{@currNs}.#{user.id}", user, null, callback
-      , =>
-        @model = @store.createModel()
-        done()
+      , done
 
     describe 'one parameter `equals` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('name').equals('brian')
+      beforeEach ->
+        @store.query.expose @currNs, 'withName', (name) ->
+          @where('name').equals(name)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).withName('brian')
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -39,7 +41,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `gt` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').gt(25)
+      beforeEach ->
+        @store.query.expose @currNs, 'olderThan', (age) ->
+          @where('age').gt(age)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).olderThan(25)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -60,7 +66,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `gte` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').gte(26)
+      beforeEach ->
+        @store.query.expose @currNs, 'xYearsOrOlder', (age) ->
+          @where('age').gte(age)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).xYearsOrOlder(26)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -81,7 +91,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `lt` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').lt(27)
+      beforeEach ->
+        @store.query.expose @currNs, 'youngerThan', (age) ->
+          @where('age').lt(age)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).youngerThan(27)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -102,7 +116,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `lte` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').lte(26)
+      beforeEach ->
+        @store.query.expose @currNs, 'xYearsOrYounger', (age) ->
+          @where('age').lte(age)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).xYearsOrYounger(26)
 
       it 'should load the found docs into the proper document namespace', (done) ->
         @model.subscribe @query, =>
@@ -123,7 +141,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `within` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('name').within(['brian', 'x'])
+      beforeEach ->
+        @store.query.expose @currNs, 'withinNames', (names) ->
+          @where('name').within(names)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).withinNames(['brian', 'x'])
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -144,7 +166,11 @@ module.exports = ->
           done()
 
     describe 'one parameter `contains` scalar queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('workdays').contains(['mon', 'wed'])
+      beforeEach ->
+        @store.query.expose @currNs, 'workingAny', (workdays) ->
+          @where('workdays').contains(workdays)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).workingAny(['mon', 'wed'])
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -165,7 +191,13 @@ module.exports = ->
           done()
 
     describe 'compound queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('workdays').contains(['wed']).where('age').gt(25)
+      beforeEach ->
+        @store.query.expose @currNs, 'workingAll', (workdays) ->
+          @where('workdays').contains(workdays)
+        @store.query.expose @currNs, 'olderThan', (age) ->
+          @where('age').gt(age)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).workingAll(['wed']).olderThan(25)
 
       it 'should load the found docs into the proper document namespaces', (done) ->
         @model.subscribe @query, =>
@@ -186,7 +218,11 @@ module.exports = ->
           done()
 
     describe '`only` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').gt(20).only('name', 'age')
+      beforeEach ->
+        @store.query.expose @currNs, 'olderThanWithNameAndAge', (age) ->
+          @where('age').gt(age).only('name', 'age')
+        @model = @store.createModel()
+        @query = @model.query(@currNs).olderThanWithNameAndAge(20)
 
       it 'should only retrieve the paths specified in `only`', (done) ->
         @model.subscribe @query, =>
@@ -198,7 +234,11 @@ module.exports = ->
           done()
 
     describe '`except` queries', ->
-      beforeEach -> @query = @model.query(@currNs).where('age').gt(20).except('name', 'workdays')
+      beforeEach ->
+        @store.query.expose @currNs, 'olderThanExceptNameAndWorkdays', (age) ->
+          @where('age').gt(age).except('name', 'workdays')
+        @model = @store.createModel()
+        @query = @model.query(@currNs).olderThanExceptNameAndWorkdays(20)
 
       it 'should exclude paths specified in `except`', (done) ->
         @model.subscribe @query, =>

@@ -99,11 +99,17 @@ PubSub.prototype.subscribedTo = function subscribedTo (subscriberId, channel) {
   return this._channelType(channel).subscribedTo(subscriberId, channel);
 };
 
+/**
+ * This merges `_interface` into the given channel named `channelType`
+ *
+ * @param {String} channelType
+ * @param {Object} _interface maps method names to functions
+ * @api protected
+ */
 PubSub.prototype.addChannelInterface = function addChannelInterface (channelType, _interface) {
   var type = this._channelTypes[channelType];
   for (var name in _interface) {
-    var fn = _interface[name];
-    type[name] = fn;
+    type[name] = _interface[name];
   }
 };
 

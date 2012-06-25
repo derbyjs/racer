@@ -40,12 +40,7 @@ var validQueryParams = {
 function QueryBuilder (params) {
   this._json = {};
 
-  if (params) for (var k in params) {
-    if (! (k in validQueryParams)) {
-      throw new Error("Un-identified operator '" + k + "'");
-    }
-    this[k](params[k]);
-  }
+  if (params) this.query(params);
 }
 
 function keyMatch (obj, fn) {
@@ -92,6 +87,21 @@ var proto = QueryBuilder.prototype = {
       }
     }
   , toJSON: function () { return this._json; }
+
+    /**
+     * Entry-point for more coffee-script style query building.
+     *
+     * @param {Object} params representing additional query method calls
+     * @return {QueryBuilder} this for chaining
+     */
+  , query: function (params) {
+      for (var k in params) {
+        if (! (k in validQueryParams)) { throw new Error("Un-identified operator '" + k + "'");
+        }
+        this[k](params[k]);
+      }
+      return this;
+    }
 };
 
 QueryBuilder._createFromJsonFn = function (QueryBuilderKlass) {

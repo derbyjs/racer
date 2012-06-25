@@ -107,6 +107,19 @@ expect.Assertion::specEql = (val) ->
     #{specInspect val} \n"""
   return this
 
+{deepEqual} = require '../../lib/util'
+expect.Assertion::deepEql = (val) ->
+  @assert deepEqual(val, @obj),
+    """expected \n
+    #{inspect @obj, false, null} \n
+    to deep equal \n
+    #{inspect val, false, null}""",
+    """expected \n
+    #{inspect @obj, false, null} \n
+    to not deep equal \n
+    #{inspect val, false, null}"""
+  return this
+
 expect.Assertion::NaN = ->
   @assert @obj != @obj,
     'expected ' + inspect(@obj) + ' to be NaN',

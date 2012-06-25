@@ -21,9 +21,8 @@ module.exports = {
       plugin = _require(plugin);
     }
 
-    var decorate = plugin.decorate;
-    // TODO: Make decorate required instead of defaulting to racer?
-    var target = (decorate === null || decorate === 'racer')
+    var decorate = plugin.decorate
+      , target = (decorate === null || decorate === 'racer')
                ? this
                : plugable[decorate];
 
@@ -82,6 +81,7 @@ module.exports = {
         };
       }
 
+      if (mixin.decorate) mixin.decorate(Klass);
       mergeAll(Klass, mixin.static);
       mergeProto(mixin.proto, Klass);
 
@@ -121,8 +121,8 @@ function mergeProto (protoSpec, Klass) {
         case 'type':
           var csGroups = value.split(',');
           for (var i = 0, l = csGroups.length; i < l; i++) {
-            var groupName = csGroups[i];
-            var methods = Klass[groupName] || (Klass[groupName] = {});
+            var groupName = csGroups[i]
+              , methods = Klass[groupName] || (Klass[groupName] = {});
             methods[name] = fn;
           }
           break;

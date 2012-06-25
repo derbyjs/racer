@@ -1,4 +1,4 @@
-var Promise = require('./util/Promise');
+var Promise = require('../util/Promise');
 
 exports = module.exports = plugin;
 exports.useWith = { server: true, browser: true };

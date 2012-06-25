@@ -22,12 +22,10 @@ function plugin (racer) {
     // directories, and then compile these objects into racer.protected
     queries: {
       QueryBuilder: require('./queries/QueryBuilder')
-    , ModelQueryBuilder: require('./queries/ModelQueryBuilder')
     , MemoryQuery: require('./queries/MemoryQuery')
     , QueryHub: require('./queries/QueryHub')
     , QueryNode: require('./queries/QueryNode')
     , PaginatedQueryNode: require('./queries/PaginatedQueryNode')
-    , filter: require('./queries/filter')
     }
   , diffMatchPatch: require('./diffMatchPatch')
   , Memory: require('./Memory')
@@ -110,11 +108,11 @@ function plugin (racer) {
     });
   };
 
-  racer.session = require('./session');
+  racer.session = require('./session') // TODO Remove this?
   racer.registerAdapter = require('./adapters').registerAdapter;
 
   racer
-    .use(require('./bundle.Model'))
+    .use(require('./bundle/bundle.Model'))
     .use(require('./adapters/db-memory'))
     .use(require('./adapters/journal-memory'))
     .use(require('./adapters/clientid-mongo'))

@@ -68,11 +68,13 @@ PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, stor
 
   var path = transaction.getPath(txn)
     , ver = transaction.getVer(txn)
-    , ns = path.substring(0, path.indexOf('.'))
+    , ns = path.substring(0, path.indexOf('.'));
 
-    , filter = this.query._filter
-    , oldDocPasses = filter(oldDoc, ns)
-    , newDocPasses = filter(newDoc, ns)
+  if (ns !== this.ns) return false;
+
+  var filter = this.query._filter
+    , oldDocPasses = oldDoc && filter(oldDoc)
+    , newDocPasses = newDoc && filter(newDoc)
 
     , self = this;
 

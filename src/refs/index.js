@@ -7,6 +7,8 @@ var pathUtils             = require('../path')
   , createRef             = require('./ref')
   , createRefList         = require('./refList')
   , equal                 = require('../util').equal
+  , unbundledFunction     = require('../bundle/util').unbundledFunction
+  , TransformBuilder      = require('../queries/TransformBuilder') // ugh - leaky abstraction
   ;
 
 exports = module.exports = plugin;
@@ -114,6 +116,10 @@ var mixin = {
      * @return {Model} a model scope scoped to `from`
      */
   , ref: function (from, to, key, hardLink) {
+      if (to instanceof TransformBuilder) {
+        var scopedModel = to.run();
+        return this.ref(from, scopedModel.path());
+      }
       return this._createRef(createRef, 'ref', from, to, key, hardLink);
     }
 
@@ -157,22 +163,7 @@ var mixin = {
       assertPrivateRefPath(model, from, refType);
       var getter = refFactory(model, from, to, key, hardLink);
 
-      // Prevent emission of the next set event, since we are setting the
-      // dereferencing function and not its value.
-      var listener = model.on('beforeTxn', function (method, args) {
-        // Supress emission of set events when setting a function, which is
-        // what happens when a ref is created
-        if (method === 'set' && args[1] === getter) {
-          args.cancelEmit = true;
-          model.removeListener('beforeTxn', listener);
-        }
-      });
-
-      // Now, set the dereferencing function
-      var prevValue = model.set(from, getter);
-      // Emit a set event with the expected de-referenced values
-      var newValue = model.get(from);
-      model.emit('set', [from, newValue], prevValue, true);
+      model.setRefGetter(from, getter);
 
       // The server model adds [from, getter, [refType, from, to, key]] to
       // this._refsToBundle
@@ -183,12 +174,33 @@ var mixin = {
       return model.at(from);
     }
 
+  , setRefGetter: function (path, getter) {
+      var self = this;
+      // Prevent emission of the next set event, since we are setting the
+      // dereferencing function and not its value.
+      var listener = this.on('beforeTxn', function (method, args) {
+        // Supress emission of set events when setting a function, which is
+        // what happens when a ref is created
+        if (method === 'set' && args[1] === getter) {
+          args.cancelEmit = true;
+          self.removeListener('beforeTxn', listener);
+        }
+      });
+
+      // Now, set the dereferencing function
+      var prevValue = this.set(path, getter);
+      // Emit a set event with the expected de-referenced values
+      var newValue = this.get(path);
+      this.emit('set', [path, newValue], prevValue, true);
+    }
+
     /**
      * TODO
      * Works similar to model.fn(inputs..., fn) but without having to declare
      * inputs. This means that fn also takes no arguments
      */
   , autofn: function (fn) {
+      throw new Error('Unimplemented');
       autodep(this, fn);
     }
 
@@ -217,7 +229,7 @@ var mixin = {
 
       assertPrivateRefPath(this, path, 'fn');
       if (typeof fn === 'string') {
-        fn = (new Function('return ' + fn))();
+        fn = unbundledFunction(fn);
       }
       return model._createFn(path, inputs, fn);
     }

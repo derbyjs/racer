@@ -3,26 +3,39 @@ var lookup = require('../path').lookup
   , util = require('../util')
   , indexOf = util.indexOf
   , deepIndexOf = util.deepIndexOf
-  , deepEqual = util.deepEqual;
+  , deepEqual = util.deepEqual
+  , QueryBuilder = require('../queries/QueryBuilder')
+  ;
 
-module.exports = createFilter;
+module.exports = {
+  filterFnFromQuery: filterFnFromQuery
+, filterDomain: filterDomain
+, deriveFilterFn: deriveFilterFn
+};
 
-// @param {Object} json representing a query that is typically created via
-// convenient QueryBuilder instances
-//
-// json looks like:
-// {
-//   from: 'collectionName'
-// , byKey: keyVal
-// , equals: {
-//     somePath: someVal
-// , }
-// , notEquals: {
-//     somePath: someVal
-//   }
-// , sort: ['fieldA', 'asc', 'fieldB', 'desc']
-// }
-function createFilter (json) {
+/**
+ * Creates a filter function based on a query represented as json.
+ *
+ * @param {Object} json representing a query that is typically created via
+ * convenient QueryBuilder instances
+ *
+ * json looks like:
+ * {
+ *    from: 'collectionName'
+ *  , byKey: keyVal
+ *  , equals: {
+ *      somePath: someVal
+ *  , }
+ *  , notEquals: {
+ *      somePath: someVal
+ *    }
+ *  , sort: ['fieldA', 'asc', 'fieldB', 'desc']
+ *  }
+ *
+ * @return {Function} a filter function
+ * @api public
+ */
+function filterFnFromQuery (json) {
   // Stores a list of predicate functions that take a document and return a
   // Boolean. If all predicate functions return true, then the document passes
   // through the filter. If not, the document is blocked by the filter
@@ -30,6 +43,7 @@ function createFilter (json) {
     , pred;
 
   if (json) for (var method in json) {
+    if (method === 'from') continue;
     pred = predicateBuilders[method](json[method]);
     if (Array.isArray(pred)) predicates = predicates.concat(pred);
     else predicates.push(pred);
@@ -39,10 +53,6 @@ function createFilter (json) {
 }
 
 var predicateBuilders = {};
-
-predicateBuilders.from = function from (ns) {
-  return function (doc, docNs) { return ns === docNs; };
-};
 
 predicateBuilders.byKey = function byKey (keyVal) {
   return function (doc) { return doc.id === keyVal; };
@@ -117,19 +127,78 @@ function createDocPredicates (params, fieldPredicate) {
   return predicates;
 };
 
-
 function compileDocFilter (predicates) {
   switch (predicates.length) {
     case 0: return evalToTrue;
     case 1: return predicates[0];
   }
-  return function test (doc, ns) {
+  return function test (doc) {
     if (typeof doc === 'undefined') return false;
     for (var i = 0, l = predicates.length; i < l; i++) {
-      if (! predicates[i](doc, ns)) return false;
+      if (! predicates[i](doc)) return false;
     }
     return true;
   };
 }
 
+/**
+ * @api private
+ */
 function evalToTrue () { return true; }
+
+/**
+ * Returns the set of docs from searchSpace that pass filterFn.
+ *
+ * @param {Object|Array} searchSpace
+ * @param {Function} filterFn
+ * @param {String} ns
+ * @return {Object|Array} the filtered values
+ * @api public
+ */
+function filterDomain (searchSpace, filterFn) {
+  if (Array.isArray(searchSpace)) {
+    return searchSpace.filter(filterFn);
+  }
+
+  var filtered = {};
+  for (var k in searchSpace) {
+    var curr = searchSpace[k];
+    if (filterFn(curr)) {
+      filtered[k] = curr;
+    }
+  }
+  return filtered;
+}
+
+/**
+ * Derives the filter function, based on filterSpec and source.
+ *
+ * @param {Function|Object} filterSpec is a representation of the filter
+ * @param {String} source is the path to the data that we want to filter
+ * @param {Boolean} single specifies whether to filter down to a single
+ * resulting Object.
+ * @return {Function} filter function
+ * @api private
+ */
+function deriveFilterFn (filterSpec, source, single) {
+  if (typeof filterSpec === 'function') {
+    var numArgs = filterSpec.length;
+    if (numArgs === 1) return filterSpec;
+    if (numArgs === 0) {
+      var queryBuilder = new QueryBuilder({from: source});
+      queryBuilder = filterSpec.call(queryBuilder);
+      if (single) queryBuilder.on();
+      var queryJson = queryBuilder.toJSON();
+      var filter = filterFnFromQuery(queryJson);
+      if (queryJson.sort) {
+        // TODO
+      }
+    }
+    throw new Error('filter spec must be either a function with 0 or 1 argument, or an Object');
+  }
+  // Otherwise, filterSpec is an Object representing query params
+  filterSpec.from = source;
+  var queryBuilder = new QueryBuilder(filterSpec);
+  if (single) queryBuilder.one();
+  return filterFnFromQuery(queryBuilder.toJSON());
+}

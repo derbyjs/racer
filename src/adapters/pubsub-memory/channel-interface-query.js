@@ -12,6 +12,8 @@ module.exports = createQueryInterface;
 
 function createQueryInterface (pubSub, store) {
   var queryCoordinator = store._queryCoordinator;
+
+  // queryCoordinator defines subscribe, unsubscribe, hasSubscriptions, and subscribedTo
   return Object.create(queryCoordinator, {
     publish: { value:
       function (msg, meta) {

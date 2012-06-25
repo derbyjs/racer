@@ -1,26 +1,34 @@
-var createFilter = require('./filter')
+// TODO JSDoc
+var filterUtils = require('../computed/filter')
+  , filterFnFromQuery = filterUtils.filterFnFromQuery
+  , filterDomain = filterUtils.filterDomain
+  , sliceDomain = require('../computed/range').sliceDomain
+  , sortUtils = require('../computed/sort')
+  , sortDomain = sortUtils.sortDomain
+  , deriveComparator = sortUtils.deriveComparator
+  , projectDomain = require('../computed/project').projectDomain
   , util = require('../util')
   , Promise = util.Promise
   , merge = util.merge
-  , path = require('../path')
-  , lookup = path.lookup
-  , objectWithOnly = path.objectWithOnly
-  , objectExcept = path.objectExcept
+  , objectExcept = require('../path').objectExcept
   ;
 
 module.exports = MemoryQuery;
 
-// MemoryQuery instances are used:
-// - On the server when DbMemory database adapter is used
-// - On QueryNodes stored inside a QueryHub to figure out which transactions
-//   trigger query result changes to publish to listeners.
-// - Inside the browser for in-browser queries
-// @param {Object} json representing a query that is typically created via
-// convenient QueryBuilder instances. See QueryBuilder.js for more details.
+/**
+ * MemoryQuery instances are used:
+ * - On the server when DbMemory database adapter is used
+ * - On QueryNodes stored inside a QueryHub to figure out which transactions
+ *   trigger query result changes to publish to listeners.
+ * - Inside the browser for filters
+ *
+ * @param {Object} json representing a query that is typically created via
+ * convenient QueryBuilder instances. See QueryBuilder.js for more details.
+ */
 function MemoryQuery (json) {
   this._json = json;
   var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort', 'type']);
-  this._filter = createFilter(filteredJson);
+  this._filter = filterFnFromQuery(filteredJson);
   for (var k in json) {
     if (k === 'type') {
       // find() or findOne()
@@ -31,11 +39,17 @@ function MemoryQuery (json) {
   }
 }
 
-MemoryQuery.prototype.toJSON = function toJSON () { return this._json; };
+MemoryQuery.prototype.toJSON = function toJSON () {
+  return this._json;
+};
 
-// Specify that documents in the result set are stripped of all fields except
-// the ones specified in `paths`
-// @param {Object} paths to include. The Object maps String -> 1
+/**
+ * Specify that documents in the result set are stripped of all fields except
+ * the ones specified in `paths`
+ * @param {Object} paths to include. The Object maps String -> 1
+ * @return {MemoryQuery} this for chaining
+ * @api public
+ */
 MemoryQuery.prototype.only = function only (paths) {
   if (this._except) {
     throw new Error("You can't specify both query(...).except(...) and query(...).only(...)");
@@ -45,9 +59,13 @@ MemoryQuery.prototype.only = function only (paths) {
   return this;
 };
 
-// Specify that documents in the result set are stripped of the fields
-// specified in `paths`. You aren't allowed to exclude the path "id"
-// @param {Object} paths to exclude. The Object maps String -> 1
+/**
+ * Specify that documents in the result set are stripped of the fields
+ * specified in `paths`. You aren't allowed to exclude the path "id"
+ * @param {Object} paths to exclude. The Object maps String -> 1
+ * @return {MemoryQuery} this for chaining
+ * @api public
+ */
 MemoryQuery.prototype.except = function except (paths) {
   if (this._only) {
     throw new Error("You can't specify both query(...).except(...) and query(...).only(...)");
@@ -86,55 +104,9 @@ MemoryQuery.prototype.sort = function sort (params) {
   } else {
     sort = this._sort = params;
   }
-  this._comparator = compileSortComparator(sort);
+  this._comparator = deriveComparator(sort);
   return this;
 };
-
-// Generates a comparator function that returns -1, 0, or 1
-// if a < b, a == b, or a > b respectively, according to the ordering criteria
-// defined by sortParams
-// , e.g., sortParams = ['field1', 'asc', 'field2', 'desc']
-function compileSortComparator (__sortParams__) {
-  return function comparator (a, b, sortParams) {
-    sortParams || (sortParams = __sortParams__);
-    var dir, path, factor, aVal, bVal
-      , aIsIncomparable, bIsIncomparable;
-    for (var i = 0, l = sortParams.length; i < l; i+=2) {
-      var dir = sortParams[i+1];
-      switch (dir) {
-        case 'asc' : factor =  1; break;
-        case 'desc': factor = -1; break;
-        default: throw new Error('Must be "asc" or "desc"');
-      }
-      path = sortParams[i];
-      aVal = lookup(path, a);
-      bVal = lookup(path, b);
-
-      // Handle undefined, null, or in-comparable aVal and/or bVal.
-      aIsIncomparable = isIncomparable(aVal)
-      bIsIncomparable = isIncomparable(bVal);
-
-      // Incomparables always come last.
-      if ( aIsIncomparable && !bIsIncomparable) return factor;
-      // Incomparables always come last, even in reverse order.
-      if (!aIsIncomparable &&  bIsIncomparable) return -factor;
-
-      // Tie-break 2 incomparable fields by comparing more downstream ones
-      if ( aIsIncomparable &&  bIsIncomparable) continue;
-
-      // Handle comparable field values
-      if      (aVal < bVal) return -factor;
-      else if (aVal > bVal) return factor;
-
-      // Otherwise, the field values for both docs so far are equivalent
-    }
-    return 0;
-  };
-}
-
-function isIncomparable (x) {
-  return (typeof x === 'undefined') || x === null;
-}
 
 MemoryQuery.prototype.find = function find () {
   this._type = 'find';
@@ -149,7 +121,8 @@ MemoryQuery.prototype.findOne = function findOne () {
 };
 
 MemoryQuery.prototype.filterTest = function filterTest (doc, ns) {
-  return this._filter(doc, ns);
+  if (ns !== this._json.from) return false;
+  return this._filter(doc);
 };
 
 MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
@@ -163,75 +136,32 @@ MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
 };
 
 MemoryQuery.prototype.syncRun = function syncRun (searchSpace) {
-  var filter = this._filter
-    , matches = filterWorld(searchSpace, filter, this._json.from)
-    , comparator = this._comparator;
-  if (comparator) matches = matches.sort(comparator);
+  var matches = filterDomain(searchSpace, this._filter, this._json.from);
+
+  // Query results should always be a list. sort co-erces the results into a
+  // list even if comparator is not present.
+  matches = sortDomain(matches, this._comparator);
 
   // Handle skip/limit for pagination
   var skip = this._skip
-    , limit = this._limit
-    , only = this._only
-    , except = this._except;
-
+    , limit = this._limit;
   if (typeof limit !== 'undefined') {
-    if (typeof skip === 'undefined') skip = 0;
-    matches = matches.slice(skip, skip + limit);
+    matches = sliceDomain(matches, skip, limit);
   }
 
+  // Truncate to limit the work of the next field filtering step
   if (this._type === 'findOne') {
-    // Do this to limit the work of the next field filtering step
     matches = [matches[0]];
   }
 
-  // Finally, selectively return the documents with a subset of fields based on
+  // Selectively return the documents with a subset of fields based on
   // `except` or `only`
-  var projectObject, fields;
-  if (only) {
-    projectObject = objectWithOnly;
-    fields = Object.keys(only);
-  } else if (except) {
-    projectObject = objectExcept;
-    fields = Object.keys(except);
+  var only = this._only
+    , except = this._except;
+  if (only || except) {
+    matches = projectDomain(matches, only || except, !!except);
   }
-  if (projectObject) {
-    matches = matches.map( function (doc) {
-      return projectObject(doc, fields);
-    });
-  }
+
   if (this._type === 'findOne') return matches[0];
   return matches;
-}
-
-function filterObject (obj, filterFn, extra, start) {
-  var filtered = start || {}
-    , outputAsArray = Array.isArray(filtered);
-  if (Array.isArray(obj)) {
-    for (var i = 0, l = obj.length; i < l; i++) {
-      if (filterFn(obj[i], extra)) {
-        filtered[filtered.length] = obj[i];
-      }
-    }
-  } else {
-    var i = 0
-    for (var k in obj) {
-      if (filterFn(obj[k], extra)) {
-        filtered[outputAsArray ? i++ : k] = obj[k];
-      }
-    }
-  }
-  return filtered;
-};
-
-function filterWorld (docs, filterFn, ns) {
-  if (ns) {
-    return filterObject(docs, filterFn, ns, []);
-  }
-  var results = {};
-  for (ns in docs) {
-    docs = docs[ns];
-    var newResults = filterObject(docs, filterFn, ns, []);
-    results = results.concat(newResults);
-  }
-  return results;
 }

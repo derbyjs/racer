@@ -30,6 +30,7 @@ racer
   .use(require('./mutators'))
   .use(require('./refs'))
   .use(require('./pubSub'))
+  .use(require('./computed'))
   .use(require('./queries'))
   .use(require('./txns'))
   .use(require('./reconnect'));

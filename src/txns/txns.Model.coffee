@@ -266,6 +266,8 @@ module.exports =
 
       return unless (path = args[0])?
 
+      # TODO Type cast arguments
+
       # Create a new transaction
       ver = @_getVersion()
       id = @_nextTxnId()
@@ -298,8 +300,12 @@ module.exports =
         @emit method, args, out, true, @_pass
         txn.emitted = true
 
-      # Send it over Socket.IO or to the store on the server
+#      @_validate txn, (errors) ->
+#        # Send it over Socket.IO or to the store on the server
+#        @_commit txn unless errors
+#      @_commit txn unless errors
       @_commit txn
+
       return out
 
     _applyTxn: (txn, isLocal) ->
@@ -375,6 +381,11 @@ module.exports =
 
       data.$out = out
       return data
+
+    # TODO Implement this
+    # ?? Rename to snapshot or atomic
+    # @return {Model} a model snapshotted at the current version
+    branch: ->
 
     # TODO: Finish implementation of atomic transactions
     # atomic: (block, callback) ->

@@ -22,16 +22,18 @@ module.exports = (plugins) ->
         expect(modelA.get "#{currNs}.#{i}")[prop].equal undefined
       return
 
-    test = ({query, events, definedBefore, definedAfter, onSubscribe}) ->
+    test = ({withStore, events, definedBefore, definedAfter, onSubscribe}) ->
       return (done) ->
         {store, currNs} = testContext = this
+        withStore.call testContext, store
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           forEach events, (event, callback) ->
-            modelA.on event, -> callback()
+            modelA.on event, ->
+              callback()
           , ->
             checkItems currNs, modelA, definedAfter
             done()
-          target = query modelA.query(currNs).where('ranking').sort('ranking', 'asc')
+          target = modelA.query(currNs).special()
           modelA.subscribe target, ->
             checkItems currNs, modelA, definedBefore
             onSubscribe.call testContext, modelB, currNs
@@ -46,7 +48,9 @@ module.exports = (plugins) ->
 #        definedAfter:  [1, 2]
 
       it 'should remove a document that no longer satisfies the query', test
-        query: (ranking) -> ranking.lt(2).limit(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lt(2).sort('ranking', 'asc').limit(2)
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.3.ranking", 2
         events: ['rmDoc']
         definedBefore: [3]
@@ -58,7 +62,9 @@ module.exports = (plugins) ->
       it 'should replace a document (whose recent mutation makes it in-compatible with the query) if another doc in the db is compatible', test
       #   <page prev> <page curr> <page next>
       #                   -                     push to curr from next
-        query: (ranking) -> ranking.lt(5).sort('ranking', 'asc').limit(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lt(5).sort('ranking', 'asc').limit(2)
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.3.ranking", 6
         events: ['rmDoc', 'addDoc']
         definedBefore: [1, 3]
@@ -67,7 +73,9 @@ module.exports = (plugins) ->
       it 'should replace a document if another doc was just mutated so it supercedes the doc according to the query', test
         #   <page prev> <page curr> <page next>
         #                   +                     pop from curr to next
-        query: (ranking) -> ranking.lt(3).sort('name.first', 'desc').limit(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lt(3).sort('name.first', 'desc').limit(2)
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.2.ranking", 2
         events: ['rmDoc', 'addDoc']
         definedBefore: [1, 3]
@@ -95,9 +103,10 @@ module.exports = (plugins) ->
             store.set "#{currNs}.#{player.id}", player, null, finish
           , -> callback allPlayers, modelA, modelB, done
 
-      test = ({query: augmentQuery, expectedRange, onSubscribe}) ->
+      test = ({withStore, expectedRange, onSubscribe}) ->
         return (done) ->
           {store, currNs} = testContext = this
+          withStore.call testContext, store
           testSetup store, currNs, done, (allPlayers, modelA, modelB, done) ->
             forEach ['rmDoc', 'addDoc'], (method, finish) ->
               modelA.on method, ->
@@ -107,7 +116,7 @@ module.exports = (plugins) ->
               for id, player of modelPlayers
                 expect(player.ranking).to.be.within expectedRange...
               done()
-            target = augmentQuery modelA.query(currNs).where('ranking')
+            target = modelA.query(currNs).special()
             modelA.subscribe target, ->
               for player in allPlayers
                 if player.ranking not in [3, 4]
@@ -120,7 +129,9 @@ module.exports = (plugins) ->
       #   <page prev> <page curr> <page next>
       #       -                                 shift from curr to prev
       #                                         push to curr from right
-        query: (ranking) -> ranking.lte(5).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(5).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [4, 5]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 6
 
@@ -128,7 +139,9 @@ module.exports = (plugins) ->
       #   <page prev> <page curr> <page next>
       #       -   >>>>>   +                     shift from curr to prev
       #                                         insert + in curr
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [4, 5]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 5
 
@@ -136,7 +149,9 @@ module.exports = (plugins) ->
       #   <page prev> <page curr> <page next>
       #       -   >>>>>>>>>>>>>>>>>   +         shift from curr to prev
       #                                         push from next to curr
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [4, 5]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.1.ranking", 6
 
@@ -144,7 +159,9 @@ module.exports = (plugins) ->
       #   <page prev> <page curr> <page next>
       #       +                                 unshift to curr from prev
       #                                         pop from curr to next
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [2, 3]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.6",
           {id: '6', name: {first: 'Pete', last: 'Sampras'}, ranking: 0}
@@ -152,14 +169,17 @@ module.exports = (plugins) ->
       it 'should move the last member of the prev page to the curr page, if a curr page member mutates in a way that moves it to a prev page', test
       #   <page prev> <page curr> <page next>
       #       +   <<<<<   -                     unshift to curr from prev
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [2, 3]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.5.ranking", 0
 
 
-      test = ({query, expectedRange, onSubscribe}) ->
+      test = ({withStore, expectedRange, onSubscribe}) ->
         return (done) ->
-          {store, currNs} = this
+          {store, currNs} = testContext = this
+          withStore.call testContext, store
           testSetup store, currNs, done, (allPlayers, modelA, modelB, done) ->
             modelA.on 'addDoc', -> done() # Should never be called
             modelA.on 'rmDoc', -> done() # Should never be called
@@ -169,7 +189,7 @@ module.exports = (plugins) ->
                 expect(player.ranking).to.be.within expectedRange...
               done()
             , 50
-            target = query modelA.query(currNs).where('ranking')
+            target = modelA.query(currNs).special()
             modelA.subscribe target, ->
               for player in allPlayers
                 if player.ranking not in [3, 4]
@@ -181,13 +201,17 @@ module.exports = (plugins) ->
       it 'should do nothing to the curr page if mutations only add docs to subsequent pages', test
       #   <page prev> <page curr> <page next>
       #                               +         do nothing to curr
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [3, 4]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.4.ranking", 5
 
       it 'should do nothing to the curr page if mutations only remove docs from subsequent pages', test
       #   <page prev> <page curr> <page next>
       #                               -         do nothing to curr
-        query: (ranking) -> ranking.lte(6).sort('ranking', 'asc').limit(2).skip(2)
+        withStore: (store) ->
+          store.query.expose @currNs, 'special', ->
+            @where('ranking').lte(6).sort('ranking', 'asc').limit(2).skip(2)
         expectedRange: [3, 4]
         onSubscribe: (modelB) -> modelB.set "#{@currNs}.4.ranking", 10

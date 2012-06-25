@@ -1,5 +1,7 @@
-var ModelQueryBuilder = require('./ModelQueryBuilder')
+var EventEmitter = require('events').EventEmitter
   , QueryBuilder = require('./QueryBuilder')
+  , QueryRegistry = require('./QueryRegistry')
+  , QueryMotifRegistry = require('./QueryMotifRegistry')
   , path = require('../path')
   , splitPath = path.split
   , expandPath = path.expand
@@ -11,176 +13,257 @@ module.exports = {
   type: 'Model'
 , events: {
     init: function (model) {
-      // A data structure containing all queries of interest to this model.
-      //
-      // Maps hash -> MemoryQuery
-      //        indexes: [Object]
-      //        query: MemoryQuery
-      model._queries = {}
+      var store = model.store
+      if (store) {
+        // Maps query motif -> callback
+        model._queryMotifRegistry = store._queryMotifRegistry;
+      } else {
+        // Stores any query motifs registered via store.query.expose. The query
+        // motifs declared via Store are copied over to all child Model
+        // instances created via Store#createModel
+        model._queryMotifRegistry = new QueryMotifRegistry;
+      }
 
-      // An index of the local queries -- i.e., queries to which the model is
-      // not subscribed
-      //
-      // Maps hash -> Boolean
-      model._localQueries = {}
+      // The query registry stores any queries associated with the model via
+      // Model#fetch and Model#subscribe
+      model._queryRegistry = new QueryRegistry;
+    }
+
+    // TODO Re-write this
+  , bundle: function (model) {
+      var queryMotifRegistry = model._queryMotifRegistry
+        , queryMotifBundle = queryMotifRegistry.toJSON();
+      model._onLoad.push(['_loadQueryMotifs', queryMotifBundle]);
     }
   }
 , proto: {
 
     /**
-     * Registers both local queries and queries to which the model is subscribed.
-     * @param {MemoryQuery} memoryQuery
-     * @param {Object} index is an index of query hashes to a Boolean
-     * @return {Boolean} true if registered; false if already registered
+     * @param {Array} queryTuple
+     * @return {Object} json representation of the query
+     * @api protected
      */
-    registerQuery: function (memoryQuery, index) {
-      var queryJson = memoryQuery.toJSON()
-        , hash = QueryBuilder.hash(queryJson)
-        , queries = this._queries;
-      if (hash in queries) {
-        if (hash in index) return false;
-        queries[hash].indexes.push(index);
-        return index[hash] = true;
-      }
-      queries[hash] = {
-        query: memoryQuery
-      , indexes: [index]
-      }
-      index[hash] = true;
-      return true;
+    queryJSON: function (queryTuple) {
+      return this._queryMotifRegistry.queryJSON(queryTuple);
     }
 
-  , unregisterQuery: function (queryRepresentation, index) {
-      var queries = this._queries
-        , hash;
-      if (typeof queryRepresentation === 'string') {
-        hash = queryRepresentation;
-      } else {
-        throw new Error('Arguments error');
-      }
-      if (! (hash in queries)) return false;
-      if (! (hash in index)) return false;
-
-      delete index[hash];
-
-      var meta = queries[hash]
-        , indexes = meta.indexes
-        , position = indexes.indexOf(index);
-      if (~position) {
-        indexes.splice(position, 1);
-      } else {
-        throw new Error('Expected index to be in indexes');
-      }
-      if (indexes.length === 0) {
-        delete queries[hash];
-      }
-      return true;
+    /**
+     * Called when loading the model bundle. Loads queries defined by store.query.expose
+     *
+     * @param {Object} queryMotifBundle is the bundled form of a
+     * QueryMotifRegistry, that was packaged up by the server Model and sent
+     * down with the initial page response.
+     * @api private
+     */
+  , _loadQueryMotifs: function (queryMotifBundle) {
+      this._queryMotifRegistry = QueryMotifRegistry.fromJSON(queryMotifBundle);
     }
 
-  , locateQuery: function (queryRepresentation) {
-      var hash;
-      if (typeof queryRepresentation === 'string') {
-        hash = queryRepresentation;
-      } else if (queryRepresentation.constructor === Object) {
-        hash = QueryBuilder.hash(queryRepresentation);
-      } else {
-        throw new Error('Query representation must be json or the query hash string');
+    /**
+     * Registers queries to which the model is subscribed.
+     *
+     * @param {Array} queryTuple
+     * @param {String} tag to label the query
+     * @return {Boolean} true if registered; false if already registered
+     * @api protected
+     */
+  , registerQuery: function (queryTuple, tag) {
+      var queryRegistry = this._queryRegistry
+        , queryId = queryRegistry.add(queryTuple) ||
+                    queryRegistry.queryId(queryTuple)
+        , tagged = tag && queryRegistry.tag(queryId, tag);
+      return tagged || queryId;
+    }
+
+    /**
+     * If no tag is provided, removes queries that we do not care to keep around anymore.
+     * If a tag is provided, we only untag the query.
+     *
+     * @param {Array} queryTuple of the form [motifName, queryArgs...]
+     * @param {Object} index mapping query hash -> Boolean
+     * @return {Boolean}
+     * @api protected
+     */
+  , unregisterQuery: function (queryTuple, tag) {
+      var queryRegistry = this._queryRegistry;
+      if (tag) {
+        var queryId = queryRegistry.queryId(queryTuple);
+        return queryRegistry.untag(queryId, tag);
       }
-      var meta = this._queries[hash];
-      return meta && meta.query;
+      return queryRegistry.remove(queryTuple);
     }
 
-  , query: function (source, queryParams) {
-      queryParams || (queryParams = {});
-      var sourcePath;
-      if (typeof source === 'string') { // query(namespace, queryParams)
-        sourcePath = source;
-      } else { // query(scopedModel, queryParams)
-        sourcePath = source.path();
-      }
-      queryParams.from = sourcePath;
-      return new ModelQueryBuilder(queryParams, this);
+    /**
+     * Locates a registered query.
+     *
+     * @param {String} motifName
+     * @return {MemoryQuery|undefined} the registered MemoryQuery matching the queryRepresentation
+     * @api protected
+     */
+  , registeredMemoryQuery: function (queryTuple) {
+      return this._queryRegistry.memoryQuery(queryTuple, this._queryMotifRegistry);
     }
 
-  , findOne: function (namespace, queryParams) {
-      queryParams || (queryParams = {});
-      queryParams.from = namespace;
-      return (new ModelQueryBuilder(queryParams, this)).findOne();
+  , registeredQueryId: function (queryTuple) {
+      return this._queryRegistry.queryId(queryTuple);
     }
 
-  , find: function (namespace, queryParams) {
-      queryParams || (queryParams = {});
-      queryParams.from = namespace;
-      return (new ModelQueryBuilder(queryParams, this)).find();
+    /**
+     * Convenience method for generating [motifName, queryArgs...] tuples to
+     * pass to Model#subscribe and Model#fetch.
+     *
+     * Example:
+     *
+     *     var query = model.fromQueryMotif('todos', 'forUser', 'someUserId');
+     *     model.subscribe(query, function (err, todos) {
+     *       console.log(todos.get());
+     *     });
+     *
+     * @param {String} motifName
+     * @param @optional {Object} queryArgument1
+     * @param @optional {Object} ...
+     * @param @optional {Object} queryArgumentX
+     * @return {Array} a tuple of [null, motifName, queryArguments...]
+     * @api public
+     */
+  , fromQueryMotif: function (/* motifName, queryArgs... */) {
+      return [null].concat(Array.prototype.slice.call(arguments, 0));
     }
 
-    // fetch(targets..., callback)
+    /**
+     * Convenience method for generating [ns, [motifName, queryArgs...],
+     * [motifName, queryArgs...]] tuples to pass to Model#subscribe and
+     * Model#fetch via a fluent, chainable interface.
+     *
+     * Example:
+     *
+     *     var query = model.query('todos').forUser('1');
+     *     model.subscribe(query, function (err, todos) {
+     *       console.log(todos.get());
+     *     });
+     *
+     * @param {String} ns
+     * @return {Object} a query tuple builder
+     * @api public
+     */
+  , query: function (ns) {
+      return this._queryMotifRegistry.queryTupleBuilder(ns);
+    }
+
+    /**
+     * fetch(targets..., callback)
+     * Fetches targets which represent a set of paths, path patterns, and/or
+     * queries.
+     *
+     * @param {String|Array} targets[0] representing a path, path pattern, or query
+     * @optional @param {String|Array} targets[1] representing a path, path pattern,
+     *                                 or query
+     * @optional @param {String|Array} ...
+     * @optional @param {String|Array} targets[k] representing a path, path pattern,
+     *                                 or query
+     * @param {Function} callback
+     * @api public
+     */
   , fetch: function () {
-      this._compileTargets(arguments, {
-        eachQueryTarget: function (queryJson, targets) {
-          targets.push(queryJson);
-        }
-      , eachPathTarget: function (path, targets) {
-          targets.push(path);
-        }
-      , done: function (targets, scopedModels, fetchCb) {
+      var arglen = arguments.length
+        , lastArg = arguments[arglen-1]
+        , callback = (typeof lastArg === 'function') ? lastArg : noop
+        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen);
+
+      this._compileTargets(targets, {
+        done: function (targets, scopedModels) { /* this === model */
           var self = this;
-          this._fetch(targets, function (err, data) {
-              self._addData(data);
-              fetchCb.apply(null, [err].concat(scopedModels));
+          self._waitOrFetchData(targets, function (err, data) {
+            self._addData(data);
+            callback.apply(null, [err].concat(scopedModels));
           });
         }
       });
     }
 
-  , _fetch: function (targets, cb) {
-      if (!this.connected) return cb('disconnected');
-      this.socket.emit('fetch', targets, cb);
+  , _addData: function (data) {
+      var memory = this._memory
+        , data = data.data;
+      for (var i = data.length; i--; ) {
+        var triplet = data[i]
+          , path = triplet[0]
+          , value = triplet[1]
+          , ver = triplet[2];
+        memory.set(path, value, ver);
+      }
     }
 
-    // _arguments is an Array-like arguments whose members are either
-    // QueryBuilder instances or Strings that represent paths or path patterns
-  , _compileTargets: function (_arguments, opts) {
-      var arglen = _arguments.length
-        , last = _arguments[arglen-1]
-        , argsHaveCallback = (typeof last === 'function')
-        , callback = argsHaveCallback ? last : noop
+    /**
+     * Fetches the path and/or query targets and passes the result(s) to the callback.
+     *
+     * @param {Array} targets are an Array of paths and/or queries
+     * @param {Function} callback(err, data, ver) where data is an array of
+     * pairs of the form [path, dataAtPath]
+     * @api protected
+     */
+  , _waitOrFetchData: function (targets, callback) {
+      if (!this.connected) return callback('disconnected');
+      this.socket.emit('fetch', targets, callback);
+    }
 
-        , newTargets = []
+    /**
+     * @param {Array} targets have members who are either Strings representing
+     * paths or path patterns OR Arrays representing query tuples of the form
+     * [motifName, queryArgs...]
+     * @param {Object} opts
+     * @api private
+     */
+  , _compileTargets: function (targets, opts) {
+      var done = opts.done /* done(targets) or done(targets, scopes) */
+        , compileScopedModels = (done.length === 2)
+        , parser = new EventEmitter
+        , expandedTargets = []
+        , model = this;
 
-        , done = opts.done
-          // done(targets, callback) or done(targets, scopes, callback)
-        , compileModelScopes = opts.done.length === 3;
+      var eachPathTarget = opts.eachPathTarget;
+      parser.on('path', function (path) {
+        eachPathTarget && eachPathTarget.call(model, path);
+        // TODO push unexpanded target or expanded path?
+        expandedTargets.push(path);
+      });
 
-      if (compileModelScopes) {
-        var scopedModels = [], scopedModel;
-      }
+      var eachQueryTarget = opts.eachQueryTarget;
+      parser.on('query', function (queryTuple) {
+        eachQueryTarget && eachQueryTarget.call(model, queryTuple);
+        expandedTargets.push(queryTuple);
+      });
 
-      var i = argsHaveCallback ? arglen-1 : arglen;
-      // Transform incoming targets into full set of `newTargets`.
-      // Compile the list `out` of model scopes representative of the fetched
-      // results, to pass back to the `callback`
-      while (i--) {
-        var target = _arguments[i];
-        var scopedModel = (target instanceof QueryBuilder)
-          ? handleQueryTarget(this, target, opts.eachQueryTarget, compileModelScopes, newTargets)
-
-            // Otherwise, target is a path or model scope
-          : handlePatternTarget(this, target, opts.eachPathTarget, compileModelScopes, newTargets);
-        if (compileModelScopes) {
-          scopedModels.unshift(scopedModel);
-        }
-      }
-
-      if (compileModelScopes) {
-        done.call(this, newTargets, scopedModels, callback);
+      if (compileScopedModels) {
+        // Compile the list of model scopes representative of the fetched
+        // results to pass back to opts.done
+        var scopedModels = [];
+        parser.on('pattern', function (pattern) {
+          // TODO This does not always calc pathUpToGlob
+          var pathUpToGlob = splitPath(pattern)[0]
+            , scopedModel = model.at(pathUpToGlob);
+          scopedModels.push(scopedModel);
+        });
+        parser.on('query', function (queryTuple) {
+          var memoryQuery = model.registeredMemoryQuery(queryTuple)
+            , queryId = model.registeredQueryId(queryTuple)
+            , scopedModel = setupQueryModelScope(model, memoryQuery, queryId);
+          scopedModels.push(scopedModel);
+        });
+        parser.on('done', function () {
+          done.call(model, expandedTargets, scopedModels);
+        });
       } else {
-        done.call(this, newTargets, callback);
+        parser.on('done', function () {
+          done.call(model, expandedTargets);
+        });
       }
+
+      parseTargets(parser, targets);
     }
   }
+
 , server: {
-    _fetch: function (targets, cb) {
+    _waitOrFetchData: function (targets, cb) {
       var store = this.store;
       this._clientIdPromise.on( function (err, clientId) {
         if (err) return cb(err);
@@ -190,31 +273,36 @@ module.exports = {
   }
 };
 
-function handleQueryTarget (model, target, eachQueryTarget, compileModelScopes, newTargets) {
-  var queryJson = target.toJSON()
-    , scopedModel;
-  if (compileModelScopes) {
-    scopedModel = setupQueryModelScope(model, queryJson);
-  }
-  // Lazily assign type of 'find', if type was not set
-  if (!queryJson.type) {
-    queryJson.type = 'find';
-  }
-  eachQueryTarget.call(model, queryJson, newTargets);
-  return scopedModel;
-}
+/**
+ * Parses targets into full set of targets. In particular, patterns need to be
+ * expanded into paths. As it's parsing, it emits events:
+ *
+ * - "pattern" for every target that is a path pattern
+ * - "path" for every path that belongs to a set of paths derived from a
+ *   pattern target
+ * - "query" for every target that is a query tuple
+ *
+ * @param {EventEmitter} parser
+ * @param {Array} targets is an array of strings (representing paths and/or
+ * patterns) and/or query tuples (i.e., arrays of the form [motifName,
+ * queryArgs...]
+ */
+function parseTargets (parser, targets) {
+  for (var i = 0, l = targets.length; i < l; i++) {
+    var target = targets[i];
 
-function handlePatternTarget (model, target, eachPathTarget, compileModelScopes, newTargets) {
-  var scopedModel;
-  if (target._at) target = target._at;
-  if (compileModelScopes) {
-    var refPath = splitPath(target)[0];
-    scopedModel = model.at(refPath);
+    if (Array.isArray(target)) { /* If target is a query tuple */
+      parser.emit('query', target);
+    } else if (target.tuple) {
+      parser.emit('query', target.tuple);
+    } else { /* Else target is a path or model scope */
+      if (target._at) target = target._at;
+      parser.emit('pattern', target);
+      var paths = expandPath(target);
+      for (var k = paths.length; k--; ) {
+        parser.emit('path', paths[i]);
+      }
+    }
   }
-  var paths = expandPath(target);
-  for (var k = paths.length; k--; ) {
-    var path = paths[k];
-    eachPathTarget.call(model, path, newTargets);
-  }
-  return scopedModel;
+  parser.emit('done');
 }

@@ -10,6 +10,7 @@ exports = module.exports = QueryNode;
 // are routed.
 
 function QueryNode (queryJson) {
+  this.ns = queryJson.from;
   this.json = queryJson;
   this.hash = QueryBuilder.hash(queryJson);
   this.channel = '$q.' + this.hash;
@@ -31,9 +32,11 @@ QueryNode.prototype.results = function results (db, cb) {
 QueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, store, cb) {
   var filter = this.query._filter
     , path = transaction.getPath(txn)
-    , ns = path.substring(0, path.indexOf('.'))
-    , oldDocPasses = oldDoc && filter(oldDoc, ns)
-    , newDocPasses = filter(newDoc, ns);
+    , ns = path.substring(0, path.indexOf('.'));
+
+  if (ns !== this.ns) return false;
+  var oldDocPasses = oldDoc && filter(oldDoc)
+    , newDocPasses = newDoc && filter(newDoc);
 
   // Handle all permutations of oldDocPasses x newDocPasses
 
@@ -48,8 +51,7 @@ QueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, store, cb) {
   }
 
   var ver = transaction.getVer(txn)
-    , path = transaction.getPath(txn)
-    , ns = path.substring(0, path.indexOf('.'));
+    , path = transaction.getPath(txn);
 
   // The query no longer contains the document, so tell any subscribed
   // clients to remove it.

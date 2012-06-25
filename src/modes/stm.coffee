@@ -37,7 +37,6 @@ Stm::commit = (txn, cb) ->
     eachCb = (err, loggedTxn, next) -> next null
 
   journal = @_journal
-  store = @_store
   txnApplier = @_txnApplier
   journal.eachTxnSince ver,
     meta:

@@ -72,26 +72,26 @@ exports.createBrowserModel = createBrowserModel = (store, testPath, plugins, cal
   if typeof callback is 'object'
     {preBundle, postBundle, preConnect, postConnect: callback} = callback
   plugins ||= []
-  model = store.createModel()
-  model.subscribe testPath, (err, sandbox) ->
-    model.ref '_test', sandbox
-    preBundle?(model)
-    model.bundle (bundle) ->
+  serverModel = store.createModel()
+  serverModel.subscribe testPath, (err, sandbox) ->
+    serverModel.ref '_test', sandbox
+    preBundle?(serverModel)
+    serverModel.bundle (bundle) ->
       setupBrowser = ->
         browserRacer = createBrowserRacer plugins
-        browserSocket = new BrowserSocketMock store.sockets, model._clientId
-        browserRacer.on 'ready', (model) ->
-          preConnect?(model)
+        browserSocket = new BrowserSocketMock store.sockets, serverModel._clientId
+        browserRacer.on 'ready', (browserModel) ->
+          preConnect?(browserModel)
           browserSocket.socket.connect()
           process.nextTick ->
-            callback model
+            callback browserModel
         browserRacer.init JSON.parse(bundle), browserSocket
       if postBundle
         if postBundle.length == 1
-          postBundle model
+          postBundle serverModel
           setupBrowser()
         else
-          postBundle model, setupBrowser
+          postBundle serverModel, setupBrowser
       else
         setupBrowser()
 

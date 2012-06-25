@@ -18,6 +18,8 @@ var EventEmitter = require('events').EventEmitter
 module.exports = Store;
 
 /**
+ * Initialize a new `Store`.
+ *
  * var store = new Store({
  *   mode: {
  *     type: 'lww' || 'stm' || 'ot'
@@ -36,6 +38,9 @@ module.exports = Store;
  * If an options literal is passed for db or clientId, it must contain a `type`
  * property with the name of the adapter under `racer.adapters`. If the adapter
  * has a `connect` method, it will be immediately called after instantiation.
+ *
+ * @param {Object} options
+ * @api public
  */
 function Store (options) {
   if (! options) options = {};
@@ -75,11 +80,6 @@ function Store (options) {
 
 Store.prototype.__proto__ = EventEmitter.prototype;
 
-// TODO Move to txns/txn.Store
-Store.prototype._commit = function (txn, callback) {
-  this._mode.commit(txn, callback);
-};
-
 Store.prototype.listen = function (to, namespace) {
   var io = socketio.listen(to);
   io.configure( function () {
@@ -89,6 +89,7 @@ Store.prototype.listen = function (to, namespace) {
   io.configure('production', function () {
     io.set('log level', 1);
   });
+  this.mixinEmit('socketio', this, io);
   socketUri = (typeof to === 'number')
             ? ':'
             : '';
@@ -104,7 +105,11 @@ Store.prototype.setSockets = function (sockets, ioUri) {
   this._ioUri = ioUri || (ioUri = '');
   var self = this;
   sockets.on('connection', function (socket) {
-    var clientId = socket.handshake.query.clientId;
+    // TODO Do not decorate socket directly. This is brittle if socketio
+    // decides to add a clientId property to socket objects. Perhaps instead
+    // pass around a connection object that has references to clientId, socket,
+    // session, etc
+    var clientId = socket.clientId = socket.handshake.query.clientId;
     socketDebug('ON CONNECTION', clientId);
     if (!clientId) {
       return socket.emit('fatalErr', 'missing clientId');
@@ -175,9 +180,10 @@ Store.prototype._finishCommit = function (txn, ver, callback) {
 };
 
 Store.prototype.createModel = function () {
-  var model = new Model();
-  model.store = this;
-  model._ioUri = this._ioUri;
+  var model = new Model({
+    store: this
+  , _ioUri: this._ioUri
+  });
 
   if (this._mode.startId) {
     var startIdPromise = model._startIdPromise = new Promise();

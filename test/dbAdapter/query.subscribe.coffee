@@ -1,21 +1,25 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
+QueryBuilder = require '../../lib/queries/QueryBuilder'
 sinon = require 'sinon'
+
+makeQuery = (ns) -> new QueryBuilder({from: ns})
 
 module.exports = (plugins) ->
   describe 'subscribe', ->
     storeId = 1
-    test = ({initialDoc, queries, preCondition, postCondition, mutate, listenForMutation}) ->
+    test = ({initialDoc, queries, withStore, preCondition, postCondition, mutate, listenForMutation}) ->
       return (done) ->
         {store} = testContext = this
+        withStore.call testContext, store
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           [key, doc] = initialDoc.call testContext
           store.set key, doc, null, ->
             listenForMutation.call testContext, modelA, ->
               postCondition.call testContext, modelA
               done()
-            modelA.subscribe queries.call(testContext, modelA.query)..., ->
+            modelA.subscribe queries.call(testContext, modelA.query.bind(modelA))..., ->
               preCondition.call testContext, modelA
               mutate.call testContext, modelB
 
@@ -26,6 +30,7 @@ module.exports = (plugins) ->
         userSue  = id: '3', name: 'sue'
 
         {store, currNs} = this
+        store.query.expose currNs, 'withName', (name) -> @where('name').equals(name)
         mockFullSetup store, done, plugins, (modelLeo, modelBill, done) ->
           finish = finishAfter 2, ->
             modelSue = store.createModel()
@@ -34,13 +39,13 @@ module.exports = (plugins) ->
             modelSue.set "#{currNs}.3", userSue
             done()
 
-          queryLeo = modelLeo.query(currNs).where('name').equals('leo')
+          queryLeo = modelLeo.query(currNs).withName('leo')
           modelLeo.subscribe queryLeo, ->
             modelLeo.on 'set', "#{currNs}.1", (user) ->
               expect(user).to.eql userLeo
             finish()
 
-          queryBill = modelBill.query(currNs).where('name').equals('bill')
+          queryBill = modelBill.query(currNs).withName('bill')
           modelBill.subscribe queryBill, ->
             modelBill.on 'set', "#{currNs}.2", (user) ->
               expect(user).to.eql userBill
@@ -52,10 +57,12 @@ module.exports = (plugins) ->
           docOne = id: '1', age: 20
           docTwo = id: '2', age: 30
           docThree = id: '3', age: 25
+          store.query.expose currNs, 'adultsYoungToOld', ->
+            @where('age').gte(20).sort('age', 'asc')
           mockFullSetup store, done, plugins, (modelA, modelB, done) ->
             store.set "#{currNs}.1", docOne, null, ->
               store.set "#{currNs}.2", docTwo, null, ->
-                modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                modelA.subscribe modelA.query(currNs).adultsYoungToOld(), (err, results) ->
                   expect(results.get()).to.eql [docOne, docTwo]
                   results.on 'insert', ->
                     expect(results.get()).to.eql [docOne, docThree, docTwo]
@@ -68,10 +75,12 @@ module.exports = (plugins) ->
           docOne = id: '1', age: 20
           docTwo = id: '2', age: 30
           docThree = id: '3', age: 25
+          store.query.expose currNs, 'adultsYoungToOld', ->
+            @where('age').gte(20).sort('age', 'asc')
           mockFullSetup store, done, plugins, (modelA, done) ->
             store.set "#{currNs}.1", docOne, null, ->
               store.set "#{currNs}.2", docTwo, null, ->
-                modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                modelA.subscribe modelA.query(currNs).adultsYoungToOld(), (err, results) ->
                   expect(results.get()).to.eql [docOne, docTwo]
                   results.on 'insert', ->
                     expect(results.get()).to.eql [docOne, docThree, docTwo]
@@ -83,10 +92,12 @@ module.exports = (plugins) ->
         docOne = id: '1', age: 20
         docTwo = id: '2', age: 30
         docThree = id: '3', age: 25
+        store.query.expose currNs, 'adultsYoungToOld', ->
+          @where('age').gte(20).sort('age', 'asc')
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           store.set "#{currNs}.1", docOne, null, ->
             store.set "#{currNs}.2", docTwo, null, ->
-              modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+              modelA.subscribe modelA.query(currNs).adultsYoungToOld(), (err, results) ->
                 expect(results.get()).to.eql [docOne, docTwo]
                 results.on 'insert', ->
                   done()
@@ -96,8 +107,10 @@ module.exports = (plugins) ->
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', greeting: 'foo'}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'says', (phrase) -> @where('greeting').equals(phrase)
           queries: (query) ->
-            return [ query(@currNs).where('greeting').equals('hello') ]
+            return [ query(@currNs).says('hello') ]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -109,8 +122,10 @@ module.exports = (plugins) ->
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', greeting: 'foo'}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'says', (phrase) -> @where('greeting').equals(phrase)
           queries: (query) ->
-            return [query(@currNs).where('greeting').equals('foo')]
+            return [query(@currNs).says('foo')]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -123,10 +138,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', greeting: 'foo', age: 21}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'says', (phrase) -> @where('greeting').equals(phrase)
+            store.query.expose @currNs, 'yearsOld', (age) -> @where('age').equals(age)
           queries: (query) ->
             return [
-              query(@currNs).where('greeting').equals('foo')
-              query(@currNs).where('age').equals(21)
+              query(@currNs).says('foo')
+              query(@currNs).yearsOld(21)
             ]
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
@@ -146,10 +164,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'yearsOld', (age) -> @where('age').equals(age)
           queries: (query) ->
             return [
-              query(@currNs).where('age').equals(27)
-              query(@currNs).where('age').equals(28)
+              query(@currNs).yearsOld(27)
+              query(@currNs).yearsOld(28)
             ]
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
@@ -169,10 +189,14 @@ module.exports = (plugins) ->
                 {store, currNs} = this
                 docOne = id: '1', age: 20
                 docTwo = id: '2', age: 19
+                store.query.expose currNs, 'xYearsOrOlder', (age) ->
+                  @where('age').gte(age).sort('age', 'asc')
+                store.query.expose currNs, 'youngestToOldest', ->
+                  @sort('age', 'asc')
                 mockFullSetup store, done, plugins, (modelA, modelB, done) ->
                   store.set "#{currNs}.1", docOne, null, ->
                     store.set "#{currNs}.2", docTwo, null, ->
-                      modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                      modelA.subscribe modelA.query(currNs).xYearsOrOlder(20).youngestToOldest(), (err, results) ->
                         expect(results.get()).to.eql [docOne]
                         results.on 'insert', ->
                           expect(results.get()).to.eql [docOne, {id: '2', age: 21}]
@@ -184,10 +208,12 @@ module.exports = (plugins) ->
                 {store, currNs} = this
                 docOne = id: '1', age: 20
                 docTwo = id: '2', age: 19
+                store.query.expose currNs, 'xYearsOrOlder', (age) -> @where('age').gte(age)
+                store.query.expose currNs, 'youngestToOldest', -> @sort('age', 'asc')
                 mockFullSetup store, done, plugins, (modelA, modelB, done) ->
                   store.set "#{currNs}.1", docOne, null, ->
                     store.set "#{currNs}.2", docTwo, null, ->
-                      modelA.subscribe "#{currNs}.2", modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, docTwoScope, results) ->
+                      modelA.subscribe "#{currNs}.2", modelA.query(currNs).xYearsOrOlder(20).youngestToOldest(), (err, docTwoScope, results) ->
                         expect(results.get()).to.eql [docOne]
                         results.on 'insert', ->
                           expect(results.get()).to.eql [docOne, {id: '2', age: 21}]
@@ -200,10 +226,12 @@ module.exports = (plugins) ->
               {store, currNs} = this
               docOne = id: '1', age: 20
               docTwo = id: '2', age: 21
+              store.query.expose currNs, 'xYearsOrOlder', (age) -> @where('age').gte(age)
+              store.query.expose currNs, 'youngestToOldest', -> @sort('age', 'asc')
               mockFullSetup store, done, plugins, (modelA, modelB, done) ->
                 store.set "#{currNs}.1", docOne, null, ->
                   store.set "#{currNs}.2", docTwo, null, ->
-                    modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                    modelA.subscribe modelA.query(currNs).xYearsOrOlder(20).youngestToOldest(), (err, results) ->
                       expect(results.get()).to.eql [docOne, docTwo]
                       results.on 'remove', ->
                         expect(results.get()).to.eql [docOne]
@@ -217,10 +245,12 @@ module.exports = (plugins) ->
               {store, currNs} = this
               docOne = id: '1', age: 20
               docTwo = id: '2', age: 19
+              store.query.expose currNs, 'xYearsOrOlder', (age) -> @where('age').gte(age)
+              store.query.expose currNs, 'youngestToOldest', -> @sort('age', 'asc')
               mockFullSetup store, done, plugins, (modelA, done) ->
                 store.set "#{currNs}.1", docOne, null, ->
                   store.set "#{currNs}.2", docTwo, null, ->
-                    modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                    modelA.subscribe modelA.query(currNs).xYearsOrOlder(20).youngestToOldest(), (err, results) ->
                       expect(results.get()).to.eql [docOne]
                       results.on 'insert', ->
                         expect(results.get()).to.specEql [docOne, {id: '2', age: 21}]
@@ -233,10 +263,12 @@ module.exports = (plugins) ->
               {store, currNs} = this
               docOne = id: '1', age: 20
               docTwo = id: '2', age: 21
+              store.query.expose currNs, 'xYearsOrOlder', (age) -> @where('age').gte(20)
+              store.query.expose currNs, 'youngestToOldest', -> @sort('age', 'asc')
               mockFullSetup store, done, plugins, (modelA, done) ->
                 store.set "#{currNs}.1", docOne, null, ->
                   store.set "#{currNs}.2", docTwo, null, ->
-                    modelA.subscribe modelA.query(currNs).where('age').gte(20).sort('age', 'asc'), (err, results) ->
+                    modelA.subscribe modelA.query(currNs).xYearsOrOlder(20).youngestToOldest(), (err, results) ->
                       expect(results.get()).to.eql [docOne, docTwo]
                       results.on 'remove', ->
                         expect(results.get()).to.eql [docOne]
@@ -247,7 +279,9 @@ module.exports = (plugins) ->
       describe 'for gt queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
-          queries: (query) -> [query(@currNs).where('age').gt(27)]
+          withStore: (store) ->
+            store.query.expose @currNs, 'olderThan', (age) -> @where('age').gt(age)
+          queries: (query) -> [query(@currNs).olderThan(27)]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -259,7 +293,9 @@ module.exports = (plugins) ->
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 28}]
-          queries: (query) -> [query(@currNs).where('age').gt(27)]
+          withStore: (store) ->
+            store.query.expose @currNs, 'olderThan', (age) -> @where('age').gt(age)
+          queries: (query) -> [query(@currNs).olderThan(27)]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -272,10 +308,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 23}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'olderThan', (age) -> @where('age').gt(age)
           queries: (query) ->
             return [
-              query(@currNs).where('age').gt(21)
-              query(@currNs).where('age').gt(22)
+              query(@currNs).olderThan(21)
+              query(@currNs).olderThan(22)
             ]
           listenForMutation: (model, onMutation, finish) ->
             model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
@@ -292,7 +330,9 @@ module.exports = (plugins) ->
       describe 'for within queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
-          queries: (query) -> [query(@currNs).where('age').within([28, 29, 30])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'eitherAged', (ages) -> @where('age').within(ages)
+          queries: (query) -> [query(@currNs).eitherAged([28, 29, 30])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -304,7 +344,9 @@ module.exports = (plugins) ->
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
-          queries: (query) -> [query(@currNs).where('age').within([27, 28])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'eitherAged', (ages) -> @where('age').within(ages)
+          queries: (query) -> [query(@currNs).eitherAged([27, 28])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -317,10 +359,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation'+
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'eitherAged', (ages) -> @where('age').within(ages)
           queries: (query) ->
             return [
-              query(@currNs).where('age').within([27, 28])
-              query(@currNs).where('age').within([27, 30])
+              query(@currNs).eitherAged([27, 28])
+              query(@currNs).eitherAged([27, 30])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'set', "#{@currNs}.1.age", onMutation
@@ -334,10 +378,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', age: 27}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'eitherAged', (ages) -> @where('age').within(ages)
           queries: (query) ->
             return [
-              query(@currNs).where('age').within([27, 29])
-              query(@currNs).where('age').within([28, 29])
+              query(@currNs).eitherAged([27, 29])
+              query(@currNs).eitherAged([28, 29])
             ]
           listenForMutation: (model, onMutation) ->
             # This should never get called. Keep it here to detect if we call > 1
@@ -353,7 +399,9 @@ module.exports = (plugins) ->
     describe 'del <namespace>.<id>', ->
       it 'should remove the modified doc from any models subscribed to a query matching the doc pre-del', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', age: 28}]
-        queries: (query) -> [query(@currNs).where('age').equals(28)]
+        withStore: (store) ->
+          store.query.expose @currNs, 'yearsOld', (age) -> @where('age').equals(age)
+        queries: (query) -> [query(@currNs).yearsOld(28)]
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', onMutation
         preCondition: (model) ->
@@ -366,7 +414,9 @@ module.exports = (plugins) ->
     describe 'del <namespace>.<id>.*', ->
       it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', name: 'Brian'}]
-        queries: (query) -> [query(@currNs).where('name').notEquals('Brian')]
+        withStore: (store) ->
+          store.query.expose @currNs, 'notNamed', (name) -> @where('name').notEquals(name)
+        queries: (query) -> [query(@currNs).notNamed('Brian')]
         listenForMutation: (model, onMutation) ->
           model.on 'addDoc', onMutation
         preCondition: (model) ->
@@ -378,7 +428,9 @@ module.exports = (plugins) ->
 
       it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', name: 'Brian'}]
-        queries: (query) -> [query(@currNs).where('name').equals('Brian')]
+        withStore: (store) ->
+          store.query.expose @currNs, 'named', (name) -> @where('name').equals(name)
+        queries: (query) -> [query(@currNs).named('Brian')]
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', onMutation
         preCondition: (model) ->
@@ -391,10 +443,13 @@ module.exports = (plugins) ->
       it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
          'and (2) a query matching the doc both pre- and post-mutation', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', name: 'Brian', age: 27}]
+        withStore: (store) ->
+          store.query.expose @currNs, 'named', (name) -> @where('name').equals(name)
+          store.query.expose @currNs, 'yearsOld', (age) -> @where('age').equals(age)
         queries: (query) ->
           return [
-            query(@currNs).where('name').equals('Brian')
-            query(@currNs).where('age').equals(27)
+            query(@currNs).named('Brian')
+            query(@currNs).yearsOld(27)
           ]
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
@@ -409,10 +464,13 @@ module.exports = (plugins) ->
       it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
          ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
         initialDoc: -> ["#{@currNs}.1", {id: '1', name: 'Brian'}]
+        withStore: (store) ->
+          store.query.expose @currNs, 'named', (name) -> @where('name').equals(name)
+          store.query.expose @currNs, 'notNamed', (name) -> @where('name').notEquals(name)
         queries: (query) ->
           return [
-            query(@currNs).where('name').equals('Brian')
-            query(@currNs).where('name').notEquals('Brian')
+            query(@currNs).named('Brian')
+            query(@currNs).notNamed('Brian')
           ]
         listenForMutation: (model, onMutation) ->
           model.on 'rmDoc', -> throw new Error 'Should not rmDoc'
@@ -429,7 +487,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'ho']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi', 'there'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi', 'there'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -441,7 +501,9 @@ module.exports = (plugins) ->
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{@currNs}.1", {id: '1'}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -453,7 +515,9 @@ module.exports = (plugins) ->
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'push', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
@@ -468,10 +532,12 @@ module.exports = (plugins) ->
             {store, currNs} = this
             docOne = id: '1', tags: ['a', 'b', 'c']
             docTwo = id: '2', tags: ['c', 'd']
+            store.query.expose currNs, 'taggedWithAndIdSorted', (tags) ->
+              @where('tags').contains(['b', 'c']).sort('id', 'asc')
             mockFullSetup store, done, plugins, (modelA, modelB, done) ->
               store.set "#{currNs}.1", docOne, null, ->
                 store.set "#{currNs}.2", docTwo, null, ->
-                  modelA.subscribe modelA.query(currNs).where('tags').contains(['b', 'c']).sort('id', 'asc'), (err, results) ->
+                  modelA.subscribe modelA.query(currNs).taggedWithAndIdSorted(['b', 'c']), (err, results) ->
                     expect(results.get()).to.eql [docOne]
                     results.on 'insert', ->
                       expect(results.get()).to.eql [docOne, {id: '2', tags: ['b', 'c', 'd']}]
@@ -482,7 +548,9 @@ module.exports = (plugins) ->
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red']}]
-          queries: (query) -> [query(@currNs).where('tags').equals(['red', 'alert'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+          queries: (query) -> [query(@currNs).taggedExactlyWith(['red', 'alert'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -494,7 +562,9 @@ module.exports = (plugins) ->
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red']}]
-          queries: (query) -> [query(@currNs).where('tags').equals(['red'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+          queries: (query) -> [query(@currNs).taggedExactlyWith(['red'])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -507,10 +577,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['command']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').equals(['command', 'and', 'conquer'])
-              query(@currNs).where('tags').contains(['command'])
+              query(@currNs).taggedExactlyWith(['command', 'and', 'conquer'])
+              query(@currNs).taggedWith(['command'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'push', "#{@currNs}.1.tags", onMutation
@@ -524,10 +597,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: [{a: 1, b: 2}]}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').equals [{a: 1, b: 2}]
-              query(@currNs).where('tags').contains [{c: 10, d: 11}, {a: 1, b: 2}]
+              query(@currNs).taggedExactlyWith [{a: 1, b: 2}]
+              query(@currNs).taggedWith [{c: 10, d: 11}, {a: 1, b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'push', "#{@currNs}.1.tags", onMutation
@@ -542,7 +618,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['ho', 'there']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi', 'ho'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi', 'ho'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -554,7 +632,9 @@ module.exports = (plugins) ->
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{@currNs}.1", {id: '1'}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -566,7 +646,9 @@ module.exports = (plugins) ->
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'unshift', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
@@ -582,7 +664,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['ho', 'there']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi', 'ho'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi', 'ho'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -594,7 +678,9 @@ module.exports = (plugins) ->
 
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation (where the push occurs on undefined)', test
           initialDoc: -> ["#{@currNs}.1", {id: '1'}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -606,7 +692,9 @@ module.exports = (plugins) ->
 
         it 'should keep the modified doc for any models subscribed to a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['hi', 'there']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['there', 'hi'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['there', 'hi'])]
           listenForMutation: (model, onMutation) ->
             model.on 'insert', "#{@currNs}.1.tags", onMutation
           preCondition: (model) ->
@@ -622,7 +710,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red', 'orange']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['red', 'orange'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['red', 'orange'])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -635,10 +725,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['venti', 'grande']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['venti', 'grande'])
-              query(@currNs).where('tags').contains(['venti'])
+              query(@currNs).taggedWith(['venti', 'grande'])
+              query(@currNs).taggedWith(['venti'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'pop', "#{@currNs}.1.tags", onMutation
@@ -652,10 +744,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['walter', 'white']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['walter', 'white'])
-              query(@currNs).where('tags').equals(['walter'])
+              query(@currNs).taggedWith(['walter', 'white'])
+              query(@currNs).taggedExactlyWith(['walter'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'pop', "#{@currNs}.1.tags", onMutation
@@ -672,7 +767,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red', 'orange']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['red', 'orange'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['red', 'orange'])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -685,10 +782,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['venti', 'grande']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['venti', 'grande'])
-              query(@currNs).where('tags').contains(['grande'])
+              query(@currNs).taggedWith(['venti', 'grande'])
+              query(@currNs).taggedWith(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'shift', "#{@currNs}.1.tags", onMutation
@@ -702,10 +801,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['walter', 'white']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['walter', 'white'])
-              query(@currNs).where('tags').equals(['white'])
+              query(@currNs).taggedWith(['walter', 'white'])
+              query(@currNs).taggedExactlyWith(['white'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'shift', "#{@currNs}.1.tags", onMutation
@@ -722,7 +824,9 @@ module.exports = (plugins) ->
       describe 'for contains queries', ->
         it 'should remove the modified doc from any models subscribed to a query matching the doc preo-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red', 'orange', 'yellow']}]
-          queries: (query) -> [query(@currNs).where('tags').contains(['red', 'orange'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+          queries: (query) -> [query(@currNs).taggedWith(['red', 'orange'])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -735,10 +839,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation' +
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['piquito', 'venti', 'grande']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['venti', 'grande'])
-              query(@currNs).where('tags').contains(['grande'])
+              query(@currNs).taggedWith(['venti', 'grande'])
+              query(@currNs).taggedWith(['grande'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'remove', "#{@currNs}.1.tags", onMutation
@@ -752,10 +858,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['walter', 'jesse', 'white']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').contains(['walter', 'white'])
-              query(@currNs).where('tags').equals(['white', 'white'])
+              query(@currNs).taggedWith(['walter', 'white'])
+              query(@currNs).taggedExactlyWith(['white', 'white'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'remove', "#{@currNs}.1.tags", onMutation
@@ -770,7 +879,9 @@ module.exports = (plugins) ->
       describe 'for equals queries', ->
         it 'should add the modified doc to any models subscribed to a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['alert', 'red']}]
-          queries: (query) -> [query(@currNs).where('tags').equals(['red', 'alert'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+          queries: (query) -> [query(@currNs).taggedExactlyWith(['red', 'alert'])]
           listenForMutation: (model, onMutation) ->
             model.on 'addDoc', onMutation
           preCondition: (model) ->
@@ -782,7 +893,9 @@ module.exports = (plugins) ->
 
         it 'should remove the modified doc from any models subscribed to a query matching the doc pre-mutation but not matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['red', 'alert']}]
-          queries: (query) -> [query(@currNs).where('tags').equals(['red', 'alert'])]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
+          queries: (query) -> [query(@currNs).taggedExactlyWith(['red', 'alert'])]
           listenForMutation: (model, onMutation) ->
             model.on 'rmDoc', onMutation
           preCondition: (model) ->
@@ -795,10 +908,13 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            'and (2) a query matching the doc both pre- and post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: ['command', 'and', 'conquer']}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedWith', (tags) -> @where('tags').contains(tags)
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').equals(['command', 'and', 'conquer'])
-              query(@currNs).where('tags').contains(['conquer', 'command', 'and'])
+              query(@currNs).taggedExactlyWith(['command', 'and', 'conquer'])
+              query(@currNs).taggedWith(['conquer', 'command', 'and'])
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'move', "#{@currNs}.1.tags", onMutation
@@ -812,10 +928,12 @@ module.exports = (plugins) ->
         it 'should keep the modified doc in any models subscribed to (1) a query matching the doc pre-mutation but not matching the doc post-mutation '+
            ' and (2) a query not matching the doc pre-mutation but matching the doc post-mutation', test
           initialDoc: -> ["#{@currNs}.1", {id: '1', tags: [{a: 1}, {b: 2}, {c: 3}]}]
+          withStore: (store) ->
+            store.query.expose @currNs, 'taggedExactlyWith', (tags) -> @where('tags').equals(tags)
           queries: (query) ->
             return [
-              query(@currNs).where('tags').equals [{a: 1}, {b: 2}, {c: 3}]
-              query(@currNs).where('tags').equals [{a: 1}, {c: 3}, {b: 2}]
+              query(@currNs).taggedExactlyWith [{a: 1}, {b: 2}, {c: 3}]
+              query(@currNs).taggedExactlyWith [{a: 1}, {c: 3}, {b: 2}]
             ]
           listenForMutation: (model, onMutation) ->
             model.on 'move', "#{@currNs}.1.tags", onMutation

@@ -1,4 +1,4 @@
-// TODO Implement proper session security
+// TODO Remove old code below
 
 module.exports = function (store) {
   // The actual middleware is created by a factory so that the store can be set
@@ -31,4 +31,14 @@ function sessionFactory (store) {
       next();
     });
   };
+}
+
+/**
+ * New Code
+ */
+
+module.exports = plugin;
+
+function plugin (racer) {
+  racer.mixin(mixinStore);
 }

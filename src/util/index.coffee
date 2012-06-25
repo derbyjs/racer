@@ -34,6 +34,9 @@ module.exports =
     if actual instanceof Date && expected instanceof Date
       return actual.getTime() == expected.getTime()
 
+    if typeof actual == 'function' && typeof expected == 'function'
+      return actual == expected || actual.toString() == expected.toString()
+
     # 7.3. Other pairs that do not both pass typeof value == 'object',
     # equivalence is determined by ==.
     if typeof actual != 'object' && typeof expected != 'object'

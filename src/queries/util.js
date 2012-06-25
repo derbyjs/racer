@@ -3,28 +3,24 @@ var QueryBuilder = require('./QueryBuilder')
   , indexOf = require('../util').indexOf
   , PRIVATE_COLLECTION = '_$queries';
 
-exports.resultPointerPath = resultPointerPath;
-exports.setupQueryModelScope = setupQueryModelScope;
+module.exports = {
+  resultPointerPath: resultPointerPath
+, setupQueryModelScope: setupQueryModelScope
+};
 
-function privateQueryPath (queryJson, pathSuffix) {
-  var queryHash = QueryBuilder.hash(queryJson)
-    , path = PRIVATE_COLLECTION + '.' + queryHash;
-  if (pathSuffix) path += '.' + pathSuffix;
-  return path;
-}
 
-function resultPointerPath (queryJson) {
-  var pathSuffix = (queryJson.type === 'findOne')
+function resultPointerPath (queryId, queryType) {
+  var pathSuffix = (queryType === 'findOne')
                  ? 'resultId'
                  : 'resultIds';
-  return privateQueryPath(queryJson, pathSuffix);
+  return PRIVATE_COLLECTION + '.' + queryId + '.' + pathSuffix;
 }
 
-function resultRefPath (queryJson) {
-  var pathSuffix = (queryJson.type === 'findOne')
+function resultRefPath (queryId, queryType) {
+  var pathSuffix = (queryType === 'findOne')
                  ? 'result'
                  : 'results';
-  return privateQueryPath(queryJson, pathSuffix);
+  return PRIVATE_COLLECTION + '.' + queryId + '.' + pathSuffix;
 }
 
 /**
@@ -32,21 +28,24 @@ function resultRefPath (queryJson) {
  * up and returns a scoped model that is centered on a ref or refList that
  * embodies the query result(s) and updates those result(s) whenever a relevant
  * mutation should change the query result(s).
+ *
  * @param {Model} model is the racer model
- * @param {Object} queryJson is the json representation of the query
+ * @param {Object} queryTuple is [ns, {queryMotif: queryArgs}, queryId]
  * @param {[Object]|Object} initialResult is either an array of documents or a
  * single document that represents the initial result of the query over the
  * data currently loaded into the model.
  * @return {Model} a refList or ref scoped model that represents the query result(s)
  */
-function setupQueryModelScope (model, queryJson, initialResult) {
-  var refPath = resultRefPath(queryJson)
-    , pointerPath = resultPointerPath(queryJson)
+function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
+  var queryJson = memoryQuery.toJSON()
+    , queryType = queryJson.type
+    , refPath = resultRefPath(queryId, queryType)
+    , pointerPath = resultPointerPath(queryId, queryType)
     , ns = queryJson.from
     , scopedModel;
 
   // Refs, assemble!
-  switch (queryJson.type) {
+  switch (queryType) {
     case 'findOne':
       // TODO Test findOne single query result
       if (initialResult) {
@@ -55,7 +54,7 @@ function setupQueryModelScope (model, queryJson, initialResult) {
 
       scopedModel = model.ref(refPath, ns, pointerPath);
 
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, queryJson);
+      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
       model.on('mutator', listener);
       break;
 
@@ -69,7 +68,7 @@ function setupQueryModelScope (model, queryJson, initialResult) {
 
       scopedModel = model.refList(refPath, ns, pointerPath);
 
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, queryJson);
+      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
       model.on('mutator', listener);
   }
   return scopedModel;
@@ -87,17 +86,21 @@ function isPrefixOf (prefix, path) {
 
 // TODO Re-factor createMutatorListener
 /**
+ * Creates a listener of the 'mutator' event, for find and findOne queries.
+ * See the JSDocDoc of the function iniside the block to see what this listener
+ * does.
+ *
  * @param {Model} model is the racer model
  * @param {String} pointerPath is the path to the refList key
  * @param {String} ns is the query namespace that points to the set of data we
  * wish to query
  * @param {Model} scopedModel is the scoped model that is scoped to the query
  * results
- * @param {Object} queryJson is the json representation of the query
+ * @param {Object} queryTuple is [ns, {queryMotif: queryArgs}, queryId]
  * @return {Function} a function to be used as a listener to the "mutator"
  * event emitted by model
  */
-function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) {
+function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery) {
   /**
    * This function will listen to the "mutator" event emitted by the model. The
    * purpose of listening for "mutator" here is to respond to changes to the
@@ -109,6 +112,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) 
    * @param {Arguments} _arguments are the arguments for a given "mutator" event listener.
    * The arguments have the signature [[path, restOfMutationArgs...], out, isLocal, pass]
    */
+
   return function (method, _arguments) {
     var path = _arguments[0][0];
 
@@ -121,7 +125,6 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, queryJson) 
     // From here on:  path = ns + suffix
 
     var currResult = scopedModel.get()
-      , memoryQuery = model.locateQuery(queryJson)
 
     // The documents this query searches over, either as an Array or Object of
     // documents. This set of documents reflects that the mutation has already
@@ -316,6 +319,7 @@ function handleDocTreeMutation (model, method, _arguments, ns, docTree, callback
 
   if (handled) return done && done();
 
+
   // Handle mutation on a path inside a document that is an immediate child of the namespace
   var suffix = path.substring(ns.length + 1)
     , separatorPos = suffix.indexOf('.')
@@ -382,13 +386,30 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
     case 'pop':
     case 'shift':
     case 'remove':
-    case 'move':
       var docsToRm = out
         , onRmDoc = callbacks.onRmDoc;
       for (var i = docsToRm.length; i--; ) {
         onRmDoc(docsToRm[i]);
       }
       break;
+
+    case 'move': // TODO is this the right thing for move?
+      var movedIds = out
+        , onUpdateDocProperty = callbacks.onUpdateDocProperty
+        , docs = model.get(path);
+        ;
+      for (var i = movedIds.length; i--; ) {
+        var id = movedIds[i], doc;
+        // TODO Ugh, this is messy
+        if (Array.isArray(docs)) {
+          doc = docs[indexOf(docs, id, equivId)];
+        } else {
+          doc = docs[id];
+        }
+        onUpdateDocProperty(doc);
+      }
+      break;
+
     default:
       throw new Error('Uncaught edge case');
   }

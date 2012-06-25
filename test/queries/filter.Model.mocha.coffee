@@ -2,102 +2,153 @@
 {BrowserModel: Model} = require '../util/model'
 sinon = require 'sinon'
 
-describe 'In browser queries', ->
-  describe 'find()', ->
+describe 'In browser filters', ->
+  describe 'Model#filter', ->
     describe 'among documents under a top-level namespace', ->
-      it 'should return a scoped model with access to results', ->
-        model =  new Model
-
-        model.set 'users.1', id: '1', age: 20
-        model.set 'users.2', userTwo = id: '2', age: 30
-
-        results = model.query('users').where('age').gte(30).find()
-        expect(results.get()).to.eql [userTwo]
-
-      describe 'in response to local mutations that add to the results', ->
-        it 'should return a scoped model whose results update automatically', ->
+      describe 'without sort descriptors (change this later to return unordered results)', ->
+        it 'should return a scoped model with access to results', ->
           model =  new Model
 
           model.set 'users.1', id: '1', age: 20
           model.set 'users.2', userTwo = id: '2', age: 30
 
-          results = model.query('users').where('age').gte(30).find()
+          computation = model.at('users').filter({
+            where:
+              age: {gte: 30}
+          })
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [userTwo]
-          model.set 'users.1.age', 31
-          expect(results.get()).to.specEql [userTwo, {id: '1', age: 31}]
+          expect(model.get('_results')).to.eql [userTwo]
 
-        it 'should emit insert events on the results refList', (done) ->
-          model =  new Model
+        describe 'in response to local mutations that add to the results', ->
+          it 'should return a scoped model whose results update automatically', ->
+            model =  new Model
 
-          model.set 'users.1', id: '1', age: 20
-          model.set 'users.2', userTwo = id: '2', age: 30
+            model.set 'users.1', id: '1', age: 20
+            model.set 'users.2', userTwo = id: '2', age: 30
 
-          results = model.query('users').where('age').gte(30).find()
-          expect(results.get()).to.eql [userTwo]
+            results = model.ref '_results', model.filter('users',
+              where:
+                age: {gte: 30}
+            )
+            expect(results.get()).to.eql [userTwo]
+            model.set 'users.1.age', 31
+            expect(results.get()).to.specEql [userTwo, {id: '1', age: 31}]
 
-          model.on 'insert', results.path(), (index, document, out, isLocal) ->
-            expect(index).to.equal 1
-            expect(document).to.specEql {id: '1', age: 31}
-            done()
+          it 'should emit mutation events on the results ref', (done) ->
+            model =  new Model
 
-          model.set 'users.1.age', 31
+            model.set 'users.1', id: '1', age: 20
+            model.set 'users.2', userTwo = id: '2', age: 30
 
-      describe 'in response to local mutations that remove a result', ->
-        it 'should return a scoped model whose results update automatically', ->
-          model =  new Model
+            results = model.ref '_results', model.filter('users',
+              where:
+                age: {gte: 30}
+            )
+            expect(results.get()).to.eql [userTwo]
 
-          model.set 'users.1', userOne = id: '1', age: 30
-          model.set 'users.2', userTwo = id: '2', age: 31
+            model.on 'insert', results.path(), (at, document, out, isLocal) ->
+              expect(at).to.equal 1
+              expect(document).to.specEql {id: '1', age: 31}
+              done()
 
-          results = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
-          expect(results.get()).to.eql [userOne, userTwo]
-          model.set 'users.1.age', 29
-          expect(results.get()).to.specEql [userTwo]
+            model.set 'users.1.age', 31
 
-        it 'should emit remove events on the results refList', (done) ->
-          model =  new Model
+        describe 'in response to local mutations that remove a result', ->
+          it 'should return a scoped model whose results update automatically', ->
+            model =  new Model
 
-          model.set 'users.1', userOne = id: '1', age: 30
-          model.set 'users.2', userTwo = id: '2', age: 31
+            model.set 'users.1', userOne = id: '1', age: 30
+            model.set 'users.2', userTwo = id: '2', age: 31
 
-          results = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
-          expect(results.get()).to.eql [userOne, userTwo]
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+            expect(results.get()).to.eql [userOne, userTwo]
+            model.set 'users.1.age', 29
+            expect(results.get()).to.specEql [userTwo]
 
-          model.on 'remove', results.path(), (start, howMany, out, isLocal, pass) ->
-            expect(start).to.equal 0
-            expect(howMany).to.equal 1
-            done()
+          it 'should emit remove events on the results refList', (done) ->
+            model =  new Model
 
-          model.set 'users.1.age', 29
+            model.set 'users.1', userOne = id: '1', age: 30
+            model.set 'users.2', userTwo = id: '2', age: 31
 
-      describe 'in response to local mutations that re-order the results', ->
-        it 'should return a scoped model whose results update automatically', ->
-          model =  new Model
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+            expect(results.get()).to.eql [userOne, userTwo]
 
-          model.set 'users.1', userOne = id: '1', age: 30
-          model.set 'users.2', userTwo = id: '2', age: 31
+            model.on 'remove', results.path(), (start, howMany, out, isLocal, pass) ->
+              expect(start).to.equal 0
+              expect(howMany).to.equal 1
+              done()
 
-          results = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
-          expect(results.get()).to.eql [userOne, userTwo]
-          model.set 'users.1.age', 32
-          expect(results.get()).to.specEql [userTwo, {id: '1', age: 32}]
+            model.set 'users.1.age', 29
 
-        it 'should emit move events on the results refList', (done) ->
-          model =  new Model
+        describe 'in response to local mutations that re-order the results', ->
+          it 'should return a scoped model whose results update automatically', ->
+            model =  new Model
 
-          model.set 'users.1', userOne = id: '1', age: 30
-          model.set 'users.2', userTwo = id: '2', age: 31
+            model.set 'users.1', userOne = id: '1', age: 30
+            model.set 'users.2', userTwo = id: '2', age: 31
 
-          results = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
-          expect(results.get()).to.eql [userOne, userTwo]
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+            expect(results.get()).to.eql [userOne, userTwo]
+            model.set 'users.1.age', 32
+            expect(results.get()).to.specEql [userTwo, {id: '1', age: 32}]
 
-          model.on 'move', results.path(), (from, to, howMany, out, isLocal) ->
-            expect(from).to.equal 0
-            expect(to).to.equal 1
-            expect(howMany).to.equal 1
-            done()
+          it 'should emit move events on the results refList', (done) ->
+            model =  new Model
 
-          model.set 'users.1.age', 32
+            model.set 'users.1', userOne = id: '1', age: 30
+            model.set 'users.2', userTwo = id: '2', age: 31
+
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+            expect(results.get()).to.eql [userOne, userTwo]
+
+            model.on 'move', results.path(), (from, to, howMany, out, isLocal) ->
+              expect(from).to.equal 0
+              expect(to).to.equal 1
+              expect(howMany).to.equal 1
+              done()
+
+            model.set 'users.1.age', 32
+
+#      describe 'with sort descriptors', ->
+#        # TODO Add all similar tests from "without sort descriptors"
+#        it 'should return a scoped model with access to results', ->
+#          model =  new Model
+#
+#          model.set 'users.1', id: '1', age: 20
+#          model.set 'users.2', userTwo = id: '2', age: 30
+#
+#          results = model.filter '_results', 'users',
+#            where:
+#              age: {gte: 30}
+#          expect(results.get()).to.eql [userTwo]
+#          expect(model.get('_results')).to.eql [userTwo]
+#
+#        describe 'in response to local mutations that add to the results', ->
+#          it 'should emit insert events on the results refList', (done) ->
+#            model =  new Model
+#
+#            model.set 'users.1', id: '1', age: 20
+#            model.set 'users.2', userTwo = id: '2', age: 30
+#
+#            results = model.filter '_results', 'users',
+#              where:
+#                age: {gte: 30}
+#            expect(results.get()).to.eql [userTwo]
+#
+#            model.on 'insert', results.path(), (index, document, out, isLocal) ->
+#              expect(index).to.equal 1
+#              expect(document).to.specEql {id: '1', age: 31}
+#              done()
+#
+#            model.set 'users.1.age', 31
+#
+#        # TODO
 
     describe 'among documents under a nested path', ->
       describe 'organized in an Object', ->
@@ -107,7 +158,8 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', id: 'A', age: 20
           model.set 'a.b.c.B', docB = id: 'B', age: 30
 
-          results = model.query('a.b.c').where('age').gte(30).find()
+          computation = model.filter('a.b.c').where('age').gte(30)
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [docB]
 
         describe 'in response to local mutations that add to the results', ->
@@ -117,7 +169,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', id: 'A', age: 20
             model.set 'a.b.c.B', docB = id: 'B', age: 30
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docB]
             model.set 'a.b.c.A.age', 31
             expect(results.get()).to.specEql [docB, {id: 'A', age: 31}]
@@ -128,7 +181,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', id: 'A', age: 20
             model.set 'a.b.c.B', docB = id: 'B', age: 30
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docB]
 
             model.on 'insert', results.path(), (index, document, out, isLocal) ->
@@ -145,7 +199,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', docA = id: 'A', age: 30
             model.set 'a.b.c.B', docB = id: 'B', age: 31
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
             model.set 'a.b.c.A.age', 29
             expect(results.get()).to.eql [docB]
@@ -156,7 +211,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', docA = id: 'A', age: 30
             model.set 'a.b.c.B', docB = id: 'B', age: 31
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
 
             model.on 'remove', results.path(), (start, howMany, out, isLocal, pass) ->
@@ -173,7 +229,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', docA = id: 'A', age: 30
             model.set 'a.b.c.B', docB = id: 'B', age: 31
 
-            results = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).find()
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
             model.set 'a.b.c.A.age', 32
             expect(results.get()).to.specEql [docB, {id: 'A', age: 32}]
@@ -184,7 +241,8 @@ describe 'In browser queries', ->
             model.set 'a.b.c.A', docA = id: 'A', age: 30
             model.set 'a.b.c.B', docB = id: 'B', age: 31
 
-            results = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).find()
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
 
             model.on 'move', results.path(), (from, to, howMany, out, isLocal, pass) ->
@@ -204,7 +262,8 @@ describe 'In browser queries', ->
           , docB = { id: 'B', age: 30 }
           ]
 
-          results = model.query('a.b.c').where('age').gte(30).find()
+          computation = model.filter('a.b.c').where('age').gte(30)
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [docB]
 
         describe 'in response to local mutations that add to the results', ->
@@ -216,7 +275,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 30 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docB]
             model.set 'a.b.c.0.age', 31
             expect(results.get()).to.specEql [docB, {id: 'A', age: 31}]
@@ -229,7 +289,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 30 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docB]
 
             model.on 'insert', results.path(), (index, document, out, isLocal) ->
@@ -248,7 +309,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 31 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
             model.set 'a.b.c.0.age', 29
             expect(results.get()).to.specEql [docB]
@@ -261,7 +323,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 31 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).find()
+            computation = model.filter('a.b.c').where('age').gte(30)
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
 
             model.on 'remove', results.path(), (start, howMany, out, isLocal, pass) ->
@@ -280,7 +343,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 31 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).find()
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
             model.set 'a.b.c.0.age', 32
             expect(results.get()).to.specEql [docB, {id: 'A', age: 32}]
@@ -293,7 +357,8 @@ describe 'In browser queries', ->
             , docB = { id: 'B', age: 31 }
             ]
 
-            results = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).find()
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            results = model.ref '_results', computation
             expect(results.get()).to.eql [docA, docB]
 
             model.on 'move', results.path(), (from, to, howMany, out, isLocal) ->
@@ -311,10 +376,12 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 30
         model.set 'users.2', userTwo = id: '2', age: 31
 
-        baseResults = model.query('users').where('age').gte(30).find()
+        baseComputation = model.filter('users').where('age').gte(30)
+        baseResults = model.ref '_baseResults', baseComputation
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        results = model.query(baseResults).where('age').gte(31).find()
+        computation = model.filter(baseResults).where('age').gte(31)
+        results = model.ref '_results', computation
         expect(results.get()).to.eql [userTwo]
 
       describe 'in response to local mutations that add to the results', ->
@@ -324,10 +391,12 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 30
           model.set 'users.2', userTwo = id: '2', age: 31
 
-          baseResults = model.query('users').where('age').gte(30).find()
+          baseComputation = model.filter('users').where('age').gte(30)
+          baseResults = model.ref '_baseResults', baseComputation
           expect(baseResults.get()).to.eql [userOne, userTwo]
 
-          results = model.query(baseResults).where('age').gte(31).find()
+          computation = model.filter(baseResults).where('age').gte(31)
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [userTwo]
 
           model.set 'users.3', userThree = {id: '3', age: 32}
@@ -340,10 +409,12 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 30
           model.set 'users.2', userTwo = id: '2', age: 31
 
-          baseResults = model.query('users').where('age').gte(30).find()
+          baseComputation = model.filter('users').where('age').gte(30)
+          baseResults = model.ref '_baseResults', baseComputation
           expect(baseResults.get()).to.eql [userOne, userTwo]
 
-          results = model.query(baseResults).where('age').gte(31).find()
+          computation = model.filter(baseResults).where('age').gte(31)
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [userTwo]
 
           model.on 'insert', results.path(), (index, document, out, isLocal) ->
@@ -360,10 +431,12 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', userTwo = id: '2', age: 32
 
-          baseResults = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
+          baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+          baseResults = model.ref '_baseResults', baseComputation
           expect(baseResults.get()).to.eql [userOne, userTwo]
 
-          results = model.query(baseResults).where('age').gte(31).find()
+          computation = model.filter(baseResults).where('age').gte(31)
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [userOne, userTwo]
 
           model.set 'users.2.age', 30
@@ -376,9 +449,11 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', userTwo = id: '2', age: 32
 
-          baseResults = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
+          baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+          baseResults = model.ref '_baseResults', baseComputation
 
-          results = model.query(baseResults).where('age').gte(31).find()
+          computation = model.filter(baseResults).where('age').gte(31)
+          results = model.ref '_results', computation
 
           model.on 'remove', results.path(), (start, howMany, out, isLocal, pass) ->
             expect(start).to.equal 1
@@ -394,10 +469,12 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 32
           model.set 'users.2', userTwo = id: '2', age: 33
 
-          baseResults = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
+          baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+          baseResults = model.ref '_baseResults', baseComputation
           expect(baseResults.get()).to.eql [userOne, userTwo]
 
-          results = model.query(baseResults).where('age').gte(31).sort(['age', 'desc']).find()
+          computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'desc'])
+          results = model.ref '_results', computation
           expect(results.get()).to.eql [userTwo, userOne]
 
           model.set 'users.2.age', 31
@@ -410,9 +487,11 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 32
           model.set 'users.2', userTwo = id: '2', age: 33
 
-          baseResults = model.query('users').where('age').gte(30).sort(['age', 'asc']).find()
+          baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+          baseResults = model.ref '_baseResults', baseComputation
 
-          results = model.query(baseResults).where('age').gte(31).sort(['age', 'desc']).find()
+          computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'desc'])
+          results = model.ref '_results', computation
 
           model.on 'move', results.path(), (from, to, howMany, out, isLocal) ->
             expect(from).to.equal 0
@@ -422,7 +501,7 @@ describe 'In browser queries', ->
 
           model.set 'users.2.age', 31
 
-  describe 'one().find()', ->
+  describe 'one()', ->
     describe 'among documents under a top-level namespace', ->
       it 'should return a scoped model with access to the result', ->
         model = new Model
@@ -430,7 +509,8 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 21
         model.set 'users.2', id: '2', age: 22
 
-        result = model.query('users').where('age').gte(21).one().find()
+        computation = model.filter('users').where('age').gte(21).one()
+        result = model.ref '_result', computation
         expect(result.get()).to.eql userOne
 
       # TODO Add more edge case testing to this describe
@@ -441,7 +521,8 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', id: '2', age: 21
 
-          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql userOne
           model.set 'users.2.age', 30
           expect(result.get()).to.specEql {id: '2', age: 30 }
@@ -452,7 +533,8 @@ describe 'In browser queries', ->
           model.set 'users.1', userOne = id: '1', age: 31
           model.set 'users.2', id: '2', age: 21
 
-          result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql userOne
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -470,7 +552,8 @@ describe 'In browser queries', ->
               model.set 'users.1', userOne = id: '1', age: 30
               model.set 'users.2', userTwo = id: '2', age: 31
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+              computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+              result = model.ref '_result', computation
               expect(result.get()).to.eql userOne
               model.set 'users.1.age', 29
               expect(result.get()).to.specEql userTwo
@@ -481,7 +564,8 @@ describe 'In browser queries', ->
               model.set 'users.1', userOne = id: '1', age: 30
               model.set 'users.2', userTwo = id: '2', age: 31
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+              computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+              result = model.ref '_result', computation
 
               model.on 'set', result.path(), (document, out, isLocal, pass) ->
                 expect(document).to.eql userTwo
@@ -494,7 +578,8 @@ describe 'In browser queries', ->
 
               model.set 'users.1', userOne = id: '1', age: 30
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+              computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+              result = model.ref '_result', computation
               expect(result.get()).to.eql userOne
               model.set 'users.1.age', 29
               expect(result.get()).to.eql undefined
@@ -504,7 +589,8 @@ describe 'In browser queries', ->
 
               model.set 'users.1', userOne = id: '1', age: 30
 
-              result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+              computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+              result = model.ref '_result', computation
 
               model.on 'set', result.path(), (document, out, isLocal, pass) ->
                 expect(document).to.eql undefined
@@ -518,7 +604,8 @@ describe 'In browser queries', ->
             model.set 'users.1', userOne = id: '1', age: 30
             model.set 'users.2', userTwo = id: '2', age: 31
 
-            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+            result = model.ref '_result', computation
             expect(result.get()).to.eql userOne
             model.set 'users.2.age', 29
             expect(result.get()).to.specEql userOne
@@ -529,7 +616,8 @@ describe 'In browser queries', ->
             model.set 'users.1', userOne = id: '1', age: 30
             model.set 'users.2', userTwo = id: '2', age: 31
 
-            result = model.query('users').where('age').gte(30).sort(['age', 'asc']).one().find()
+            computation = model.filter('users').where('age').gte(30).sort(['age', 'asc']).one()
+            result = model.ref '_result', computation
 
             callback = sinon.spy()
 
@@ -546,7 +634,8 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 21
           model.set 'a.b.c.B', id: 'B', age: 22
 
-          result = model.query('a.b.c').where('age').gte(21).one().find()
+          computation = model.filter('a.b.c').where('age').gte(21).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
 
         it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -555,7 +644,8 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 31
           model.set 'a.b.c.B', id: 'B', age: 21
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
           model.set 'a.b.c.B.age', 30
           expect(result.get()).to.specEql {id: 'B', age: 30 }
@@ -566,7 +656,8 @@ describe 'In browser queries', ->
           model.set 'a.b.c.A', docA = id: 'A', age: 31
           model.set 'a.b.c.B', id: 'B', age: 21
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -584,7 +675,8 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(21).sort(['age', 'asc']).one().find()
+          computation = model.filter('a.b.c').where('age').gte(21).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
 
         it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -595,7 +687,8 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
           model.set 'a.b.c.1.age', 30
           expect(result.get()).to.specEql {id: 'B', age: 30 }
@@ -608,7 +701,8 @@ describe 'In browser queries', ->
             {id: 'B', age: 22}
           ]
 
-          result = model.query('a.b.c').where('age').gte(30).sort(['age', 'asc']).one().find()
+          computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc']).one()
+          result = model.ref '_result', computation
           expect(result.get()).to.eql docA
 
           model.on 'set', result.path(), (document, isLocal) ->
@@ -624,10 +718,12 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 30
         model.set 'users.2', userTwo = id: '2', age: 31
 
-        baseResults = model.query('users').where('age').gte(30).find()
+        baseComputation = model.filter('users').where('age').gte(30)
+        baseResults = model.ref '_baseResults', baseComputation
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
+        computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'asc']).one()
+        result = model.ref '_result', computation
         expect(result.get()).to.eql userTwo
 
       it 'should return a scoped model whose result is updated automatically in response to local mutations', ->
@@ -636,10 +732,12 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 30
         model.set 'users.2', userTwo = id: '2', age: 32
 
-        baseResults = model.query('users').where('age').gte(30).find()
+        baseComputation = model.filter('users').where('age').gte(30)
+        baseResults = model.ref '_baseResults', baseComputation
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
+        computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'asc']).one()
+        result = model.ref '_result', computation
         expect(result.get()).to.eql userTwo
 
         model.set 'users.3', userThree = {id: '3', age: 31}
@@ -652,10 +750,12 @@ describe 'In browser queries', ->
         model.set 'users.1', userOne = id: '1', age: 30
         model.set 'users.2', userTwo = id: '2', age: 32
 
-        baseResults = model.query('users').where('age').gte(30).find()
+        baseComputation = model.filter('users').where('age').gte(30)
+        baseResults = model.ref '_baseResults', baseComputation
         expect(baseResults.get()).to.eql [userOne, userTwo]
 
-        result = model.query(baseResults).where('age').gte(31).sort(['age', 'asc']).one().find()
+        computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'asc']).one()
+        result = model.ref '_result', computation
         expect(result.get()).to.eql userTwo
 
         model.on 'set', result.path(), (document, isLocal) ->

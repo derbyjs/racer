@@ -56,7 +56,7 @@ function createGetterWithKey (to, key, hardLink) {
   /**
    * @param {Function} lookup as defined in Memory.js
    * @param {Object} data is all data in the Model or the spec model
-   * @param {String} path is the path traversed so far
+   * @param {String} path is the path traversed so far to the ref function
    * @param {[String]} props is the array of all properties that we want to traverse
    * @param {Number} len is the number of properties in props
    * @param {Number} i is the index in props representing the current property

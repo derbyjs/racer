@@ -34,37 +34,55 @@ module.exports = {
   , socket: function (store, socket, clientId) {
       // Setup subscription callbacks
       socket.on('addSub', function (targets, cb) {
-        store.subscribe(clientId, targets, cb);
+        store.subscribe(socket, targets, cb);
       });
 
       socket.on('removeSub', function (targets, cb) {
-        store.unsubscribe(clientId, targets, cb);
+        store.unsubscribe(socket, targets, cb);
       });
     }
   }
 
 , proto: {
-    // Fetch the set of data represented by `targets` and subscribe to future
-    // changes to this set of data.
-    // @param {String} clientId representing the subscriber
-    // @param {[String|Query]} targets (i.e., paths, or queries) to subscribe to
-    // @param {Function} callback(err, data)
-    subscribe: function (clientId, targets, cb) {
+    /**
+     * Fetch the set of data represented by `targets` and subscribe to future
+     * changes to this set of data.
+     *
+     * @param {Socket} socket representing the subscriber
+     * @param {String|Array} targets (i.e., paths, path patterns, or query
+     * tuples) to subscribe to
+     * @param {Function} callback(err, data)
+     * @api protected
+     */
+    subscribe: function (socket, targets, callback) {
       var data = null
         , finish = finishAfter(2, function (err) {
-            cb(err, data);
+            callback(err, data);
           });
+
+      // TODO This code does not feel right
+      var pubSubTargets = []
+        , queryMotifRegistry = this._queryMotifRegistry;
+      for (var i = targets.length; i--; ) {
+        var currTarget = targets[i];
+        pubSubTargets[i] = (Array.isArray(currTarget))
+                           // If we have a query tuple
+                         ? queryMotifRegistry.queryJSON(currTarget)
+                           // Else we have a path
+                         : currTarget;
+      }
+
       // This call to subscribe must come before the fetch, since a query is
       // created in subscribe that may be accessed during the fetch.
-      this._pubSub.subscribe(clientId, targets, finish);
-      this.fetch(clientId, targets, function (err, _data) {
+      this._pubSub.subscribe(socket.clientId, pubSubTargets, finish);
+      this.fetch(socket, targets, function (err, _data) {
         data = _data;
         finish(err);
       });
     }
 
-  , unsubscribe: function (clientId, targets, cb) {
-      this._pubSub.unsubscribe(clientId, targets, cb);
+  , unsubscribe: function (socket, targets, callback) {
+      this._pubSub.unsubscribe(socket.clientId, targets, callback);
     }
 
   , publish: function (path, type, data, meta) {

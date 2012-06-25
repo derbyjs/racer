@@ -22,7 +22,7 @@ module.exports =
           model._nextTxnId()
 
         get: (path, callback) ->
-          model._fetch [path], (err, data) ->
+          model._waitOrFetchData [path], (err, data) ->
             return callback err if err
 
             # Return undefined if no data matched

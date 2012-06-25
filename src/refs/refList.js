@@ -65,6 +65,7 @@ function createGetter (from, to, key) {
    * @param {String} path is the current path to the ref function
    * @param {[String]} props is the chain of properties representing a full
    * path, of which path may be just a sub path
+   * @param {Number} len is the number of properties in props
    * @param {Number} i is the array index of props that we are currently at
    * @return {Array} [evaled, path, i] where
    */
@@ -72,6 +73,8 @@ function createGetter (from, to, key) {
     var basicMutators = Model.basicMutator
       , arrayMutators = Model.arrayMutator
 
+    // Here, lookup(to, data) is called in order for derefPath to work because
+    // derefPath looks for data.$deref, which is lazily re-assigned on a lookup
       , obj = lookup(to, data) || {}
       , dereffed = derefPath(data, to);
     data.$deref = null;

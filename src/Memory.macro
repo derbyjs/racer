@@ -125,7 +125,7 @@ lookup = (path, data, getRef) ->
 #if SET
 # Returns [value, parent, prop]
 # Used by mutators
-lookupSet = (path, data, speculative, pathType) ->
+lookupSet = Memory.lookupSet = (path, data, speculative, pathType) ->
 #end
   props = path.split '.'
   len = props.length

@@ -71,24 +71,28 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
       it 'should update the version when the doc is removed from a model because it no longer matches subscriptions', (done) ->
         {store, currNs} = this
+        store.query.expose currNs, 'top', (rankingCeiling) ->
+          @where('ranking').lte(rankingCeiling)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'rmDoc', ->
             expect(modelA._getVersion()).to.be.greaterThan(oldVer)
             done()
-          query = modelA.query(currNs).where('ranking').lt(10)
+          query = modelA.query(currNs).top(9)
           modelA.subscribe query, ->
             oldVer = modelA._getVersion()
             modelB.set "#{currNs}.1.ranking", 11
 
       it 'should update the version when the doc is added to a model because it starts to match subscriptions', (done) ->
         {store, currNs} = this
+        store.query.expose currNs, 'belowRanking', (ranking) ->
+          @where('ranking').gt(ranking)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           oldVer = null
           modelA.on 'addDoc', ->
             expect(modelA._getVersion()).to.be.greaterThan(oldVer)
             done()
-          query = modelA.query(currNs).where('ranking').gt(2)
+          query = modelA.query(currNs).belowRanking(2)
           modelA.subscribe query, ->
             oldVer = modelA._getVersion()
             modelB.set "#{currNs}.1.ranking", 11
@@ -98,11 +102,12 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
       it 'should apply a txn if a document is still in a query result set after a mutation', (done) ->
         {store, currNs} = this
+        store.query.expose currNs, 'numberOne', -> @where('ranking').equals(1)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', "#{currNs}.3.name.last", ->
             expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
             done()
-          query = modelA.query(currNs).where('ranking').equals(1)
+          query = modelA.query(currNs).numberOne()
           modelA.subscribe query, ->
             for player in players
               if player.ranking == 1
@@ -113,6 +118,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
       it 'should not apply a txn if a document is being added to a query result set after a mutation', (done) ->
         {store, currNs} = this
+        store.query.expose currNs, 'withLastName', (lastName) ->
+          @where('name.last').equals(lastName)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val]) ->
             return if path.substring(0, 9) == '_$queries' # Ignore setting queries
@@ -121,7 +128,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
               done()
             else
               throw new Error "Should not be setting #{path}"
-          query = modelA.query(currNs).where('name.last').equals('Djokovic')
+          query = modelA.query(currNs).withLastName('Djokovic')
           modelA.subscribe query, ->
             for player in players
               expect(modelA.get "#{currNs}.#{player.id}").to.equal undefined
@@ -137,6 +144,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
       # send it down because the txn version == socket version.
       it 'should only receive a transaction once if it applies to > 1 query', (done) ->
         {store, currNs} = this
+        store.query.expose currNs, 'top', (rankingCeiling) ->
+          @where('ranking').lte(rankingCeiling)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
           modelA.on 'set', ([path, val], ver) ->
             return if path.substring(0, 9) == '_$queries' # Ignore setting queries
@@ -148,7 +157,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
           # This will throw an error if called twice
           modelA.socket.on 'txn', (txn, num) -> done()
 
-          queryZoo    = modelA.query(currNs).where('ranking').lt(10)
-          queryLander = modelA.query(currNs).where('ranking').lt(9)
+          queryZoo = modelA.query(currNs).top(9)
+          queryLander = modelA.query(currNs).top(8)
           modelA.subscribe queryZoo, queryLander, ->
             modelB.set "#{currNs}.3.name.last", 'Djokovic'

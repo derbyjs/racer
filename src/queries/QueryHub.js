@@ -62,21 +62,39 @@ function lookupQNode (hub, queryJson) {
   return nodes && nodes[QueryBuilder.hash(queryJson)];
 }
 
-QueryHub.prototype.subscribe = function subscribe (subscriberId, queryJson, cb) {
+/**
+ * Subscribes the subscriber represented by `subscriberId` to the channel
+ * represented by `queryJson`. Every time a message is published to the query
+ * channel, `callback` is invoked.
+ *
+ * @param {String} subscriberId
+ * @param {Object} queryJson
+ * @param {Function} callback
+ * @api public
+ */
+QueryHub.prototype.subscribe = function subscribe (subscriberId, queryJson, callback) {
   var reverseIndex = this._reverseIndex
     , hashes = reverseIndex[subscriberId] || (reverseIndex[subscriberId] = {})
     , hash = QueryBuilder.hash(queryJson);
   hashes[hash] = true;
   this._findOrCreateQNode(queryJson);
-  this._pubSub.string.subscribe(subscriberId, ['$q.' + hash], cb);
+  this._pubSub.string.subscribe(subscriberId, ['$q.' + hash], callback);
 };
 
-// Possible function signatures are:
-// unsubscribe(subscriberId, queryJson)
-// unsubscribe(subscriberId, queryJson, cb)
-// unsubscribe(subscriberId)
-// unsubscribe(subscriberId, cb)
-QueryHub.prototype.unsubscribe = function unsubscribe (subscriberId, queryJson, cb) {
+/**
+ * Possible function signatures are:
+ *
+ * - unsubscribe(subscriberId, queryJson)
+ * - unsubscribe(subscriberId, queryJson, cb)
+ * - unsubscribe(subscriberId)
+ * - unsubscribe(subscriberId, cb)
+ *
+ * @param {String} subscriberId
+ * @param {Object} queryJson
+ * @param {Function} callback
+ * @api public
+ */
+QueryHub.prototype.unsubscribe = function unsubscribe (subscriberId, queryJson, callback) {
   if (! queryJson || queryJson.constructor !== Object ) {
     var reverseIndex = this._reverseIndex
       , hashes = reverseIndex[subscriberId]
@@ -85,14 +103,14 @@ QueryHub.prototype.unsubscribe = function unsubscribe (subscriberId, queryJson, 
     for (var hash in hashes) {
       channels.push('$q.' + hash);
     }
-    if (cb = queryJson) {
-      cb = finishAfter(channels.length, cb);
+    if (callback = queryJson) {
+      callback = finishAfter(channels.length, callback);
     }
   } else {
     channels.push('$q.' + QueryBuilder.hash(queryJson));
   }
-  if (! channels.length) return cb && cb(null);
-  this._pubSub.string.unsubscribe(subscriberId, channels, cb);
+  if (! channels.length) return callback && callback(null);
+  this._pubSub.string.unsubscribe(subscriberId, channels, callback);
 };
 
 QueryHub.prototype.hasSubscriptions = function hasSubscriptions (subscriberId) {
@@ -105,9 +123,12 @@ QueryHub.prototype.subscribedTo = function subscribedTo (subscriberId, queryJson
   return this._pubSub.subscribedTo(subscriberId, '$q.' + hash);
 };
 
-// @param {Object} newDoc is the result of applying txn on oldDoc
-// @param {Object} oldDoc is our document before applying txn
-// @param {Array} txn is the transaction applied to oldDoc to get newDoc
+/**
+ * @param {Object} newDoc is the result of applying txn on oldDoc
+ * @param {Object} oldDoc is our document before applying txn
+ * @param {Array} txn is the transaction applied to oldDoc to get newDoc
+ * @api public
+ */
 QueryHub.prototype.publish = function publish (newDoc, oldDoc, txn) {
   var queryNodes = minSearchSpace(newDoc, oldDoc, txn, this._queryNodes)
     , pubSub = this._pubSub

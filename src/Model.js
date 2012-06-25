@@ -6,7 +6,10 @@ var EventEmitter = require('events').EventEmitter
 
 module.exports = Model;
 
-function Model () {
+function Model (init) {
+  for (var k in init) {
+    this[k] = init[k];
+  }
   this._memory = new Memory();
   this._count = { id: 0 };
   // Set max listeners to unlimited
@@ -70,13 +73,20 @@ mergeAll(modelProto, emitterProto, {
 
   /* Scoped Models */
 
-  // Create a model object scoped to a particular path.
-  // Example:
-  //   var user = model.at('users.1');
-  //   user.set('username', 'brian');
-  //   user.on('push', 'todos', function (todo) {
-  //     // ...
-  //   });
+  /**
+   * Create a model object scoped to a particular path.
+   * Example:
+   *     var user = model.at('users.1');
+   *     user.set('username', 'brian');
+   *     user.on('push', 'todos', function (todo) {
+   *       // ...
+   *     });
+   *
+   *  @param {String} segment
+   *  @param {Boolean} absolute
+   *  @return {Model} a scoped model
+   *  @api public
+   */
 , at: function (segment, absolute) {
     var at = this._at
       , val = (at && !absolute)
@@ -87,9 +97,14 @@ mergeAll(modelProto, emitterProto, {
     return Object.create(this, { _at: { value: val } });
   }
 
-  // Returns a model scope that is a number of levels above the current scoped
-  // path. Number of levels defaults to 1, so this method called without
-  // arguments returns the model scope's parent model scope.
+  /**
+   * Returns a model scope that is a number of levels above the current scoped
+   * path. Number of levels defaults to 1, so this method called without
+   * arguments returns the model scope's parent model scope.
+   *
+   * @optional @param {Number} levels
+   * @return {Model} a scoped model
+   */
 , parent: function (levels) {
     if (! levels) levels = 1;
     var at = this._at;
@@ -98,6 +113,14 @@ mergeAll(modelProto, emitterProto, {
     return this.at(segments.slice(0, segments.length - levels).join('.'), true);
   }
 
+  /**
+   * Returns the path equivalent to the path of the current scoped model plus
+   * the suffix path `rest`
+   *
+   * @optional @param {String} rest
+   * @return {String} absolute path
+   * @api public
+   */
 , path: function (rest) {
     var at = this._at;
     if (at) {
@@ -107,7 +130,12 @@ mergeAll(modelProto, emitterProto, {
     return rest || '';
   }
 
-  // Returns the last property segment of the current model scope path
+  /**
+   * Returns the last property segment of the current model scope path
+   *
+   * @optional @param {String} path
+   * @return {String}
+   */
 , leaf: function (path) {
     if (!path) path = this._at || '';
     var i = path.lastIndexOf('.');
@@ -139,10 +167,17 @@ mergeAll(modelProto, emitterProto, {
     return listener;
   }
 
-  // Used to pass an additional argument to local events. This value is added
-  // to the event arguments in txns/mixin.Model
-  // Example:
-  //   model.pass({ ignore: domId }).move('arr', 0, 2);
+  /**
+   * Used to pass an additional argument to local events. This value is added
+   * to the event arguments in txns/mixin.Model
+   * Example:
+   *     model.pass({ ignore: domId }).move('arr', 0, 2);
+   *
+   * @param {Object} arg
+   * @return {Model} an Object that prototypically inherits from the calling
+   * Model instance, but with a _pass attribute equivalent to `arg`.
+   * @api public
+   */
 , pass: function (arg) {
     return Object.create(this, { _pass: { value: arg } });
   }
