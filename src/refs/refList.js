@@ -86,6 +86,8 @@ function createGetter (from, to, key) {
       // Method is on the refList itself
       currPath = joinPaths(dereffed, props.slice(i));
 
+      // TODO The mutation of args in here is bad software engineering. It took
+      // me a while to track down where args was getting transformed. Fix this.
       data.$deref = function (method, args, model) {
         if (!method || (method in basicMutators)) return path;
 
