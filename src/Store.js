@@ -13,7 +13,9 @@ var EventEmitter = require('events').EventEmitter
   , Model = racer.protected.Model
   , debugGenerator = require('debug')
   , socketDebug = debugGenerator('socket-client-id')
-  , racerDebug  = debugGenerator('racer');
+  , racerDebug  = debugGenerator('racer')
+  , inspect = require('util').inspect
+  ;
 
 module.exports = Store;
 
@@ -89,6 +91,9 @@ Store.prototype.listen = function (to, namespace) {
   io.configure('production', function () {
     io.set('log level', 1);
   });
+  io.configure('development', function () {
+    io.set('log level', 0);
+  });
   this.mixinEmit('socketio', this, io);
   socketUri = (typeof to === 'number')
             ? ':'
@@ -110,7 +115,27 @@ Store.prototype.setSockets = function (sockets, ioUri) {
     // pass around a connection object that has references to clientId, socket,
     // session, etc
     var clientId = socket.clientId = socket.handshake.query.clientId;
+
+    /* Loggin */
     socketDebug('ON CONNECTION', clientId);
+    racer.log.incoming(clientId, 'connected');
+    var __emit__ = socket.emit;
+    socket.emit = function (event) {
+      if (event !== 'newListener') {
+        var rest = Array.prototype.slice.call(arguments, 1);
+        racer.log.outgoing.call(null, clientId, '"' + event + '":', fullInspect(rest || []));
+      }
+      return __emit__.apply(socket, arguments);
+    }
+    var __on__ = socket.on;
+    socket.on = function (event, callback) {
+      __on__.call(socket, event, function () {
+        var args = Array.prototype.slice.call(arguments);
+        racer.log.incoming(clientId, '"' + event + '":', "\n", fullInspect(args));
+      });
+      return __on__.apply(socket, arguments);
+    };
+
     if (!clientId) {
       return socket.emit('fatalErr', 'missing clientId');
     }
@@ -313,3 +338,7 @@ bufferifyMethods(Store, ['_sendToDb'], {
     });
   }
 });
+
+function fullInspect (x) {
+  return inspect(x, false, null);
+}
