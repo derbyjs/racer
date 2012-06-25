@@ -1,4 +1,5 @@
 // TODO Remove old code below
+var mixinStore = require('./session.Store');
 
 module.exports = function (store) {
   // The actual middleware is created by a factory so that the store can be set
@@ -33,12 +34,12 @@ function sessionFactory (store) {
   };
 }
 
-/**
- * New Code
- */
-
-module.exports = plugin;
-
-function plugin (racer) {
-  racer.mixin(mixinStore);
-}
+///**
+// * New Code
+// */
+//
+//module.exports = plugin;
+//
+//function plugin (racer) {
+//  racer.mixin(mixinStore);
+//}
