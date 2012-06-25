@@ -300,7 +300,7 @@ function parseTargets (parser, targets) {
       parser.emit('pattern', target);
       var paths = expandPath(target);
       for (var k = paths.length; k--; ) {
-        parser.emit('path', paths[i]);
+        parser.emit('path', paths[k]);
       }
     }
   }
