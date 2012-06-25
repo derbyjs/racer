@@ -1,5 +1,3 @@
-require('colors');
-
 var fs = require('fs')
   , browserify = require('browserify')
   , socketio = require('socket.io')
@@ -114,20 +112,11 @@ function plugin (racer) {
   racer.registerAdapter = require('./adapters').registerAdapter;
 
   racer
+    .use(require('./log.server'))
     .use(require('./bundle/bundle.Model'))
     .use(require('./adapters/db-memory'))
     .use(require('./adapters/journal-memory'))
     .use(require('./adapters/clientid-mongo'))
     .use(require('./adapters/clientid-redis'))
     .use(require('./adapters/clientid-rfc4122_v4'))
-
-  racer.log = function () { console.log.apply(null, args); };
-  racer.log.incoming = function (clientId) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    console.log.apply(null, ['↪'.cyan, clientId.yellow].concat(args));
-  };
-  racer.log.outgoing = function (clientId) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    console.log.apply(null, ['↩'.green, clientId.yellow].concat(args));
-  };
 }
