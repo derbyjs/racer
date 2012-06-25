@@ -11,7 +11,7 @@ var EventEmitter = require('events').EventEmitter
 var racer = module.exports = new EventEmitter();
 
 mergeAll(racer, plugin, {
-  version: require('../package').version
+  version: require('../package.json').version
 , isServer: isServer
 , isClient: isClient
 , protected: {
