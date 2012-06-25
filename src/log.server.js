@@ -10,6 +10,53 @@ exports = module.exports = plugin;
 exports.decorate = 'racer';
 exports.useWith = { server: true, browser: false };
 
+/**
+ * This plugin adds the methods:
+ *
+ * - `racer.log.incoming(clientId, message)`
+ * - `racer.log.outgoing(clientId, message)`
+ *
+ * These methods act like `console.log` except that it adds:
+ *
+ * - Special indicators for incoming vs outgoing messages.
+ * - Default color formatting for readability.
+ *
+ * The plugin re-wraps `socket.emit` and `socket.on`, so that events are
+ * automatically logged. You can customize messages and formatting for these
+ * auto-logged events via over-writing defaults and making additions to
+ * `racer.log.incoming.events` and `racer.log.outgoing.events`.
+ *
+ * For example:
+ *
+ *     var inspect = require('util').inspect;
+ *     racer.log.incoming.events.txn = function (txn) {
+ *       var method = transaction.getMethod(txn);
+ *       var args = transaction.getArgs(txn);
+ *       return "I am a transaction: " + method + ' ' + inspect(args);
+ *     };
+ *
+ * This will automatically intercept and log any incoming transactions over
+ * socket.io to the console as:
+ *
+ *    some-client-id ↪ I am a transaction: set ["some.path", "someval"]
+ *
+ * You can do the same for outgoing events by assigning event logging handlers
+ * to keys on `racer.log.outgoing.events` where the keys are named after the events.
+ *
+ * If you want to mute logging for a specific event, you can do so by creating
+ * an event logging handler that returns false.
+ *
+ *     racer.log.incoming.events.txn = function (txn) {
+ *       return false;
+ *     };
+ *
+ * The code above will mute logging of "txn" events.
+ *
+ * If you do not define logging event handlers for a particular event, the
+ * logger defaults to printing out:
+ *
+ *     some-client-id ↪ "event": ["arg1", 2, "arg3"]
+ */
 function plugin (racer) {
   racer.log = function () { console.log.apply(null, args); };
   racer.log.incoming = function (clientId) {
