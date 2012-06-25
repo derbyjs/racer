@@ -69,29 +69,32 @@ function plugin (racer) {
     var args = Array.prototype.slice.call(arguments, 1);
     console.log.apply(null, [clientId.yellow, '↩'.green].concat(args));
   };
+
   racer.log.incoming.events = {
-    txn: function (txn) {
-      var ver = transaction.getVer(txn)
-        , id = transaction.getId(txn)
-        , args = transaction.getArgs(txn)
-        , method = transaction.getMethod(txn)
-        , out = method.blue + ' '
-        , argStr = [];
-      for (var i = 0, l = args.length; i < l; i++) {
-        argStr.push(fullInspect(args[i]).green);
-      }
-      out += argStr.join(', ') + ' ';
-      return out;
-    }
+    txn: handleTxn
   , disconnect: function (message) { return ('disconnect: ' + (message ? message : '')).red; }
   };
   racer.log.outgoing.events = {
     txnOk: function () { return false; }
+  , txn: handleTxn
   , newListener: function () { return false; }
   , fatalErr: function (err) { return ('FATAL ERR: ' + err).red; }
   , "snapshotUpdate:newTxns": function () { return 'Asking client to ask store for a snapshot update of new transactions'.green; }
   , resyncWithStore: function () { return 'Asking client to resync with store'.green; }
   };
+  function handleTxn (txn) {
+    var ver = transaction.getVer(txn)
+      , id = transaction.getId(txn)
+      , args = transaction.getArgs(txn)
+      , method = transaction.getMethod(txn)
+      , out = method.blue + ' '
+      , argStr = [];
+    for (var i = 0, l = args.length; i < l; i++) {
+      argStr.push(fullInspect(args[i]).green);
+    }
+    out += argStr.join(', ') + ' ';
+    return out;
+  }
 
   racer.log.sockets = function (sockets) {
     sockets.on('connection', function (socket) {
