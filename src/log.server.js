@@ -2,6 +2,8 @@ var inspect = require('util').inspect
   , transaction = require('./transaction')
   ;
 
+// TODO Add in ability to turn off clientId output
+// TODO Add in color configuration
 // TODO Add in SIGINT handlers to bump up/down logging level
 
 require('colors');
