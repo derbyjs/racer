@@ -57,11 +57,10 @@ $ racer.ready (model) ->
     return if el.is ':focus'
     el.html value
 
-
   ## Update the model in response to DOM events ##
 
   window.todos =
-  
+
     connect: ->
       reconnect = document.getElementById 'reconnect'
       reconnect.style.display = 'none'
@@ -78,8 +77,8 @@ $ racer.ready (model) ->
       items = list.get()
       for todo, i in items
         break if todo.completed
-      todo = 
-        id: model.incr '_group.nextId'
+      todo =
+        id: model.incr('_group.nextId').toString()
         completed: false
         text: text
       if i == items.length
