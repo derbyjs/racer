@@ -39,7 +39,7 @@ function plugin (racer) {
     racer.emit('init', model);
 
     // TODO If socket is passed into racer, make sure to add clientId query param
-    model._setSocket(socket || io.connect(ioUri), {
+    model._setSocket(socket || io.connect(ioUri + '?clientId=' + clientId), {
       'reconnection delay': 100
     , 'max reconnection attempts': 20
     , query: 'clientId=' + clientId
