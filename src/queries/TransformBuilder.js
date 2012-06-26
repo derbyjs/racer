@@ -1,4 +1,3 @@
-// TODO Remove this file
 var QueryBuilder = require('./QueryBuilder')
   , MemoryQuery = require('./MemoryQuery')
   , setupQueryModelScope = require('./util').setupQueryModelScope
