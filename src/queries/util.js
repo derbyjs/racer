@@ -30,18 +30,18 @@ function resultRefPath (queryId, queryType) {
  * mutation should change the query result(s).
  *
  * @param {Model} model is the racer model
- * @param {Object} queryTuple is [ns, {queryMotif: queryArgs}, queryId]
+ * @param {MemoryQuery} memoryQuery or a TransformBuilder that has
+ * MemoryQuery's syncRun interface
  * @param {[Object]|Object} initialResult is either an array of documents or a
  * single document that represents the initial result of the query over the
  * data currently loaded into the model.
  * @return {Model} a refList or ref scoped model that represents the query result(s)
  */
 function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
-  var queryJson = memoryQuery.toJSON()
-    , queryType = queryJson.type
+  var queryType = memoryQuery.type
     , refPath = resultRefPath(queryId, queryType)
     , pointerPath = resultPointerPath(queryId, queryType)
-    , ns = queryJson.from
+    , ns = memoryQuery.ns
     , scopedModel;
 
   // Refs, assemble!
@@ -132,7 +132,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
       , searchSpace = model.get(ns);
 
     var callbacks;
-    switch (memoryQuery._type) {
+    switch (memoryQuery.type) {
       case 'find':
         // All of these callbacks are semantically relative to our search
         // space. Hence, onAddDoc means a listener for the event when a

@@ -54,6 +54,7 @@ function isReserved (key) { return key in reserved; }
 
 var proto = QueryBuilder.prototype = {
     from: function (from) {
+      this.ns = from;
       this._json.from = from;
       return this;
     }
@@ -86,7 +87,11 @@ var proto = QueryBuilder.prototype = {
         }
       }
     }
-  , toJSON: function () { return this._json; }
+  , toJSON: function () {
+      var json = this._json;
+      if (this.type && !json.type) json.type = this.type;
+      return json;
+    }
 
     /**
      * Entry-point for more coffee-script style query building.
@@ -348,6 +353,7 @@ methods.forEach( function (method) {
 });
 
 proto.one = function one () {
+  this.type = 'findOne';
   this._json.type = 'findOne';
   return this;
 };

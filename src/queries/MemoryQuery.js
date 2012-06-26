@@ -26,6 +26,7 @@ module.exports = MemoryQuery;
  * convenient QueryBuilder instances. See QueryBuilder.js for more details.
  */
 function MemoryQuery (json) {
+  this.ns = json.from;
   this._json = json;
   var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort', 'type']);
   this._filter = filterFnFromQuery(filteredJson);
@@ -109,13 +110,13 @@ MemoryQuery.prototype.sort = function sort (params) {
 };
 
 MemoryQuery.prototype.find = function find () {
-  this._type = 'find';
+  this.type = 'find';
   this._json.type = 'find';
   return this;
 };
 
 MemoryQuery.prototype.findOne = function findOne () {
-  this._type = 'findOne';
+  this.type = 'findOne';
   this._json.type = 'findOne';
   return this;
 };
@@ -150,7 +151,7 @@ MemoryQuery.prototype.syncRun = function syncRun (searchSpace) {
   }
 
   // Truncate to limit the work of the next field filtering step
-  if (this._type === 'findOne') {
+  if (this.type === 'findOne') {
     matches = [matches[0]];
   }
 
@@ -162,6 +163,6 @@ MemoryQuery.prototype.syncRun = function syncRun (searchSpace) {
     matches = projectDomain(matches, only || except, !!except);
   }
 
-  if (this._type === 'findOne') return matches[0];
+  if (this.type === 'findOne') return matches[0];
   return matches;
 }
