@@ -233,7 +233,10 @@ module.exports =
     _commit: (txn) ->
       return if txn.isPrivate
       @store._commit txn, (err, txn) =>
-        return @_removeTxn transaction.getId txn  if err
+        if err
+          console.error "The following error occured for #{txn}"
+          console.error err
+          return @_removeTxn transaction.getId txn
         @_onTxn txn
 
   proto:

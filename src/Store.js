@@ -178,7 +178,7 @@ Store.prototype._finishCommit = function (txn, ver, callback) {
   dbArgs.push(ver);
   this._sendToDb(method, dbArgs, function (err, origDoc) {
     if (err) {
-      if (callback) return callback(err);
+      if (callback) return callback(err, txn);
       return racerDebug(err);
     }
     self.publish(transaction.getPath(txn), 'txn', txn, {origDoc: origDoc});
