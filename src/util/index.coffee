@@ -24,6 +24,11 @@ module.exports =
       return true
     return false
 
+  # Escape a string to be used as the source of a regular expression such that
+  # it matches literally
+  escapeRegExp: (s) ->
+    return s.replace /[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&'
+
   # Ported to coffeescript from node.js assert.js
   deepEqual: deepEqual = (actual, expected) ->
     # 7.1. All identical values are equivalent, as determined by ==.
