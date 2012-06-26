@@ -108,7 +108,6 @@ Store.prototype.setSockets = function (sockets, ioUri) {
   this.sockets = sockets;
   this._ioUri = ioUri || (ioUri = '');
   var self = this;
-  racer.log.sockets(sockets);
   sockets.on('connection', function (socket) {
     // TODO Do not decorate socket directly. This is brittle if socketio
     // decides to add a clientId property to socket objects. Perhaps instead

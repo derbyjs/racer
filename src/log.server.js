@@ -6,8 +6,6 @@ var inspect = require('util').inspect
 // TODO Add in color configuration
 // TODO Add in SIGINT handlers to bump up/down logging level
 
-require('colors');
-
 exports = module.exports = plugin;
 exports.decorate = 'racer';
 exports.useWith = { server: true, browser: false };
@@ -60,6 +58,8 @@ exports.useWith = { server: true, browser: false };
  *     some-client-id ↪ "event": ["arg1", 2, "arg3"]
  */
 function plugin (racer) {
+  require('colors');
+
   racer.log = function () { console.log.apply(null, args); };
   racer.log.incoming = function (clientId) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -130,6 +130,15 @@ function plugin (racer) {
       };
     });
   };
+
+  racer.mixin({
+    type: 'Store'
+  , events: {
+      socketio: function (sockets) {
+        racer.log.sockets(sockets);
+      }
+    }
+  });
 };
 
 function fullInspect (x) {

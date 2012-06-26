@@ -112,7 +112,6 @@ function plugin (racer) {
   racer.registerAdapter = require('./adapters').registerAdapter;
 
   racer
-    .use(require('./log.server'))
     .use(require('./bundle/bundle.Model'))
     .use(require('./adapters/db-memory'))
     .use(require('./adapters/journal-memory'))
