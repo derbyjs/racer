@@ -4,6 +4,8 @@ fs = require 'fs'
 racer = require 'racer'
 shared = require './shared'
 
+racer.use(racer.logPlugin)
+
 app = express.createServer()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
