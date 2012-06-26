@@ -117,8 +117,7 @@ var mixin = {
      */
   , ref: function (from, to, key, hardLink) {
       if (to instanceof TransformBuilder) {
-        var scopedModel = to.run();
-        return this.ref(from, scopedModel.path());
+        return this.ref(from, to.path());
       }
       return this._createRef(createRef, 'ref', from, to, key, hardLink);
     }

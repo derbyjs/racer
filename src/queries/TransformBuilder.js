@@ -2,6 +2,7 @@
 var QueryBuilder = require('./QueryBuilder')
   , MemoryQuery = require('./MemoryQuery')
   , setupQueryModelScope = require('./util').setupQueryModelScope
+  , filterDomain = require('../computed/filter').filterDomain
   ;
 
 module.exports = TransformBuilder;
@@ -37,19 +38,34 @@ proto.sort = function (sortSpec) {
 };
 
 /**
- * Registers, executes, and sets up listeners for a model query.
+ * Registers, executes, and sets up listeners for a model query, the first time
+ * this is called. Subsequent calls just return the cached scoped model
+ * representing the filter result.
  *
  * @return {Model} a scoped model scoped to a refList
  * @api public
  */
-proto.run = function () {
+proto.get = function () {
+  var scopedModel = this.scopedModel ||
+                   (this.scopedModel = this._genScopedModel());
+  return scopedModel.get();
+};
+
+proto.path = function () {
+  var scopedModel = this.scopedModel ||
+                   (this.scopedModel = this._genScopedModel());
+  return scopedModel.path();
+};
+
+proto._genScopedModel = function () {
   // Lazy-assign default query type of 'find'
   if (!this.type) this.type = 'find';
 
   // syncRun is also called by the Query Model Scope on dependency changes
   var model = this._model
-    , domain = model.get(this.ns);
-  if (this.filterFn) domain = filterDomain(domain, this.filterFn);
+    , domain = model.get(this.ns)
+    , filterFn = this.filterFn;
+  if (filterFn) domain = filterDomain(domain, filterFn);
 
   // TODO Register the transform, so it can be cleaned up when we no longer
   // need it
@@ -57,14 +73,13 @@ proto.run = function () {
   var queryJson = this.toJSON()
     , memoryQuery = this.memoryQuery = new MemoryQuery(queryJson)
     , result = memoryQuery.syncRun(domain)
-    , comparator = this.comparator;
+    , comparator = this._comparator;
   if (comparator) result = result.sort(comparator);
 
   // TODO queryId here will not be unique once we introduct ad hoc filter
   // functions
-  var queryId = QueryBuilder.hash(queryJson)
-    , scopedModel = setupQueryModelScope(model, memoryQuery, queryId, result);
-  return scopedModel;
+  var queryId = QueryBuilder.hash(queryJson);
+  return setupQueryModelScope(model, memoryQuery, queryId, result);
 };
 
 proto.filterTest = function (doc, ns) {
