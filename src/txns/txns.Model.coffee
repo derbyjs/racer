@@ -168,6 +168,8 @@ module.exports =
       resendInterval = null
       resend = ->
         now = +new Date
+        # Evaluate to clear out private transactions at the beginning of the queue
+        model._specModel()
         for id in txnQueue
           txn = txns[id]
           return if !txn || txn.timeout > now
@@ -293,6 +295,11 @@ module.exports =
       if method is 'push'
         txn.push out - args.length + 1
 
+      # Sends txn over Socket.IO or to the store on the server
+      # Commit needs to happen before emit, since emissions might create
+      # other transactions as a side effect
+      @_commit txn
+
       # Clone the args, so that they can be modified before being emitted
       # without affecting the txn args
       args = args.slice()
@@ -302,12 +309,6 @@ module.exports =
       unless txn.emitted
         @emit method, args, out, true, @_pass
         txn.emitted = true
-
-#      @_validate txn, (errors) ->
-#        # Send it over Socket.IO or to the store on the server
-#        @_commit txn unless errors
-#      @_commit txn unless errors
-      @_commit txn
 
       return out
 
