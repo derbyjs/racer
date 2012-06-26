@@ -134,7 +134,7 @@ function plugin (racer) {
   racer.mixin({
     type: 'Store'
   , events: {
-      socketio: function (sockets) {
+      socketio: function (store, sockets) {
         racer.log.sockets(sockets);
       }
     }

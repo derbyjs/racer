@@ -118,4 +118,6 @@ function plugin (racer) {
     .use(require('./adapters/clientid-mongo'))
     .use(require('./adapters/clientid-redis'))
     .use(require('./adapters/clientid-rfc4122_v4'))
+
+  racer.logPlugin = require('./log.server');
 }
