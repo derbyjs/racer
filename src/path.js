@@ -7,6 +7,21 @@ exports.isPrivate = function isPrivate (name) { return /(?:^_)|(?:\._)/.test(nam
 
 exports.isPattern = function isPattern (x) { return -1 === x.indexOf('*'); };
 
+function createEachMatch (matchHandler, fields) {
+  fields = fields.split('');
+  return function eachMatch (match, index, pattern) {
+    // Escape special characters
+    if (~fields.indexOf(match) && match in matchHandler) {
+      return matchHandler[match];
+    }
+
+    // An asterisk matches any single path segment in the middle and any path
+    // or paths at the end
+    if (pattern.length - index === 1) return '(.+)';
+
+    return '([^.]+)';
+  }
+}
 exports.eventRegExp = function eventRegExp (pattern) {
   if (pattern instanceof RegExp) return pattern;
   var self = this;
@@ -21,27 +36,12 @@ exports.eventRegExp = function eventRegExp (pattern) {
     // Commas can be used for or, as in path.(one,two)
   , ',': '|'
   };
-  function createEachMatch (fields) {
-    fields = fields.split('');
-    return function eachMatch (match, index) {
-      // Escape special characters
-      if (~fields.indexOf(match) && match in matchHandler) {
-        return matchHandler[match];
-      }
-
-      // An asterisk matches any single path segment in the middle and any path
-      // or paths at the end
-      if (pattern.length - index === 1) return '(.+)';
-
-      return '([^.].+)';
-    }
-  }
   var eachMatch;
   if (pattern.substring(0, 9) === '_$queries') {
-    eachMatch = createEachMatch(".*$^[]");
+    eachMatch = createEachMatch(matchHandler, '.*$^[]');
     inner = '_\\$queries\\.' + pattern.substring(10).replace(/[.*$^\[\]]/g, eachMatch);
   } else {
-    eachMatch = createEachMatch(",.*$");
+    eachMatch = createEachMatch(matchHandler, ',.*$');
     inner = pattern.replace(/[,.*$]/g, eachMatch);
   }
   return new RegExp('^' + inner + '$');
