@@ -33,7 +33,7 @@ exports.eventRegExp = function eventRegExp (pattern) {
       // or paths at the end
       if (pattern.length - index === 1) return '(.+)';
 
-      return '([^.]+)';
+      return '([^.].+)';
     }
   }
   var eachMatch;
