@@ -75,6 +75,32 @@ describe 'Model.ref', ->
       _color: ref2
       selected: 'blue'
 
+  it 'should update the referenced object when made as a hardLink', ->
+    model = new Model
+    model.set '_color', 'blue'
+    model.ref '_colors.mine', '_color', null, true
+
+    model.set '_colors.mine', 'red'
+    expect(model.get '_colors.mine').to.equal 'red'
+    expect(model.get '_color').to.equal 'red'
+
+    model.del '_colors.mine'
+    expect(model.get '_colors.mine').to.equal undefined
+    expect(model.get '_color').to.equal undefined
+
+  it 'should be possible to remove hardLink refs by deleting their parents', ->
+    model = new Model
+    model.set '_color', 'blue'
+    model.ref '_colors.mine', '_color', null, true
+
+    model.set '_colors.mine', 'red'
+    expect(model.get '_color').to.equal 'red'
+
+    model.del '_colors'
+
+    model.set '_colors.mine', 'yellow'
+    expect(model.get '_color').to.equal 'red'
+
   it 'should handle undefined and null key values', ->
     model = new Model
     model.set 'colors',
