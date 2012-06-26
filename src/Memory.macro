@@ -86,7 +86,7 @@ Memory:: =
   #end
     @setVersion ver
     [arr] = lookupSet path, data || @_data, `ver == null`, 'array'
-    throw new Error 'Not an Array' unless Array.isArray arr
+    throw new TypeError "#{arr} is not an Array" unless Array.isArray arr
     #if PUSH
     return arr.push args...
     #elseif UNSHIFT
