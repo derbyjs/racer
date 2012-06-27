@@ -198,7 +198,7 @@ model.subscribe(query, function (err, results) {
 
 ## Architecture
 
-- *Filter Functions*
+- **Filter Functions**
 
   A filter function returns true if a document is allowed in the set it
   encompasses and false if not. Filter functions form the basis of membership
@@ -207,19 +207,23 @@ model.subscribe(query, function (err, results) {
   QueryHub to help determine which transactions to propagate to a query's
   subscribers.
 
-- QueryBuilder
+- **QueryBuilder**
+
   Provide a fluent interface to build query json objects.
 
-- TransformBuilder
+- **TransformBuilder**
+
   Provide a fluent interface to filter Objects and Arrays stored in your Model
   data.
 
-- MemoryQuery
+- **MemoryQuery**
+
   Queries that can act over data in memory. MemoryQuery instances are used by
   the DbMemory database adapter, by QueryNodes, and in the browser for
   part of the in-browser transformation results computation.
 
-- QueryMotif
+- **QueryMotif**
+
   A QueryMotif is the way that you define which query patterns are accessible
   to your application. QueryMotifs are defined via
   `store.query.expose(namespace, motifName, fn)` where `namespace` is the name of
@@ -242,7 +246,8 @@ model.subscribe(query, function (err, results) {
   var nateUsersQuery = model.query('users').withFirstName('Nate');
   ```
 
-- QueryCoordinator (Unimplemented)
+- **QueryCoordinator** (Unimplemented)
+
   Routes queries (for subscribes and fetches) to the proper QueryHub.
   Eventually, when we shard our queries across multiple QueryHubs, then
   QueryCoordinators figure out to which QueryHubs to send the subscribe or
@@ -251,25 +256,30 @@ model.subscribe(query, function (err, results) {
   QueryHub is used for QueryCoordinators, since we are still only
   single-server.
 
-- QueryHub
+- **QueryHub**
+
   A repository in the cloud, of queries. It is made up of QueryNode
   instances.
 
-- QueryNode
+- **QueryNode**
+
   A node in a QueryHub repository. It represents a query, that
   query's cached results, and information required for managing
   publish/subscribe over queries.
 
-- PaginatedQueryNode (Incomplete)
+- **PaginatedQueryNode** (Incomplete)
+
   Like a QueryNode, but handles the special case of pagination.
 
-- QueryRegistry
+- **QueryRegistry**
+
   A container of queries from which a Model or Store can add, retrieve, and
   remove queries, using a query tuple. A query tuple is an Array of the form
   [ns, {<queryMotif>: queryArgs, ...}, queryId] and is a natural representation of a query
   because queries are only accessible behind a query motif.
 
-- QueryMotifRegistry
+- **QueryMotifRegistry**
+
   A container of query motifs declared by Store and inherited by Model. Query
   motifs are named references to functions that return a QueryBuilder instance
   given some parameters that get passed to the QueryBuilder inside the function.
