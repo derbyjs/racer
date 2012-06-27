@@ -93,7 +93,7 @@ store.query.expose('users', 'usersWithName', function (name) {
 });
 
 store.query.expose('users', 'withId', function (id) {
-  return this.users.byKey(id);
+  return this.users.byId(id);
 });
 
 store.query.expose('blogs', 'authoredBy', function (userId) {

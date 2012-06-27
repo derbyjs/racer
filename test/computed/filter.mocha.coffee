@@ -2,10 +2,10 @@
 expect = require 'expect.js'
 
 describe 'filter', ->
-  describe 'byKey', ->
+  describe 'byId', ->
     keyFilter = filterFnFromQuery
       from: 'blogs'
-      byKey: 'x'
+      byId: 'x'
     it 'should return false if key does not match', ->
       expect(keyFilter({id: 'y'})).to.not.be.ok()
 

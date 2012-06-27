@@ -13,7 +13,7 @@ var reserved = {
 
 var validQueryParams = {
     from: 1
-  , byKey: 1
+  , byId: 1
   , where: 1
   , skip: 1
   , limit: 1
@@ -58,8 +58,8 @@ var proto = QueryBuilder.prototype = {
       this._json.from = from;
       return this;
     }
-  , byKey: function (key) {
-      this._json.byKey = key;
+  , byId: function (id) {
+      this._json.byId = id;
       return this;
     }
   , where: function (param) {
@@ -118,7 +118,7 @@ QueryBuilder._createFromJsonFn = function (QueryBuilderKlass) {
           QueryBuilder.prototype[json[param]].call(q);
           break;
         case 'from':
-        case 'byKey':
+        case 'byId':
         case 'sort':
         case 'skip':
         case 'limit':
@@ -162,7 +162,7 @@ var ABBREVS = {
       , within: '$w'
       , contains: '$c'
 
-      , byKey: '$k'
+      , byId: '$id'
 
       , only: '$o'
       , except: '$e'
@@ -182,7 +182,7 @@ function noDots (path) {
 QueryBuilder.hash = function (json) {
   var groups = []
     , nsHash
-    , byKeyHash
+    , byIdHash
     , selectHash
     , sortHash
     , skipHash
@@ -196,8 +196,8 @@ QueryBuilder.hash = function (json) {
       case 'from':
         nsHash = noDots(val);
         break;
-      case 'byKey':
-        byKeyHash = ABBREVS.byKey + SEP + JSON.stringify(val);
+      case 'byId':
+        byIdHash = ABBREVS.byId + SEP + JSON.stringify(val);
         break;
       case 'only':
       case 'except':
@@ -246,7 +246,7 @@ QueryBuilder.hash = function (json) {
   }
 
   var hash = nsHash;
-  if (byKeyHash)  hash += SEP + byKeyHash;
+  if (byIdHash)  hash += SEP + byIdHash;
   if (sortHash)   hash += SEP + sortHash;
   if (selectHash) hash += SEP + selectHash;
   if (skipHash)   hash += SEP + skipHash;

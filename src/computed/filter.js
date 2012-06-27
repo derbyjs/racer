@@ -22,7 +22,7 @@ module.exports = {
  * json looks like:
  * {
  *    from: 'collectionName'
- *  , byKey: keyVal
+ *  , byId: id
  *  , equals: {
  *      somePath: someVal
  *  , }
@@ -54,8 +54,8 @@ function filterFnFromQuery (json) {
 
 var predicateBuilders = {};
 
-predicateBuilders.byKey = function byKey (keyVal) {
-  return function (doc) { return doc.id === keyVal; };
+predicateBuilders.byId = function byId (id) {
+  return function (doc) { return doc.id === id; };
 };
 
 var fieldPredicates = {

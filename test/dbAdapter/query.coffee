@@ -43,7 +43,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
     #
     # model.subscribe 'groups.' + id, (err, group) ->
     #   alias = group.at('todoIds')
-    #   model.subscribe model.query('todos').byKey(alias), (err, todos) ->
+    #   model.subscribe model.query('todos').byId(alias), (err, todos) ->
     #     console.log(todos.get()); // => an array of todos
     #
     # In the above example, we want the second subscribe to subscribe to all

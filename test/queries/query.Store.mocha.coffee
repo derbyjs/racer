@@ -53,10 +53,10 @@ describe 'store.query.expose', ->
             limit: 5
 
         store.query.expose 'users', 'jsIdOne', ->
-          @byKey('1')
+          @byId('1')
 
         store.query.expose 'users', 'csIdOne', ->
-          @query byKey: '1'
+          @query byId: '1'
 
         model = store.createModel()
 

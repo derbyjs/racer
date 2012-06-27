@@ -23,14 +23,14 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         q2 = query('users').where('name').equals('nate')
         expect(q1.hash()).to.not.eql q2.hash()
 
-      it 'should create different hash for byKey vs empty query', ->
+      it 'should create different hash for byId vs empty query', ->
         q1 = query('users')
-        q2 = query('users').byKey('1')
+        q2 = query('users').byId('1')
         expect(q1.hash()).to.not.eql q2.hash()
 
       it 'should create different hashes for conditions involving strings vs numbers', ->
-        q1 = query('users').byKey(1)
-        q2 = query('users').byKey('1')
+        q1 = query('users').byId(1)
+        q2 = query('users').byId('1')
         expect(q1.hash()).to.not.eql q2.hash()
 
     describe 'fromJSON', ->
@@ -55,14 +55,14 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         q2 = query('users').where('name').equals('nate')
         expect(q1.hash()).to.not.eql q2.hash()
 
-      it 'should create different hash for byKey vs empty query', ->
+      it 'should create different hash for byId vs empty query', ->
         q1 = query('users')
-        q2 = query('users').byKey('1')
+        q2 = query('users').byId('1')
         expect(q1.hash()).to.not.eql q2.hash()
 
       it 'should create different hashes for conditions involving strings vs numbers', ->
-        q1 = query('users').byKey(1)
-        q2 = query('users').byKey('1')
+        q1 = query('users').byId(1)
+        q2 = query('users').byId('1')
         expect(q1.hash()).to.not.eql q2.hash()
 
     describe 'coffee-style vs JavaScript style function signatures', ->
@@ -106,8 +106,8 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
 
         expect(js.hash()).to.eql(cs.hash())
 
-        js = query('users').byKey('1')
-        cs = query 'users', byKey: '1'
+        js = query('users').byId('1')
+        cs = query 'users', byId: '1'
         expect(js.hash()).to.eql(cs.hash())
 
 describe 'QueryBuilder', exports.shouldActLikeQueryBuilder QueryBuilder
