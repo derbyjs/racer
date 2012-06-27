@@ -198,7 +198,8 @@ model.subscribe(query, function (err, results) {
 
 ## Architecture
 
-- Filter Functions
+- *Filter Functions*
+
   A filter function returns true if a document is allowed in the set it
   encompasses and false if not. Filter functions form the basis of membership
   decision-making for in-Model filtering, MemoryQuery logic on the server when
@@ -289,7 +290,10 @@ The advantages of using query motifs are:
 - It is obvious what parameters could be used to validate or auth against. The
   parameters are just the callback parameters of store.query.expose.
 
-### Other Ideas
+# Other Ideas
+
+IMPORTANT! Everything written from here on forward is not implemented but just
+documentation of some other ideas.
 
 - Queries with dynamically changing parameter values
 - Query Motif Composability
