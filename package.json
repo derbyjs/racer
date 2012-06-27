@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.3.8",
+  "version": "0.3.11",
   "main": "./lib/racer.js",
   "scripts": {},
   "dependencies": {
@@ -19,7 +19,8 @@
     "node-uuid": "1.3.3",
     "hooks": "0.2.1",
     "colors": "git://github.com/Marak/colors.js.git#master",
-    "connect": "2.x"
+    "connect": "2.x",
+    "debug": "*"
   },
   "devDependencies": {
     "mocha": ">=0.9.0",
@@ -29,8 +30,7 @@
     "console.color": ">=0.0.4",
     "racer-journal-redis": "*",
     "racer-pubsub-redis": "*",
-    "racer-db-mongo": "*",
-    "debug": "*"
+    "racer-db-mongo": "*"
   },
   "engines": {
     "node": ">=0.4.0"
