@@ -138,6 +138,14 @@ describe 'Model mutators', ->
     expect(model.get 'count').to.eql 0
     expect(val).to.eql 0
 
+  it 'test speculative add', ->
+    model = new Model
+
+    id = model.add 'colors', {green: '#0f0'}
+    expected = {}
+    expected[id] = {id, green: '#0f0'}
+    expect(model.get 'colors').to.specEql expected
+
   it 'test speculative push', ->
     model = new Model
 

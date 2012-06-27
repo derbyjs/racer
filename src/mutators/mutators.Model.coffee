@@ -74,6 +74,29 @@ module.exports =
             at
         return @_addOpAsTxn 'del', [path], callback
 
+    add:
+      type: COMPOUND_MUTATOR
+      fn: (path, value, callback) ->
+        id = @id()
+
+        len = arguments.length
+        if @_at && len is 1 || len is 2 && typeof value is 'function'
+          callback = value
+          value = path
+          path = id
+        else
+          path = path + '.' + id
+
+        if typeof value isnt 'object'
+          throw 'model.add() requires an object argument'
+        value.id = id
+
+        if callback
+          @set path, value, callback
+        else
+          @set path, value
+        return id
+
     setNull:
       type: COMPOUND_MUTATOR
       fn: (path, value, callback) ->

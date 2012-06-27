@@ -145,6 +145,19 @@ describe 'Model.at', ->
     expect(i.get()).to.equal -1
     expect(model.get 'stuff.i').to.equal -1
 
+  it 'supports add', ->
+    model = new Model
+    stuff = model.at 'stuff'
+
+    id = stuff.add {a: 1}
+    expected = {}
+    expected[id] = {id, a: 1}
+    expect(stuff.get()).to.specEql expected
+    expect(model.get 'stuff').to.specEql expected
+
+    id = stuff.add 'foo', {b: 1}
+    expect(stuff.get 'foo.' + id).to.specEql {id, b: 1}
+
   it 'supports push', ->
     model = new Model
     stuff = model.at 'stuff'
