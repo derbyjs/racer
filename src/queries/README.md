@@ -30,15 +30,6 @@ figuring out which documents to add or remove from the model. Racer will
 automatically figure this out and automatically add this to the model and
 subsequently updating any dependents in realtime.
 
-```javascript
-var model = store.createModel();
-
-var activeUsersQuery = model.fromQueryMotif('users', 'activeUsers');
-model.subscribe(activeUsersQuery, function (err, activeUsers) {
-  console.log(activeUsers.get()); // prints the results of the query
-});
-```
-
 There is also a more fluent, chainable approach to making concrete queries from
 query motifs.
 
@@ -53,12 +44,24 @@ model.subscribe(activeUsersQuery, function (err, activeUsers) {
 });
 ```
 
-In contrast, Model#fetch will only fetch a snapshot of the results from the
-Store, but it will not automatically keep those results dynamically up-to-date.
+This is also accessible via Model#fromQueryMotif:
+
+```javascript
+var model = store.createModel();
+
+var activeUsersQuery = model.fromQueryMotif('users', 'activeUsers');
+model.subscribe(activeUsersQuery, function (err, activeUsers) {
+  console.log(activeUsers.get()); // prints the results of the query
+});
+```
+
+You can also use queries with Model#fetch to fetch *only* a snapshot of the
+results from the Store. Model#fetch will not automatically keep those results
+dynamically up-to-date.
 
 ```javascript
 model.fetch(activeUsersQuery, function (err, activeUsers) {
-  console.log(activeUsers.get()); // print the results of the queery
+  console.log(activeUsers.get()); // print the results of the query
 });
 ```
 
@@ -89,7 +92,7 @@ that provides a fluent and chainable interface for building up queries.
 ```javascript
 
 store.query.expose('users', 'usersWithName', function (name) {
-  return this.where('name').equals('Brian');
+  return this.where('name').equals(name);
 });
 
 store.query.expose('users', 'withId', function (id) {
@@ -101,23 +104,42 @@ store.query.expose('blogs', 'authoredBy', function (userId) {
 });
 
 store.query.expose('items', 'taggedWithAny', function (tags) {
-  return this.where('tags').in(['derby', 'racer']);
+  return this.where('tags').in(tags);
 });
 ```
 
 ### Transformations
 
 The convenient querying interface available inside of store.query.expose
-callbacks is also available to developers in data already loaded into a client
-via a combination of Model#ref and Model#filter or Model#sort.
+callbacks can also be used with data already loaded into your Model. This helps
+you to slice, dice, filter, and sort your data in your Model. These
+transformation results can be assigned to a Model ref, which you can use to
+refer to the results later on. Transformations are created via Model#filter and
+Model#sort.
 
 ```javascript
 
-var computation = model.filter('posts').where('tags').contains(['Derby']);
-var derbyPosts = model.ref('_derbyPosts', computation);
+var derbyPosts = model.filter('posts').where('tags').contains(['Derby']);
+// derbyPosts is a transformation, not a scoped model.
+// This means that you can still chain transformation functions to it to build
+// out a more descriptive transformation
+derbyPosts.sort(['id', 'asc']);
 
-// derbyPosts is a scoped model
+// While derbyPosts are not a scoped Model instance, it does quack like a Model
+// in some ways. For instance, you can call Model#get to see the value of the
+// result. Invoking `get` on the transformation will lazily evaluate the
+// transformation.
+console.log(derbyPosts.get());
 
+// You always will want to assign the transformation to a Model ref, so you can
+// use the results with a human-readable path (here '_derbyPosts') in your
+// views.
+var derbyPostsRef = model.ref('_derbyPosts', postsWithDerby);
+
+// derbyPostsRef is a scoped Model
+
+// In addition to a chainable interface, you can also define a transformation
+// filter via an Object argument that mirrors the query API.
 var importantTasks = model.ref('_importantTasks',
   model.filter('tasks', {
     where: {
@@ -137,7 +159,21 @@ var topTask = model.ref('_topTask',
 console.log(topTask.get());
 ```
 
-This also works on scoped models.
+`sort` and `filter` can also take functions that represent a comparator and
+filter function respectively.
+
+```javascript
+model
+  .filter('tasks', function (task) {
+    return task.isSpecial;
+  })
+  .sort(function (taskA, taskB) {
+    return taskB.priority - taskA.priority;
+  });
+```
+
+Transformations also work directly on scoped models. This makes transformations
+even easier to use.
 
 ```javascript
 var tasks = model.at('tasks')
@@ -153,26 +189,14 @@ results or the results of a different filter.
 
 ```javascript
 model.subscribe(query, function (err, results) {
+  // Very niiice!
   var filteredResults = model.ref('_filteredResults',
     results.filter({ tags: { contains: ['important'] } })
   );
 });
 ```
 
-In the future, you will be able to define filters with an anonymous function.
-
-```javascript
-var completedTasks = model.ref('_completedTasks',
-  model.filter('tasks', function (task) {
-    return task.completed;
-  })
-);
-```
-
 ## Architecture
-
-- QueryBuilder, TransformBuilder
-  Provide a fluent interface to build query json objects.
 
 - Filter Functions
   A filter function returns true if a document is allowed in the set it
@@ -182,10 +206,40 @@ var completedTasks = model.ref('_completedTasks',
   QueryHub to help determine which transactions to propagate to a query's
   subscribers.
 
+- QueryBuilder
+  Provide a fluent interface to build query json objects.
+
+- TransformBuilder
+  Provide a fluent interface to filter Objects and Arrays stored in your Model
+  data.
+
 - MemoryQuery
   Queries that can act over data in memory. MemoryQuery instances are used by
   the DbMemory database adapter, by QueryNodes, and in the browser for
-  in-browser filters.
+  part of the in-browser transformation results computation.
+
+- QueryMotif
+  A QueryMotif is the way that you define which query patterns are accessible
+  to your application. QueryMotifs are defined via
+  `store.query.expose(namespace, motifName, fn)` where `namespace` is the name of
+  the top level collection of documents, `motifName` is the name of the
+  QueryMotif, and `fn` takes motif inputs and returns a QueryBuilder that is a
+  concrete query built from the QueryMotif definition and the specific inputs.
+  Calling `store.query.expose(namespace, motifName, fn)` creates methods on
+  `model.query(namespace)` named after `motifName` and that take arguments that
+  map 1-to-1 with the `fn` arguments. For example:
+
+  ```javascript
+  store.query.expose('users', 'withFirstName', function (fname) {
+    return this.where('name.first').equals(fname);
+  });
+  ```
+
+  creates a method `withFirstName`:
+
+  ```javascript
+  var nateUsersQuery = model.query('users').withFirstName('Nate');
+  ```
 
 - QueryCoordinator (Unimplemented)
   Routes queries (for subscribes and fetches) to the proper QueryHub.
@@ -218,9 +272,6 @@ var completedTasks = model.ref('_completedTasks',
   A container of query motifs declared by Store and inherited by Model. Query
   motifs are named references to functions that return a QueryBuilder instance
   given some parameters that get passed to the QueryBuilder inside the function.
-
-- Query Motifs
-  TODO Add explanation here.
 
 
 The advantages of using query motifs are:
