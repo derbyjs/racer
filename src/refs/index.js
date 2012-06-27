@@ -145,16 +145,13 @@ var mixin = {
      * @return {Model} a model scope scoped to the `from` path
      */
   , _createRef: function (refFactory, refType, from, to, key, hardLink) {
-      // Normalize `from`, `to`, `key` if we are a model scope
-      if (this._at) {
-        hardLink = key;
-        key = to;
-        to = from;
-        from = this._at;
-      } else if (from._at) {
+      // Normalize scoped model arguments
+      if (from._at) {
         from = from._at;
+      } else if (this._at) {
+        from = this._at + '.' + from;
       }
-      if (to._at)         to  = to._at;
+      if (to._at) to = to._at;
       if (key && key._at) key = key._at;
 
       var model = this._root;
@@ -221,10 +218,11 @@ var mixin = {
         if (scopedPath) inputs[i] = scopedPath;
       }
 
-      var path  = (this._at) // If we are a scoped model, scoped to this._at
-                ? this._at + '.' + inputs.shift()
-                : inputs.shift()
+      var path = inputs.shift()
         , model = this._root;
+
+      // If we are a scoped model, scoped to this._at
+      if (this._at) path = this._at + '.' + path;
 
       assertPrivateRefPath(this, path, 'fn');
       if (typeof fn === 'string') {

@@ -474,7 +474,7 @@ describe 'Model.ref', ->
   it 'supports specifying from path via scoped model', ->
     model = new Model
     color = model.at '_color'
-    color.at('favorite').ref 'green'
+    color.ref 'favorite', 'green'
     ref = model._getRef '_color.favorite'
     color.set 'favorite.hex', '#0f0'
     expect(color.get 'favorite').to.specEql hex: '#0f0'
@@ -545,7 +545,7 @@ describe 'Model.ref', ->
         name: 'Karen'
     selectedId = leaderboard.at '_selectedId'
     selected = leaderboard.at '_selected'
-    selected.ref players, selectedId
+    model.ref selected, players, selectedId
 
     selectedId.set 'b'
     expect(selected.get()).to.specEql
