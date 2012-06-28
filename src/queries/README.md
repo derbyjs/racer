@@ -9,18 +9,51 @@ interest to your application, with a Store instance.
 ```javascript
 var store = racer.createStore();
 
-store.query.expose('users', 'active', function () {
-  var month = 30 * 24 * 3600 * 1000;
-  return this.where('lastLogin').gte(+new Date - MONTH);
+store.query.expose('users', 'whoLoggedInSince', function (since) {
+  return this.where('lastLogin').gte(since);
 });
 ```
 
-The code above only associates a query with a name. It does not run the query.
-To run the query, we pass the query name to Model#subscribe or Model#fetch.
+You can read this as:
+
+    Expose a query motif named "whoLoggedInSince" to the API that generates queries
+    over documents in the "users" namespace. The generated query will match users
+    that have a "lastLogin" value greater than or equal to `since`.
+
+Once this query motif is exposed, you will be able to create queries with your
+model via the API:
+
+```javascript
+var month = 30 * 24 * 3600 * 1000;
+var activeUsersQuery = model.query('users').whoLoggedInSince(+new Date - month);
+```
+
+Model has access to every query motif declared by store.query.expose, so that is
+why we have access to an `activeUsers` method above.
+
+The snippet above returns a query over all users who have logged in since a month ago.
+
+Such a query is not run immediately. To run the query, we pass the query name
+to Model#fetch or Model#subscribe, which both lazily run the query to find the
+query results and load them into the model.
 
 Model#fetch fetches the documents that satisfy the query and passes a scoped
 model representing the list of results to Model#fetch's callback.
 
+```javascript
+model.fetch(activeUsersQuery, function (err, activeUsers) {
+  // activeUsers is a scoped model
+
+  console.log(activeUsers.get()); // prints the results of the query
+
+});
+```
+
+Please note again that Model#fetch fetches *only* a snapshot of the results
+from the Store. Model#fetch will not automatically keep those results
+dynamically up-to-date.
+
+Enter Model#subscribe ...
 
 Model#subscribe fetches the query results *and* also subscribes the Model to
 any changes to the query results automatically. This means that the query
@@ -28,17 +61,9 @@ results are always kept up to date without the developer having to write the
 code to sync changes to the result set. The developer need not worry about
 figuring out which documents to add or remove from the model. Racer will
 automatically figure this out and automatically add this to the model and
-subsequently updating any dependents in realtime.
-
-There is also a more fluent, chainable approach to making concrete queries from
-query motifs.
+subsequently update any dependents in realtime.
 
 ```javascript
-var model = store.createModel();
-
-// Model inherits every query motif declared by store.query.expose, so that is
-// why we have access to an `activeUsers` method here.
-var activeUsersQuery = model.query('users').activeUsers();
 model.subscribe(activeUsersQuery, function (err, activeUsers) {
   console.log(activeUsers.get()); // prints the results of the query
 });
@@ -55,18 +80,7 @@ model.subscribe(activeUsersQuery, function (err, activeUsers) {
 });
 ```
 
-You can also use queries with Model#fetch to fetch *only* a snapshot of the
-results from the Store. Model#fetch will not automatically keep those results
-dynamically up-to-date.
-
-```javascript
-model.fetch(activeUsersQuery, function (err, activeUsers) {
-  console.log(activeUsers.get()); // print the results of the query
-});
-```
-
-You can also pass arguments to a query motif. This can be very useful and is a
-common pattern. For instance:
+Here's another example:
 
 ```javascript
 // On the server
@@ -86,8 +100,10 @@ model.subscribe(eligibleVotersQuery, function (err, eligibleVoters) {
 });
 ```
 
-Inside the `store.query.expose` callback, `this` is a `QueryBuilder` instance
-that provides a fluent and chainable interface for building up queries.
+With query motifs, you can generate all sorts of queries in a rich,
+semantically meaningful way. Inside the `store.query.expose` callback,
+`this` is a `QueryBuilder` instance that provides a fluent and chainable
+interface for building up queries.
 
 ```javascript
 
