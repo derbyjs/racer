@@ -80,7 +80,8 @@ model.subscribe(activeUsersQuery, function (err, activeUsers) {
 });
 ```
 
-Here's another example:
+Here's another example, with the code all here for a concise overview of how to
+use these concepts and methods together.
 
 ```javascript
 // On the server
