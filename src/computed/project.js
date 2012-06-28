@@ -1,6 +1,7 @@
 var path = require('../path')
   , objectWithOnly = path.objectWithOnly
   , objectExcept = path.objectExcept
+  , specIdentifier = require('../util/speculative').identifier
 
 exports.projectDomain = projectDomain;
 
@@ -17,6 +18,7 @@ function projectDomain (domain, fields, isExcept) {
 
   var out = {};
   for (var k in domain) {
+    if (k === specIdentifier) continue;
     out[k] = projectObject(domain[k], fields);
   }
   return out;

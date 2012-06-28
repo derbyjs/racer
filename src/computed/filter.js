@@ -5,7 +5,7 @@ var lookup = require('../path').lookup
   , deepIndexOf = util.deepIndexOf
   , deepEqual = util.deepEqual
   , QueryBuilder = require('../queries/QueryBuilder')
-  ;
+  , specIdentifier = require('../util/speculative').identifier
 
 module.exports = {
   filterFnFromQuery: filterFnFromQuery
@@ -162,6 +162,7 @@ function filterDomain (searchSpace, filterFn) {
 
   var filtered = {};
   for (var k in searchSpace) {
+    if (k === specIdentifier) continue;
     var curr = searchSpace[k];
     if (filterFn(curr)) {
       filtered[k] = curr;

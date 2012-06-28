@@ -1,4 +1,5 @@
-var lookup = require('../path').lookup;
+var lookup = require('../path').lookup
+  , specIdentifier = require('../util/speculative').identifier
 
 module.exports = {
   sortDomain: sortDomain
@@ -9,7 +10,8 @@ function sortDomain (domain, comparator) {
   if (! Array.isArray(domain)) {
     var list = [];
     for (var k in domain) {
-      list[list.length] = domain[k];
+      if (k === specIdentifier) continue;
+      list.push(domain[k]);
     }
     domain = list;
   }
