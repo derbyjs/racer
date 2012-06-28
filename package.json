@@ -8,7 +8,9 @@
   },
   "version": "0.3.11",
   "main": "./lib/racer.js",
-  "scripts": {},
+  "scripts": {
+    "test": "make test"
+  },
   "dependencies": {
     "socket.io": ">=0.9.6",
     "socket.io-client": ">=0.9.6",
