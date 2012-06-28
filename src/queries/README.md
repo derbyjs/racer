@@ -33,7 +33,7 @@ subsequently updating any dependents in realtime.
 There is also a more fluent, chainable approach to making concrete queries from
 query motifs.
 
-```javscript
+```javascript
 var model = store.createModel();
 
 // Model inherits every query motif declared by store.query.expose, so that is
