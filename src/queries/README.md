@@ -29,7 +29,7 @@ var activeUsersQuery = model.query('users').whoLoggedInSince(+new Date - month);
 ```
 
 Model has access to every query motif declared by store.query.expose, so that is
-why we have access to an `activeUsers` method above.
+why we have access to an `whoLoggedInSince` method above.
 
 The snippet above returns a query over all users who have logged in since a month ago.
 
