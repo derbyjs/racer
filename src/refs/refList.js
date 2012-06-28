@@ -145,15 +145,20 @@ function createGetter (from, to, key) {
 
     } else { // if (i !== len)
       var index = props[i++]
-        , prop, curr;
+        , prop, curr, lastProp;
 
       if (pointerList && (prop = pointerList[index])) {
         curr = obj[prop];
       }
 
       if (i === len) {
-        // Method is on an index of refList
-        currPath = joinPaths(dereffed, props.slice(i));
+        lastProp = props[i-1];
+        if (lastProp === 'length') {
+          currPath = dereffedKey + '.length';
+          curr = lookup(currPath, data);
+        } else {
+          currPath = dereffed;
+        }
 
         data.$deref = function (method, args, model, obj) {
           // TODO Additional model methods should be done atomically with the
@@ -170,7 +175,7 @@ function createGetter (from, to, key) {
             } else {
               model.set(dereffedKey, [id]);
             }
-            return currPath + '.' + id;
+            return dereffed + '.' + id;
           }
 
           if (method === 'del') {
@@ -179,7 +184,7 @@ function createGetter (from, to, key) {
               throw new Error('Cannot delete refList item without id');
             }
             model.del(dereffedKey + '.' + index);
-            return currPath + '.' + id;
+            return dereffed + '.' + id;
           }
 
           throw new Error(method + ' unsupported on refList index');

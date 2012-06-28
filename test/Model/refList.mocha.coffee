@@ -14,6 +14,7 @@ describe 'Model.refList', ->
 
     expect(model.get '_list').to.eql [{id: 'x3', val: 'c'}, {id: 'x1', val: 'a'}]
     expect(model.get '_list.0').to.eql {id: 'x3', val: 'c'}
+    expect(model.get '_list.length').to.eql 2
 
     # Test changing the key object
     model.set 'map', ['x1', 'x2']
