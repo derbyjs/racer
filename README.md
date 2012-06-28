@@ -2,6 +2,9 @@
 
 Racer is a realtime model synchronization engine for Node.js. It enables mutliple users to interact with the same data objects via sophisticated conflict detection and resolution algorithms. At the same time, it provides a simple object accessor and event interface for writing application logic.
 
+[![Build
+Status](https://secure.travis-ci.org/codeparty/racer.png)](http://travis-ci.org/codeparty/racer)
+
 ## Disclaimer
 
 Racer is alpha software. While it should work well enough for prototyping and weekend projects, it is still undergoing major development. APIs are subject to change.
