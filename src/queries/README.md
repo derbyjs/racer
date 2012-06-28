@@ -33,8 +33,8 @@ why we have access to an `whoLoggedInSince` method above.
 
 The snippet above returns a query over all users who have logged in since a month ago.
 
-Such a query is not run immediately. To run the query, we pass the query name
-to Model#fetch or Model#subscribe, which both lazily run the query to find the
+Such a query is not run immediately. To run the query, we pass the query to
+Model#fetch or Model#subscribe, which both lazily run the query to find the
 query results and load them into the model.
 
 Model#fetch fetches the documents that satisfy the query and passes a scoped
