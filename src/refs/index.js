@@ -74,7 +74,7 @@ var mixin = {
         }
       }
 
-      for (i = 0, l = fnsToBundle; i < l; i++) {
+      for (i = 0, l = fnsToBundle.length; i < l; i++) {
         var item = fnsToBundle[i];
         if (item) onLoad.push(item);
       }
