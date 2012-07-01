@@ -8,6 +8,11 @@ interest to your application, with a Store instance.
 
 ```javascript
 var store = racer.createStore();
+// Note that in Derby apps, this would instead be:
+//
+//     var store = app.createStore;
+//
+// where app is your Derby app.
 
 store.query.expose('users', 'whoLoggedInSince', function (since) {
   return this.where('lastLogin').gte(since);
