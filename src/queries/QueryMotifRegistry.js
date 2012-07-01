@@ -170,6 +170,11 @@ QueryMotifRegistry.prototype ={
    */
 , queryTupleBuilder: function (ns) {
     var tupleFactories = this._tupleFactories[ns];
+    if (!tupleFactories) {
+      throw new Error('You have not declared any query motifs for the namespace "' + ns + '"' +
+                      '. You must do so via store.query.expose before you can query a namespaced ' +
+                      'collection of documents');
+    }
     return Object.create(tupleFactories, {
       tuple: { value: [ns, {}] }
     });
