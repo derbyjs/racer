@@ -82,7 +82,7 @@ function Store (options) {
 Store.prototype.__proto__ = EventEmitter.prototype;
 
 Store.prototype.listen = function (to, namespace) {
-  var io = socketio.listen(to);
+  var io = this.io = socketio.listen(to);
   io.configure( function () {
     io.set('browser.client', false);
     io.set('transports', racer.get('transports'));
@@ -94,9 +94,9 @@ Store.prototype.listen = function (to, namespace) {
     io.set('log level', 0);
   });
   this.mixinEmit('socketio', this, io);
-  socketUri = (typeof to === 'number')
-            ? ':'
-            : '';
+  var socketUri = (typeof to === 'number')
+                ? ':'
+                : '';
   if (namespace) {
     this.setSockets(io.of('/' + namespace), socketUri + '/' + namespace);
   } else {
