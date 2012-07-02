@@ -107,11 +107,11 @@ function plugin (racer) {
     });
   };
 
-  racer.session = require('./session') // TODO Remove this?
   racer.registerAdapter = require('./adapters').registerAdapter;
 
   racer
     .use(require('./bundle/bundle.Model'))
+    .use(require('./session/index'))
     .use(require('./adapters/db-memory'))
     .use(require('./adapters/journal-memory'))
     .use(require('./adapters/clientid-mongo'))
