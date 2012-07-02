@@ -65,12 +65,12 @@ exports.regExp = function regExp (pattern) {
 };
 
 // Create regular expression matching the path or any of its parents
-exports.regExpPathOrParent = function regExpPathOrParent (path) {
+exports.regExpPathOrParent = function regExpPathOrParent (path, levels) {
   var p = ''
     , parts = path.split('.')
     , source = [];
 
-  for (var i = 0, l = parts.length; i < l; i++) {
+  for (var i = 0, l = parts.length - (levels || 0); i < l; i++) {
     var segment = parts[i];
     p += i ? '\\.' + segment
            : segment;

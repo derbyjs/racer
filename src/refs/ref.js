@@ -1,7 +1,10 @@
 var refUtils = require('./util')
   , derefPath = refUtils.derefPath
   , addListener = refUtils.addListener
-  , joinPaths = require('../path').join
+  , pathUtil = require('../path')
+  , joinPaths = pathUtil.join
+  , regExpPathOrParent = pathUtil.regExpPathOrParent
+  , lookup = pathUtil.lookup
   , indexOf = require('../util').indexOf
   , Model = require('../Model')
   ;
@@ -34,7 +37,9 @@ function createRef (model, from, to, key, hardLink) {
  * @return {Function}
  */
 function derefFn (len, i, path, currPath, hardLink) {
-  if (hardLink) return function () { return currPath; };
+  if (hardLink) return function () {
+    return currPath;
+  };
   return function (method) {
     return (i === len && method in Model.basicMutator) ? path : currPath;
   };
@@ -129,7 +134,7 @@ function setupRefWithKeyListeners (model, from, to, key, getter) {
 }
 
 function equivId (id, doc) {
-  return doc.id === id;
+  return doc && doc.id === id;
 }
 
 function createGetterWithoutKey (to, hardLink) {
@@ -146,12 +151,30 @@ function createGetterWithoutKey (to, hardLink) {
 }
 
 function setupRefWithoutKeyListeners(model, from, to, getter) {
-  var listeners = [];
+  var listeners = []
+    , parents = regExpPathOrParent(to, 1)
+
   addListener(listeners, model, from, getter, to + '.*', function (match) {
     return from + '.' + match[1];
   });
 
   addListener(listeners, model, from, getter, to, function () {
+    return from;
+  });
+
+  addListener(listeners, model, from, getter, parents, function (match, mutator, args) {
+    var path = match.input
+      , remainder = to.slice(path.length + 1)
+
+    if (mutator === 'set') {
+      args[1] = lookup(remainder, args[1]);
+      args.out = lookup(remainder, args.out);
+    } else if (mutator === 'del') {
+      args.out = lookup(remainder, args.out);
+    } else {
+      // Don't emit an event if not a set or delete
+      return null;
+    }
     return from;
   });
 }
