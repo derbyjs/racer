@@ -130,6 +130,7 @@ function setupSocketAuth (store, io) {
  * @param {String} clientId
  */
 function onSocketConnection (store, socket, clientId) {
+  if (! socket.handshake.session) return; // Happens in tests with mock socketio
   var session = socket.session = socket.handshake.session
     , socketsBySessionId = store._socketsBySessionId
     , sessionId = session.id

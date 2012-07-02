@@ -46,7 +46,6 @@ openPage = (app, {server, browser}) ->
 
 
         # Hack to set cookie for the future handshake request
-        ioUtil = @io.util
         __request__ = ioUtil.request
         ioUtil.request = (xdomain) ->
           xhr = __request__.call ioUtil, xdomain
@@ -71,6 +70,7 @@ openPage = (app, {server, browser}) ->
   __connect__ = @io.connect
   @io.connect = (path) ->
     __connect__.call @, "http://localhost:#{3000}" + path
+  ioUtil = @io.util
 
 describe 'Server-side sessions', ->
   beforeEach (done) ->
