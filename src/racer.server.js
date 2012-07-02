@@ -1,6 +1,5 @@
 var fs = require('fs')
   , browserify = require('browserify')
-  , socketio = require('socket.io')
   , socketioClient = require('socket.io-client')
   , uglify = require('uglify-js')
   , Store = require('./Store')
