@@ -184,8 +184,8 @@ Async.prototype = {
   }
 };
 
-Async.MAX_RETRIES = MAX_RETRIES = 20;
-Async.RETRY_DELAY = RETRY_DELAY = 100;
+var MAX_RETRIES = Async.MAX_RETRIES = 20;
+var RETRY_DELAY = Async.RETRY_DELAY = 100;
 
 function AsyncAtomic (async, cb) {
   this.async = async;
