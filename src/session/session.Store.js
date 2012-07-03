@@ -66,6 +66,8 @@ module.exports = {
      */
     sessionMiddleware: function (opts) {
       opts || (opts = {});
+
+      // The following this._* properties are used in setupSocketAuth
       this._sessionKey = opts.key || (opts.key = 'connect.sid');
       var sessStore = this._sessionStore = opts.store;
 
@@ -86,13 +88,34 @@ module.exports = {
 
       return createSessionMiddleware(opts);
     }
+
+  , modelMiddleware: function () {
+      var store = this;
+
+      // Maps clientId -> sessionID. There can be many clientIds to a single sessionID
+      var securePairs = store._securePairs = {};
+      return function (req, res, next) {
+        if (!store._cachedCreateModel) {
+          store._cachedCreateModel = function () {
+            var model = store.createModel();
+            securePairs[model._clientId] = req.sessionID;
+            return model;
+          }
+        }
+        req.createModel = store._cachedCreateModel;
+        next();
+      };
+    }
   }
 }
 
 /**
  * Add additional handshake logic that converts the handshake request's cookie
- * into an express session. This session is assigned to the socket that can be
- * used to make decisions about how to process subsequent messages over the socket.
+ * into an express session. This session is attached to the socket's handshake
+ * object.
+ *
+ * This session is later assigned to the socket that can be used to make
+ * decisions about how to process subsequent messages over the socket.
  *
  * @param {Store} store
  * @param {socketio.Manager} io
@@ -109,8 +132,12 @@ function setupSocketAuth (store, io) {
     if (! cookieHeader) {
       return accept('No cookie containing session id', false);
     }
-    var cookie = parseCookie(cookieHeader);
-    var sessionId = cookie[store._sessionKey].split('.')[0];
+    var cookie = parseCookie(cookieHeader)
+      , sessionId = cookie[store._sessionKey].split('.')[0]
+      , clientId = handshake.query.clientId;
+    if (store._securePairs[clientId] !== sessionId) {
+      return accept('Unauthorized access', false);
+    }
     sessionStore.load(sessionId, function (err, session) {
       if (err || !session) {
         return accept('Error retrieving session', false);
