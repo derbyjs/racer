@@ -171,6 +171,7 @@ function onSocketConnection (store, socket, clientId) {
     if (~pos) {
       sockets.splice(pos, 1);
       if (!sockets.length) delete socketsBySessionId[sessionId];
+      delete store._securePairs[clientId];
     }
   });
 }
