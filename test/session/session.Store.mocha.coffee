@@ -29,11 +29,14 @@ openPage = (app, {server, browser}) ->
   # TODO Clean up later
   sessMiddleware.cleanup = ->
     spliceIndex = indexOf app.stack, sessMiddleware, (sMw, {handle}) -> (sMw == handle)
+    app.stack.splice spliceIndex, 1
+
+  app.use store.modelMiddleware()
 
   app.use (req, res) ->
     models = server: [], browser: []
     i = server.length - 3
-    models.server.push store.createModel() while i--
+    models.server.push req.createModel() while i--
     modelIds = (id for {id} in models.server)
     models.browser.insert = (browserModel) ->
       insertIndex = modelIds.indexOf browserModel.id
@@ -86,20 +89,24 @@ describe 'Server-side sessions', ->
           done()
       browser: (model) ->
 
-    http.createServer(@app).listen 3000
+    @server = http.createServer(@app).listen 3000
     @app.request().get('/').end (res) -> done()
 
-  afterEach = (done) ->
-    @app.close done
+  afterEach (done) ->
+    @server.on 'close', done
+    @server.close()
 
   describe 'access', ->
     it 'should be shared between connect middleware and socket.io sockets', ->
       expect(@socketSession).to.equal @connectSession
 
+    it 'should reject a request that tries to hi-jack a clientId via the socket.io uri endpoint'
+
   describe 'destroyed', ->
     describe 'via an http request', ->
       it 'should remove the session from every associated socket'
       it 'subsequent http requests should create a new session'
+      it 'should ask the browser to refresh itself to logout'
 
     describe 'over socket.io', ->
       it 'should remove the session from every associated socket'
@@ -114,5 +121,11 @@ describe 'Server-side sessions', ->
 
     it 'should destroy a session if an http request is received over http'
 
+    describe 'while a client is disconnected', ->
+
   describe 'upon expiry', ->
     it 'should remove the session from every associated socket'
+
+  describe 're-logging in from another window', ->
+    it 'should load the last page seen before the prior logout'
+    it 'should load the home page in the window triggering the re-login'
