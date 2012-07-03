@@ -109,13 +109,29 @@ Store.prototype.setSockets = function (sockets, ioUri) {
   this._ioUri = ioUri || (ioUri = '');
   var self = this;
   sockets.on('connection', function (socket) {
+
     // TODO Do not decorate socket directly. This is brittle if socketio
     // decides to add a clientId property to socket objects. Perhaps instead
     // pass around a connection object that has references to clientId, socket,
     // session, etc
+    //
+    // SECURITY NOTE: socket.handshake.query can be set by a malicious browser.
+    // To guard against this, we take the following pre-caution: On socket.io
+    // handshake, check that the sessionId is equivalent to the sessionId that
+    // was associated with the clientId during the first page request.
+    //
+    // By this point, the handshake has been approved by our Store session
+    // mixin 'sockeio' event handler. The 
+    //
+    // The only security issue from a socket.io
+    // point of view from here on out, involving clientIds, is if a user sends
+    // a transaction with a false clientId. However, that is handled by
+    // ignoring the clientId that comes with the message; instead, the clientId
+    // that was cached here on "connection" is what is used to interpret every
+    // message.
     var clientId = socket.clientId = socket.handshake.query.clientId;
 
-    /* Loggin */
+    /* Logging */
     socketDebug('ON CONNECTION', clientId);
 
     if (!clientId) {
