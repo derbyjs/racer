@@ -1,4 +1,5 @@
 var connect = require('connect')
+  , Cookie = require('connect/lib/middleware/session/cookie')
   , parseSignedCookies = connect.utils.parseSignedCookies
   , parseSignedCookie = connect.utils.parseSignedCookie
   , createSessionMiddleware = connect.session
@@ -158,7 +159,7 @@ function setupSocketAuth (store, io) {
 
 /**
  * Add (and later remove) the socket to
- * Store#socketsBySessionId[socket.session.id]
+ * Store#_socketsBySessionId[socket.session.id]
  *
  * @param {Store} store
  * @param {Socket} socket
@@ -167,9 +168,10 @@ function setupSocketAuth (store, io) {
 function onSocketConnection (store, socket, clientId) {
   if (! socket.handshake.session) return; // Happens in tests with mock socketio
   var session = socket.session = socket.handshake.session
-    , socketsBySessionId = store._socketsBySessionId
+    , socketsBySessId = store._socketsBySessionId
     , sessionId = session.id
-    , sockets = socketsBySessionId[sessionId] || (socketsBySessionId[sessionId] = []);
+    , sockets = socketsBySessId[sessionId] || (socketsBySessId[sessionId] = []);
+
 
   if (~ sockets.indexOf(socket)) return;
 
@@ -178,7 +180,7 @@ function onSocketConnection (store, socket, clientId) {
     var pos = sockets.indexOf(socket);
     if (~pos) {
       sockets.splice(pos, 1);
-      if (!sockets.length) delete socketsBySessionId[sessionId];
+      if (!sockets.length) delete socketsBySessId[sessionId];
       delete store._securePairs[clientId];
     }
   });
@@ -219,12 +221,13 @@ function patchSessionStore (sessStore, store) {
   // every associated socket when the session is destroyed
   var socketsBySessId = store._socketsBySessionId
     , oldSessDestroy = sessStore.destroy;
+
   sessStore.destroy = function (sid, fn) {
     var sockets = socketsBySessId[sid];
     for (var i = sockets.length; i--; ) {
       delete sockets[i].session;
     }
-    return oldSessDestroy.call(sid, fn);
+    return oldSessDestroy.call(this, sid, fn);
   };
 
   sessStore.load = sessStore.get = function (sid, fn) {
@@ -255,7 +258,7 @@ function patchSessionStore (sessStore, store) {
     });
   };
 
-  sessStore.createSession = function (req, res) {
+  sessStore.createSession = function (req, sess) {
     var expires = sess.cookie.expires
       , orig = sess.cookie.originalMaxAge
       , update = null == update ? true : false;

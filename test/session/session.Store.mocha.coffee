@@ -14,15 +14,22 @@ sid = (res) ->
 
 
 openPage = (app, {clients}) ->
-  idsToNames = {}
+  # Clear global io object, which otherwise would save sockets across separate tests
+  delete require.cache[require.resolve 'socket.io-client']
 
   changeEnvTo 'server'
   racer = require '../../lib/racer'
   store = racer.createStore()
-  sessMiddleware = store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
 
-  app.use sessMiddleware
+  app.use store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
   app.use store.modelMiddleware()
+
+  app.use '/logout', (req, res) ->
+    req.session.destroy()
+    res.end()
+
+  # Maps model clientIds to the clientNames we give them for tests.
+  idsToNames = {}
 
   app.use (req, res, next) ->
     return next() if /socket.io/.test req.url
@@ -30,31 +37,27 @@ openPage = (app, {clients}) ->
 
     # Simulate bundling the server Model & sending it to the browser
     bundleModel = (serverModel) ->
-      serverModel.bundle (bundle) ->
-        res.end(bundle) # GOTO XXX
-
+      serverModel.bundle (bundle) -> res.end(bundle)
 
     serverModel = req.createModel()
     idsToNames[serverModel._clientId] = clientName
     clients[clientName].server req, serverModel, bundleModel
 
   @io = require 'socket.io-client'
+  obj = {}
+  for k of require
+    obj[k] = require[k] unless k == 'cache'
   __connect__ = @io.connect
   @io.connect = (path) ->
-    __connect__.call @, "http://127.0.0.1:3000" + path
+    out = __connect__.call @, "http://127.0.0.1:3000" + path
+    @connect = __connect__
+    out
   ioUtil = @io.util
 
   return run = (cb) ->
     webServer = http.createServer(app)
     webServer.listen 3000, ->
       store.listen webServer
-
-      # Hack to write a cookie from the browser with an XHR
-      __handleHandshake__ = store.io.handleHandshake
-      store.io.handleHandshake = (data, req, res) ->
-        if xCookie = req.headers['x-cookie']
-          req.headers['Cookie'] = xCookie
-        __handleHandshake__.call this, data, req, res
 
       store.io.sockets.on 'connection', (socket) ->
         matchingClientName = idsToNames[socket.handshake.query.clientId]
@@ -119,9 +122,38 @@ describe 'Server-side sessions', ->
 
   describe 'destroyed', ->
     describe 'via an http request', ->
+      beforeEach (done) ->
+        app = connect().use(connect.cookieParser())
+
+        run = openPage app,
+          clients:
+            x:
+              server: (req, serverModel, bundleModel) =>
+                @connectSession = req.session
+                req.session.roles = ['admin']
+                serverModel.subscribe 'groups.1', (err, group) ->
+                  bundleModel serverModel
+              browser: (model) ->
+              onSocketCxn: (@socket) =>
+                app.request()
+                  .get('/logout')
+                  .set('cookie', "connect.sid=#{@socket.session.id}")
+                  .end (res) -> done()
+
+        run (server) =>
+          @server = server
+
+      afterEach (done) ->
+        @server.on 'close', done
+        @server.close()
+
 #      before (done) ->
 #        @app.request().get('/logout').end (res) ->
 #          done()
+      it "should remove the session from the actor's socket", (done) ->
+        expect(@socket).to.not.have.property('session')
+        @socket.on 'disconnect', -> done()
+        @socket.disconnect 'booted'
 
       it 'should remove the session from every associated socket'
 
