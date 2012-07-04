@@ -4,99 +4,114 @@ require './http'
 {expect} = require '../util'
 {changeEnvTo} = require '../util'
 {indexOf} = require '../../lib/util'
+{finishAfter} = require '../../lib/util/async'
+_url = require 'url'
 
 sid = (res) ->
   val = res.headers?['set-cookie']
   return '' unless val
   return /^connect\.sid=([^;]+);/.exec(val[0])[1]
 
-openPage = (app, {server, browser}) ->
+
+openPage = (app, {clients}) ->
+  idsToNames = {}
+
   changeEnvTo 'server'
   racer = require '../../lib/racer'
-  store = racer.createStore listen: app
-
-  unless app.cookieShim
-    app.stack.unshift
-      route: '/'
-      handle: (req, res, next) ->
-        if xCookie = req.headers['x-cookie']
-          req.headers['Cookie'] = xCookie
-        next()
-    app.cookieShim = true
-
+  store = racer.createStore()
   sessMiddleware = store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
-  app.use sessMiddleware
-  # TODO Clean up later
-  sessMiddleware.cleanup = ->
-    spliceIndex = indexOf app.stack, sessMiddleware, (sMw, {handle}) -> (sMw == handle)
-    app.stack.splice spliceIndex, 1
 
+  app.use sessMiddleware
   app.use store.modelMiddleware()
 
-  app.use (req, res) ->
-    models = server: [], browser: []
-    i = server.length - 3
-    models.server.push req.createModel() while i--
-    modelIds = (id for {id} in models.server)
-    models.browser.insert = (browserModel) ->
-      insertIndex = modelIds.indexOf browserModel.id
-      models.browser[insertIndex] = browserModel
+  app.use (req, res, next) ->
+    return next() if /socket.io/.test req.url
+    clientName = _url.parse(req.url, true).query.clientName
 
     # Simulate bundling the server Model & sending it to the browser
     bundleModel = (serverModel) ->
       serverModel.bundle (bundle) ->
-        res.end()
+        res.end(bundle) # GOTO XXX
 
 
-        # Hack to set cookie for the future handshake request
-        __request__ = ioUtil.request
-        ioUtil.request = (xdomain) ->
-          xhr = __request__.call ioUtil, xdomain
-          xhr.setRequestHeader 'x-cookie', "connect.sid=#{sid res}"
-          ioUtil.request = __request__
-          return xhr
-
-        changeEnvTo 'browser'
-        racer = require '../../lib/racer'
-        racer.on 'init', (browserModel) ->
-          models.browser.insert browserModel
-          changeEnvTo 'server'
-          racer = require '../../lib/racer'
-          browser models.browser...
-
-        # Init the bundle into a browser Model
-        racer.init JSON.parse bundle
-
-    server models.server..., bundleModel, store, req.session
+    serverModel = req.createModel()
+    idsToNames[serverModel._clientId] = clientName
+    clients[clientName].server req, serverModel, bundleModel
 
   @io = require 'socket.io-client'
   __connect__ = @io.connect
   @io.connect = (path) ->
-    __connect__.call @, "http://localhost:#{3000}" + path
+    __connect__.call @, "http://127.0.0.1:3000" + path
   ioUtil = @io.util
 
+  return run = (cb) ->
+    webServer = http.createServer(app)
+    webServer.listen 3000, ->
+      store.listen webServer
+
+      # Hack to write a cookie from the browser with an XHR
+      __handleHandshake__ = store.io.handleHandshake
+      store.io.handleHandshake = (data, req, res) ->
+        if xCookie = req.headers['x-cookie']
+          req.headers['Cookie'] = xCookie
+        __handleHandshake__.call this, data, req, res
+
+      store.io.sockets.on 'connection', (socket) ->
+        matchingClientName = idsToNames[socket.handshake.query.clientId]
+        clients[matchingClientName].onSocketCxn socket
+      setTimeout ->
+
+      for clientName of clients
+        app.request(webServer).get("/?clientName=#{clientName}").end (res) ->
+          # Hack to set cookie for the future handshake request
+          __request__ = ioUtil.request
+          ioUtil.request = (xdomain) ->
+            xhr = __request__.call ioUtil, xdomain
+            xhr.setRequestHeader 'cookie', "connect.sid=#{sid res}"
+            ioUtil.request = __request__
+            return xhr
+
+          # Init the bundle into a browser Model
+          changeEnvTo 'browser'
+          browserRacer = require '../../lib/racer'
+          bundle = JSON.parse res.body
+          clientId = bundle[0]
+          clientName = idsToNames[clientId]
+          browserRacer.on 'init', (browserModel) ->
+            changeEnvTo 'server'
+            clients[clientName].browser browserModel
+          browserRacer.init bundle
+
+
+      cb webServer
+
 describe 'Server-side sessions', ->
-  beforeEach (done) ->
-    @app = connect().use(connect.cookieParser())
-
-    openPage @app,
-      server: (model, bundleModel, store, connectSession) =>
-        model.subscribe 'groups.1', (err, group) ->
-          bundleModel model
-        store.io.sockets.on 'connection', (socket) =>
-          @socketSession = socket.session
-          @connectSession = connectSession
-          done()
-      browser: (model) ->
-
-    @server = http.createServer(@app).listen 3000
-    @app.request().get('/').end (res) -> done()
-
-  afterEach (done) ->
-    @server.on 'close', done
-    @server.close()
 
   describe 'access', ->
+    beforeEach (done) ->
+      app = connect().use(connect.cookieParser())
+
+      run = openPage app,
+        clients:
+          x:
+            server: (req, serverModel, bundleModel) =>
+              @connectSession = req.session
+              req.session.roles = ['admin']
+              serverModel.subscribe 'groups.1', (err, group) ->
+                bundleModel serverModel
+            browser: (model) ->
+            onSocketCxn: (socket) =>
+              @socketSession = socket.session
+              socket.on 'disconnect', -> done()
+              socket.disconnect 'booted'
+
+      run (server) =>
+        @server = server
+
+    afterEach (done) ->
+      @server.on 'close', done
+      @server.close()
+
     it 'should be shared between connect middleware and socket.io sockets', ->
       expect(@socketSession).to.equal @connectSession
 
@@ -104,8 +119,14 @@ describe 'Server-side sessions', ->
 
   describe 'destroyed', ->
     describe 'via an http request', ->
+#      before (done) ->
+#        @app.request().get('/logout').end (res) ->
+#          done()
+
       it 'should remove the session from every associated socket'
+
       it 'subsequent http requests should create a new session'
+
       it 'should ask the browser to refresh itself to logout'
 
     describe 'over socket.io', ->

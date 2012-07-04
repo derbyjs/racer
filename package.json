@@ -22,7 +22,8 @@
     "hooks": "0.2.1",
     "colors": "git://github.com/Marak/colors.js.git#master",
     "connect": "2.x",
-    "debug": "*"
+    "debug": "*",
+    "cookie": "0.0.4"
   },
   "devDependencies": {
     "mocha": "1.2.x",

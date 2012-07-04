@@ -1,7 +1,9 @@
 var connect = require('connect')
-  , parseCookie = connect.utils.parseCookie
+  , parseSignedCookies = connect.utils.parseSignedCookies
+  , parseSignedCookie = connect.utils.parseSignedCookie
   , createSessionMiddleware = connect.session
-  , MemoryStore = createSessionMiddleware.MemoryStore;
+  , MemoryStore = createSessionMiddleware.MemoryStore
+  , cookie = require('cookie');
 
 /**
  * The following is a description of the lifecycle of a session and of a socket
@@ -50,7 +52,9 @@ module.exports = {
       store._socketsBySessionId = {};
     }
 
-  , socketio: setupSocketAuth
+  , socketio: function (sio) {
+      return setupSocketAuth.apply(this, arguments);
+    }
 
   , socket: onSocketConnection
   }
@@ -69,22 +73,14 @@ module.exports = {
 
       // The following this._* properties are used in setupSocketAuth
       this._sessionKey = opts.key || (opts.key = 'connect.sid');
+      this._sessionSecret = opts.secret;
       var sessStore = this._sessionStore = opts.store;
 
       if (! sessStore) {
         sessStore = this._sessionStore = opts.store = new MemoryStore;
-        // Re-wrap this._sessionStore.destroy, to also remove the session form
-        // every associated socket when the session is destroyed
-        var socketsBySessId = this._socketsBySessionId
-          , oldSessDestroy = sessStore.destroy;
-        sessStore.destroy = function (sid, fn) {
-          var sockets = socketsBySessId[sid];
-          for (var i = sockets.length; i--; ) {
-            delete sockets[i].session;
-          }
-          return oldSessDestroy.call(sid, fn);
-        };
       }
+
+      patchSessionStore(sessStore, this);
 
       return createSessionMiddleware(opts);
     }
@@ -124,21 +120,33 @@ module.exports = {
 function setupSocketAuth (store, io) {
   // Sets authorization callback for ALL socketio namespaces
   io.set('authorization', function (handshake, accept) {
-    var sessionStore = this._sessionStore;
-    if (! sessionStore) {
+    var sessStore = store._sessionStore;
+    if (! sessStore) {
       return accept('No session store', false);
     }
     var cookieHeader = handshake.headers.cookie;
     if (! cookieHeader) {
       return accept('No cookie containing session id', false);
     }
-    var cookie = parseCookie(cookieHeader)
-      , sessionId = cookie[store._sessionKey].split('.')[0]
+    var cookies = cookie.parse(cookieHeader)
+      , key = store._sessionKey
+      , secret = store._sessionSecret
+      , signedCookies = parseSignedCookies(cookies, store._sessionSecret)
+      , unsignedCookie = signedCookies[key];
+    if (!unsignedCookie) {
+      var rawCookie = cookies[key];
+      if (rawCookie) {
+        unsignedCookie = parseSignedCookie(rawCookie, secret);
+      } else {
+        return accept('No cookie containing session id', false);
+      }
+    }
+    var sessionId = unsignedCookie
       , clientId = handshake.query.clientId;
     if (store._securePairs[clientId] !== sessionId) {
       return accept('Unauthorized access', false);
     }
-    sessionStore.load(sessionId, function (err, session) {
+    sessStore.load(sessionId, function (err, session) {
       if (err || !session) {
         return accept('Error retrieving session', false);
       }
@@ -174,6 +182,25 @@ function onSocketConnection (store, socket, clientId) {
       delete store._securePairs[clientId];
     }
   });
+
+  // TODO Clean this listeners up upon disconnection
+//  socket.on('message', touchSession);
+//  socket.on('anything', touchSession);
+//
+//  /**
+//   * This should send minimal periodic headers['Set-Cookie'] updates down to
+//   * the browser to update cookie.expiry. This can only be done in response to
+//   * an http request. If the socket transport is http, then we use the response
+//   * of the http request containing the socket.io payload. Otherwise, we tell
+//   * the browser to use an empty XHR to automatically update the cookie expiry.
+//   */
+//  function touchSession () {
+//    var session = socket.session;
+//
+//    // This should also periodically update the cookie expiry
+//
+//    session.touch();
+//  }
 }
 
 // TODO We might want to consider refreshing the
@@ -186,3 +213,56 @@ function onSocketConnection (store, socket, clientId) {
 //   expiry, and doing so should be reflected everywhere the session exists.
 //   Perhaps this would be easiest with a Session store that is a racer Model
 //   or Store.
+
+function patchSessionStore (sessStore, store) {
+  // Re-wrap this._sessionStore.destroy, to also remove the session form
+  // every associated socket when the session is destroyed
+  var socketsBySessId = store._socketsBySessionId
+    , oldSessDestroy = sessStore.destroy;
+  sessStore.destroy = function (sid, fn) {
+    var sockets = socketsBySessId[sid];
+    for (var i = sockets.length; i--; ) {
+      delete sockets[i].session;
+    }
+    return oldSessDestroy.call(sid, fn);
+  };
+
+  sessStore.load = sessStore.get = function (sid, fn) {
+    var self = this;
+    process.nextTick(function(){
+      var expires
+        , sess = self.sessions[sid];
+      if (sess) {
+        expires = 'string' == typeof sess.cookie.expires
+          ? new Date(sess.cookie.expires)
+          : sess.cookie.expires;
+        if (!expires || new Date < expires) {
+          fn(null, sess);
+        } else {
+          self.destroy(sid, fn);
+        }
+      } else {
+        fn();
+      }
+    });
+  };
+
+  sessStore.set = function (sid, sess, fn) {
+    var self = this;
+    process.nextTick(function(){
+      self.sessions[sid] = sess;
+      fn && fn();
+    });
+  };
+
+  sessStore.createSession = function (req, res) {
+    var expires = sess.cookie.expires
+      , orig = sess.cookie.originalMaxAge
+      , update = null == update ? true : false;
+    sess.cookie = new Cookie(sess.cookie);
+    if ('string' == typeof expires) sess.cookie.expires = new Date(expires);
+    sess.cookie.originalMaxAge = orig;
+    req.session = sess;
+    return req.session;
+  };
+}

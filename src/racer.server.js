@@ -64,6 +64,7 @@ function plugin (racer) {
 
   racer.createStore = function (options) {
     options || (options = {});
+    options.racer = this;
     // TODO Provide full configuration for socket.io
     var store = new Store(options)
       , sockets, listen;

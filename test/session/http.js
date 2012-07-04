@@ -11,25 +11,29 @@ var EventEmitter = require('events').EventEmitter
 
 module.exports = request;
 
-connect.proto.request = function(){
-  return request(this);
+connect.proto.request = function(server){
+  return request(this, server);
 };
 
-function request(app) {
-  return new Request(app);
+function request(app, server) {
+  return new Request(app, server);
 }
 
-function Request(app) {
+function Request(app, server) {
   var self = this;
   this.data = [];
   this.header = {};
   this.app = app;
+  this.server = server;
   if (!this.server) {
     this.server = http.Server(app);
     this.server.listen(0, function(){
       self.addr = self.server.address();
       self.listening = true;
     });
+  } else {
+    self.addr = server.address();
+    self.listening = true;
   }
 }
 

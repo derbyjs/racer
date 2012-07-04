@@ -1,6 +1,5 @@
 var EventEmitter = require('events').EventEmitter
   , socketio = require('socket.io')
-  , racer = require('./racer')
   , Promise = require('./util/Promise')
   , createAdapter = require('./adapters').createAdapter
   , transaction = require('./transaction.server')
@@ -10,7 +9,6 @@ var EventEmitter = require('events').EventEmitter
   , asyncUtils = require('./util/async')
   , bufferifyMethods = asyncUtils.bufferifyMethods
   , finishAfter = asyncUtils.finishAfter
-  , Model = racer.protected.Model
   , debugGenerator = require('debug')
   , socketDebug = debugGenerator('socket-client-id')
   , racerDebug  = debugGenerator('racer')
@@ -46,6 +44,9 @@ module.exports = Store;
 function Store (options) {
   if (! options) options = {};
   EventEmitter.call(this);
+
+  this.racer = options.racer;
+
   this._localModels = {};
 
   // Set up the conflict resolution mode
@@ -82,7 +83,8 @@ function Store (options) {
 Store.prototype.__proto__ = EventEmitter.prototype;
 
 Store.prototype.listen = function (to, namespace) {
-  var io = this.io = socketio.listen(to);
+  var racer = this.racer
+    , io = this.io = socketio.listen(to);
   io.configure( function () {
     io.set('browser.client', false);
     io.set('transports', racer.get('transports'));
@@ -203,7 +205,7 @@ Store.prototype._finishCommit = function (txn, ver, callback) {
 };
 
 Store.prototype.createModel = function () {
-  var model = new Model({
+  var model = new this.racer.protected.Model({
     store: this
   , _ioUri: this._ioUri
   });
