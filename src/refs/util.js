@@ -42,11 +42,11 @@ function addListener (listeners, model, from, getter, pattern, generatePath) {
   var regexp = eventRegExp(pattern);
   function listener (mutator, _arguments) {
     var path = _arguments[0][0];
-    if (! regexp.test(path)) return;
+    if (!regexp.test(path)) return;
 
     // Lazy cleanup of listener
     if (model._getRef(from) !== getter) {
-      for (var i = listeners.length; i --; ) {
+      for (var i = listeners.length; i--;) {
         model.removeListener('mutator', listeners[i]);
       }
       return;
@@ -60,7 +60,7 @@ function addListener (listeners, model, from, getter, pattern, generatePath) {
     if (dereffedPath === null) return;
     args[0] = dereffedPath;
     var isLocal = _arguments[2]
-      , pass    = _arguments[3];
+      , pass = _arguments[3];
     model.emit(mutator, args, args.out, isLocal, pass);
   }
   listeners.push(listener);

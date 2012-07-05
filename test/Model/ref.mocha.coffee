@@ -465,11 +465,11 @@ describe 'Model.ref', ->
     model = new Model
     num = model.listeners('mutator').length
     model.ref '_color', 'colors.green'
-    expect(model.listeners('mutator').length).to.equal num + 2
+    expect(model.listeners('mutator').length).to.equal num + 3
     model.ref '_color', 'colors.green'
-    expect(model.listeners('mutator').length).to.equal num + 4
+    expect(model.listeners('mutator').length).to.equal num + 6
     model.set 'colors.green.hex', '#0f0'
-    expect(model.listeners('mutator').length).to.equal num + 2
+    expect(model.listeners('mutator').length).to.equal num + 3
 
   it 'supports specifying from path via scoped model', ->
     model = new Model
@@ -552,3 +552,26 @@ describe 'Model.ref', ->
       id: 'b'
       name: 'Karen'
     expect(selected.get 'name').to.equal 'Karen'
+
+  it 'should emit on to path when parent of from is deleted', calls 1, (done) ->
+    model = new Model
+    model.set 'colors.green', hex: '#0f0'
+    model.ref '_color', 'colors.green'
+
+    model.on 'del', '_color', (previous) ->
+      expect(previous).to.specEql hex: '#0f0', id: 'green'
+      done()
+    model.del 'colors'
+
+  it 'should emit on to path when parent of from is set', calls 1, (done) ->
+    model = new Model
+    model.set 'colors.green', hex: '#0f0', id: 'green'
+    model.ref '_color', 'colors.green'
+
+    model.on 'set', '_color', (value, previous) ->
+      expect(value).to.eql 'hi'
+      expect(previous).to.specEql hex: '#0f0', id: 'green'
+      done()
+    model.set 'colors',
+      blue: {hex: '#00f', id: 'blue'}
+      green: 'hi'

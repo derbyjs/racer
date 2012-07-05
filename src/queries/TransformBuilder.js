@@ -70,7 +70,7 @@ proto._genScopedModel = function () {
   // need it
 
   var queryJson = this.toJSON()
-    , memoryQuery = this.memoryQuery = new MemoryQuery(queryJson)
+    , memoryQuery = this.memoryQuery = new MemoryQuery(queryJson, filterFn)
     , result = memoryQuery.syncRun(domain)
     , comparator = this._comparator;
   if (comparator) result = result.sort(comparator);
@@ -81,9 +81,9 @@ proto._genScopedModel = function () {
   return setupQueryModelScope(model, memoryQuery, queryId, result);
 };
 
-proto.filterTest = function (doc, ns) {
-  if (ns !== this.ns) return false;
-  var filterFn = this.filterFn;
-  if (filterFn && ! filterFn(doc)) return false;
-  return this.memoryQuery.filterTest(doc, ns);
-};
+// proto.filterTest = function (doc, ns) {
+//   if (ns !== this.ns) return false;
+//   var filterFn = this.filterFn;
+//   if (filterFn && ! filterFn(doc)) return false;
+//   return this.memoryQuery.filterTest(doc, ns);
+// };

@@ -12,10 +12,9 @@ describe 'In browser filters', ->
           model.set 'users.1', id: '1', age: 20
           model.set 'users.2', userTwo = id: '2', age: 30
 
-          computation = model.at('users').filter({
+          computation = model.at('users').filter
             where:
               age: {gte: 30}
-          })
           results = model.ref '_results', computation
           expect(results.get()).to.eql [userTwo]
           expect(model.get('_results')).to.eql [userTwo]
@@ -27,13 +26,28 @@ describe 'In browser filters', ->
             model.set 'users.1', id: '1', age: 20
             model.set 'users.2', userTwo = id: '2', age: 30
 
-            results = model.ref '_results', model.filter('users',
+            results = model.ref '_results', model.filter 'users',
               where:
                 age: {gte: 30}
-            )
             expect(results.get()).to.eql [userTwo]
             model.set 'users.1.age', 31
             expect(results.get()).to.specEql [userTwo, {id: '1', age: 31}]
+            model.set 'users.2.age', 19
+            expect(results.get()).to.specEql [{id: '1', age: 31}]
+
+          it 'a custom filter should remain updated', ->
+            model =  new Model
+
+            model.set 'users.1', id: '1', age: 20
+            model.set 'users.2', userTwo = id: '2', age: 30
+
+            results = model.ref '_results', model.filter 'users', (user) ->
+              return user.age >= 30
+            expect(results.get()).to.eql [userTwo]
+            model.set 'users.1.age', 31
+            expect(results.get()).to.specEql [userTwo, {id: '1', age: 31}]
+            model.set 'users.2.age', 19
+            expect(results.get()).to.specEql [{id: '1', age: 31}]
 
           it 'should emit mutation events on the results ref', (done) ->
             model =  new Model
@@ -41,10 +55,9 @@ describe 'In browser filters', ->
             model.set 'users.1', id: '1', age: 20
             model.set 'users.2', userTwo = id: '2', age: 30
 
-            results = model.ref '_results', model.filter('users',
+            results = model.ref '_results', model.filter 'users',
               where:
                 age: {gte: 30}
-            )
             expect(results.get()).to.eql [userTwo]
 
             model.on 'insert', results.path(), (at, document, out, isLocal) ->

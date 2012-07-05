@@ -25,11 +25,11 @@ module.exports = MemoryQuery;
  * @param {Object} json representing a query that is typically created via
  * convenient QueryBuilder instances. See QueryBuilder.js for more details.
  */
-function MemoryQuery (json) {
+function MemoryQuery (json, filterFn) {
   this.ns = json.from;
   this._json = json;
   var filteredJson = objectExcept(json, ['only', 'except', 'limit', 'skip', 'sort', 'type']);
-  this._filter = filterFnFromQuery(filteredJson);
+  this._filter = filterFn || filterFnFromQuery(filteredJson);
   for (var k in json) {
     if (k === 'type') {
       // find() or findOne()

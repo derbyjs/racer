@@ -440,5 +440,5 @@ function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
 }
 
 function equivId (id, doc) {
-  return doc.id === id;
+  return doc && doc.id === id;
 }
