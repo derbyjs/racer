@@ -42,13 +42,10 @@ describe 'In browser filters', ->
             model.set 'users.2', userTwo = id: '2', age: 30
 
             results = model.ref '_results', model.filter 'users', (user) ->
-              console.log user
               return user.age >= 30
             expect(results.get()).to.eql [userTwo]
             model.set 'users.1.age', 31
             expect(results.get()).to.specEql [userTwo, {id: '1', age: 31}]
-            # TODO: This is broken right now. The filter function is not being
-            # rerun on updates
             model.set 'users.2.age', 19
             expect(results.get()).to.specEql [{id: '1', age: 31}]
 
