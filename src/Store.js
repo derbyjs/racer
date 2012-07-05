@@ -144,6 +144,10 @@ Store.prototype.setSockets = function (sockets, ioUri) {
   });
 };
 
+Store.prototype.reloadClient = function (clientId) {
+  this._clientSockets[clientId].emit('reload');
+};
+
 Store.prototype.flushMode = function (callback) {
   this._mode.flush(callback);
 };

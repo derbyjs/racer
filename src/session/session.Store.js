@@ -231,6 +231,7 @@ function patchSessionStore (sessStore, store) {
       delete socket.session;
       var clientId = socket.handshake.query.clientId;
       delete securePairs[clientId];
+      store.reloadClient(clientId);
     }
     return oldSessDestroy.call(this, sid, fn);
   };

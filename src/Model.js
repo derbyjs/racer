@@ -67,6 +67,13 @@ mergeAll(modelProto, emitterProto, {
       setTimeout(onConnected, 400);
     });
 
+    // The server can ask the client to reload itself
+    if (typeof window !== 'undefined') {
+      socket.on('reload', function () {
+        window && window.location.reload();
+      });
+    }
+
     // Needed in case page is loaded from cache while offline
     socket.on('connect_failed', onConnected);
   }

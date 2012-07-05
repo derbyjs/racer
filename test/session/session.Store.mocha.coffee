@@ -1,5 +1,6 @@
 http = require 'http'
 connect = require 'connect'
+sinon = require 'sinon'
 require './http'
 {expect} = require '../util'
 {changeEnvTo} = require '../util'
@@ -209,7 +210,11 @@ describe 'Server-side sessions', ->
   describe 'multi-client', ->
     describe 'destroyed', ->
       describe 'via a http request', ->
-        it 'should remove the session from every associated socket aaa', (done) ->
+
+        # This protects against the case where a malicious user could
+        # breakpoint the browser before it can reload the page because the
+        # server asked it to (see the test after this one)
+        it 'should remove the session from every associated socket', (done) ->
           sockets = {}
 
           leavingTab = null
@@ -244,7 +249,44 @@ describe 'Server-side sessions', ->
 
           teardown = run()
 
-        it 'should ask the browser to refresh itself to logout'
+        it 'should ask the other browsers to reload the page', (done) ->
+          sockets = {}
+
+          leavingTab = null
+
+          modelB = null
+
+          run = setup
+            browserA:
+              tabA:
+                server: (req, serverModel, bundleModel) ->
+                  bundleModel serverModel
+                browser: (model) ->
+                onSocketCxn: (socket, tab) ->
+                  sockets.x = socket
+                  leavingTab = tab
+                  wait()
+              tabB:
+                server: (req, serverModel, bundleModel) =>
+                  bundleModel serverModel
+                browser: (model) ->
+                  modelB = model
+                onSocketCxn: (socket, tab) ->
+                  sockets.y = socket
+                  wait()
+
+          wait = finishAfter 2, ->
+            spy = sinon.spy()
+            modelB.socket.on 'reload', spy
+            leavingTab.get '/logout', ->
+              expect(spy).to.be.calledOnce()
+              finish = finishAfter Object.keys(sockets).length, ->
+                teardown done
+              for k of sockets
+                sockets[k].on 'disconnect', finish
+                sockets[k].disconnect 'booted'
+
+          teardown = run()
 
       describe 'over socket.io', ->
         it 'should remove the session from every associated socket'
