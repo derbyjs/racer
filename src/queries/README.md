@@ -10,7 +10,7 @@ interest to your application, with a Store instance.
 var store = racer.createStore();
 // Note that in Derby apps, this would instead be:
 //
-//     var store = app.createStore;
+//     var store = app.createStore();
 //
 // where app is your Derby app.
 
