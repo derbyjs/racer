@@ -53,8 +53,8 @@ module.exports = {
       store._socketsBySessionId = {};
     }
 
-  , socketio: function (sio) {
-      return setupSocketAuth.apply(this, arguments);
+  , socketio: function (store, sio) {
+      return setupSocketAuth.call(this, store, sio);
     }
 
   , socket: onSocketConnection
@@ -129,13 +129,14 @@ function setupSocketAuth (store, io) {
     if (! cookieHeader) {
       return accept('No cookie containing session id', false);
     }
-    var cookies = cookie.parse(cookieHeader)
-      , key = store._sessionKey
-      , secret = store._sessionSecret
-      , signedCookies = parseSignedCookies(cookies, store._sessionSecret)
-      , unsignedCookie = signedCookies[key];
+    var cookies = cookie.parse(cookieHeader);
+    var key = store._sessionKey;
+    var secret = store._sessionSecret;
+    var signedCookies = parseSignedCookies(cookies, store._sessionSecret);
+    var unsignedCookie = signedCookies[key];
     if (!unsignedCookie) {
-      var rawCookie = cookies[key];
+      // We can't re-use `cookies` because it was mutated in parseSignedCookies
+      var rawCookie = cookie.parse(cookieHeader)[key];
       if (rawCookie) {
         unsignedCookie = parseSignedCookie(rawCookie, secret);
       } else {
@@ -223,9 +224,13 @@ function patchSessionStore (sessStore, store) {
     , oldSessDestroy = sessStore.destroy;
 
   sessStore.destroy = function (sid, fn) {
-    var sockets = socketsBySessId[sid];
+    var sockets = socketsBySessId[sid]
+      , securePairs = store._securePairs;
     for (var i = sockets.length; i--; ) {
-      delete sockets[i].session;
+      var socket = sockets[i]
+      delete socket.session;
+      var clientId = socket.handshake.query.clientId;
+      delete securePairs[clientId];
     }
     return oldSessDestroy.call(this, sid, fn);
   };

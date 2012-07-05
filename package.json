@@ -33,7 +33,8 @@
     "console.color": ">=0.0.4",
     "racer-journal-redis": "*",
     "racer-pubsub-redis": "*",
-    "racer-db-mongo": "*"
+    "racer-db-mongo": "*",
+    "async": "*"
   },
   "engines": {
     "node": ">=0.4.0"
