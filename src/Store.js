@@ -142,6 +142,7 @@ Store.prototype.setSockets = function (sockets, ioUri) {
     self._clientSockets[clientId] = socket;
     self.mixinEmit('socket', self, socket, clientId);
   });
+  this.emit('setSockets', sockets);
 };
 
 Store.prototype.reloadClient = function (clientId) {
