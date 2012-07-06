@@ -32,6 +32,7 @@ racer
   .use(require('./pubSub'))
   .use(require('./computed'))
   .use(require('./queries'))
+  .use(require('./context'))
   .use(require('./txns'))
   .use(require('./reconnect'));
 
