@@ -15,4 +15,3 @@ describe 'Model#context', ->
   it 'should set Model#currContext to "default" after the block', ->
     model = new Model
     expect(model.currContext).to.eql name: 'default'
-
