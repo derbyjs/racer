@@ -12,6 +12,7 @@ module.exports = (browsers) ->
   changeEnvTo 'server'
   racer = require '../../lib/racer'
   store = racer.createStore()
+  config racer, store if config = browsers.config
 
   app.use store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
   app.use store.modelMiddleware()
@@ -50,6 +51,7 @@ module.exports = (browsers) ->
 
       series = {}
       for browserName of browsers
+        continue if browserName == 'config'
         browser = new Browser browserName, app, webServer
         clients = browsers[browserName]
         for clientName of clients
