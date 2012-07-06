@@ -8,8 +8,11 @@
 
 module.exports = {
   create: function (obj) {
-    return (obj.ops) ? [obj.ver, obj.id, obj.ops]
-                     : [obj.ver, obj.id, obj.method, obj.args];
+    var txn = (obj.ops) ? [obj.ver, obj.id, obj.ops]
+                        : [obj.ver, obj.id, obj.method, obj.args]
+      , ctx = obj.context;
+    if (ctx && !obj.ops) txn.push({c: ctx});
+    return txn;
   }
 
 , getVer: function (txn) { return txn[0]; }
@@ -35,7 +38,13 @@ module.exports = {
 , setPath: function (txn, val) { return this.getArgs(txn)[0] = val; }
 
 , getMeta: function (txn) { return txn[4]; }
-, setMeta: function (txn, vals) { return txn[4] = vals; }
+, setMeta: function (txn, meta) { return txn[4] = meta; }
+
+, getContext: function (txn) { return this.getMeta(txn).c; }
+, setContext: function (txn, ctx) {
+    var meta = this.getMeta(txn);
+    return meta.c = ctx;
+  }
 
 , getClientId: function (txn) { return this.getId(txn).split('.')[0]; }
 , setClientId: function (txn, clientId) {
