@@ -68,7 +68,6 @@ function QueryMotifRegistry () {
  */
 QueryMotifRegistry.fromJSON = function (json) {
   var registry = new QueryMotifRegistry
-    , byNs = registry._byNs
     , noNs = registry._noNs = json['*'];
 
   _register(registry, noNs);
@@ -234,5 +233,17 @@ QueryMotifRegistry.prototype ={
     }
 
     return json;
+  }
+
+  /**
+   * @param {String} ns is the collection namespace
+   * @param {String} motifName is the name of the QueryMotif
+   * @return {Number} the arity of the query motif definition callback
+   */
+, arglen: function (ns, motifName) {
+    var cbsByMotif = this._byNs[ns];
+    if (!cbsByMotif) return;
+    var cb = cbsByMotif[motifName];
+    return cb && cb.length;
   }
 }

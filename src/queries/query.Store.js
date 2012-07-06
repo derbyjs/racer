@@ -64,8 +64,8 @@ module.exports = {
      * model.
      *
      * @param {Socket} socket
-     * @param {[String]} targets is an array of strings reprenting
-     * paths, path patterns, and/or query motifs.
+     * @param {[String|[String, ...]]} targets is an array of strings and query
+     * tuples representing paths, patterns, and/or query motifs.
      * @param {Function} cb is the callback
      * @api private
      */
@@ -88,7 +88,8 @@ module.exports = {
   /**
    * @param {Object} session of the client doing the fetching. The session is
    * used by _fetchSingle pre middleware for access control
-   * @param {String} target
+   * @param {String|Array} target is a string representing a path or pattern.
+   * Or it is an Array of [motifName, motifArgs...] representing a query motif.
    * @param {Array} data
    * @param {Function} callback
    * @api private
