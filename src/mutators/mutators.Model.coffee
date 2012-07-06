@@ -144,7 +144,8 @@ module.exports =
       insertArgs: 1
       fn: (args...) ->
         if at = @_at
-          if typeof (path = args[0]) is 'string' && typeof @get() is 'object'
+          if typeof (path = args[0]) is 'string' &&
+              (current = @get()) && !Array.isArray(current)
             args[0] = at + '.' + path
           else
             args.unshift at
@@ -158,7 +159,8 @@ module.exports =
       insertArgs: 1
       fn: (args...) ->
         if at = @_at
-          if typeof (path = args[0]) is 'string' && typeof @get() is 'object'
+          if typeof (path = args[0]) is 'string' &&
+              (current = @get()) && !Array.isArray(current)
             args[0] = at + '.' + path
           else
             args.unshift at
