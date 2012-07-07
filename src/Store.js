@@ -171,8 +171,7 @@ Store.prototype.disconnect = function () {
   }
 };
 
-// TODO We never use version argument here
-Store.prototype._checkVersion = function (version, clientStartId, callback) {
+Store.prototype._checkStartId = function (clientStartId, callback) {
   var mode = this._mode;
   return (mode.checkStartMarker) ? mode.checkStartMarker(clientStartId, callback)
                                  : callback(null);

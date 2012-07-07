@@ -69,6 +69,7 @@ module.exports = {
      * @param {Function} cb is the callback
      * @api private
      */
+    // TODO Incorporate contexts
     fetch: function (socket, targets, cb) {
       var data = []
         , self = this
@@ -184,7 +185,7 @@ module.exports = {
      */
   , _onSnapshotRequest: function (ver, clientStartId, clientId, socket, subs, shouldSubscribe) {
       var self = this;
-      self._checkVersion(ver, clientStartId, function (err) {
+      self._checkStartId(clientStartId, function (err) {
         if (err) return socket.emit('fatalErr', err);
         if (shouldSubscribe) {
           self._pubSub.subscribe(clientId, subs);
