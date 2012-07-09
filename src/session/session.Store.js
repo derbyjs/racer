@@ -96,6 +96,7 @@ module.exports = {
           store._cachedCreateModel = function () {
             var model = store.createModel();
             securePairs[model._clientId] = req.sessionID;
+            model.session = req.session;
             return model;
           }
         }

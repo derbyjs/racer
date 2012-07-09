@@ -61,7 +61,7 @@ module.exports =
             at
           else
             at + '.' + path
-        return @_addOpAsTxn 'set', [path, value], callback
+        return @_sendToMiddleware 'set', [path, value], callback
 
     del:
       type: BASIC_MUTATOR
@@ -72,7 +72,7 @@ module.exports =
           else
             callback = path
             at
-        return @_addOpAsTxn 'del', [path], callback
+        return @_sendToMiddleware 'del', [path], callback
 
     add:
       type: COMPOUND_MUTATOR
@@ -152,7 +152,8 @@ module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        return @_addOpAsTxn 'push', args, callback
+
+        return @_sendToMiddleware 'push', args, callback
 
     unshift:
       type: ARRAY_MUTATOR
@@ -167,7 +168,7 @@ module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        return @_addOpAsTxn 'unshift', args, callback
+        return @_sendToMiddleware 'unshift', args, callback
 
     insert:
       type: ARRAY_MUTATOR
@@ -187,7 +188,7 @@ module.exports =
 
         if typeof args[args.length - 1] is 'function'
           callback = args.pop()
-        return @_addOpAsTxn 'insert', args, callback
+        return @_sendToMiddleware 'insert', args, callback
 
     pop:
       type: ARRAY_MUTATOR
@@ -198,7 +199,7 @@ module.exports =
           else
             callback = path
             at
-        return @_addOpAsTxn 'pop', [path], callback
+        return @_sendToMiddleware 'pop', [path], callback
 
     shift:
       type: ARRAY_MUTATOR
@@ -209,7 +210,7 @@ module.exports =
           else
             callback = path
             at
-        return @_addOpAsTxn 'shift', [path], callback
+        return @_sendToMiddleware 'shift', [path], callback
 
     remove:
       type: ARRAY_MUTATOR
@@ -234,7 +235,7 @@ module.exports =
         if typeof howMany isnt 'number'
           callback = howMany
           howMany = 1
-        return @_addOpAsTxn 'remove', [path, start, howMany], callback
+        return @_sendToMiddleware 'remove', [path, start, howMany], callback
 
     move:
       type: ARRAY_MUTATOR
@@ -261,4 +262,4 @@ module.exports =
         if typeof howMany isnt 'number'
           callback = howMany
           howMany = 1
-        return @_addOpAsTxn 'move', [path, from, to, howMany], callback
+        return @_sendToMiddleware 'move', [path, from, to, howMany], callback

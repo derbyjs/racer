@@ -28,7 +28,8 @@ describe 'Model transaction handling', ->
 
   it 'client set roundtrip with server echoing transaction', (done) ->
     [model, sockets] = mockSocketEcho '0'
-    model.socket.on 'txnOk', (txnId) ->
+    model.socket.on 'txnOk', (txn) ->
+      txnId = transaction.getId txn
       expect(txnId).to.equal '0.0'
       expect(model.get 'color').to.eql 'green'
       expect(model._txnQueue).to.eql []
@@ -41,7 +42,8 @@ describe 'Model transaction handling', ->
 
   it 'client del roundtrip with server echoing transaction', (done) ->
     [model, sockets] = mockSocketEcho '0'
-    model.socket.on 'txnOk', (txnId) ->
+    model.socket.on 'txnOk', (txn) ->
+      txnId = transaction.getId txn
       expect(txnId).to.equal '0.0'
       expect(model.get()).to.eql {}
       expect(model._txnQueue).to.eql []
@@ -55,7 +57,8 @@ describe 'Model transaction handling', ->
 
   it 'client push roundtrip with server echoing transaction', (done) ->    
     [model, sockets] = mockSocketEcho '0'
-    model.socket.on 'txnOk', (txnId) ->
+    model.socket.on 'txnOk', (txn) ->
+      txnId = transaction.getId txn
       expect(txnId).to.equal '0.0'
       expect(model.get 'colors').to.specEql ['red']
       expect(model._txnQueue).to.eql []

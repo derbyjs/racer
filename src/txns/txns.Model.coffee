@@ -69,6 +69,90 @@ module.exports =
           model._applyTxn txn, isLocal
         return
 
+    middleware: (_model, middleware) ->
+      # Normalize
+      middleware.add 'txn', (req, res, next) ->
+        txn = req.data
+        method = transaction.getMethod txn
+        args = transaction.getArgs txn
+        # Refs may mutate the args in its 'beforeTxn' handler
+        model = req.model
+        model.emit 'beforeTxn', method, args
+        return unless (path = args[0])?
+        txn.isPrivate = isPrivate path
+
+        args = transaction.getArgs txn
+        txn.emitted = args.cancelEmit
+
+        # Add remove index as txn metadata. Null if transaction does nothing
+        if method is 'pop'
+          txn.push (arr = model.get(path) || null) && (arr.length - 1)
+        else if method is 'unshift'
+          txn.push (model.get(path) || null) && 0
+        return next()
+
+      # TODO Typecast
+      # middleware.add 'txn', typecast
+
+      # TODO Validate
+      # middleware.add 'txn', validate
+
+      # Log the tranasaction
+      middleware.add 'txn', (req, res, next) ->
+        txn = req.data
+        model = req.model
+        id = transaction.getId txn
+        model._txns[id] = txn
+        model._txnQueue.push id
+        return next()
+
+      # Evaluate the transaction, which is now on the queue
+      middleware.add 'txn', (req, res, next) ->
+        model = req.model
+        res.out = model._specModel().$out
+        return next()
+
+      # Send the transaction ...
+      # - ... over Socket.IO if a browser Model
+      # - ... to the store if a server Model
+      #
+      # Commit needs to happen before emit, since emissions might create
+      # other transactions as a side effect
+      middleware.add 'txn', (req, res, next) ->
+        txn = req.data
+
+        # Add insert index as txn metadata
+        args = transaction.getArgs txn
+        method = transaction.getMethod txn
+        if method is 'push'
+          out = res.out
+          transaction.setMeta(out - args.length + 1)
+          txn.push out - args.length + 1
+
+        # Do the actual commit
+        model = req.model
+        model._commit txn
+        return next()
+
+      # Emit events
+      middleware.add 'txn', (req, res, next) ->
+        out = res.out
+        txn = req.data
+
+        # Emit an event immediately on creation of the transaction, unless
+        # already emitted. This may have happened for a private path that was
+        # applied when evaluating the speculative model.
+        unless txn.emitted
+          method = transaction.getMethod txn
+          # Clone the args, so that they can be modified before being emitted
+          # without affecting the txn args
+          args = transaction.copyArgs txn
+          model = req.model
+          model.emit method, args, out, true, model._pass
+          txn.emitted = true
+
+        return out
+
     bundle: (model) ->
       model._txnsPromise.on (err) ->
         throw err if err
@@ -202,8 +286,10 @@ module.exports =
 
       # The model receives 'txnOk' from the server/store after the server/store
       # applies a transaction that originated from this model successfully
-      socket.on 'txnOk', (txnId, ver, num) ->
+      socket.on 'txnOk', (rcvTxn, num) ->
+        txnId = transaction.getId rcvTxn
         return unless txn = txns[txnId]
+        ver = transaction.getVer rcvTxn
         transaction.setVer txn, ver
         addRemoteTxn txn, num
 
@@ -234,12 +320,18 @@ module.exports =
   server:
     _commit: (txn) ->
       return if txn.isPrivate
-      @store._commit txn, (err, txn) =>
-        if err
+      req =
+        data: txn
+        ignoreStartId: true
+        clientId: @_clientId
+        session: @session
+      res =
+        fail: (err, txn) =>
           console.error "The following error occured for #{txn}"
           console.error err
           return @_removeTxn transaction.getId txn
-        @_onTxn txn
+        send: (txn) => @_onTxn txn
+      @store.middleware.trigger 'txn', req, res
 
   proto:
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
@@ -265,52 +357,24 @@ module.exports =
 
     _getVersion: -> if @_force then null else @_memory.version
 
-    _addOpAsTxn: (method, args, callback) ->
-      # Refs may mutate the args in its 'beforeTxn' handler
-      @emit 'beforeTxn', method, args
-
-      return unless (path = args[0])?
-
-      # TODO Type cast arguments
-
-      # Create a new transaction
+    _opToTxn: (method, args, callback) ->
       ver = @_getVersion()
       id = @_nextTxnId()
       txn = transaction.create {ver, id, method, args}
-      txn.isPrivate = isPrivate path
-      txn.emitted = args.cancelEmit
+      txn.callback = callback
+      return txn
 
-      # Add remove index as txn metadata. Null if transaction does nothing
-      if method is 'pop'
-        txn.push (arr = @get(path) || null) && (arr.length - 1)
-      else if method is 'unshift'
-        txn.push (@get(path) || null) && 0
-
-      # Queue and ...
-      @_queueTxn txn, callback
-      # ... evaluate the transaction
-      out = @_specModel().$out
-
-      # Add insert index as txn metadata
-      if method is 'push'
-        txn.push out - args.length + 1
-
-      # Sends txn over Socket.IO or to the store on the server
-      # Commit needs to happen before emit, since emissions might create
-      # other transactions as a side effect
-      @_commit txn
-
-      # Clone the args, so that they can be modified before being emitted
-      # without affecting the txn args
-      args = args.slice()
-      # Emit an event immediately on creation of the transaction, unless
-      # already emitted. This may have happened for a private path that was
-      # applied when evaluating the speculative model.
-      unless txn.emitted
-        @emit method, args, out, true, @_pass
-        txn.emitted = true
-
-      return out
+    _sendToMiddleware: (method, args, callback) ->
+      txn = @_opToTxn method, args, callback
+      req =
+        data: txn
+        # Pass in model, just in case scoped model where we need to access
+        # model._pass
+        model: @
+      res =
+        fail: (err) -> throw err
+        send: -> console.log("TODO")
+      return @middleware.trigger 'txn', req, res
 
     _applyTxn: (txn, isLocal) ->
       @_removeTxn txnId if txnId = transaction.getId txn

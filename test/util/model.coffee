@@ -54,7 +54,8 @@ exports.mockSocketEcho = (clientId = '', options = {}) ->
       if err = options.txnErr
         socket.emit 'txnErr', err
       else
-        socket.emit 'txnOk', transaction.getId(txn), ++ver, ++num
+        transaction.setVer txn, ++ver
+        socket.emit 'txnOk', txn, ++num
   browserSocket = new BrowserSocketMock(serverSockets, clientId)
   model = if plugins = options.plugins
     new (createBrowserRacer(options.plugins).protected.Model)

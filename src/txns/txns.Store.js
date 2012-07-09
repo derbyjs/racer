@@ -60,28 +60,100 @@ module.exports = {
       });
     }
 
+  , middleware: function (store, middleware) {
+      var mode = store._mode;
+      if (mode.startIdVerifier) {
+        middleware.add('txn', mode.startIdVerifier);
+      }
+
+      // middleware.add('txn', accessController);
+      // middleware.add('txn', validator);
+      if (mode.detectConflict) {
+        middleware.add('txn', mode.detectConflict);
+      }
+      // middleware.add('txn', handleConflict);
+      // middleware.add('txn', journal)
+      if (mode.addToJournal) {
+        middleware.add('txn', mode.addToJournal);
+      }
+      middleware.add('txn', mode.incrVer);
+      // middleware.add('txn', db); // could use db in middleware.add('fetch', db), too. The db file could just define different handlers per channel, so all logic for db is in one file
+      middleware.add('txn', writeToDb);
+      middleware.add('txn', publish);
+      middleware.add('txn', authorAck);
+
+      function accessController (req, res, next) {
+        // Any operations authored by Store get a free pass
+        if (req.clientId === store._clientId) return next();
+
+        var txn = req.data;
+        var session = req.session;
+        var allowed = store._applyGuards(txn, session);
+        return allowed ? next() : res.fail('Unauthorized');
+      }
+
+      // TODO Optimize function defns
+      function writeToDb (req, res, next) {
+        var txn = req.data
+          , dbArgs = transaction.copyArgs(txn)
+          , method = transaction.getMethod(txn)
+          , ver = req.newVer;
+        dbArgs.push(ver);
+        store._sendToDb(method, dbArgs, function (err, origDoc) {
+          if (err)
+            return res.fail(err, txn); // TODO Why pass back txn?
+          req.origDoc = origDoc;
+          next();
+        });
+      }
+      function publish (req, res, next) {
+        var txn = req.data
+          , origDoc = req.origDoc
+          , path = transaction.getPath(txn);
+        store.publish(path, 'txn', txn, {origDoc: origDoc});
+        next();
+      }
+
+      function authorAck (req, res, next) {
+        var txn = req.data;
+        if (req.session) { // Only generate txn serialization nums for requests originating from a browser model
+          var num = store._txnClock.nextTxnNum(req.clientId);
+          res.send(txn, num);
+        } else {
+          res.send(txn);
+        }
+        next();
+      }
+    }
+
   , socket: function (store, socket, clientId) {
       var txnClock = store._txnClock;
       // This is used to prevent emitting duplicate transactions
       socket.__ver = 0;
 
       socket.on('txn', function (txn, clientStartId) {
-        // TODO We can re-fashion this as middleware for socket.io
-        var ver = transaction.getVer(txn);
-        store._checkVersion(ver, clientStartId, function (err) {
-          if (err) return socket.emit('fatalErr', err);
-          store._commit(txn, function (err) {
-            var txnId = transaction.getId(txn)
-              , ver = transaction.getVer(txn);
+        var req = {
+          data: txn
+        , startId: clientStartId
+        , clientId: socket.clientId
+        , session: socket.session
+        };
+        var res = {
+          fail: function (err) {
             // Return errors to client, with the exception of duplicates, which
             // may need to be sent to the model again
-            if (err && err !== 'duplicate') return socket.emit('txnErr', err, txnId);
-            var num = txnClock.nextTxnNum(clientId);
-            socket.emit('txnOk', txnId, ver, num);
-          });
-        });
+            if (err !== 'duplicate') {
+              socket.emit('fatalErr', err);
+            }
+          }
+        , send: function (txn, num) {
+            socket.emit('txnOk', txn, num);
+          }
+        };
+        store.middleware.trigger('txn', req, res);
       });
 
+      // TODO Move into reconnect mixin and expose events?
       socket.on('disconnect', function () {
         delete store._clientSockets[clientId];
         // Start buffering transactions on behalf of this disconnected client.
@@ -116,9 +188,22 @@ module.exports = {
 
 , proto: {
     _commit: function (txn, callback) {
-      this._mode.commit(txn, callback);
+      var req = {
+        data: txn
+      , clientId: this._clientId
+      };
+      if (this._mode._startId) {
+        req.startId = this._mode._startId;
+      }
+      var res = {
+        fail: callback
+      , send: function () {
+          var args = Array.prototype.slice.call(arguments, 0);
+          callback.apply(null, [null].concat(args));
+        }
+      };
+      this.middleware.trigger('txn', req, res);
     }
-
   , _startTxnBuffer: function (clientId, timeoutAfter) {
       var txnBuffers = this._txnBuffers;
       if (clientId in txnBuffers) {

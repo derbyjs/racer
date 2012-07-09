@@ -8,8 +8,8 @@ module.exports = Async;
 
 function Async (options) {
   options || (options = {});
-  this.get = options.get;
-  this._commit = options.commit;
+  if (options.get) this.get = options.get;
+  if (options.commit) this._commit = options.commit;
 
   // Note that async operation clientIds MUST begin with '#', as this is used
   // to treat conflict detection between async and sync transactions differently
@@ -31,6 +31,8 @@ Async.prototype = {
       , method: 'set'
       , args: [path, value]
       });
+      // TODO When store is mutating, it should have something akin to
+      // superadmin rights. Perhaps store.sudo.set
       self._commit(txn, callback);
     });
   }

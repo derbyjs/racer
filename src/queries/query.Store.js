@@ -16,7 +16,7 @@ module.exports = {
     init: function (store, opts) {
       store._queryCoordinator = new QueryHub(store);
 
-      // Contains all the registered query motifs defined via store.query.expose
+      // Contains registered query motifs defined via store.query.expose
       var registry = store._queryMotifRegistry = new QueryMotifRegistry;
 
       /**
@@ -43,6 +43,38 @@ module.exports = {
           return chainable;
         }
       };
+    }
+  , middleware: function (store, middleware) {
+      var mode = store._mode;
+      if (mode.startIdVerifier) {
+        middleware.add('snapshot', mode.startIdVerifier);
+      }
+      middleware.add('snapshot', function (req, res, next) {
+        var clientId = req.clientId;
+        if (req.shouldSubscribe) {
+          store._pubSub.subscribe(clientId, req.subs);
+        }
+        mode.snapshotSince({
+          ver: req.ver
+        , clientId: clientId
+        , subs: req.subs
+        }, function (err, payload) {
+          if (err) return res.fail(err);
+          var data = payload.data
+            , txns = payload.txns
+            , num = store._txnClock.nextTxnNum(clientId);
+          if (data) {
+            res.send('snapshotUpdate:replace', data, num);
+          } else if (txns) {
+            var len;
+            if (len = txns.length) {
+              socket.__ver = transaction.getVer(txns[len-1]);
+            }
+            res.send('snapshotUpdate:newTxns', txns, num);
+          }
+          next();
+        });
+      });
     }
   , socket: function (store, socket, clientId) {
       socket.on('fetch', function (targets, cb) {
@@ -184,32 +216,22 @@ module.exports = {
      * @api private
      */
   , _onSnapshotRequest: function (ver, clientStartId, clientId, socket, subs, shouldSubscribe) {
-      var self = this;
-      self._checkStartId(clientStartId, function (err) {
-        if (err) return socket.emit('fatalErr', err);
-        if (shouldSubscribe) {
-          self._pubSub.subscribe(clientId, subs);
+      var req = {
+        startId: clientStartId
+      , clientId: clientId
+      , shouldSubscribe: shouldSubscribe
+      , subs: subs
+      , ver: ver
+      };
+      var res = {
+        fail: function (err) {
+          socket.emit('fatalErr', err);
         }
-        self._mode.snapshotSince({
-            ver: ver
-          , clientId: clientId
-          , subs: subs
-        }, function (err, payload) {
-          if (err) return socket.emit('fatalErr', err);
-          var data = payload.data
-            , txns = payload.txns
-            , num  = self._txnClock.nextTxnNum(clientId);
-          if (data) {
-            socket.emit('snapshotUpdate:replace', data, num);
-          } else if (txns) {
-            var len;
-            if (len = txns.length) {
-              socket.__Ver = transaction.getVer(txns[len-1]);
-            }
-            socket.emit('snapshotUpdate:newTxns', txns, num);
-          }
-        });
-      });
+      , send: function (channel, dataOrTxns, num) {
+          socket.emit(channel, dataOrTxns, num);
+        }
+      };
+      this.middleware.trigger('snapshot', req, res);
     }
   }
 };

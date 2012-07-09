@@ -1,5 +1,6 @@
 // TODO Add in redis adapter for version clock
-var transaction = require('../transaction.server');
+var transaction = require('../transaction.server')
+  , createStartIdVerifier = require('./shared').createStartIdVerifier
 
 module.exports = function (opts) {
   var store = opts.store;
@@ -9,6 +10,12 @@ module.exports = function (opts) {
 function Lww (store) {
   this._store = store;
   this._nextVer = 1;
+  // TODO Remove this startId requirement for lww
+  var self = this;
+  this.startIdVerifier = createStartIdVerifier(function (callback) {
+    callback(null, self._startId);
+  });
+  this.incrVer = this.incrVer.bind(this);
 }
 
 Lww.prototype = {
@@ -19,10 +26,11 @@ Lww.prototype = {
     callback(null, startId);
   }
 
-, commit: function (txn, callback) {
-    var ver = this._nextVer++;
+, incrVer: function (req, res, next) {
+    var txn = req.data;
+    var ver = req.newVer = this._nextVer++;
     transaction.setVer(txn, ver);
-    this._store._finishCommit(txn, ver, callback);
+    return next();
   }
 
 , flush: function (callback) { callback(null); }
@@ -39,14 +47,5 @@ Lww.prototype = {
       if (err) callback(err);
       else callback(null, {data: data});
     });
-  }
-
-  // TODO Remove this startId requirement for lww
-, checkStartMarker: function (clientStartId, callback) {
-    if (clientStartId !== this._startId) {
-      var err = "clientStartId != startId (#{clientStartId} != #{@_startId})";
-      callback(err);
-    }
-    callback(null);
   }
 };

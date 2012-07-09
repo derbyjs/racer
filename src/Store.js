@@ -1,6 +1,7 @@
 var EventEmitter = require('events').EventEmitter
   , socketio = require('socket.io')
   , Promise = require('./util/Promise')
+  , middlewareChain = require('./middleware')
   , createAdapter = require('./adapters').createAdapter
   , transaction = require('./transaction.server')
   , pathUtils = require('./path')
@@ -61,13 +62,16 @@ function Store (options) {
   this._writeLocks = {};
   this._waitingForUnlock = {};
 
-  var clientId = this._clientId = createAdapter('clientId', options.clientId || { type: 'Rfc4122_v4' });
+  var clientId = this._clientIdAdapter = createAdapter('clientId', options.clientId || { type: 'Rfc4122_v4' });
 
   this._generateClientId = clientId.generateFn();
 
   this._clientSockets = {};
 
   this.mixinEmit('init', this, options);
+
+  this.middleware = middlewareChain();
+  this.mixinEmit('middleware', this, this.middleware);
 
   // Maps method => [function]
   var routes = this._routes = {}
@@ -140,6 +144,7 @@ Store.prototype.setSockets = function (sockets, ioUri) {
       return socket.emit('fatalErr', 'missing clientId');
     }
     self._clientSockets[clientId] = socket;
+    // TODO Passing clientId is redundant because of socket.clientId
     self.mixinEmit('socket', self, socket, clientId);
   });
   this.emit('setSockets', sockets);
@@ -164,13 +169,14 @@ Store.prototype.flush = function (callback) {
 };
 
 Store.prototype.disconnect = function () {
-  var adapters = ['_mode', '_pubSub', '_db', '_clientId'];
+  var adapters = ['_mode', '_pubSub', '_db', '_clientIdAdapter'];
   for (var i = adapters.length; i--; ) {
     var adapter = this[adapters[i]];
     adapter.disconnect && adapter.disconnect();
   }
 };
 
+// TODO Remove this when startIdVerifier is used everywhere
 Store.prototype._checkStartId = function (clientStartId, callback) {
   var mode = this._mode;
   return (mode.checkStartMarker) ? mode.checkStartMarker(clientStartId, callback)
@@ -189,22 +195,6 @@ Store.prototype._nextTxnId = function (callback) {
       callback(null, '#' + self._clientId + '.' + self._txnCount++);
     };
     self._nextTxnId(callback);
-  });
-};
-
-Store.prototype._finishCommit = function (txn, ver, callback) {
-  transaction.setVer(txn, ver);
-  var dbArgs = transaction.copyArgs(txn)
-    , method = transaction.getMethod(txn)
-    , self = this;
-  dbArgs.push(ver);
-  this._sendToDb(method, dbArgs, function (err, origDoc) {
-    if (err) {
-      if (callback) return callback(err, txn);
-      return racerDebug(err);
-    }
-    self.publish(transaction.getPath(txn), 'txn', txn, {origDoc: origDoc});
-    if (callback) callback(null, txn);
   });
 };
 
@@ -267,6 +257,7 @@ Store.prototype.route = function (method, path, priority, fn) {
   return this;
 };
 
+// TODO Re-fashion this code to be middleware via addMiddleware(channel, fn)
 Store.prototype._sendToDb = function (method, args, done) {
   var path = args[0]
     , rest = args.slice(1)

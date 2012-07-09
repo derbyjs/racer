@@ -84,7 +84,7 @@ module.exports =
           field.specTrigger true
         callback? err, path, value, previous
 
-      return @_addOpAsTxn 'set', [path, $ot: value], finish
+      return @_sendToMiddleware 'set', [path, $ot: value], finish
 
     otNull: (path, value, callback) ->
       len = arguments.length

@@ -2,6 +2,7 @@ var EventEmitter = require('events').EventEmitter
   , Memory = require('./Memory')
   , eventRegExp = require('./path').eventRegExp
   , mergeAll = require('./util').mergeAll
+  , middlewareChain = require('./middleware')
   ;
 
 module.exports = Model;
@@ -18,6 +19,9 @@ function Model (init) {
   // Used for model scopes
   this._root = this;
   this.mixinEmit('init', this);
+
+  this.middleware = middlewareChain();
+  this.mixinEmit('middleware', this, this.middleware);
 }
 
 var modelProto = Model.prototype
