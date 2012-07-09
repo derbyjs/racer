@@ -47,7 +47,7 @@ function compilePath (src, isTopLevel, base) {
       });
     } else if (isTopLevel || path.extname(src) === '.js') {
       watch(src, base);
-      path.exists(src, function (exists) {
+      fs.exists(src, function (exists) {
         if (exists) copyScript(src, base);
       });
     } else {
@@ -108,7 +108,7 @@ function removeSource (src, base, removeJs) {
   sourceCode.splice(index, 1);
   if (removeJs) {
     var jsPath = outputPath(src, base);
-    path.exists(jsPath, function (exists) {
+    fs.exists(jsPath, function (exists) {
       if (exists) {
         fs.unlink(jsPath, function (err) {
           if (err && err.code !== 'ENOENT') throw err;
@@ -184,7 +184,7 @@ function outputPath (src, base) {
 function copyScript (file, base) {
   var outputFilepath = outputPath(file, base)
     , outputDir = path.dirname(outputFilepath);
-  path.exists(outputDir, function (exists) {
+  fs.exists(outputDir, function (exists) {
     if (exists) {
       copy();
     } else {
