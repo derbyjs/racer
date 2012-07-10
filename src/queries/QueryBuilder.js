@@ -277,7 +277,7 @@ QueryBuilder.hash = function (json, filterFn) {
     }
   }
 
-  if (filterFn) return hash += SEP + 'filterFn' + SEP + filterFn.toString();
+  if (filterFn) return hash += SEP + 'filterFn' + SEP + noDots(filterFn.toString());
 
   return hash;
 };
