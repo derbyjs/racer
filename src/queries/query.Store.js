@@ -7,6 +7,7 @@ var QueryHub = require('./QueryHub')
   , queryUtils = require('./util')
   , resultPointerPath = queryUtils.resultPointerPath
   , QueryMotifRegistry = require('./QueryMotifRegistry')
+  , createMiddleware = require('../middleware')
   ;
 
 module.exports = {
@@ -46,10 +47,11 @@ module.exports = {
     }
   , middleware: function (store, middleware) {
       var mode = store._mode;
+      middleware.snapshot = createMiddleware()
       if (mode.startIdVerifier) {
-        middleware.add('snapshot', mode.startIdVerifier);
+        middleware.snapshot.add(mode.startIdVerifier);
       }
-      middleware.add('snapshot', function (req, res, next) {
+      middleware.snapshot.add( function (req, res, next) {
         var clientId = req.clientId;
         if (req.shouldSubscribe) {
           store._pubSub.subscribe(clientId, req.subs);
@@ -75,14 +77,81 @@ module.exports = {
           next();
         });
       });
-    }
-  , socket: function (store, socket, clientId) {
-      socket.on('fetch', function (targets, cb) {
-        // Only fetch data
-        store.fetch(socket, targets, cb);
+
+      middleware.fetch = createMiddleware()
+      middleware.fetch.add(function (req, res, next) {
+        var targets = req.targets
+          , data = []
+          , finish = finishAfter(targets.length, function (err) {
+              if (err) return cb(err);
+              var out = {data: data};
+              self.emit('fetch', out, req.clientId, targets);
+              res.send(out);
+            })
+          , session = req.session;
+        for (var i = 0, l = targets.length; i < l; i++) {
+          var target = targets[i];
+          var _req = {
+            target: target
+          , clientId: req.clientId
+          , session: req.session
+          , context: req.context
+          };
+          var _res = {
+            fail: function (err) {
+              res.fail(err);
+            }
+          , send: function (doc) {
+              data[i] = doc;
+            }
+          };
+          var mware = ('string' === typeof target)
+                    ? middleware.fetchPath
+                    : middleware.fetchQuery;
+          mware(_req, _res, finish);
+        }
       });
 
-      socket.on('fetchCurrSnapshot', function (ver, clientStartId, subs) {
+      middleware.fetchPath = createMiddleware();
+      middleware.fetchPath.add(function (req, res, next) {
+        req.context.guardReadPath(req, res, next);
+      });
+      middleware.fetchPath.add(function (req, res, next) {
+        var path = req.data;
+        // TODO We need to pass back array of document ids to assign to
+        //      queries.someid.resultIds
+        store._fetchPathData(path, {
+          each: function (path, datum, ver) {
+            res.send([path, datum, ver]);
+          }
+        , done: next
+        });
+      });
+    }
+  , socket: function (store, socket, clientId) {
+      socket.on('fetch', function (targets, contextName, cb) {
+        var req = {
+          targets: targets
+        , clientId: socket.clientId
+        , session: socket.session
+        , context: store.context(contextName)
+        };
+        var res = {
+          fail: function (err) {
+            cb(err);
+          }
+        , send: function (data) {
+            // For OT
+            // Note that `data` may be mutated by ot or other plugins
+            store.emit('fetch', data, clientId, targets);
+
+            cb(null, data);
+          }
+        };
+        store.middleware.fetch(req, res);
+      });
+
+      socket.on('fetch:snapshot', function (ver, clientStartId, subs) {
         store._onSnapshotRequest(ver, clientStartId, clientId, socket, subs);
       });
     }
@@ -102,7 +171,7 @@ module.exports = {
      * @api private
      */
     // TODO Incorporate contexts
-    fetch: function (socket, targets, cb) {
+    fetch: function (socket, targets, contextName, cb) {
       var data = []
         , self = this
         , finish = finishAfter(targets.length, function (err) {
@@ -112,9 +181,10 @@ module.exports = {
             self.emit('fetch', out, socket.clientId, targets);
             cb(null, out);
           })
-        , session = socket.session;
+        , session = socket.session
+        , context = this.context(contextName);
       for (var i = 0, l = targets.length; i < l; i++) {
-        self._fetchSingle(session, targets[i], data, finish);
+        self._fetchSingle(context, session, targets[i], data, finish);
       }
     }
 
@@ -127,31 +197,40 @@ module.exports = {
    * @param {Function} callback
    * @api private
    */
- , _fetchSingle: function (session, target, data, callback) {
+ , _fetchSingle: function (context, session, target, data, callback) {
       var fetchFn = ('string' === typeof target)
                   ? this._fetchPathData
-                  : this._fetchQueryData; // Otherwise, we have an array
+                  : this._fetchAndCompileQueryData; // Otherwise, we have an array
       // TODO We need to pass back array of document ids to assign to
       //      queries.someid.resultIds
-      fetchFn.call(this, target, function (path, datum, ver) {
-        data.push([path, datum, ver]);
-      }, callback);
+      fetchFn.call(this, target, {
+        context: context
+      , session: session
+      , each: function (path, datum, ver) {
+          data.push([path, datum, ver]);
+        }
+      , done: callback
+      });
     }
 
     /**
-     * Fetches data associated with a queryTuple [queryMotif, queryArgs...].
+     * Fetches data associated with a queryTuple [ns, {queryMotif: queryArgs, ...}].
      *
-     * @param {Array} queryTuple represented as [queryMotif, params...]
-     * @param {Function} eachDatumCb is invoked for every matching document
-     * @param {Function} finish is invoked after the query results are fetched
-     * and after eachDatumCb has been called on every matching document.
+     * @param {Array} queryTuple represented as
+     * [ns, {queryMotif: queryArgs, ...}]
+     * @param {Object} opts can have keys:
+     *
+     * - each: Function invoked for every matching document
+     * - finish: Function invoked after the query results are fetched
+     *   and after opts.each has been called on every matching document.
      * @api private
      */
-  , _fetchQueryData: function (queryTuple, eachDatumCb, finish) {
-      var queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
+  , _fetchAndCompileQueryData: function (queryTuple, opts) {
+      var eachDatumCb = opts.each
+        , finish = opts.done
+        , queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
         , queryId = queryTuple[queryTuple.length-1];
-      // TODO fetch(queryTuple, ...) ?
-      this._queryCoordinator.fetch(queryJson, function (err, result, version) {
+      this._fetchQueryData(queryTuple, function (err, result, version) {
         if (err) return finish(err);
         var path;
         if (Array.isArray(result)) {
@@ -179,16 +258,31 @@ module.exports = {
     }
 
     /**
+     * @param {Array} queryTuple represented as [ns, queryMotif, params...]
+     * @param {Function} callback(err, result, version)
+     */
+  , _fetchQueryData: function (queryTuple, callback) {
+      var queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
+        , queryId = queryTuple[queryTuple.length-1];
+      // TODO fetch(queryTuple, ...) ?
+      this._queryCoordinator.fetch(queryJson, callback);
+    }
+
+    /**
      * Fetches data associated with a path in our data tree.
      *
      * @param {String} path to data that we want to fetch
-     * @param {Function} eachDatumCb is invoked for every matching document
-     * @param {Function} finish is invoked after the query results are fetched
-     * and after eachDatumCb has been called on every matching document.
+     * @param {Object} opts can have keys:
+     *
+     * - each: Function invoked for every matching document
+     * - finish: Function invoked after the query results are fetched
+     *   and after opts.each has been called on every matching document.
      * @api private
      */
-  , _fetchPathData: function (path, eachDatumCb, finish) {
-      var parts = splitPath(path)
+  , _fetchPathData: function (path, opts) {
+      var eachDatumCb = opts.each
+        , finish = opts.done
+        , parts = splitPath(path)
         , root = parts[0]
         , remainder = parts[1];
       this.get(root, function (err, datum, ver) {
@@ -225,13 +319,14 @@ module.exports = {
       };
       var res = {
         fail: function (err) {
+          // TODO Should allow different kind of errors - e.g., "txnErr"
           socket.emit('fatalErr', err);
         }
       , send: function (channel, dataOrTxns, num) {
           socket.emit(channel, dataOrTxns, num);
         }
       };
-      this.middleware.trigger('snapshot', req, res);
+      this.middleware.snapshot(req, res);
     }
   }
 };

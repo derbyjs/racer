@@ -174,6 +174,7 @@ module.exports = {
         done: function (targets, scopedModels) { /* this === model */
           var self = this;
           self._waitOrFetchData(targets, function (err, data) {
+            if (err) return callback(err);
             self._addData(data);
             callback.apply(null, [err].concat(scopedModels));
           });
@@ -203,7 +204,7 @@ module.exports = {
      */
   , _waitOrFetchData: function (targets, callback) {
       if (!this.connected) return callback('disconnected');
-      this.socket.emit('fetch', targets, callback);
+      this.socket.emit('fetch', targets, this.scopedContext, callback);
     }
 
     /**
@@ -264,10 +265,27 @@ module.exports = {
 
 , server: {
     _waitOrFetchData: function (targets, cb) {
-      var store = this.store;
+      var store = this.store
+        , contextName = this.scopedContext
+        , self = this;
       this._clientIdPromise.on( function (err, clientId) {
         if (err) return cb(err);
-        store.fetch(clientId, targets, cb);
+        var req = {
+          targets: targets
+        , clientId: clientId
+        , session: self.session
+        , context: store.context(contextName)
+        };
+        var res = {
+          fail: function (err) {
+            cb(err);
+          }
+        , send: function (data) {
+            store.emit('fetch', data, clientId, targets);
+            cb(null, data);
+          }
+        };
+        store.middleware.fetch(req, res);
       });
     }
   }

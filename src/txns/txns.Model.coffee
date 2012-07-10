@@ -6,6 +6,7 @@ transaction = require '../transaction'
 {create: specCreate} = require '../util/speculative'
 # AtomicModel = require './AtomicModel'
 {mergeTxn} = require './diff'
+createMiddleware = require '../middleware'
 arrayMutator = null
 
 module.exports =
@@ -70,8 +71,10 @@ module.exports =
         return
 
     middleware: (_model, middleware) ->
+      middleware.txn = createMiddleware()
+
       # Normalize
-      middleware.add 'txn', (req, res, next) ->
+      middleware.txn.add (req, res, next) ->
         txn = req.data
         method = transaction.getMethod txn
         args = transaction.getArgs txn
@@ -92,13 +95,13 @@ module.exports =
         return next()
 
       # TODO Typecast
-      # middleware.add 'txn', typecast
+      # middleware.txn.add typecast
 
       # TODO Validate
-      # middleware.add 'txn', validate
+      # middleware.txn.add validate
 
       # Log the tranasaction
-      middleware.add 'txn', (req, res, next) ->
+      middleware.txn.add (req, res, next) ->
         txn = req.data
         model = req.model
         id = transaction.getId txn
@@ -107,7 +110,7 @@ module.exports =
         return next()
 
       # Evaluate the transaction, which is now on the queue
-      middleware.add 'txn', (req, res, next) ->
+      middleware.txn.add (req, res, next) ->
         model = req.model
         res.out = model._specModel().$out
         return next()
@@ -118,7 +121,7 @@ module.exports =
       #
       # Commit needs to happen before emit, since emissions might create
       # other transactions as a side effect
-      middleware.add 'txn', (req, res, next) ->
+      middleware.txn.add (req, res, next) ->
         txn = req.data
 
         # Add insert index as txn metadata
@@ -135,7 +138,7 @@ module.exports =
         return next()
 
       # Emit events
-      middleware.add 'txn', (req, res, next) ->
+      middleware.txn.add (req, res, next) ->
         out = res.out
         txn = req.data
 
@@ -245,7 +248,7 @@ module.exports =
           # TODO Make sure to set up the timeout again if we are disconnected
           return unless model.connected
           # TODO Don't do this if we are also responding to a resyncWithStore
-          socket.emit 'fetchCurrSnapshot', memory.version + 1, model._startId, model._subs()
+          socket.emit 'fetch:snapshot', memory.version + 1, model._startId, model._subs()
 
       # Set an interval to check for transactions that have been in the queue
       # for too long and resend them
@@ -331,7 +334,7 @@ module.exports =
           console.error err
           return @_removeTxn transaction.getId txn
         send: (txn) => @_onTxn txn
-      @store.middleware.trigger 'txn', req, res
+      @store.middleware.txn req, res
 
   proto:
     # The value of @_force is checked in @_addOpAsTxn. It can be used to create a
@@ -374,7 +377,7 @@ module.exports =
       res =
         fail: (err) -> throw err
         send: -> console.log("TODO")
-      return @middleware.trigger 'txn', req, res
+      return @middleware.txn req, res
 
     _applyTxn: (txn, isLocal) ->
       @_removeTxn txnId if txnId = transaction.getId txn

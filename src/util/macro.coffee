@@ -1,5 +1,5 @@
-fs = require 'fs'
-{normalize, join, existsSync} = require 'path'
+{existsSync} = fs = require 'fs'
+{normalize, join} = require 'path'
 
 exports.files = files = (dir, extension, out = []) ->
   fs.readdirSync(dir)

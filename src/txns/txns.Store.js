@@ -1,5 +1,7 @@
 var Promise = require('../util/Promise')
-  , transaction = require('../transaction');
+  , transaction = require('../transaction')
+  , createMiddleware = require('../middleware')
+  ;
 
 module.exports = {
   type: 'Store'
@@ -61,26 +63,28 @@ module.exports = {
     }
 
   , middleware: function (store, middleware) {
+      middleware.txn = createMiddleware();
+
       var mode = store._mode;
       if (mode.startIdVerifier) {
-        middleware.add('txn', mode.startIdVerifier);
+        middleware.txn.add(mode.startIdVerifier);
       }
 
-      // middleware.add('txn', accessController);
+      middleware.txn.add(accessController);
       // middleware.add('txn', validator);
       if (mode.detectConflict) {
-        middleware.add('txn', mode.detectConflict);
+        middleware.txn.add(mode.detectConflict);
       }
-      // middleware.add('txn', handleConflict);
-      // middleware.add('txn', journal)
+      // middleware.txn.add(handleConflict);
+      // middleware.txn.add(journal)
       if (mode.addToJournal) {
-        middleware.add('txn', mode.addToJournal);
+        middleware.txn.add(mode.addToJournal);
       }
-      middleware.add('txn', mode.incrVer);
-      // middleware.add('txn', db); // could use db in middleware.add('fetch', db), too. The db file could just define different handlers per channel, so all logic for db is in one file
-      middleware.add('txn', writeToDb);
-      middleware.add('txn', publish);
-      middleware.add('txn', authorAck);
+      middleware.txn.add(mode.incrVer);
+      // middleware.add('txn', db); // could use db in middleware.fetch.add(db), too. The db file could just define different handlers per channel, so all logic for db is in one file
+      middleware.txn.add(writeToDb);
+      middleware.txn.add(publish);
+      middleware.txn.add(authorAck);
 
       function accessController (req, res, next) {
         // Any operations authored by Store get a free pass
@@ -143,6 +147,7 @@ module.exports = {
             // Return errors to client, with the exception of duplicates, which
             // may need to be sent to the model again
             if (err !== 'duplicate') {
+              // TODO Should allow different kinds of error types -- e.g., "txnErr"
               socket.emit('fatalErr', err);
             }
           }
@@ -150,7 +155,7 @@ module.exports = {
             socket.emit('txnOk', txn, num);
           }
         };
-        store.middleware.trigger('txn', req, res);
+        store.middleware.txn(req, res);
       });
 
       // TODO Move into reconnect mixin and expose events?
@@ -202,7 +207,7 @@ module.exports = {
           callback.apply(null, [null].concat(args));
         }
       };
-      this.middleware.trigger('txn', req, res);
+      this.middleware.txn(req, res);
     }
   , _startTxnBuffer: function (clientId, timeoutAfter) {
       var txnBuffers = this._txnBuffers;

@@ -180,14 +180,15 @@ module.exports = {
 
   , _addSub: function (targets, cb) {
       if (! this.connected) return cb('disconnected');
-      this.socket.emit('addSub', targets, cb);
+      this.socket.emit('subscribe', targets, this.scopedContext, cb);
     }
 
   , _removeSub: function (targets, cb) {
       if (! this.connected) return cb('disconnected');
-      this.socket.emit('removeSub', targets, cb);
+      this.socket.emit('unsubscribe', targets, cb);
     }
 
+    // TODO Associate contexts with path and query subscriptions
   , _subs: function () {
       var subs = Object.keys(this._pathSubs)
         , querySubs = this._querySubs();
@@ -201,22 +202,24 @@ module.exports = {
 
 , server: {
     _addSub: function (targets, cb) {
-      var store = this.store;
+      var store = this.store
+        , context = this.scopedContext;
       this._clientIdPromise.on( function (err, clientId) {
         if (err) return cb(err);
         // Subscribe while the model still only resides on the server.
         // The model is unsubscribed before sending to the browser.
         var mockSocket = { clientId: clientId };
-        store.subscribe(mockSocket, targets, cb);
+        store.subscribe(mockSocket, targets, context, cb);
       });
     }
 
   , _removeSub: function (targets, cb) {
-      var store = this.store;
+      var store = this.store
+        , context = this.scopedContext
       this._clientIdPromises.on( function (err, clientId) {
         if (err) return cb(err);
         var mockSocket = { clientId: clientId };
-        store.unsubscribe(mockSocket, targets, cb);
+        store.unsubscribe(mockSocket, targets, context, cb);
       });
     }
   }

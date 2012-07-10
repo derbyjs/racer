@@ -33,12 +33,12 @@ module.exports = {
 
   , socket: function (store, socket, clientId) {
       // Setup subscription callbacks
-      socket.on('addSub', function (targets, cb) {
-        store.subscribe(socket, targets, cb);
+      socket.on('subscribe', function (targets, context, cb) {
+        store.subscribe(socket, targets, context, cb);
       });
 
-      socket.on('removeSub', function (targets, cb) {
-        store.unsubscribe(socket, targets, cb);
+      socket.on('unsubscribe', function (targets, context, cb) {
+        store.unsubscribe(socket, targets, context, cb);
       });
     }
   }
@@ -54,17 +54,21 @@ module.exports = {
      * @param {Function} callback(err, data)
      * @api protected
      */
-    subscribe: function (socket, targets, callback) {
-      var data = null
-        , finish = finishAfter(2, function (err) {
-            callback(err, data);
-          });
+    subscribe: function (socket, targets, context, callback) {
+      var i, currTarget;
+
+// TODO ACL
+//      for (i = targets.length; i--; ) {
+//        currTarget = targets[i];
+//        throw new Error('Unimplemented Auth');
+//      }
+
 
       // TODO This code does not feel right
       var pubSubTargets = []
         , queryMotifRegistry = this._queryMotifRegistry;
-      for (var i = targets.length; i--; ) {
-        var currTarget = targets[i];
+      for (i = targets.length; i--; ) {
+        currTarget = targets[i];
         pubSubTargets[i] = (Array.isArray(currTarget))
                            // If we have a query tuple
                          ? queryMotifRegistry.queryJSON(currTarget)
@@ -72,16 +76,20 @@ module.exports = {
                          : currTarget;
       }
 
+      var data = null;
+      var finish = finishAfter(2, function (err) {
+        callback(err, data);
+      });
       // This call to subscribe must come before the fetch, since a query is
       // created in subscribe that may be accessed during the fetch.
       this._pubSub.subscribe(socket.clientId, pubSubTargets, finish);
-      this.fetch(socket, targets, function (err, _data) {
+      this.fetch(socket, targets, this.scopedContext, function (err, _data) {
         data = _data;
         finish(err);
       });
     }
 
-  , unsubscribe: function (socket, targets, callback) {
+  , unsubscribe: function (socket, targets, context, callback) {
       this._pubSub.unsubscribe(socket.clientId, targets, callback);
     }
 

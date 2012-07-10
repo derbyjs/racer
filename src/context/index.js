@@ -1,11 +1,13 @@
-var mixinModel = require('./context.Model');
+var mixinModel = require('./context.Model')
+  , mixinStore = __dirname + '/context.Store'
+  ;
 
 exports = module.exports = plugin;
 
-exports.useWith = { server: true, browser: false };
+exports.useWith = {server: true, browser: true};
 
 exports.decorate = 'racer';
 
 function plugin (racer) {
-  racer.mixin(mixinModel);
+  racer.mixin(mixinModel, mixinStore);
 }

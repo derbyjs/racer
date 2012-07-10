@@ -2,7 +2,6 @@ var EventEmitter = require('events').EventEmitter
   , Memory = require('./Memory')
   , eventRegExp = require('./path').eventRegExp
   , mergeAll = require('./util').mergeAll
-  , middlewareChain = require('./middleware')
   ;
 
 module.exports = Model;
@@ -20,7 +19,7 @@ function Model (init) {
   this._root = this;
   this.mixinEmit('init', this);
 
-  this.middleware = middlewareChain();
+  this.middleware = {};
   this.mixinEmit('middleware', this, this.middleware);
 }
 

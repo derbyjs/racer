@@ -1,7 +1,6 @@
 var EventEmitter = require('events').EventEmitter
   , socketio = require('socket.io')
   , Promise = require('./util/Promise')
-  , middlewareChain = require('./middleware')
   , createAdapter = require('./adapters').createAdapter
   , transaction = require('./transaction.server')
   , pathUtils = require('./path')
@@ -70,8 +69,8 @@ function Store (options) {
 
   this.mixinEmit('init', this, options);
 
-  this.middleware = middlewareChain();
-  this.mixinEmit('middleware', this, this.middleware);
+  var middleware = this.middleware = {};
+  this.mixinEmit('middleware', this, middleware);
 
   // Maps method => [function]
   var routes = this._routes = {}

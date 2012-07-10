@@ -1,21 +1,19 @@
-module.exports = function () {
-  var mware = {};
-  return {
-    add: function (channel, fn) {
-      var fns = mware[channel] || (mware[channel] = []);
-      fns.push(fn);
+module.exports = function (opts) {
+  var fns = [];
+  function run (req, res, done) {
+    var i = 0, out;
+    function next () {
+      var fn = fns[i++];
+      return fn ? (out = fn(req, res, next))
+                : done ? done() : out;
     }
-  , trigger: function (channel, req, res) {
-      var fns = mware[channel];
-      if (!fns.length) return;
-      var i = 0
-        , out;
-      function next () {
-        var fn = fns[i++];
-        return fn ? (out = fn(req, res, next))
-                  : out;
-      }
-      return next();
-    }
+    return next();
   };
-}
+
+  run.add = function (fn) {
+    fns.push(fn);
+    return this;
+  };
+
+  return run;
+};

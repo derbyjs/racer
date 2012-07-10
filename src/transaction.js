@@ -40,7 +40,10 @@ module.exports = {
 , getMeta: function (txn) { return txn[4]; }
 , setMeta: function (txn, meta) { return txn[4] = meta; }
 
-, getContext: function (txn) { return this.getMeta(txn).c; }
+, getContext: function (txn) {
+    var meta = this.getMeta(txn);
+    return meta && meta.c || 'default';
+  }
 , setContext: function (txn, ctx) {
     var meta = this.getMeta(txn);
     return meta.c = ctx;
