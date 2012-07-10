@@ -42,37 +42,36 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     , refPath = resultRefPath(queryId, queryType)
     , pointerPath = resultPointerPath(queryId, queryType)
     , ns = memoryQuery.ns
-    , scopedModel;
+    , scopedModel, listener;
 
-  if (model.get(refPath)) return model.at(refPath);
+  if (model[refPath]) return model.at(refPath);
 
   // Refs, assemble!
-  switch (queryType) {
-    case 'findOne':
-      // TODO Test findOne single query result
-      if (initialResult) {
-        model.set(pointerPath, initialResult.id);
-      }
+  if (queryType === 'findOne') {
+    // TODO Test findOne single query result
+    if (initialResult) {
+      model.set(pointerPath, initialResult.id);
+    }
 
-      scopedModel = model.ref(refPath, ns, pointerPath);
+    scopedModel = model.ref(refPath, ns, pointerPath);
 
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
-      model.on('mutator', listener);
-      break;
+  } else {
+    if (initialResult) {
+      model.set(pointerPath, initialResult.map( function (doc) {
+        return doc.id;
+      }));
+    }
 
-    case 'find':
-    default:
-      if (initialResult) {
-        model.set(pointerPath, initialResult.map( function (doc) {
-          return doc.id;
-        }));
-      }
-
-      scopedModel = model.refList(refPath, ns, pointerPath);
-
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
-      model.on('mutator', listener);
+    scopedModel = model.refList(refPath, ns, pointerPath);
   }
+
+  listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
+  model.on('mutator', listener);
+
+  // TODO: This is a total hack. Fix the initialization of filters in client
+  // and prevent filters from generating multiple listeners
+  model[refPath] = listener;
+
   return scopedModel;
 }
 
