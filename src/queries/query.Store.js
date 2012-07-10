@@ -85,7 +85,7 @@ module.exports = {
           , finish = finishAfter(targets.length, function (err) {
               if (err) return cb(err);
               var out = {data: data};
-              self.emit('fetch', out, req.clientId, targets);
+              store.emit('fetch', out, req.clientId, targets);
               res.send(out);
             })
           , session = req.session;
@@ -117,7 +117,7 @@ module.exports = {
         req.context.guardReadPath(req, res, next);
       });
       middleware.fetchPath.add(function (req, res, next) {
-        var path = req.data;
+        var path = req.target;
         // TODO We need to pass back array of document ids to assign to
         //      queries.someid.resultIds
         store._fetchPathData(path, {

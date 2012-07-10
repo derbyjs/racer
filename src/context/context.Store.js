@@ -8,7 +8,8 @@ module.exports = {
 
       store._eachContexts = [];
 
-      store.currContext = {name: 'default'};
+      store.context('default');
+      store.currContext = store.context('default');
     }
   }
 , proto: {
@@ -26,6 +27,7 @@ module.exports = {
      * @return {Object} the context object
      */
     context: function (name, callback) {
+      name || (name = 'default');
       var preContext = this.currContext
         , contexts = this._contexts
 

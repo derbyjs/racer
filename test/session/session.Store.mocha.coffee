@@ -83,6 +83,8 @@ describe 'Server-side sessions', ->
       it 'should remove the session from every associated socket'
 
   describe 'multi-client', ->
+    it 'should keep client sessions independent of one another'
+
     describe 'destroyed', ->
       describe 'via a http request', ->
 

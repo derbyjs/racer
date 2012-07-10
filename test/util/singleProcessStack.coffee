@@ -103,7 +103,11 @@ Browser::createTab =  (clientName, callback) ->
     # Init the bundle into a browser Model
     changeEnvTo 'browser'
     browserRacer = require '../../lib/racer'
-    bundle = JSON.parse res.body
+    try
+      bundle = JSON.parse res.body
+    catch e
+      console.log res.body
+      throw e
     clientId = bundle[0]
     browser = this
     browserRacer.on 'init', (browserModel) ->

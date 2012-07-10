@@ -18,7 +18,7 @@ exports = module.exports = {
         context.guardReadPath = function (req, res, next) {
           context.guardReadPath.add( function (req, res, next) {
             if (! req.didMatchAGuard)
-              return res.fail('Unauthorized');
+              return res.fail('Unauthorized: No access control declared for path ' + req.target);
             next();
           });
           context.guardReadPath = _grp_;
@@ -46,7 +46,7 @@ exports = module.exports = {
      * @api public
      */
     readPathAccess: function (path, callback) {
-      var context = this.context(this.currContext);
+      var context = this.currContext;
       var fn = createPathGuard(path, callback);
       context.guardReadPath.add(fn);
       return this;

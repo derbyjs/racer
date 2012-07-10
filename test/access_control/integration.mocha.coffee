@@ -70,8 +70,8 @@ describe 'access control', ->
 
   describe 'reading paths', ->
     describe 'asynchronous predicates', ->
-      describe 'acceptable Model fetches', ->
-        it 'should work on the first page load aaa', (done) ->
+      describe 'acceptable Model fetches bbb', ->
+        it 'should work on the first page load', (done) ->
           run = setup
             config: (racer, store) ->
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
@@ -94,8 +94,7 @@ describe 'access control', ->
 
           teardown = run()
 
-      describe 'forbidden Model fetches', ->
-        it 'should fail on the first page load bbb', (done) ->
+        it 'should work after the page loads', (done) ->
           run = setup
             config: (racer, store) ->
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
@@ -106,6 +105,32 @@ describe 'access control', ->
                   store.set 'users.1.ssn', 'xxx', null, (err) ->
                     expect(err).to.be.null()
                     req.session.roles = ['superadmin']
+                    bundleModel serverModel
+                browser: (model) ->
+                onSocketCxn: (socket, tab) ->
+                  model = tab.model
+                  model.on 'connected', ->
+                    model.fetch 'users.1.ssn', (err, ssn) ->
+                      expect(err).to.be.null()
+                      expect(ssn.get()).to.equal 'xxx'
+                      socket.on 'disconnect', ->
+                        teardown done
+                      socket.disconnect 'booted'
+
+          teardown = run()
+
+      describe 'forbidden Model fetches', ->
+        it 'should fail on the first page load', (done) ->
+          run = setup
+            config: (racer, store) ->
+              store.readPathAccess 'users.*.ssn', (userId, allow) ->
+                return allow(-1 != @session.roles.indexOf 'superadmin')
+            browserA:
+              tabA:
+                server: (req, serverModel, bundleModel, store) ->
+                  store.set 'users.1.ssn', 'xxx', null, (err) ->
+                    expect(err).to.be.null()
+                    req.session.roles = ['guest']
                     serverModel.fetch 'users.1.ssn', (err, basicUsers) ->
                       expect(err).to.not.be.null()
                       expect(err).to.equal 'Unauthorized'
@@ -116,6 +141,30 @@ describe 'access control', ->
                   socket.on 'disconnect', ->
                     teardown done
                   socket.disconnect 'booted'
+          teardown = run()
+
+        it 'should work after the page loads aaa', (done) ->
+          run = setup
+            config: (racer, store) ->
+              store.readPathAccess 'users.*.ssn', (userId, allow) ->
+                return allow(-1 != @session.roles.indexOf 'superadmin')
+            browserA:
+              tabA:
+                server: (req, serverModel, bundleModel, store) ->
+                  store.set 'users.1.ssn', 'xxx', null, (err) ->
+                    expect(err).to.be.null()
+                    req.session.roles = ['guest']
+                    bundleModel serverModel
+                browser: (model) ->
+                onSocketCxn: (socket, tab) ->
+                  model = tab.model
+                  model.on 'connected', ->
+                    model.fetch 'users.1.ssn', (err, scopedModel) ->
+                      expect(err).to.equal 'Unauthorized'
+                      expect(scopedModel).to.eql undefined
+                      socket.on 'disconnect', ->
+                        teardown done
+                      socket.disconnect 'booted'
           teardown = run()
 
     describe 'synchronous predicates', ->
