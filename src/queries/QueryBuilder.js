@@ -179,7 +179,7 @@ function noDots (path) {
 }
 
 // TODO Close ABBREVS with reverse ABBREVS?
-QueryBuilder.hash = function (json) {
+QueryBuilder.hash = function (json, filterFn) {
   var groups = []
     , nsHash
     , byIdHash
@@ -276,6 +276,8 @@ QueryBuilder.hash = function (json) {
       hash += SEP + noDots(field) + SEP + val;
     }
   }
+
+  if (filterFn) return hash += SEP + 'filterFn' + SEP + noDots(filterFn.toString());
 
   return hash;
 };
