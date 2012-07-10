@@ -44,6 +44,8 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     , ns = memoryQuery.ns
     , scopedModel;
 
+  if (model.get(refPath)) return model.at(refPath);
+
   // Refs, assemble!
   switch (queryType) {
     case 'findOne':

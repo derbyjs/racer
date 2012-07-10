@@ -33,6 +33,20 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         q2 = query('users').byId('1')
         expect(q1.hash()).to.not.eql q2.hash()
 
+      it 'should create the same hashes involving the same filterFn', ->
+        json1 = query('users').toJSON()
+        json2 = query('users').toJSON()
+        hash1 = QueryBuilder.hash json1, (x) -> x.id == '1'
+        hash2 = QueryBuilder.hash json1, (x) -> x.id == '1'
+        expect(hash1).to.equal hash2
+
+      it 'should createe different hashes involving different filterFns', ->
+        json1 = query('users').toJSON()
+        json2 = query('users').toJSON()
+        hash1 = QueryBuilder.hash json1, (x) -> x.id == '1'
+        hash2 = QueryBuilder.hash json1, (y) -> y.id == '1'
+        expect(hash1).to.not.equal hash2
+
     describe 'fromJSON', ->
       it 'should instantiate the correct query', ->
         q0 = query('users').where('name').equals('brian').where('age').equals(26).sort(['name', 'asc']).limit(5).skip(10)
