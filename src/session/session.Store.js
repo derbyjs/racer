@@ -70,7 +70,7 @@ module.exports = {
      * @api public
      */
     sessionMiddleware: function (opts) {
-      store.usingSessions = true
+      this.usingSessions = true
 
       opts || (opts = {});
 
