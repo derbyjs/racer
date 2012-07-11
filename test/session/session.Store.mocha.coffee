@@ -154,14 +154,15 @@ describe 'Server-side sessions', ->
 
           wait = finishAfter 2, ->
             spy = sinon.spy()
-            modelB.socket.on 'reload', spy
-            leavingTab.get '/logout', ->
-              expect(spy).to.be.calledOnce()
+            modelB.socket.on 'reload', ->
+              spy()
               finish = finishAfter Object.keys(sockets).length, ->
+                expect(spy).to.be.calledOnce()
                 teardown done
               for k of sockets
                 sockets[k].on 'disconnect', finish
                 sockets[k].disconnect 'booted'
+            leavingTab.get '/logout', ->
 
           teardown = run()
 
