@@ -102,7 +102,7 @@ module.exports = {
               res.fail(err);
             }
           , send: function (doc) {
-              data[i] = doc;
+              data.push(doc);
             }
           };
           var mware = ('string' === typeof target)
@@ -121,6 +121,20 @@ module.exports = {
         // TODO We need to pass back array of document ids to assign to
         //      queries.someid.resultIds
         store._fetchPathData(path, {
+          each: function (path, datum, ver) {
+            res.send([path, datum, ver]);
+          }
+        , done: next
+        });
+      });
+
+      middleware.fetchQuery = createMiddleware();
+      middleware.fetchQuery.add(function (req, res, next) {
+        req.context.guardQuery(req, res, next);
+      });
+      middleware.fetchQuery.add(function (req, res, next) {
+        var query = req.target;
+        store._fetchAndCompileQueryData(query, {
           each: function (path, datum, ver) {
             res.send([path, datum, ver]);
           }
@@ -171,6 +185,7 @@ module.exports = {
      * @api private
      */
     // TODO Incorporate contexts
+    // TODO Re-write this for server-originating fetches?
     fetch: function (socket, targets, contextName, cb) {
       var data = []
         , self = this

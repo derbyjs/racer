@@ -101,7 +101,11 @@ module.exports = {
      * @api protected
      */
   , registeredMemoryQuery: function (queryTuple) {
-      return this._queryRegistry.memoryQuery(queryTuple, this._queryMotifRegistry);
+      var queryRegistry = this._queryRegistry;
+      if (!queryRegistry.lookup(queryTuple)) {
+        this.registerQuery(queryTuple, 'fetch');
+      }
+      return queryRegistry.memoryQuery(queryTuple, this._queryMotifRegistry);
     }
 
   , registeredQueryId: function (queryTuple) {

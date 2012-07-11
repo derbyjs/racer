@@ -1,5 +1,6 @@
 var finishAfter = require('../util/async').finishAfter
   , PubSub = require('./PubSub')
+  , createMiddleware = require('../middleware')
   ;
 
 module.exports = {
@@ -33,12 +34,92 @@ module.exports = {
 
   , socket: function (store, socket, clientId) {
       // Setup subscription callbacks
-      socket.on('subscribe', function (targets, context, cb) {
-        store.subscribe(socket, targets, context, cb);
+      socket.on('subscribe', function (targets, contextName, cb) {
+        var req = {
+          clientId: socket.clientId
+        , session: socket.session
+        , targets: targets
+        , context: store.context(contextName)
+        };
+        var res = {
+          fail: cb
+        , send: function (data) {
+            cb(null, data);
+          }
+        };
+        store.middleware.subscribe(req, res);
       });
 
       socket.on('unsubscribe', function (targets, context, cb) {
         store.unsubscribe(socket, targets, context, cb);
+      });
+    }
+
+  , middleware: function (store, middleware) {
+      middleware.subscribe = createMiddleware()
+
+      // Access Control
+      middleware.subscribe.add(function (req, res, next) {
+        var targets = req.targets
+          , numTargets = targets.length
+          , context = req.context;
+        for (var i = 0; i < numTargets; i++) {
+          var target = targets[i];
+          var _req = {
+            target: target
+          , clientId: req.clientId
+          , session: req.session
+          , context: context
+          };
+          var _res = {
+            fail: function (err) { res.fail(err); }
+          , send: function (data) {
+              throw new Error('This res.send should never get called');
+            }
+          };
+          var mware = ('string' === typeof target)
+                    ? context.guardReadPath
+                    : context.guardQuery;
+          var finish = finishAfter(numTargets, next);
+          mware(_req, _res, finish);
+        }
+      });
+
+      // Subscribe
+      middleware.subscribe.add(function (req, res, next) {
+        var targets = req.targets
+          , pubSubTargets = []
+          , queryMotifRegistry = store._queryMotifRegistry;
+        for (var i = 0, l = targets.length; i < l; i++) {
+          var target = targets[i];
+          pubSubTargets.push(
+            (typeof target === 'string')
+            ? target
+            : queryMotifRegistry.queryJSON(target)
+          );
+        }
+        var clientId = req.clientId;
+        // This call to subscribe must come before the fetch, since a query is
+        // created in subscribe that may be accessed during the fetch.
+        store._pubSub.subscribe(clientId, pubSubTargets, function (err) {
+          if (err) return res.fail(err);
+          next();
+        });
+      });
+
+      // Fetch
+      middleware.subscribe.add(function (req, res, next) {
+        var _req = {
+          targets: req.targets
+        , clientId: req.clientId
+        , session: req.session
+        , context: req.context
+        };
+        var _res = {
+          fail: function (err) { res.fail(err); }
+        , send: function (data) { res.send(data); }
+        };
+        middleware.fetch(_req, _res, next);
       });
     }
   }
@@ -56,12 +137,6 @@ module.exports = {
      */
     subscribe: function (socket, targets, context, callback) {
       var i, currTarget;
-
-// TODO ACL
-//      for (i = targets.length; i--; ) {
-//        currTarget = targets[i];
-//        throw new Error('Unimplemented Auth');
-//      }
 
 
       // TODO This code does not feel right

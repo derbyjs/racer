@@ -11,7 +11,7 @@ exports = module.exports = {
     init: function (store) {
       store.eachContext(function (context) {
         context.guardReadPath = createMiddleware();
-        context.guardQueries   = createMiddleware();
+        context.guardQuery   = createMiddleware();
         context.guardWrites    = createMiddleware();
 
         var _grp_ = context.guardReadPath;
@@ -26,6 +26,16 @@ exports = module.exports = {
         };
         context.guardReadPath.add = _grp_.add;
       });
+
+      var _gp_ = context.guardQuery;
+      context.guardQuery = function (req, res, next) {
+        var queryTuple = req.target
+          , queryNs = queryTuple[0]
+          , motifs = queryTuple[1];
+
+      };
+
+      // TODO Lazy check guard count for guardQuery and guardWrites
     }
 
   }
@@ -67,9 +77,9 @@ exports = module.exports = {
      * @api public
      */
   , queryAccess: function (ns, motif, callback) {
-      var context = this.context(this.currContext);
+      var context = this.currContext;
       var fn = createQueryGuard(ns, motif, callback);
-      context.guardQueries.add(fn);
+      context.guardQuery.add(fn);
       return this;
     }
 
@@ -82,7 +92,7 @@ exports = module.exports = {
      * @api public
      */
   , writeAccess: function (mutator, target, callback) {
-      var context = this.context(this.currContext);
+      var context = this.currContext;
       var fn = createWriteGuard(mutator, target, callback);
       context.guardWrites.add(guard);
       return this;
@@ -135,7 +145,7 @@ function createQueryGuard (ns, motif, callback) {
    * Otherwise res.fail('Unauthorized');
    */
   function guard (req, res, next) {
-    var queryTuple = req.queryTuple
+    var queryTuple = req.target
       , queryNs = queryTuple[0]
       , motifs = queryTuple[1];
 
@@ -153,7 +163,7 @@ function createQueryGuard (ns, motif, callback) {
     req.matchingGuardFor[matchingMotif] = true;
 
     var args = motifs[matchingMotif];
-    var caller = {session: session};
+    var caller = {session: req.session};
     callback.apply(caller, args.concat([function (isAllowed) {
       if (!isAllowed) return res.fail('Unauthorized');
       return next();

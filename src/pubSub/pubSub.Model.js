@@ -203,13 +203,25 @@ module.exports = {
 , server: {
     _addSub: function (targets, cb) {
       var store = this.store
-        , context = this.scopedContext;
+        , contextName = this.scopedContext
+        , self = this;
       this._clientIdPromise.on( function (err, clientId) {
         if (err) return cb(err);
         // Subscribe while the model still only resides on the server.
         // The model is unsubscribed before sending to the browser.
-        var mockSocket = { clientId: clientId };
-        store.subscribe(mockSocket, targets, context, cb);
+        var req = {
+          clientId: clientId
+        , session: self.session
+        , targets: targets
+        , context: store.context(contextName)
+        };
+        var res = {
+          fail: cb
+        , send: function (data) {
+            cb(null, data);
+          }
+        };
+        store.middleware.subscribe(req, res);
       });
     }
 
