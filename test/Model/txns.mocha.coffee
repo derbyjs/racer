@@ -121,7 +121,7 @@ describe 'Model transaction handling', ->
         # Send all other pub sub messages
         __emit__.call @, name, args...
 
-      serverSocketA.listeners('fetchCurrSnapshot').unshift ->
+      serverSocketA.listeners('fetch:snapshot').unshift ->
         expect(modelA.get '_test.color').to.eql 'red'
         modelA.on 'reInit', ->
           expect(modelA.get '_test.color').to.eql 'yellow'
