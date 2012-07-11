@@ -56,6 +56,9 @@ mergeAll(modelProto, emitterProto, {
     this.connected = false;
     function onConnected () {
       self.emit('connected', self.connected);
+      onStatusChange();
+    }
+    function onStatusChange () {
       self.emit('connectionStatus', self.connected, self.canConnect);
     }
 
@@ -67,7 +70,7 @@ mergeAll(modelProto, emitterProto, {
     socket.on('disconnect', function () {
       self.connected = false;
       // Slight delay after disconnect so that offline does not flash on reload
-      setTimeout(onConnected, 400);
+      setTimeout(onStatusChange, 400);
     });
 
     // The server can ask the client to reload itself
@@ -78,7 +81,7 @@ mergeAll(modelProto, emitterProto, {
     }
 
     // Needed in case page is loaded from cache while offline
-    socket.on('connect_failed', onConnected);
+    socket.on('connect_failed', onStatusChange);
   }
 
   /* Scoped Models */
