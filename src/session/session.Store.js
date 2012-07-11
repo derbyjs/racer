@@ -70,6 +70,8 @@ module.exports = {
      * @api public
      */
     sessionMiddleware: function (opts) {
+      store.usingSessions = true
+
       opts || (opts = {});
 
       // The following this._* properties are used in setupSocketAuth
@@ -120,6 +122,7 @@ module.exports = {
  * @api private
  */
 function setupSocketAuth (store, io) {
+  if (! store.usingSessions) return;
   // Sets authorization callback for ALL socketio namespaces
   io.set('authorization', function (handshake, accept) {
     var sessStore = store._sessionStore;
