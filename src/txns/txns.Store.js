@@ -89,11 +89,10 @@ module.exports = {
       function accessController (req, res, next) {
         // Any operations authored by Store get a free pass
         if (req.clientId === store._clientId) return next();
-
         var txn = req.data;
-        var session = req.session;
-        var allowed = store._applyGuards(txn, session);
-        return allowed ? next() : res.fail('Unauthorized');
+        var contextName = transaction.getContext(txn);
+        var context = store.context(contextName);
+        context.guardWrite(req, res, next);
       }
 
       // TODO Optimize function defns
@@ -148,7 +147,7 @@ module.exports = {
             // may need to be sent to the model again
             if (err !== 'duplicate') {
               // TODO Should allow different kinds of error types -- e.g., "txnErr"
-              socket.emit('fatalErr', err);
+              socket.emit('txnErr', err, transaction.getId(txn));
             }
           }
         , send: function (txn, num) {

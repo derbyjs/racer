@@ -237,6 +237,8 @@ module.exports =
 
         # Resend all transactions in the queue
         for id in txnQueue
+          # TODO In access_control tests, same mutation sent twice as 2
+          # different txns
           commit txns[id]
         return
 
@@ -306,8 +308,9 @@ module.exports =
           else
             callbackArgs = transaction.copyArgs txn
           callbackArgs.unshift err
-          callback callbackArgs...
         removeTxn txnId
+        if callback
+          callback callbackArgs...
 
       model._commit = commit = (txn) ->
         return if txn.isPrivate
@@ -330,9 +333,8 @@ module.exports =
         session: @session
       res =
         fail: (err, txn) =>
-          console.error "The following error occured for #{txn}"
-          console.error err
-          return @_removeTxn transaction.getId txn
+          @_removeTxn transaction.getId txn
+          txn.callback err, txn
         send: (txn) => @_onTxn txn
       @store.middleware.txn req, res
 

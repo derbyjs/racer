@@ -1,16 +1,19 @@
 {expect} = require '../util'
 setup = require '../util/singleProcessStack'
 
-# TODO Test with contexts
+# TODO Test with non-default contexts
+
+# TODO Test that no access control declarations => Unauthorized always
 
 describe 'access control', ->
   ['fetch', 'subscribe'].forEach (reader) ->
     describe "authorized Model #{reader} paths", ->
       describe 'synchronous predicates', ->
       describe 'asynchronous predicates', ->
-        it 'should work on the first page load', (done) ->
+        it "should work when #{reader} originates on the server", (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
@@ -34,6 +37,7 @@ describe 'access control', ->
         it 'should work after the page loads', (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
@@ -61,6 +65,7 @@ describe 'access control', ->
         it 'should fail on the first page load', (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
@@ -84,6 +89,7 @@ describe 'access control', ->
         it 'should work after the page loads', (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.readPathAccess 'users.*.ssn', (userId, allow) ->
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
@@ -109,12 +115,14 @@ describe 'access control', ->
     describe "authorized Model #{reader} queries", ->
       describe 'asynchronous predicates', ->
       describe 'asynchronous predicates', ->
-        it "should work when #{reader} originates on the server aaa", (done) ->
+        it "should work when #{reader} originates on the server", (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.query.expose 'users', 'withRole', (role) ->
                 return @where('roles').contains([role])
               store.queryAccess 'users', 'withRole', (role, allow) ->
+                console.log -1 != @session.roles.indexOf 'superadmin'
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
               tabA:
@@ -135,9 +143,10 @@ describe 'access control', ->
 
           teardown = run()
 
-        it 'should work after the page load', (done) ->
+        it "should work when #{reader} originates on the client", (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.query.expose 'users', 'withRole', (role) ->
                 return @where('roles').contains([role])
               store.queryAccess 'users', 'withRole', (role, allow) ->
@@ -166,9 +175,10 @@ describe 'access control', ->
     describe "forbiddenn Model #{reader} queries", ->
       describe 'synchronous predicates', ->
       describe 'asynchronous predicates', ->
-        it 'should work on the first page load', (done) ->
+        it "should fail when #{reader} originates on the server", (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.query.expose 'users', 'withRole', (role) ->
                 return @where('roles').contains([role])
               store.queryAccess 'users', 'withRole', (role, allow) ->
@@ -192,9 +202,10 @@ describe 'access control', ->
 
           teardown = run()
 
-        it 'should work after the page load', (done) ->
+        it "should fail when #{reader} originates on the client", (done) ->
           run = setup
             config: (racer, store) ->
+              store.accessControl = true
               store.query.expose 'users', 'withRole', (role) ->
                 return @where('roles').contains([role])
               store.queryAccess 'users', 'withRole', (role, allow) ->
@@ -225,6 +236,95 @@ describe 'access control', ->
 
         it 'should send an auth error to the client after the page load'
 
-    describe 'allowWrite', ->
-      describe 'synchronous predicates', ->
-      describe 'asynchronous predicates', ->
+  describe 'authorized writes', ->
+    it 'should work when the transaction originates on the server', (done) ->
+      run = setup
+        config: (racer, store) ->
+          store.accessControl = true
+          store.writeAccess 'set', 'users.*.role', (userId, role, allow) ->
+            return allow(-1 != @session.roles.indexOf 'superadmin')
+        browserA:
+          tabA:
+            server: (req, serverModel, bundleModel, store) ->
+              req.session.roles = ['superadmin']
+              serverModel.set 'users.1.role', 'guest', (err) ->
+                expect(err).to.be.null()
+                bundleModel serverModel
+            browser: (model) ->
+            onSocketCxn: (socket) ->
+              socket.on 'disconnect', ->
+                teardown done
+              socket.disconnect 'booted'
+      teardown = run()
+
+    it 'should work when the transaction originates on the client', (done) ->
+      run = setup
+        config: (racer, store) ->
+          store.accessControl = true
+          store.writeAccess 'set', 'users.*.role', (userId, role, allow) ->
+            return allow(-1 != @session.roles.indexOf 'superadmin')
+        browserA:
+          tabA:
+            server: (req, serverModel, bundleModel, store) ->
+              req.session.roles = ['superadmin']
+              bundleModel serverModel
+            browser: (model) ->
+            onSocketCxn: (socket, tab) ->
+              model = tab.model
+              model.on 'connected', ->
+                model.set 'users.1.role', 'guest', (err) ->
+                  expect(err).to.be.null()
+                  socket.on 'disconnect', ->
+                    teardown done
+                  socket.disconnect 'booted'
+      teardown = run()
+
+  describe 'forbidden writes', ->
+    it 'should work when the transaction originates on the server', (done) ->
+      run = setup
+        config: (racer, store) ->
+          store.accessControl = true
+          store.writeAccess 'set', 'users.*.role', (userId, role, allow) ->
+            return allow(-1 != @session.roles.indexOf 'superadmin')
+        browserA:
+          tabA:
+            server: (req, serverModel, bundleModel, store) ->
+              req.session.roles = ['guest']
+              serverModel.set 'users.1.role', 'guest', (err) ->
+                expect(err).to.equal 'Unauthorized'
+                expect(serverModel.get('users.1.role')).to.eql undefined
+                bundleModel serverModel
+            browser: (model) ->
+            onSocketCxn: (socket) ->
+              socket.on 'disconnect', ->
+                teardown done
+              socket.disconnect 'booted'
+      teardown = run()
+
+    it 'should work when the transaction originates on the client', (done) ->
+      run = setup
+        config: (racer, store) ->
+          store.accessControl = true
+          store.writeAccess 'set', 'users.*.role', (userId, role, allow) ->
+            return allow(-1 != @session.roles.indexOf 'superadmin')
+        browserA:
+          tabA:
+            server: (req, serverModel, bundleModel, store) ->
+              req.session.roles = ['guest']
+              bundleModel serverModel
+            browser: (model) ->
+            onSocketCxn: (socket, tab) ->
+              model = tab.model
+              model.on 'connected', ->
+                model.set 'users.1.role', 'guest', (err) ->
+                  expect(err).to.equal 'Unauthorized'
+                  expect(model.get('users.1.role')).to.eql undefined
+                  socket.on 'disconnect', ->
+                    teardown done
+                  socket.disconnect 'booted'
+#                  process.nextTick ->
+#                    expect(model.get('users.1.role')).to.eql undefined
+#                    socket.on 'disconnect', ->
+#                      teardown done
+#                    socket.disconnect 'booted'
+      teardown = run()

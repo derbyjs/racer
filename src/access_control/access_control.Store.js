@@ -9,14 +9,16 @@ exports = module.exports = {
   type: 'Store'
 , events: {
     init: function (store) {
+      store.accessControl = false;
       store.eachContext(function (context) {
         context.guardReadPath = createMiddleware();
-        context.guardQuery   = createMiddleware();
-        context.guardWrites    = createMiddleware();
+        context.guardQuery    = createMiddleware();
+        context.guardWrite    = createMiddleware();
 
         var _grp_ = context.guardReadPath;
         context.guardReadPath = function (req, res, next) {
           context.guardReadPath.add( function (req, res, next) {
+            if (! store.accessControl) return next();
             if (! req.didMatchAGuard)
               return res.fail('Unauthorized: No access control declared for path ' + req.target);
             next();
@@ -25,19 +27,44 @@ exports = module.exports = {
           context.guardReadPath(req, res, next);
         };
         context.guardReadPath.add = _grp_.add;
+
+        var _gp_ = context.guardQuery;
+        context.guardQuery = function (req, res, next) {
+          context.guardQuery.add( function (req, res, next) {
+            if (! store.accessControl) return next();
+            var queryTuple = req.target
+              , queryNs = queryTuple[0]
+              , motifs = queryTuple[1]
+              , matchingGuardFor = req.matchingGuardFor;
+            for (var motifName in motifs) {
+              if (! matchingGuardFor || !matchingGuardFor[motifName])
+                return res.fail('Unauthorized: No access control declared for motif ' + motifName);
+            }
+            next();
+          });
+          context.guardQuery = _gp_;
+          context.guardQuery(req, res, next);
+        };
+        context.guardQuery.add = _gp_.add;
+
+        var _gw_ = context.guardWrite;
+        context.guardWrite = function (req, res, next) {
+          if (! store.accessControl) return next();
+          context.guardWrite.add( function (req, res, next) {
+            if (! req.didMatchAGuard) {
+              var txn = req.data;
+              return res.fail('Unauthorized: No access control declared for mutator: ' +
+                transaction.getMethod(txn) + ' ' + transaction.getPath(txn)
+              );
+            }
+            next();
+          });
+          context.guardWrite = _gw_;
+          context.guardWrite(req, res, next);
+        };
+        context.guardWrite.add = _gw_.add;
       });
-
-      var _gp_ = context.guardQuery;
-      context.guardQuery = function (req, res, next) {
-        var queryTuple = req.target
-          , queryNs = queryTuple[0]
-          , motifs = queryTuple[1];
-
-      };
-
-      // TODO Lazy check guard count for guardQuery and guardWrites
     }
-
   }
 , proto: {
     /**
@@ -94,7 +121,7 @@ exports = module.exports = {
   , writeAccess: function (mutator, target, callback) {
       var context = this.currContext;
       var fn = createWriteGuard(mutator, target, callback);
-      context.guardWrites.add(guard);
+      context.guardWrite.add(fn);
       return this;
     }
   }
@@ -176,25 +203,26 @@ function createWriteGuard (mutator, target, callback) {
   var regexp = eventRegExp(target);
 
   function guard (req, res, next) {
-    var txn = req.data;
+    var txn = req.data
+      , method;
+    if (mutator !== '*') {
+      method = transaction.getMethod(txn);
+      if (mutator !== method) return next();
+    }
     var path = transaction.getPath(txn);
     if (! regexp.test(path)) return next();
 
     req.didMatchAGuard = true;
 
     var captures = regexp.exec(path).slice(1);
-    var args = transaction.getArgs(txn);
+    var args = transaction.getArgs(txn).slice(1); // ignore path
 
     var caller = {session: req.session};
 
     callback.apply(caller, captures.concat(args).concat([function (isAllowed) {
-      if (!isAllowed) return res.fail('Unauthorized');
+      if (!isAllowed) return res.fail('Unauthorized', txn);
       return next();
     }]));
-
-    var allow = callback.apply(caller, captures.concat(args));
-    if (allow) next();
-    else res.fail('Unauthorized');
   }
 
   return guard;
