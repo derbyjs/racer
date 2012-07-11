@@ -60,6 +60,8 @@ module.exports = {
           ver: req.ver
         , clientId: clientId
         , subs: req.subs
+        , session: req.session
+        , context: req.context
         }, function (err, payload) {
           if (err) return res.fail(err);
           var data = payload.data
@@ -331,6 +333,8 @@ module.exports = {
       , shouldSubscribe: shouldSubscribe
       , subs: subs
       , ver: ver
+        // TODO Pass in proper context
+      , context: this.context(this.scopedContext)
       };
       var res = {
         fail: function (err) {
