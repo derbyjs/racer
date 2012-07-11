@@ -63,6 +63,7 @@ module.exports = {
         var targets = req.targets
           , numTargets = targets.length
           , context = req.context;
+        var finish = finishAfter(numTargets, next);
         for (var i = 0; i < numTargets; i++) {
           var target = targets[i];
           var _req = {
@@ -80,7 +81,6 @@ module.exports = {
           var mware = ('string' === typeof target)
                     ? context.guardReadPath
                     : context.guardQuery;
-          var finish = finishAfter(numTargets, next);
           mware(_req, _res, finish);
         }
       });
