@@ -43,9 +43,19 @@ Lww.prototype = {
     var ver = params.ver
       , clientId = params.clientId
       , subs = params.subs;
-    this._store.fetch(clientId, subs, function (err, data) {
-      if (err) callback(err);
-      else callback(null, {data: data});
-    });
+
+    var req = {
+      targets: subs
+    , clientId: clientId
+    , session: params.session
+    , context: params.context
+    };
+    var res = {
+      fail: callback
+    , send: function (data) {
+        callback(null, {data: data});
+      }
+    };
+    this._store.middleware.fetch(req, res);
   }
 };
