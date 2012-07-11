@@ -149,6 +149,7 @@ function objEquiv (a, b) {
 
 // TODO Test this
 function deepCopy (obj) {
+  if (obj === null) return null;
   if (typeof obj === 'object') {
     var copy;
     if (Array.isArray(obj)) {
