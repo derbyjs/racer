@@ -44,6 +44,8 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     , ns = memoryQuery.ns
     , scopedModel, listener;
 
+  if (!queryId) return model.at(ns);
+
   if (model[refPath]) return model.at(refPath);
 
   // Refs, assemble!

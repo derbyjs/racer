@@ -194,7 +194,7 @@ QueryRegistry.prototype = {
    * @api public
    */
 , memoryQuery: function (queryTuple, queryMotifRegistry) {
-    var meta = this.lookup(queryTuple)
+    var meta = this.lookup(queryTuple) || {}
       , memoryQuery = meta.query;
     if (memoryQuery) return memoryQuery;
 
