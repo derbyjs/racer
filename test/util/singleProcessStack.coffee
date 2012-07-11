@@ -131,4 +131,3 @@ sid = (res) ->
   val = res.headers?['set-cookie']
   return '' unless val
   return /^connect\.sid=([^;]+);/.exec(val[0])[1]
-
