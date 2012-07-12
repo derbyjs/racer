@@ -37,14 +37,12 @@ function resultRefPath (queryId, queryType) {
  * data currently loaded into the model.
  * @return {Model} a refList or ref scoped model that represents the query result(s)
  */
-function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
+function setupQueryModelScope (model, memoryQuery, queryId, initialResult, noListener) {
   var queryType = memoryQuery.type
     , refPath = resultRefPath(queryId, queryType)
     , pointerPath = resultPointerPath(queryId, queryType)
     , ns = memoryQuery.ns
     , scopedModel;
-
-  if (model.get(refPath)) return model.at(refPath);
 
   // Refs, assemble!
   switch (queryType) {
@@ -56,8 +54,10 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
 
       scopedModel = model.ref(refPath, ns, pointerPath);
 
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
-      model.on('mutator', listener);
+      if (! noListener) {
+        var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
+        model.on('mutator', listener);
+      }
       break;
 
     case 'find':
@@ -70,8 +70,10 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
 
       scopedModel = model.refList(refPath, ns, pointerPath);
 
-      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
-      model.on('mutator', listener);
+      if (! noListener) {
+        var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
+        model.on('mutator', listener);
+      }
   }
   return scopedModel;
 }
@@ -102,7 +104,7 @@ function isPrefixOf (prefix, path) {
  * @return {Function} a function to be used as a listener to the "mutator"
  * event emitted by model
  */
-function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery) {
+function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery, queryId) {
   /**
    * This function will listen to the "mutator" event emitted by the model. The
    * purpose of listening for "mutator" here is to respond to changes to the
@@ -122,7 +124,13 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
     // model to fire a "mutator" event, we will want to ignore most of these
     // mutator events because our listener is only concerned about mutations
     // under ns, i.e., under our search domain.
-    if (! isPrefixOf(ns, path)) return;
+    if (! isPrefixOf(ns, path)) {
+      if (isPrefixOf(path, ns)) {
+        var initialResult = memoryQuery.syncRun(model.get(ns));
+        setupQueryModelScope(model, memoryQuery, queryId, initialResult, 'noListener');
+      }
+      return;
+    }
 
     // From here on:  path = ns + suffix
 

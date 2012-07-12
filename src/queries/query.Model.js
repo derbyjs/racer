@@ -195,6 +195,8 @@ module.exports = {
           , value = triplet[1]
           , ver = triplet[2];
         memory.set(path, value, ver);
+        // TODO Perhaps make another event to differentiate against model.set
+        this.emit('set', [path, value]);
       }
     }
 
