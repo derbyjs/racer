@@ -174,61 +174,11 @@ module.exports = {
   }
 
 , proto: {
-    /**
-     * Fetches the data represented by targets. The callback is passed {data:
-     * data} where data is an Array of triplets of the form [path, datum, ver]
-     * meaning to assign datum at version ver to the path inside the fetching
-     * model.
-     *
-     * @param {Socket} socket
-     * @param {[String|[String, ...]]} targets is an array of strings and query
-     * tuples representing paths, patterns, and/or query motifs.
-     * @param {Function} cb is the callback
-     * @api private
-     */
-    // TODO Incorporate contexts
-    // TODO Re-write this for server-originating fetches?
-    fetch: function (socket, targets, contextName, cb) {
-      var data = []
-        , self = this
-        , finish = finishAfter(targets.length, function (err) {
-            if (err) return cb(err);
-            var out = {data: data};
-            // Note that `out` may be mutated by ot or other plugins
-            self.emit('fetch', out, socket.clientId, targets);
-            cb(null, out);
-          })
-        , session = socket.session
-        , context = this.context(contextName);
-      for (var i = 0, l = targets.length; i < l; i++) {
-        self._fetchSingle(context, session, targets[i], data, finish);
-      }
+    query: function (ns) {
+      return this._queryMotifRegistry.queryTupleBuilder(ns);
     }
 
-  /**
-   * @param {Object} session of the client doing the fetching. The session is
-   * used by _fetchSingle pre middleware for access control
-   * @param {String|Array} target is a string representing a path or pattern.
-   * Or it is an Array of [motifName, motifArgs...] representing a query motif.
-   * @param {Array} data
-   * @param {Function} callback
-   * @api private
-   */
- , _fetchSingle: function (context, session, target, data, callback) {
-      var fetchFn = ('string' === typeof target)
-                  ? this._fetchPathData
-                  : this._fetchAndCompileQueryData; // Otherwise, we have an array
-      // TODO We need to pass back array of document ids to assign to
-      //      queries.someid.resultIds
-      fetchFn.call(this, target, {
-        context: context
-      , session: session
-      , each: function (path, datum, ver) {
-          data.push([path, datum, ver]);
-        }
-      , done: callback
-      });
-    }
+    // TODO Store#fetch
 
     /**
      * Fetches data associated with a queryTuple [ns, {queryMotif: queryArgs, ...}].
