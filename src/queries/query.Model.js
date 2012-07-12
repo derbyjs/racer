@@ -195,7 +195,6 @@ module.exports = {
           , value = triplet[1]
           , ver = triplet[2];
         memory.set(path, value, ver);
-        console.log("ADD", path, value);
         // Need this condition for scenarios where we subscribe to a
         // non-existing document. Otherwise, a mutator event would be emitted
         // with an undefined value, triggering filtering and querying listeners
