@@ -1,8 +1,6 @@
 var transaction = require('../transaction')
-  , path = require('../path')
-  , expandPath = path.expand
-  , splitPath = path.split
   , QueryBuilder = require('../queries/QueryBuilder')
+  , compileTargets = require('../queries/util').compileTargets
   , noop = require('../util').noop
   ;
 
@@ -128,21 +126,23 @@ module.exports = {
         , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
 
         , pathSubs = this._pathSubs
-        , querySubs = this._querySubs();
-      this._compileTargets(targets, {
-        eachQueryTarget: function (queryTuple, targets) { /* this === model */
-          this.registerQuery(queryTuple, 'subs');
+        , querySubs = this._querySubs()
+        , self = this
+        ;
+      compileTargets(targets, {
+        model: this
+      , eachQueryTarget: function (queryTuple, targets) {
+          self.registerQuery(queryTuple, 'subs');
         }
-      , eachPathTarget: function (path, targets) { /* this === model */
+      , eachPathTarget: function (path, targets) {
           if (path in pathSubs) return;
           pathSubs[path] = true;
         }
-      , done: function (targets, modelScopes) { /* this === model */
+      , done: function (targets, modelScopes) {
           if (! targets.length) {
-            return callback.apply(this, [null].concat(modelScopes));
+            return callback.apply(null, [null].concat(modelScopes));
           }
-          var self = this;
-          this._addSub(targets, function (err, data) {
+          self._addSub(targets, function (err, data) {
             if (err) return callback(err);
             self._addData(data);
             self.emit('addSubData', data);
@@ -159,21 +159,24 @@ module.exports = {
         , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
 
         , pathSubs = this._pathSubs
-        , querySubs = this._querySubs();
+        , querySubs = this._querySubs()
+        , self = this
+        ;
 
-      this._compileTargets(targets, {
-        eachQueryTarget: function (queryJson) { /* this === model */
+      compileTargets(targets, {
+        model: this
+      , eachQueryTarget: function (queryJson) {
           var hash = QueryBuilder.hash(queryJson);
           if (! (hash in querySubs)) return;
-          this.unregisterQuery(hash, querySubs);
+          self.unregisterQuery(hash, querySubs);
         }
-      , eachPathTarget: function (path, targets) { /* this === model */
+      , eachPathTarget: function (path, targets) {
           if (! (path in pathSubs)) return;
           delete pathSubs[path];
         }
-      , done: function (targets) { /* this === model */
+      , done: function (targets) {
           if (! targets.length) return callback();
-          this._removeSub(targets, callback);
+          self._removeSub(targets, callback);
         }
       });
     }

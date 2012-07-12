@@ -6,6 +6,7 @@ var QueryHub = require('./QueryHub')
   , finishAfter = require('../util/async').finishAfter
   , queryUtils = require('./util')
   , resultPointerPath = queryUtils.resultPointerPath
+  , compileTargets = queryUtils.compileTargets
   , QueryMotifRegistry = require('./QueryMotifRegistry')
   , createMiddleware = require('../middleware')
   ;
@@ -38,11 +39,9 @@ module.exports = {
        * @return {Object} store.query for method chaining
        * @api public
        */
-      var chainable = store.query = {
-        expose: function (ns, motifName, callback) {
-          registry.add(ns, motifName, callback);
-          return chainable;
-        }
+      store.query.expose = function (ns, motifName, callback) {
+        registry.add(ns, motifName, callback);
+        return store.query;
       };
     }
   , middleware: function (store, middleware) {
@@ -153,9 +152,7 @@ module.exports = {
         , context: store.context(contextName)
         };
         var res = {
-          fail: function (err) {
-            cb(err);
-          }
+          fail: cb
         , send: function (data) {
             // For OT
             // Note that `data` may be mutated by ot or other plugins
@@ -176,6 +173,45 @@ module.exports = {
 , proto: {
     query: function (ns) {
       return this._queryMotifRegistry.queryTupleBuilder(ns);
+    }
+
+  , fetch: function () {
+      var arglen = arguments.length
+        , lastArg = arguments[arglen-1]
+        , callback = (typeof lastArg === 'function') ? lastArg : noop
+        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
+        , self = this
+        ;
+
+      compileTargets(targets, {
+        done: function (targets) { /* this === model */
+          // TODO Re-factor: similar to what's in Model#_waitOrFetchData
+          var req = {
+            targets: targets
+          , clientId: self._clientId
+          , context: self.context(self.scopedContext)
+          };
+          var res = {
+            fail: callback
+          , send: function (data) {
+              data = data.data;
+              console.log(data);
+              if (data.length === 0) {
+                callback(null);
+              } else if (data.length === 1) {
+                // TODO For find, we must pass the callback an Array
+                var path = data[0]
+                  , value = data[1]
+                  , ver = data[2];
+                callback(null, value);
+              } else {
+                throw new Error('Unimplemented');
+              }
+            }
+          };
+          self.middleware.fetch(req, res);
+        }
+      });
     }
 
     // TODO Store#fetch

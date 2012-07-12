@@ -97,8 +97,12 @@ module.exports = {
         req.createModel = function () {
           var model = store.createModel();
           securePairs[model._clientId] = req.sessionID;
-          var session = model.session = req.session;
-          model.set('_userId', session.userId);
+          var session = model.session = req.session
+            , auth = session.auth;
+          if (auth) {
+            var userId = auth.userId;
+            if (userId) model.set('_userId', userId);
+          }
           return model;
         };
         next();

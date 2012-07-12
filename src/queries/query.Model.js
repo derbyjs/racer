@@ -1,12 +1,9 @@
-var EventEmitter = require('events').EventEmitter
-  , QueryBuilder = require('./QueryBuilder')
+var QueryBuilder = require('./QueryBuilder')
   , QueryRegistry = require('./QueryRegistry')
   , QueryMotifRegistry = require('./QueryMotifRegistry')
-  , path = require('../path')
-  , splitPath = path.split
-  , expandPath = path.expand
   , queryUtils = require('./util')
   , setupQueryModelScope = queryUtils.setupQueryModelScope
+  , compileTargets = queryUtils.compileTargets
   ;
 
 module.exports = {
@@ -172,11 +169,13 @@ module.exports = {
       var arglen = arguments.length
         , lastArg = arguments[arglen-1]
         , callback = (typeof lastArg === 'function') ? lastArg : noop
-        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen);
+        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
+        , self = this
+        ;
 
-      this._compileTargets(targets, {
-        done: function (targets, scopedModels) { /* this === model */
-          var self = this;
+      compileTargets(targets, {
+        model: this
+      , done: function (targets, scopedModels) { /* this === model */
           self._waitOrFetchData(targets, function (err, data) {
             if (err) return callback(err);
             self._addData(data);
@@ -218,61 +217,6 @@ module.exports = {
       if (!this.connected) return callback('disconnected');
       this.socket.emit('fetch', targets, this.scopedContext, callback);
     }
-
-    /**
-     * @param {Array} targets have members who are either Strings representing
-     * paths or path patterns OR Arrays representing query tuples of the form
-     * [motifName, queryArgs...]
-     * @param {Object} opts
-     * @api private
-     */
-  , _compileTargets: function (targets, opts) {
-      var done = opts.done /* done(targets) or done(targets, scopes) */
-        , compileScopedModels = (done.length === 2)
-        , parser = new EventEmitter
-        , expandedTargets = []
-        , model = this;
-
-      var eachPathTarget = opts.eachPathTarget;
-      parser.on('path', function (path) {
-        eachPathTarget && eachPathTarget.call(model, path);
-        // TODO push unexpanded target or expanded path?
-        expandedTargets.push(path);
-      });
-
-      var eachQueryTarget = opts.eachQueryTarget;
-      parser.on('query', function (queryTuple) {
-        eachQueryTarget && eachQueryTarget.call(model, queryTuple);
-        expandedTargets.push(queryTuple);
-      });
-
-      if (compileScopedModels) {
-        // Compile the list of model scopes representative of the fetched
-        // results to pass back to opts.done
-        var scopedModels = [];
-        parser.on('pattern', function (pattern) {
-          // TODO This does not always calc pathUpToGlob
-          var pathUpToGlob = splitPath(pattern)[0]
-            , scopedModel = model.at(pathUpToGlob);
-          scopedModels.push(scopedModel);
-        });
-        parser.on('query', function (queryTuple) {
-          var memoryQuery = model.registeredMemoryQuery(queryTuple)
-            , queryId = model.registeredQueryId(queryTuple)
-            , scopedModel = setupQueryModelScope(model, memoryQuery, queryId);
-          scopedModels.push(scopedModel);
-        });
-        parser.on('done', function () {
-          done.call(model, expandedTargets, scopedModels);
-        });
-      } else {
-        parser.on('done', function () {
-          done.call(model, expandedTargets);
-        });
-      }
-
-      parseTargets(parser, targets);
-    }
   }
 
 , server: {
@@ -289,9 +233,7 @@ module.exports = {
         , context: store.context(contextName)
         };
         var res = {
-          fail: function (err) {
-            cb(err);
-          }
+          fail: cb
         , send: function (data) {
             store.emit('fetch', data, clientId, targets);
             cb(null, data);
@@ -302,37 +244,3 @@ module.exports = {
     }
   }
 };
-
-/**
- * Parses targets into full set of targets. In particular, patterns need to be
- * expanded into paths. As it's parsing, it emits events:
- *
- * - "pattern" for every target that is a path pattern
- * - "path" for every path that belongs to a set of paths derived from a
- *   pattern target
- * - "query" for every target that is a query tuple
- *
- * @param {EventEmitter} parser
- * @param {Array} targets is an array of strings (representing paths and/or
- * patterns) and/or query tuples (i.e., arrays of the form [motifName,
- * queryArgs...]
- */
-function parseTargets (parser, targets) {
-  for (var i = 0, l = targets.length; i < l; i++) {
-    var target = targets[i];
-
-    if (Array.isArray(target)) { /* If target is a query tuple */
-      parser.emit('query', target);
-    } else if (target.tuple) {
-      parser.emit('query', target.tuple);
-    } else { /* Else target is a path or model scope */
-      if (target._at) target = target._at;
-      parser.emit('pattern', target);
-      var paths = expandPath(target);
-      for (var k = paths.length; k--; ) {
-        parser.emit('path', paths[k]);
-      }
-    }
-  }
-  parser.emit('done');
-}
