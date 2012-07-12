@@ -98,7 +98,6 @@ module.exports = {
           var model = store.createModel();
           securePairs[model._clientId] = req.sessionID;
           var session = model.session = req.session;
-          console.log("modelMiddleware", session.userId)
           model.set('_userId', session.userId);
           return model;
         };
