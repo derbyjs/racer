@@ -72,7 +72,7 @@ describe 'store.query.expose', ->
 
           expect(jsJson).to.eql csJson
 
-    it 'should support nested attribute queries aaa', (done) ->
+    it 'should support nested attribute queries', (done) ->
       store = racer.createStore()
 
       store.query.expose 'users', 'withFirstName', (fname) ->
