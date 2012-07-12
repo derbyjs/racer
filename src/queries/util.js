@@ -44,18 +44,16 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     , ns = memoryQuery.ns
     , scopedModel, listener;
 
-  if (model[refPath]) return model.at(refPath);
-
   // Refs, assemble!
   if (queryType === 'findOne') {
     // TODO Test findOne single query result
-    if (initialResult) { // TODO Do we need this condition block?
+    if (initialResult) {
       model.set(pointerPath, initialResult.id);
     }
     scopedModel = model.ref(refPath, ns, pointerPath);
 
   } else {
-    if (initialResult) { // TODO Do we need this condition block?
+    if (initialResult) {
       model.set(pointerPath, initialResult.map( function (doc) {
         return doc.id;
       }));
@@ -63,12 +61,14 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     scopedModel = model.refList(refPath, ns, pointerPath);
   }
 
-  listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
-  model.on('mutator', listener);
+  if (! model.refPath) {
+    listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
+    model.on('mutator', listener);
 
-  // TODO: This is a total hack. Fix the initialization of filters in client
-  // and prevent filters from generating multiple listeners
-  model[refPath] = listener;
+    // TODO: This is a total hack. Fix the initialization of filters in client
+    // and prevent filters from generating multiple listeners
+    model[refPath] = listener;
+  }
 
   return scopedModel;
 }
@@ -131,6 +131,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
       onOverwriteNs = function (docs, each) {
         model.set(pointerPath, []);
         each(docs, function (doc) {
+          console.log(memoryQuery.filterTest(doc, ns), doc, ns);
           if (memoryQuery.filterTest(doc, ns)) onAddDoc(doc);
         });
       };
