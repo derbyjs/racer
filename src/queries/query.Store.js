@@ -195,7 +195,6 @@ module.exports = {
             fail: callback
           , send: function (data) {
               data = data.data;
-              console.log(data);
               if (data.length === 0) {
                 callback(null);
               } else if (data.length === 1) {
