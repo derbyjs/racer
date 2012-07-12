@@ -197,6 +197,10 @@ Store.prototype._nextTxnId = function (callback) {
   });
 };
 
+Store.prototype.uuid = function () {
+  return this.racer.uuid();
+};
+
 Store.prototype.createModel = function () {
   var model = new this.racer.protected.Model({
     store: this
