@@ -37,12 +37,14 @@ function resultRefPath (queryId, queryType) {
  * data currently loaded into the model.
  * @return {Model} a refList or ref scoped model that represents the query result(s)
  */
-function setupQueryModelScope (model, memoryQuery, queryId, initialResult, noListener) {
+function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
   var queryType = memoryQuery.type
     , refPath = resultRefPath(queryId, queryType)
     , pointerPath = resultPointerPath(queryId, queryType)
     , ns = memoryQuery.ns
     , scopedModel;
+
+  if (model.get(refPath)) return model.at(refPath);
 
   // Refs, assemble!
   switch (queryType) {
@@ -54,10 +56,8 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult, noLis
 
       scopedModel = model.ref(refPath, ns, pointerPath);
 
-      if (! noListener) {
-        var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
-        model.on('mutator', listener);
-      }
+      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
+      model.on('mutator', listener);
       break;
 
     case 'find':
@@ -70,10 +70,8 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult, noLis
 
       scopedModel = model.refList(refPath, ns, pointerPath);
 
-      if (! noListener) {
-        var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
-        model.on('mutator', listener);
-      }
+      var listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery, queryId);
+      model.on('mutator', listener);
   }
   return scopedModel;
 }
@@ -118,7 +116,42 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
    */
 
   return function (method, _arguments) {
-    var path = _arguments[0][0];
+    var path = _arguments[0][0]
+      , onAddDoc, onOverwriteNs, docsAdded
+
+    var currResult = scopedModel.get()
+
+    if (memoryQuery.type === 'find') {
+      onOverwriteNs = function (docs, each) {
+        model.set(pointerPath, []);
+        each(docs, function (doc) {
+          if (memoryQuery.filterTest(doc, ns)) {
+            onAddDoc(doc);
+          }
+        });
+      };
+      onAddDoc = function (newDoc, oldDoc) {
+        if (!oldDoc) {
+          // If the new doc belongs in our query results...
+          if (memoryQuery.filterTest(newDoc, ns)) {
+            insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, newDoc);
+          }
+
+        // Otherwise, we are over-writing oldDoc with newDoc
+        } else {
+          callbacks.onUpdateDocProperty(newDoc);
+        }
+      };
+    } else {
+      onOverwriteNs = function (docs) {
+        var results = equivFindQuery.syncRun(docs);
+        if (results.length) {
+          model.set(pointerPath, results[0]);
+        } else {
+          model.set(pointerPath, null);
+        }
+      };
+    }
 
     // Ignore any irrelevant paths. Because any mutation on any object causes
     // model to fire a "mutator" event, we will want to ignore most of these
@@ -126,20 +159,29 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
     // under ns, i.e., under our search domain.
     if (! isPrefixOf(ns, path)) {
       if (isPrefixOf(path, ns)) {
-        var initialResult = memoryQuery.syncRun(model.get(ns));
-        setupQueryModelScope(model, memoryQuery, queryId, initialResult, 'noListener');
+        console.log(path, ns);
+        var domain = model.get(ns)
+        if (!domain) return;
+        var iterator = (Array.isArray(domain))
+           ? function (docs, cb) {
+               for (var i = docs.length; i--; ) cb(docs[i]);
+             }
+           : function (docs, cb) {
+               for (var k in docs) cb(docs[k]);
+             }
+        //handleMutation(model, method, ns, [ns, domain], null, ns, callbacks);
+        onOverwriteNs(domain, iterator);
       }
       return;
     }
 
     // From here on:  path = ns + suffix
 
-    var currResult = scopedModel.get()
 
     // The documents this query searches over, either as an Array or Object of
     // documents. This set of documents reflects that the mutation has already
     // taken place.
-      , searchSpace = model.get(ns);
+    var searchSpace = model.get(ns);
 
     var callbacks;
     switch (memoryQuery.type) {
@@ -153,27 +195,9 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           }
 
           // TODO Deal with either array of docs or tree of docs
-        , onOverwriteNs: function (docs, each) {
-            model.set(pointerPath, []);
-            each(docs, function (doc) {
-              if (memoryQuery.filterTest(doc, ns)) {
-                callbacks.onAddDoc(doc);
-              }
-            });
-          }
+        , onOverwriteNs: onOverwriteNs
 
-        , onAddDoc: function (newDoc, oldDoc) {
-            if (!oldDoc) {
-              // If the new doc belongs in our query results...
-              if (memoryQuery.filterTest(newDoc, ns)) {
-                insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, newDoc);
-              }
-
-            // Otherwise, we are over-writing oldDoc with newDoc
-            } else {
-              callbacks.onUpdateDocProperty(newDoc);
-            }
-          }
+        , onAddDoc: onAddDoc
 
         , onRmDoc: function (oldDoc) {
             // If the doc is no longer in our data, but our results have a reference to
@@ -210,8 +234,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
         var equivFindQuery = new MemoryQuery(Object.create(memoryQuery.toJSON(), {
               type: { value: 'find' }
             }))
-
-          , docsAdded = [currResult]
+          , docsAdded = [currResult];
 
         callbacks = {
           onRemoveNs: function () {
@@ -219,14 +242,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           }
 
           // In this case, docs is the same as searchSpace.
-        , onOverwriteNs: function (docs) {
-            var results = equivFindQuery.syncRun(docs);
-            if (results.length) {
-              model.set(pointerPath, results[0]);
-            } else {
-              model.set(pointerPath, null);
-            }
-          }
+        , onOverwriteNs: onOverwriteNs
 
         , onAddDoc: function (newDoc, oldDoc) {
             docsAdded.push(newDoc);
