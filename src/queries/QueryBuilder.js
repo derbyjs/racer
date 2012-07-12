@@ -277,7 +277,13 @@ QueryBuilder.hash = function (json, filterFn) {
     }
   }
 
-  if (filterFn) return hash += SEP + 'filterFn' + SEP + noDots(filterFn.toString());
+  if (filterFn) {
+    // TODO: Do a less ghetto hash function here
+    hash += SEP + 'filterFn' + SEP +
+      filterFn.toString().replace(/[\s(){},.]/g, function(match) {
+        return match.charCodeAt(0);
+      });
+  }
 
   return hash;
 };
