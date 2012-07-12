@@ -196,7 +196,8 @@ module.exports =
       # each versioned message from the Model so that the Store can map the model's
       # version number to the version number of the Journal in case of a failure
 
-      # These events are triggered by the 'resyncWithStore' events and the
+      # These events are triggered by the 'resyncWithStore' event in the
+      # reconnect mixin and the
       # txnApplier timeout below. A request is made to the server to fetch the
       # most recent snapshot, which is returned to the browser in one of many
       # forms on a channel prefixed with "snapshotUpdate:*"

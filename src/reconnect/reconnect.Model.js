@@ -11,7 +11,7 @@ module.exports = {
       // the form of diffing to a received store state)
       socket.on('resyncWithStore', function (fn) {
         var subs = model._subs();
-        fn(model._subs(), memory.version, model._startId);
+        fn(subs, memory.version, model._startId);
       });
     }
   }
