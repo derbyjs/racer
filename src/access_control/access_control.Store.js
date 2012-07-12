@@ -1,5 +1,3 @@
-// TODO Use absence of matching guard flags to block reads and writes that did
-// not declare any access controls matching the given payload
 var eventRegExp = require('../path').eventRegExp
   , transaction = require('../transaction')
   , createMiddleware = require('../middleware')
