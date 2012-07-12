@@ -50,9 +50,6 @@ module.exports =
       # receiving a message on a channel the client just unsubscribed to
 
       memory = model._memory
-      # Used for diffing array operations in order emitted vs order applied
-      before = new Memory
-      after = new Memory
       model._onTxn = (txn) ->
         return unless txn?
 
@@ -62,8 +59,6 @@ module.exports =
           txn.emitted = txnQ.emitted
 
         isLocal = 'callback' of txn
-#        unless isLocal = 'callback' of txn
-#          mergeTxn txn, txns, txnQueue, arrayMutator, memory, before, after
 
         ver = transaction.getVer txn
         if ver > memory.version || ver == -1
@@ -455,29 +450,3 @@ module.exports =
 
       data.$out = out
       return data
-
-    # TODO Implement this
-    # ?? Rename to snapshot or atomic
-    # @return {Model} a model snapshotted at the current version
-    branch: ->
-
-    # TODO: Finish implementation of atomic transactions
-    # atomic: (block, callback) ->
-    #   model = new AtomicModel @_nextTxnId(), this
-    #   @_atomicModels[model.getId] = model
-    #   commit = (_callback) =>
-    #     model._commit (err) =>
-    #       delete @_atomicModels[model.getId] unless err
-    #       _callback.apply null, arguments if _callback ||= callback
-    #   abort = ->
-    #   retry = ->
-
-    #   if block.length == 1
-    #     block model
-    #     commit callback
-    #   else if block.length == 2
-    #     block model, commit
-    #   else if block.length == 3
-    #     block model, commit, abort
-    #   else if block.length == 4
-    #     block model, commit, abort, retry

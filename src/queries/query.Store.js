@@ -258,17 +258,9 @@ module.exports = {
             eachDatumCb(path, doc, version);
             resultIds.push(doc.id);
           }
-
-          // '_$queries.<queryId>.resultIds'
-          path = resultPointerPath(queryId, queryJson.type);
-          eachDatumCb(path, resultIds, version);
         } else if (result) {
           path = queryJson.from + '.' + result.id;
           eachDatumCb(path, result, version);
-
-          // '_$queries.<queryId>.resultId'
-          path = resultPointerPath(queryId, queryJson.type);
-          eachDatumCb(path, result.id, version);
         }
         finish(null);
       });

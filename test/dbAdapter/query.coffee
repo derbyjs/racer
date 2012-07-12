@@ -147,17 +147,17 @@ module.exports = (storeOpts = {}, plugins = []) ->
         store.query.expose currNs, 'top', (rankingCeiling) ->
           @where('ranking').lte(rankingCeiling)
         mockFullSetup store, done, plugins, (modelA, modelB, done) ->
-          modelA.on 'set', ([path, val], ver) ->
-            return if path.substring(0, 9) == '_$queries' # Ignore setting queries
-            if path == "#{currNs}.3.name.last"
-              expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
-            else
-              throw new Error "Should not be setting #{path}"
-
-          # This will throw an error if called twice
-          modelA.socket.on 'txn', (txn, num) -> done()
 
           queryZoo = modelA.query(currNs).top(9)
           queryLander = modelA.query(currNs).top(8)
           modelA.subscribe queryZoo, queryLander, ->
+            modelA.on 'set', ([path, val], ver) ->
+              return if path.substring(0, 9) == '_$queries' # Ignore setting queries
+              if path == "#{currNs}.3.name.last"
+                expect(modelA.get "#{currNs}.3").to.eql {id: '3', name: {last: 'Djokovic', first: 'Novak'}, ranking: 1}
+              else
+                throw new Error "Should not be setting #{path}"
+
+            # This will throw an error if called twice
+            modelA.socket.on 'txn', (txn, num) -> done()
             modelB.set "#{currNs}.3.name.last", 'Djokovic'

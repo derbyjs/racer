@@ -117,17 +117,24 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
 
   return function (method, _arguments) {
     var path = _arguments[0][0]
-      , onAddDoc, onOverwriteNs, docsAdded
+      , onAddDoc, onOverwriteNs, currResult;
 
-    var currResult = scopedModel.get()
-
-    if (memoryQuery.type === 'find') {
+    if (memoryQuery.type === 'findOne') {
+      currResult = scopedModel.get();
+      onOverwriteNs = function (docs) {
+        var results = equivFindQuery.syncRun(docs);
+        if (results.length) {
+          model.set(pointerPath, results[0]);
+        } else {
+          model.set(pointerPath, null);
+        }
+      };
+    } else {
+      currResult = scopedModel.get() || [];
       onOverwriteNs = function (docs, each) {
         model.set(pointerPath, []);
         each(docs, function (doc) {
-          if (memoryQuery.filterTest(doc, ns)) {
-            onAddDoc(doc);
-          }
+          if (memoryQuery.filterTest(doc, ns)) onAddDoc(doc);
         });
       };
       onAddDoc = function (newDoc, oldDoc) {
@@ -142,15 +149,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           callbacks.onUpdateDocProperty(newDoc);
         }
       };
-    } else {
-      onOverwriteNs = function (docs) {
-        var results = equivFindQuery.syncRun(docs);
-        if (results.length) {
-          model.set(pointerPath, results[0]);
-        } else {
-          model.set(pointerPath, null);
-        }
-      };
+
     }
 
     // Ignore any irrelevant paths. Because any mutation on any object causes
@@ -159,12 +158,11 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
     // under ns, i.e., under our search domain.
     if (! isPrefixOf(ns, path)) {
       if (isPrefixOf(path, ns)) {
-        console.log(path, ns);
         var domain = model.get(ns)
         if (!domain) return;
         var iterator = (Array.isArray(domain))
            ? function (docs, cb) {
-               for (var i = docs.length; i--; ) cb(docs[i]);
+               for (var i = 0, l = docs.length; i < l; i++) cb(docs[i]);
              }
            : function (docs, cb) {
                for (var k in docs) cb(docs[k]);
@@ -208,7 +206,8 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
 
         , onUpdateDocProperty: function (doc) {
             var id = doc.id
-              , pos = model.get(pointerPath).indexOf(id);
+              , currPointers = model.get(pointerPath) || []
+              , pos = currPointers.indexOf(id);
             // If the updated doc belongs in our query results...
             if (memoryQuery.filterTest(doc, ns)) {
               // ...and it is already recorded in our query result.
@@ -310,7 +309,7 @@ function handleDocArrayMutation (model, method, _arguments, ns, docArray, callba
     , done = callbacks.done;
 
   var handled = handleNsMutation(model, method, path, args, out, ns, callbacks, function (docs, cb) {
-    for (var i = docs.length; i--; ) cb(docs[i]);
+    for (var i = 0, l = docs.length; i < l; i++) cb(docs[i]);
   });
 
   if (handled) return done && done();
@@ -402,8 +401,10 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
     case 'unshift':
       var docsToAdd = args[Model.arrayMutator[method].insertArgs]
         , onAddDoc = callbacks.onAddDoc;
-      if (Array.isArray(docsToAdd)) for (var i = docsToAdd.length; i--; ) {
-        onAddDoc(docsToAdd[i]);
+      if (Array.isArray(docsToAdd)) {
+        for (var i = 0, l = docsToAdd.length; i < l; i++) {
+          onAddDoc(docsToAdd[i]);
+        }
       } else {
         onAddDoc(docsToAdd);
       }
@@ -414,7 +415,7 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
     case 'remove':
       var docsToRm = out
         , onRmDoc = callbacks.onRmDoc;
-      for (var i = docsToRm.length; i--; ) {
+      for (var i = 0, l = docsToRm.length; i < l; i++) {
         onRmDoc(docsToRm[i]);
       }
       break;
@@ -424,7 +425,7 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
         , onUpdateDocProperty = callbacks.onUpdateDocProperty
         , docs = model.get(path);
         ;
-      for (var i = movedIds.length; i--; ) {
+      for (var i = 0, l = movedIds.length; i < l; i++) {
         var id = movedIds[i], doc;
         // TODO Ugh, this is messy
         if (Array.isArray(docs)) {
@@ -453,7 +454,8 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
  */
 function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
   if (!comparator) {
-    return model.insert(pointerPath, currResults.length, doc.id);
+    var out = model.insert(pointerPath, currResults.length, doc.id);
+    return out;
   }
   for (var k = currResults.length; k--; ) {
     var currRes = currResults[k]
