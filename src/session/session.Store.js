@@ -94,15 +94,14 @@ module.exports = {
       // Maps clientId -> sessionID. There can be many clientIds to a single sessionID
       var securePairs = store._securePairs = {};
       return function (req, res, next) {
-        if (!store._cachedCreateModel) {
-          store._cachedCreateModel = function () {
-            var model = store.createModel();
-            securePairs[model._clientId] = req.sessionID;
-            model.session = req.session;
-            return model;
-          }
-        }
-        req.createModel = store._cachedCreateModel;
+        req.createModel = function () {
+          var model = store.createModel();
+          securePairs[model._clientId] = req.sessionID;
+          var session = model.session = req.session;
+          console.log("modelMiddleware", session.userId)
+          model.set('_userId', session.userId);
+          return model;
+        };
         next();
       };
     }
