@@ -7,7 +7,6 @@ describe 'store.query.expose', ->
     describe 'coffee-style vs JS-style signatures', ->
       it 'should return equivalent queries', ->
         store = racer.createStore()
-        registry = store._queryMotifRegistry
 
         store.query.expose 'users', 'jsQuery', ->
           @where('name').equals('brian').where('age').equals(26)
@@ -60,6 +59,7 @@ describe 'store.query.expose', ->
 
         model = store.createModel()
 
+        registry = store._queryMotifRegistry
         [
           ['jsQuery', 'csQuery']
         , ['jsQueryComplex', 'csQueryComplex']
@@ -71,3 +71,31 @@ describe 'store.query.expose', ->
           csJson = registry.queryJSON(jsQuery)
 
           expect(jsJson).to.eql csJson
+
+    it 'should support nested attribute queries aaa', (done) ->
+      store = racer.createStore()
+
+      store.query.expose 'users', 'withFirstName', (fname) ->
+        @where('name.first').equals(fname)
+
+      store.set 'users.1', {
+        id:  '1'
+        name:
+          first: 'Brian'
+          last: 'N'
+      }, null, (err) ->
+        expect(err).to.be.null()
+
+        model = store.createModel()
+        query = model.query('users').withFirstName('Brian')
+        model.fetch query, (err, brians) ->
+          expect(err).to.be.null()
+          expect(brians.get()).to.eql [
+            {
+              id: '1'
+              name:
+                first: 'Brian'
+                last: 'N'
+            }
+          ]
+          done()
