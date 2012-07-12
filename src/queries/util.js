@@ -131,7 +131,6 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
       onOverwriteNs = function (docs, each) {
         model.set(pointerPath, []);
         each(docs, function (doc) {
-          console.log(memoryQuery.filterTest(doc, ns), doc, ns);
           if (memoryQuery.filterTest(doc, ns)) onAddDoc(doc);
         });
       };
