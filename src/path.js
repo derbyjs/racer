@@ -95,6 +95,7 @@ exports.regExpPathsOrChildren = function regExpPathsOrChildren (paths) {
 exports.lookup = lookup;
 
 function lookup (path, obj) {
+  if (!obj) return;
   if (path.indexOf('.') === -1) return obj[path];
 
   var parts = path.split('.');
