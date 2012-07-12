@@ -75,8 +75,6 @@ proto._genScopedModel = function () {
     , comparator = this._comparator;
   if (comparator) result = result.sort(comparator);
 
-  // TODO queryId here will not be unique once we introduct ad hoc filter
-  // functions
   var queryId = QueryBuilder.hash(queryJson, filterFn);
   return setupQueryModelScope(model, memoryQuery, queryId, result);
 };
