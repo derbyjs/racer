@@ -98,10 +98,15 @@ module.exports = {
           var model = store.createModel();
           securePairs[model._clientId] = req.sessionID;
           var session = model.session = req.session
-            , auth = session.auth;
-          if (auth) {
-            var userId = auth.userId;
-            if (userId) model.set('_userId', userId);
+            , userId = session.userId;
+          if (userId) {
+            model.set('_userId', userId);
+          } else {
+            var auth = session.auth;
+            if (auth) {
+              userId = auth.userId;
+              if (userId) model.set('_userId', userId);
+            }
           }
           return model;
         };
