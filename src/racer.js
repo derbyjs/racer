@@ -6,7 +6,8 @@ var util = require('./util')
 if (isClient) require('es5-shim');
 
 var EventEmitter = require('events').EventEmitter
-  , plugin = require('./plugin');
+  , plugin = require('./plugin')
+  , uuid = require('node-uuid');
 
 var racer = module.exports = new EventEmitter();
 
@@ -18,6 +19,9 @@ mergeAll(racer, plugin, {
     Model: require('./Model')
   }
 , util: util
+, uuid: function () {
+    return uuid.v4();
+  }
 });
 
 // Note that this plugin is passed by string to prevent Browserify from
