@@ -61,7 +61,7 @@ function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
     scopedModel = model.refList(refPath, ns, pointerPath);
   }
 
-  if (! model.refPath) {
+  if (! model[refPath]) {
     listener = createMutatorListener(model, pointerPath, ns, scopedModel, memoryQuery);
     model.on('mutator', listener);
 
