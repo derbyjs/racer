@@ -99,3 +99,27 @@ describe 'store.query.expose', ->
             }
           ]
           done()
+
+    it 'can retrieve queries built with Store#query with Store#fetch', (done) ->
+      store = racer.createStore()
+
+      store.query.expose 'users', 'withFirstName', (fname) ->
+        @where('name.first').equals(fname).one()
+
+      store.set 'users.1', {
+        id:  '1'
+        name:
+          first: 'Brian'
+          last: 'N'
+      }, null, (err) ->
+        expect(err).to.be.null()
+
+        query = store.query('users').withFirstName('Brian')
+        store.fetch query, (err, brian) ->
+          expect(err).to.be.null()
+          expect(brian).to.eql
+            id: '1'
+            name:
+              first: 'Brian'
+              last: 'N'
+          done()
