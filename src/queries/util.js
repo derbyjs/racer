@@ -259,17 +259,19 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           }
 
         , onUpdateDocProperty: function (doc) {
-            if (! memoryQuery.filterTest(doc, ns)) {
-              if (currResult.id !== doc.id) return;
+            if (!memoryQuery.filterTest(doc, ns)) {
+              if ((currResult && currResult.id) !== doc.id) return;
               var results = equivFindQuery.syncRun(searchSpace);
               if (results.length) {
                 return model.set(pointerPath, results[0].id);
               }
               return model.set(pointerPath, null);
             }
-            var comparator = memoryQuery._comparator
-              , comparison = comparator(doc, currResult);
-            if (comparison < 0) model.set(pointerPath, doc.id);
+            var comparator = memoryQuery._comparator;
+            if (!comparator) return;
+            if (comparator(doc, currResult) < 0) {
+              model.set(pointerPath, doc.id);
+            }
           }
 
         , done: function () {
