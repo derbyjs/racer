@@ -16,7 +16,7 @@ function QueryRegistry () {
   //        query: <# MemoryQuery>
   //        tags: [tags...]
   //
-  // Note that the `query` property is lazily created via QueryRegistry#memoryQuery
+  // The `query` property is lazily created via QueryRegistry#memoryQuery
   this._queries = {};
 
   // Maps ns -> [queryIds...]
@@ -154,7 +154,9 @@ QueryRegistry.prototype = {
   /**
    * Looks up a query in the registry.
    *
-   * @param {Array} queryTuple of the form [queryMotif, queryArgs...]
+   * @param {Array} queryTuple of the form
+   * [ns, {motifA: argsA, motifB: argsB, ...}, queryId]
+   * @return {Object} returns registered info about the query
    * @api public
    */
 , lookup: function (queryTuple) {
