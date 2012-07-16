@@ -42,7 +42,7 @@ racer
 
 if (isServer) {
   racer.use(__dirname + '/adapters/pubsub-memory');
-  racer.use(__dirname + '/access_control')
+  racer.use(__dirname + '/accessControl')
 }
 
 // The browser module must be included last, since it creates a model instance,

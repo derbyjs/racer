@@ -233,7 +233,7 @@ module.exports =
 
         # Resend all transactions in the queue
         for id in txnQueue
-          # TODO In access_control tests, same mutation sent twice as 2
+          # TODO In access control tests, same mutation sent twice as 2
           # different txns
           commit txns[id]
         return

@@ -1,4 +1,4 @@
-var mixinStore = __dirname + '/access_control.Store';
+var mixinStore = __dirname + '/accessControl.Store';
 
 exports = module.exports = plugin;
 
