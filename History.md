@@ -3,6 +3,7 @@
 ## 0.3.12
 Add initial support for authorization and access control
 
+- Initial support for auth. See https://github.com/codeparty/racer/blob/master/src/accessControl/README.md
 - New store.sessionMiddleware() with support for auth. Remove old racer.session middleware
 - New store.modelMiddleware(), which adds a req.getModel() method
 - Add racer.logPlugin for better debugging console output
