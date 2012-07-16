@@ -58,48 +58,60 @@ exports.useWith = { server: true, browser: false };
  *     some-client-id ↪ "event": ["arg1", 2, "arg3"]
  */
 function plugin (racer) {
-  require('colors');
+  var color = require('ansi-color').set
+    , bold = function(value) { return color(value, 'bold'); }
+    , black = function(value) { return color(value, 'black'); }
+    , red = function(value) { return color(value, 'red'); }
+    , green = function(value) { return color(value, 'green'); }
+    , yellow = function(value) { return color(value, 'yellow'); }
+    , blue = function(value) { return color(value, 'blue'); }
+    , magenta = function(value) { return color(value, 'magenta'); }
+    , cyan = function(value) { return color(value, 'cyan'); }
+    , white = function(value) { return color(value, 'white'); }
 
   racer.log = function () { console.log.apply(null, args); };
   racer.log.incoming = function (clientId) {
     var args = Array.prototype.slice.call(arguments, 1);
-    console.log.apply(null, [clientId.yellow, '↪'.cyan].concat(args));
+    console.log.apply(null, [yellow(clientId), bold(blue('↩'))].concat(args));
   };
   racer.log.outgoing = function (clientId) {
     var args = Array.prototype.slice.call(arguments, 1);
-    console.log.apply(null, [clientId.yellow, '↩'.green].concat(args));
+    console.log.apply(null, [yellow(clientId), bold(cyan('↪'))].concat(args));
   };
 
   racer.log.incoming.events = {
     txn: handleTxn
-  , disconnect: function (message) { return ('disconnect: ' + (message ? message : '')).red; }
+  , disconnect: function (message) { return 'Disconnect' + (message ? ': ' + message : ''); }
+  , derbyClient: function (appHash) { return 'Derby app with hash ' + appHash; }
+  , subscribe: function (targets, contextName) { return blue('subscribe ') + joinArgs(targets); }
   };
   racer.log.outgoing.events = {
     txnOk: function () { return false; }
   , txn: handleTxn
   , newListener: function () { return false; }
-  , fatalErr: function (err) { return ('FATAL ERR: ' + err).red; }
-  , "snapshotUpdate:newTxns": function () { return 'Asking client to ask store for a snapshot update of new transactions'.green; }
-  , resyncWithStore: function () { return 'Asking client to resync with store'.green; }
+  , fatalErr: function (err) { return red('Fatal error: ' + err); }
+  , "snapshotUpdate:newTxns": function () { return 'Asking client to request a snapshot update of new transactions'; }
+  , resyncWithStore: function () { return 'Asking client to resync with store'; }
   };
+  function joinArgs (args) {
+    var argStr = [];
+    for (var i = 0, l = args.length; i < l; i++) {
+      argStr.push(green(fullInspect(args[i])));
+    }
+    return argStr.join(', ');
+  }
   function handleTxn (txn) {
     var ver = transaction.getVer(txn)
       , id = transaction.getId(txn)
       , args = transaction.getArgs(txn)
       , method = transaction.getMethod(txn)
-      , out = method.blue + ' '
-      , argStr = [];
-    for (var i = 0, l = args.length; i < l; i++) {
-      argStr.push(fullInspect(args[i]).green);
-    }
-    out += argStr.join(', ') + ' ';
-    return out;
+    return blue(method) + ' ' + joinArgs(args);
   }
 
   racer.log.sockets = function (sockets) {
     sockets.on('connection', function (socket) {
       var clientId = socket.clientId = socket.handshake.query.clientId;
-      racer.log.incoming(clientId, 'connected'.green);
+      racer.log.incoming(clientId, 'Connect');
 
       var __emit__ = socket.emit;
       socket.emit = function (event) {

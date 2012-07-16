@@ -20,9 +20,9 @@
     "share": "0.4.1",
     "node-uuid": "1.3.3",
     "hooks": "0.2.1",
-    "colors": "git://github.com/Marak/colors.js.git#master",
     "connect": "2.x",
-    "debug": "*",
+    "debug": ">=0.7.0",
+    "ansi-color": ">=0.2.1",
     "cookie": "0.0.4"
   },
   "devDependencies": {
@@ -30,7 +30,6 @@
     "expect.js": ">=0.1.2",
     "sinon": "1.3.x",
     "coffee-script": "1.3.x",
-    "console.color": ">=0.0.4",
     "racer-journal-redis": "*",
     "racer-pubsub-redis": "*",
     "racer-db-mongo": "*",
