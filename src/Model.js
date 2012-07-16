@@ -55,8 +55,10 @@ mergeAll(modelProto, emitterProto, {
 
     this.connected = false;
     function onConnected () {
-      self.emit('connected', self.connected);
-      self.emit('connectionStatus', self.connected, self.canConnect);
+      var connected = self.connected;
+      self.emit(connected ? 'connect' : 'disconnect');
+      self.emit('connected', connected);
+      self.emit('connectionStatus', connected, self.canConnect);
     }
 
     socket.on('connect', function () {

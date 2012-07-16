@@ -50,7 +50,7 @@ describe 'access control', ->
                 browser: (model) ->
                 onSocketCxn: (socket, tab) ->
                   model = tab.model
-                  model.on 'connected', ->
+                  model.on 'connect', ->
                     model[reader] 'users.1.ssn', (err, ssn) ->
                       expect(err).to.be.null()
                       expect(ssn.get()).to.equal 'xxx'
@@ -102,7 +102,7 @@ describe 'access control', ->
                 browser: (model) ->
                 onSocketCxn: (socket, tab) ->
                   model = tab.model
-                  model.on 'connected', ->
+                  model.on 'connect', ->
                     model[reader] 'users.1.ssn', (err, scopedModel) ->
                       expect(err).to.equal 'Unauthorized'
                       expect(scopedModel).to.eql undefined
@@ -161,7 +161,7 @@ describe 'access control', ->
                 browser: (model) ->
                 onSocketCxn: (socket, tab) ->
                   model = tab.model
-                  model.on 'connected', ->
+                  model.on 'connect', ->
                     query = model.query('users').withRole('superadmin')
                     model[reader] query, (err, basicUsers) ->
                       expect(err).to.be.null()
@@ -221,7 +221,7 @@ describe 'access control', ->
                   expect(model.get('users.1')).to.eql undefined
                 onSocketCxn: (socket, tab) ->
                   model = tab.model
-                  model.on 'connected', ->
+                  model.on 'connect', ->
                     query = model.query('users').withRole('superadmin')
                     model[reader] query, (err, users) ->
                       expect(err).to.equal 'Unauthorized'
@@ -271,7 +271,7 @@ describe 'access control', ->
             browser: (model) ->
             onSocketCxn: (socket, tab) ->
               model = tab.model
-              model.on 'connected', ->
+              model.on 'connect', ->
                 model.set 'users.1.role', 'guest', (err) ->
                   expect(err).to.be.null()
                   socket.on 'disconnect', ->
@@ -315,7 +315,7 @@ describe 'access control', ->
             browser: (model) ->
             onSocketCxn: (socket, tab) ->
               model = tab.model
-              model.on 'connected', ->
+              model.on 'connect', ->
                 model.set 'users.1.role', 'guest', (err) ->
                   expect(err).to.equal 'Unauthorized'
                   expect(model.get('users.1.role')).to.eql undefined
