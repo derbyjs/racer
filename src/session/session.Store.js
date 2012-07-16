@@ -103,16 +103,16 @@ function sessionMiddleware(opts) {
 }
 
 /**
- * Returns a connect middleware function(req, res, next) that adds a
- * createModel method to each req. Note that createModel must return the same
- * model if called multiple times for the same request and the same store.
+ * Returns a connect middleware function(req, res, next) that adds a getModel
+ * method to each req. Note that getModel must return the same model if called
+ * multiple times for the same request and the same store.
  *
  * @return {Function} a connect middleware function
  * @api public
  */
 function modelMiddleware() {
   var store = this;
-  function createModel() {
+  function getModel() {
     var model = this._racerModel;
     if (model && model.store === store) {
       return model;
@@ -122,7 +122,7 @@ function modelMiddleware() {
     return model;
   }
   return function modelMiddleware(req, res, next) {
-    req.createModel = createModel;
+    req.getModel = getModel;
     next();
   }
 }

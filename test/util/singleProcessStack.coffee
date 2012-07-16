@@ -36,7 +36,7 @@ module.exports = (browsers) ->
     bundleModel = (serverModel) ->
       serverModel.bundle (bundle) -> res.end(bundle)
 
-    serverModel = req.createModel()
+    serverModel = req.getModel()
     idsToNames[serverModel._clientId] = clientName
     browsers[browserName][clientName].server req, serverModel, bundleModel, store
 
