@@ -61,58 +61,69 @@ module.exports = {
   }
 
 , proto: {
-    /**
-     * Returns a connect middleware function (req, res, next) that handles
-     * session creation and management.
-     *
-     * @param {Object} opts
-     * @return {Function} a connect middleware function
-     * @api public
-     */
-    sessionMiddleware: function (opts) {
-      this.usingSessions = true
+    sessionMiddleware: sessionMiddleware
+  , modelMiddleware: modelMiddleware
+  }
+}
 
-      opts || (opts = {});
+/**
+ * Returns a connect middleware function(req, res, next) that handles
+ * session creation and management.
+ *
+ * @param {Object} opts
+ * @return {Function} a connect middleware function
+ * @api public
+ */
+function sessionMiddleware(opts) {
+  opts || (opts = {});
+  this.usingSessions = true;
 
-      // The following this._* properties are used in setupSocketAuth
-      this._sessionKey = opts.key || (opts.key = 'connect.sid');
-      this._sessionSecret = opts.secret;
-      var sessStore = this._sessionStore = opts.store;
+  // The following properties are used in setupSocketAuth
+  this._sessionKey = opts.key || (opts.key = 'connect.sid');
+  this._sessionSecret = opts.secret;
+  var sessionStore = this._sessionStore = opts.store;
 
-      if (! sessStore) {
-        sessStore = this._sessionStore = opts.store = new MemoryStore;
-      }
+  if (!sessionStore) {
+    sessionStore = this._sessionStore = opts.store = new MemoryStore;
+  }
 
-      patchSessionStore(sessStore, this);
+  patchSessionStore(sessionStore, this);
 
-      return createSessionMiddleware(opts);
+  var securePairs = this._securePairs = {}
+    , store = this;
+  this.on('createRequestModel', function(req, model) {
+    securePairs[model._clientId] = req.sessionID;
+    var session = model.session = req.session
+      , userId = session.userId || session.auth && session.auth.userId;
+    if (!userId) userId = session.userId = store.uuid();
+    model.set('_userId', userId);
+  });
+
+  return createSessionMiddleware(opts);
+}
+
+/**
+ * Returns a connect middleware function(req, res, next) that adds a
+ * createModel method to each req. Note that createModel must return the same
+ * model if called multiple times for the same request and the same store.
+ *
+ * @return {Function} a connect middleware function
+ * @api public
+ */
+function modelMiddleware() {
+  var store = this;
+  function createModel() {
+    var model = this._racerModel;
+    if (model && model.store === store) {
+      return model;
     }
-
-  , modelMiddleware: function () {
-      var store = this;
-
-      // Maps clientId -> sessionID. There can be many clientIds to a single sessionID
-      var securePairs = store._securePairs = {};
-      return function (req, res, next) {
-        req.createModel = function () {
-          var model = store.createModel();
-          securePairs[model._clientId] = req.sessionID;
-          var session = model.session = req.session
-            , userId = session.userId;
-          if (userId) {
-            model.set('_userId', userId);
-          } else {
-            var auth = session.auth;
-            if (auth) {
-              userId = auth.userId;
-              if (userId) model.set('_userId', userId);
-            }
-          }
-          return model;
-        };
-        next();
-      };
-    }
+    model = this._racerModel = store.createModel();
+    store.emit('createRequestModel', this, model);
+    return model;
+  }
+  return function modelMiddleware(req, res, next) {
+    req.createModel = createModel;
+    next();
   }
 }
 

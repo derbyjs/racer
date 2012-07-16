@@ -73,6 +73,8 @@ function plugin (racer) {
     } else if (listen = options.listen) {
       store.listen(listen, options.namespace);
     }
+
+    this.emit('createStore', store);
     return store;
   };
 

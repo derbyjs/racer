@@ -1,5 +1,7 @@
-{existsSync} = fs = require 'fs'
-{normalize, join} = require 'path'
+fs = require 'fs'
+path = require 'path'
+existsSync = fs.existsSync || path.existsSync
+{normalize, join} = path
 
 exports.files = files = (dir, extension, out = []) ->
   fs.readdirSync(dir)
