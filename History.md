@@ -1,5 +1,12 @@
 # Racer change history
 
+## 0.3.12
+Add initial support for authorization and access control
+
+- New store.sessionMiddleware() with support for auth. Remove old racer.session middleware
+- New store.modelMiddleware(), which adds a req.getModel() method
+- Add racer.logPlugin for better debugging console output
+
 ## 0.3.11
 This was mostly a re-write for a more robust query, filter, and sort API.
 
