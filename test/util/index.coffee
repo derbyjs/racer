@@ -1,6 +1,5 @@
 {inspect} = require 'util'
 speculative = require '../../lib/util/speculative'
-require 'console.color'
 exports.expect = expect = require 'expect.js'
 
 ignore = '$out': 1, '$deref': 1
