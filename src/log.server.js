@@ -84,6 +84,7 @@ function plugin (racer) {
   , disconnect: function (message) { return 'Disconnect' + (message ? ': ' + message : ''); }
   , derbyClient: function (appHash) { return 'Derby app with hash ' + appHash; }
   , subscribe: function (targets, contextName) { return blue('subscribe ') + joinArgs(targets); }
+  , fetch: function (targets, contextName) { return blue('fetch ') + joinArgs(targets); }
   };
   racer.log.outgoing.events = {
     txnOk: function () { return false; }
