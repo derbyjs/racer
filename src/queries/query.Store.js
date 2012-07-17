@@ -4,6 +4,7 @@ var QueryHub = require('./QueryHub')
   , splitPath = path.split
   , lookup = path.lookup
   , finishAfter = require('../util/async').finishAfter
+  , merge = require('../util').merge
   , queryUtils = require('./util')
   , resultPointerPath = queryUtils.resultPointerPath
   , compileTargets = queryUtils.compileTargets
@@ -196,6 +197,9 @@ module.exports = {
       , subscribe: {value: function (callback) {
           store.subscribe(this, callback);
         }}
+      , fetchOrCreate: {value: function (newAttrs, callback) {
+          store.fetchOrCreate(this, newAttrs, callback);
+        }}
       });
     }
 
@@ -224,9 +228,9 @@ module.exports = {
               } else if (data.length === 1) {
                 // TODO For find, we must pass the callback an Array
                 var datum = data[0]
-                var path = datum[0]
+                  , path  = datum[0]
                   , value = datum[1]
-                  , ver = datum[2];
+                  , ver   = datum[2];
                 callback(null, value);
               } else {
                 throw new Error('Unimplemented');
@@ -234,6 +238,32 @@ module.exports = {
             }
           };
           self.middleware.fetch(req, res);
+        }
+      });
+    }
+
+    // TODO Test this
+  , fetchOrCreate: function (query, newAttrs, callback) {
+      var self = this;
+      return this.fetch(query, function (err, result) {
+        if (err) return callback(err);
+        if (typeof newAttrs === 'function') {
+          callback = newAttrs;
+          newAttrs = null;
+        }
+        if (typeof resultVal === 'undefined' || resultVal === null) {
+          var queryTuple = query.tuple
+            , queryJson = self._queryMotifRegistry.queryJSON(queryTuple)
+            , ns = queryTuple[0]
+            , obj = {}
+            , equals = queryJson.equals;
+          if (equals) obj = merge(obj, equals);
+          if (newAttrs) obj = merge(obj, newAttrs);
+          self.add(ns, obj, null, function (err, path, obj) {
+            callback(err, obj);
+          });
+        } else {
+          callback(err, result);
         }
       });
     }
