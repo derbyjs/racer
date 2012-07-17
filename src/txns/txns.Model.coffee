@@ -34,7 +34,8 @@ module.exports =
           delete @data
           delete @lastTxnId
 
-      model._count.txn = 0
+      model._count = txn: 0
+
       model._txns = txns = {}  # transaction id -> transaction
       model._txnQueue = txnQueue = []  # [transactionIds...]
 
