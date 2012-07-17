@@ -169,8 +169,7 @@ module.exports = {
       var res = {
         fail: callback
       , send: function (txn) {
-          var args = transaction.getArgs(txn);
-          callback.apply(null, [null].concat(args));
+          callback(null, txn);
         }
       };
       this.middleware.txn(req, res);

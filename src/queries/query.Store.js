@@ -259,7 +259,7 @@ module.exports = {
             , equals = queryJson.equals;
           if (equals) obj = merge(obj, equals);
           if (newAttrs) obj = merge(obj, newAttrs);
-          self.add(ns, obj, null, function (err, path, obj) {
+          self.add(ns, obj, null, function (err, path, val) {
             callback(err, obj);
           });
         } else {

@@ -40,7 +40,9 @@ Async.prototype = {
 , add: function (path, value, ver, callback) {
     var id = value.id || (value.id = this.uuid());
     path += '.' + id;
-    return this.set(path, value, ver, callback);
+    return this.set(path, value, ver, function (err, txn) {
+      return callback(err, value);
+    });
   }
 
 , del: function (path, ver, callback) {
