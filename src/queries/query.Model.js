@@ -148,7 +148,15 @@ module.exports = {
      * @api public
      */
   , query: function (ns) {
-      return this._queryMotifRegistry.queryTupleBuilder(ns);
+      var model = this;
+      return Object.create(this._queryMotifRegistry.queryTupleBuilder(ns), {
+        fetch: {value: function (callback) {
+          model.fetch(this, callback);
+        }}
+      , subscribe: {value: function (callback) {
+          model.subscribe(this, callback);
+        }}
+      });
     }
 
     /**

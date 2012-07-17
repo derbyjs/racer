@@ -40,8 +40,24 @@ module.exports = {
        * @api public
        */
       store.query.expose = function (ns, motifName, callback) {
-        registry.add(ns, motifName, callback);
-        return store.query;
+        var motifs;
+        // store.query.expose(motifs);
+        if (arguments.length === 1 && ns.constructor === Object) {
+          motifs = ns;
+
+        // store.query.expose(ns, motifs)
+        } else if (arguments.length === 2 && motifName.constructor === Object) {
+          motifs = motifName;
+        }
+        if (motifs) {
+          for (motifName in motifs) {
+            callback = motifs[motifName];
+            this.expose(ns, motifName, callback);
+          }
+        } else {
+          registry.add(ns, motifName, callback);
+        }
+        return this;
       };
     }
   , middleware: function (store, middleware) {
@@ -172,7 +188,15 @@ module.exports = {
 
 , proto: {
     query: function (ns) {
-      return this._queryMotifRegistry.queryTupleBuilder(ns);
+      var store = this;
+      return Object.create(this._queryMotifRegistry.queryTupleBuilder(ns), {
+        fetch: {value: function (callback) {
+          store.fetch(this, callback);
+        }}
+      , subscribe: {value: function (callback) {
+          store.subscribe(this, callback);
+        }}
+      });
     }
 
   , fetch: function () {
@@ -213,8 +237,6 @@ module.exports = {
         }
       });
     }
-
-    // TODO Store#fetch
 
     /**
      * Fetches data associated with a queryTuple [ns, {queryMotif: queryArgs, ...}].
