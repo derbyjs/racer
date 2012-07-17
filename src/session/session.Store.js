@@ -91,12 +91,11 @@ function sessionMiddleware(opts) {
 
   var securePairs = this._securePairs = {}
     , store = this;
-  this.on('createRequestModel', function(req, model) {
+  this.on('createRequestModel', function (req, model) {
     securePairs[model._clientId] = req.sessionID;
     var session = model.session = req.session
       , userId = session.userId || session.auth && session.auth.userId;
-    if (!userId) userId = session.userId = store.uuid();
-    model.set('_userId', userId);
+    if (userId) model.set('_userId', userId);
   });
 
   return createSessionMiddleware(opts);
