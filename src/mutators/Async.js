@@ -37,6 +37,12 @@ Async.prototype = {
     });
   }
 
+, add: function (path, value, ver, callback) {
+    var id = value.id || (value.id = this.uuid());
+    path += '.' + id;
+    return this.set(path, value, ver, callback);
+  }
+
 , del: function (path, ver, callback) {
     var self = this;
     self._nextTxnId( function (err, id) {
