@@ -2,6 +2,7 @@ var EventEmitter = require('events').EventEmitter
   , Memory = require('./Memory')
   , eventRegExp = require('./path').eventRegExp
   , mergeAll = require('./util').mergeAll
+  , uuid = require('node-uuid')
   ;
 
 module.exports = Model;
@@ -11,7 +12,6 @@ function Model (init) {
     this[k] = init[k];
   }
   this._memory = new Memory();
-  this._count = { id: 0 };
   // Set max listeners to unlimited
   this.setMaxListeners(0);
 
@@ -28,7 +28,7 @@ var modelProto = Model.prototype
 
 mergeAll(modelProto, emitterProto, {
   id: function () {
-    return '$_' + this._clientId + '_' + (this._count.id++).toString(36);
+    return uuid.v4();
   }
 
   /* Socket.io communication */
