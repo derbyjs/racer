@@ -77,19 +77,18 @@ module.exports =
     add:
       type: COMPOUND_MUTATOR
       fn: (path, value, callback) ->
-        id = @id()
-
         len = arguments.length
         if @_at && len is 1 || len is 2 && typeof value is 'function'
           callback = value
           value = path
-          path = id
+          if typeof value isnt 'object'
+            throw 'model.add() requires an object argument'
+          path = id = value.id ||= @id()
         else
+          if typeof value isnt 'object'
+            throw 'model.add() requires an object argument'
+          id = value.id ||= @id()
           path = path + '.' + id
-
-        if typeof value isnt 'object'
-          throw 'model.add() requires an object argument'
-        value.id = id
 
         if callback
           @set path, value, callback
