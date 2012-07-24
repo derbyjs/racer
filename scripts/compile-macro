@@ -1,6 +1,6 @@
-#! /usr/bin/env coffee
+#! /usr/bin/env node
 
-{files, compile} = require '../src/util/macro'
+var macro = require('../src/util/macro')
+  , extension = /\.macro$/
 
-extension = /\.macro$/
-files(__dirname + '/../src', extension).forEach compile
+macro.files(__dirname + '/../src', extension).forEach(macro.compile)
