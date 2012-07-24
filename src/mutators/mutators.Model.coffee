@@ -18,6 +18,8 @@ module.exports =
       memory = new Memory
 
       model.async = new Async
+        model: model
+
         nextTxnId: ->
           model._nextTxnId()
 
