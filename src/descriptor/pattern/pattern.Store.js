@@ -1,5 +1,4 @@
 var patternDescriptor = require('./base')
-  , createMiddleware = require('../../middleware')
   , path = require('../../path')
   , splitPath = path.split
   , expandPath = path.expand
@@ -11,7 +10,7 @@ module.exports = {
   type: 'Store'
 
 , events: {
-    middleware: function (store, middleware) {
+    middleware: function (store, middleware, createMiddleware) {
       middleware.fetchPattern = createMiddleware();
       middleware.fetchPattern.add(function (req, res, next) {
         var paths = expandPath(req.target)

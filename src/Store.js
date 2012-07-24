@@ -12,6 +12,7 @@ var EventEmitter = require('events').EventEmitter
   , debugGenerator = require('debug')
   , socketDebug = debugGenerator('socket-client-id')
   , racerDebug  = debugGenerator('racer')
+  , createMiddleware = require('./middleware')
   ;
 
 module.exports = Store;
@@ -70,7 +71,7 @@ function Store (options) {
   this.mixinEmit('init', this, options);
 
   var middleware = this.middleware = {};
-  this.mixinEmit('middleware', this, middleware);
+  this.mixinEmit('middleware', this, middleware, createMiddleware);
 
   // Maps method => [function]
   var routes = this._routes = {}

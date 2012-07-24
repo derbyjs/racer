@@ -2,7 +2,6 @@ var queryDescriptor = require('./base')
   , QueryHub = require('./QueryHub')
   , QueryMotifRegistry = require('./QueryMotifRegistry')
   , merge = require('../../util').merge
-  , createMiddleware = require('../../middleware')
   ;
 
 module.exports = {
@@ -55,7 +54,7 @@ module.exports = {
       };
     }
 
-  , middleware: function (store, middleware) {
+  , middleware: function (store, middleware, createMiddleware) {
       // TODO pass back plural docs to send, not singular doc,
       //      for fetchQuery
       middleware.fetchQuery = createMiddleware();

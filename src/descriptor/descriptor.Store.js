@@ -1,7 +1,6 @@
 var Taxonomy = require('./Taxonomy')
   , normArgs = require('./util').normArgs
   , finishAfter = require('../util/async').finishAfter
-  , createMiddleware = require('../middleware')
   ;
 
 module.exports = {
@@ -18,7 +17,7 @@ module.exports = {
     };
   }
 , events: {
-    middleware: function (store, middleware) {
+    middleware: function (store, middleware, createMiddleware) {
       var mode = store._mode;
       middleware.snapshot = createMiddleware()
       if (mode.startIdVerifier) {
