@@ -1,6 +1,6 @@
 {expect} = require '../util'
 racer = require '../../lib/racer'
-QueryBuilder = require '../../lib/queries/QueryBuilder'
+QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
 
 describe 'store.query.expose', ->
   describe 'query builder action inside callback', ->

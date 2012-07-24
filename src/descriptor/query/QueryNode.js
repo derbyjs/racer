@@ -1,8 +1,8 @@
 var MemoryQuery = require('./MemoryQuery')
   , QueryBuilder = require('./QueryBuilder')
-  , transaction = require('../transaction')
-  , DbMemory    = require('../adapters/db-memory').adapter
-  , deepCopy = require('../util').deepCopy;
+  , transaction = require('../../transaction')
+  , DbMemory    = require('../../adapters/db-memory').adapter
+  , deepCopy = require('../../util').deepCopy;
 
 exports = module.exports = QueryNode;
 

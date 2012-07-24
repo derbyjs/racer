@@ -1,6 +1,6 @@
 # TODO Re-phrase tests, now that we are using shouldPublish, not maybePublish
 # TODO Ensure there's a cache check for every publish check
-PaginatedQueryNode = require '../../lib/queries/PaginatedQueryNode'
+PaginatedQueryNode = require '../../lib/descriptor/query/PaginatedQueryNode'
 transaction = require '../../lib/transaction'
 expect = require 'expect.js'
 sinon = require 'sinon'

@@ -1,4 +1,4 @@
-MemoryQuery = require '../../lib/queries/MemoryQuery'
+MemoryQuery = require '../../lib/descriptor/query/MemoryQuery'
 DbMemory = require('../../lib/adapters/db-memory').adapter
 expect = require 'expect.js'
 

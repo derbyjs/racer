@@ -1,4 +1,4 @@
-QueryBuilder = require '../../lib/queries/QueryBuilder'
+QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
 expect = require 'expect.js'
 {deepEqual} = require '../../lib/util'
 

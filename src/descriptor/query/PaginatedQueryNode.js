@@ -2,16 +2,16 @@
 // TODO Handle all errors
 var QueryNode     = require('./QueryNode')
   , QueryBuilder  = require('./QueryBuilder')
-  , transaction   = require('../transaction')
-  , pathUtils     = require('../path')
+  , transaction   = require('../../transaction')
+  , pathUtils     = require('../../path')
   , lookup        = pathUtils.lookup
   , objectExcept  = pathUtils.objectExcept
-  , util          = require('../util')
+  , util          = require('../../util')
   , countWhile    = util.countWhile
   , indexOf       = util.indexOf
   , deepCopy      = util.deepCopy
   , deepEqual     = util.deepEqual
-  , DbMemory      = require('../adapters/db-memory').adapter
+  , DbMemory      = require('../../adapters/db-memory').adapter
   , debug         = require('debug')('error')
   ;
 

@@ -1,7 +1,7 @@
 var QueryBuilder = require('./QueryBuilder')
   , MemoryQuery = require('./MemoryQuery')
   , setupQueryModelScope = require('./util').setupQueryModelScope
-  , filterDomain = require('../computed/filter').filterDomain
+  , filterDomain = require('../../computed/filter').filterDomain
   ;
 
 module.exports = TransformBuilder;

@@ -1,5 +1,5 @@
-QueryNode = require '../../lib/queries/QueryNode'
-QueryBuilder = require '../../lib/queries/QueryBuilder'
+QueryNode = require '../../lib/descriptor/query/QueryNode'
+QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
 transaction = require '../../lib/transaction'
 {expect} = require '../util'
 sinon = require 'sinon'

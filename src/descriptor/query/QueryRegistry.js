@@ -1,7 +1,7 @@
-// TODO Update queryTuple comments to include queryId as queryTuple[0]
+// TODO Update queryTuple comments to reflect current structure
 
-var deepEqual = require('../util').deepEqual
-  , objectExcept = require('../path').objectExcept
+var deepEqual = require('../../util').deepEqual
+  , objectExcept = require('../../path').objectExcept
   , MemoryQuery = require('./MemoryQuery');
 
 module.exports = QueryRegistry;

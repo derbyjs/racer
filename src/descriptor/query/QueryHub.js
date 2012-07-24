@@ -14,7 +14,7 @@
 var QueryBuilder = require('./QueryBuilder')
   , QueryNode = require('./QueryNode')
   , PaginatedQueryNode = require('./PaginatedQueryNode')
-  , transaction = require('../transaction')
+  , transaction = require('../../transaction')
   ;
 
 module.exports = QueryHub;

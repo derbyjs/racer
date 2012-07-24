@@ -8,7 +8,7 @@ var pathUtils             = require('../path')
   , createRefList         = require('./refList')
   , equal                 = require('../util').equal
   , unbundledFunction     = require('../bundle/util').unbundledFunction
-  , TransformBuilder      = require('../queries/TransformBuilder') // ugh - leaky abstraction
+  , TransformBuilder      = require('../descriptor/query/TransformBuilder') // ugh - leaky abstraction
   ;
 
 exports = module.exports = plugin;

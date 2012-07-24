@@ -1,16 +1,18 @@
-var QueryBuilder = require('./QueryBuilder')
+var basePattern = require('./base')
+  , mergeAll = require('../../util').mergeAll
+  , setupQueryModelScope = require('./util').setupQueryModelScope
+
+  , transaction = require('../../transaction')
+  , QueryBuilder = require('./QueryBuilder')
   , QueryRegistry = require('./QueryRegistry')
   , QueryMotifRegistry = require('./QueryMotifRegistry')
-  , queryUtils = require('./util')
-  , setupQueryModelScope = queryUtils.setupQueryModelScope
-  , compileTargets = queryUtils.compileTargets
   ;
 
 module.exports = {
   type: 'Model'
 , events: {
     init: function (model) {
-      var store = model.store
+      var store = model.store;
       if (store) {
         // Maps query motif -> callback
         model._queryMotifRegistry = store._queryMotifRegistry;
@@ -26,23 +28,142 @@ module.exports = {
       model._queryRegistry = new QueryRegistry;
     }
 
-    // TODO Re-write this
-  , bundle: function (model) {
+  , bundle: function (model, addToBundle) {
+      addToBundle('_loadQuerySubs', model._querySubs());
+
+      // TODO Re-write this
       var queryMotifRegistry = model._queryMotifRegistry
         , queryMotifBundle = queryMotifRegistry.toJSON();
       model._onLoad.push(['_loadQueryMotifs', queryMotifBundle]);
     }
+
+  , socket: function (model, socket) {
+      var memory = model._memory;
+
+      // The "addDoc" event is fired wheneber a remote mutation results in a
+      // new or existing document in the cloud to become a member of one of the
+      // result sets corresponding to a query that this model is currently
+      // subscribed.
+      socket.on('addDoc', function (payload, num) {
+        var data = payload.data
+          , doc = data.doc
+          , ns  = data.ns
+          , ver = data.ver
+          , txn = data.txn
+          , collection = memory.get(ns);
+
+        // If the doc is already in the model, don't add it
+        if (collection && collection[doc.id]) {
+          // But apply the transaction that resulted in the document that is
+          // added to the query result set.
+          return model._addRemoteTxn(txn, num);
+        }
+
+        var pathToDoc = ns + '.' + doc.id
+          , txn = transaction.create({
+              ver: ver
+            , id: null
+            , method: 'set'
+            , args: [pathToDoc, doc]
+            });
+        model._addRemoteTxn(txn, num);
+        model.emit('addDoc', pathToDoc, doc);
+      });
+
+      // The "rmDoc" event is fired wheneber a remote mutation results in an
+      // existing document in the cloud ceasing to become a member of one of
+      // the result sets corresponding to a query that this model is currently
+      // subscribed.
+      socket.on('rmDoc', function (payload, num) {
+        var hash = payload.channel // TODO Remove
+          , data = payload.data
+          , doc  = data.doc
+          , id   = data.id
+          , ns   = data.ns
+          , ver  = data.ver
+
+            // TODO Maybe just [clientId, queryId]
+          , queryTuple = data.q; // TODO Add q to data
+
+        // Don't remove the doc if any other queries match the doc
+        var querySubs = model._querySubs();
+        for (var i = querySubs.length; i--; ) {
+          var currQueryTuple = querySubs[i];
+
+          var memoryQuery = model.registeredMemoryQuery(currQueryTuple);
+
+          // If "rmDoc" was triggered by the same query, we expect it not to
+          // match the query, so ignore it.
+          if (QueryBuilder.hash(memoryQuery.toJSON()) === hash.substring(3, hash.length)) continue;
+
+          // If the doc belongs in an existing subscribed query's result set,
+          // then don't remove it, but instead apply a "null" transaction to
+          // make sure the transaction counter `num` is acknowledged, so other
+          // remote transactions with a higher counter can be applied.
+          if (memoryQuery.filterTest(doc, ns)) {
+            return model._addRemoteTxn(null, num);
+          }
+        }
+
+        var pathToDoc = ns + '.' + id
+          , txn = transaction.create({
+                ver: ver
+              , id: null
+              , method: 'del'
+              , args: [pathToDoc]
+            })
+          , oldDoc = model.get(pathToDoc);
+        model._addRemoteTxn(txn, num);
+        model.emit('rmDoc', pathToDoc, oldDoc);
+      });
+
+    }
   }
+
+, decorate: function (Model) {
+    var modelPattern = mergeAll({
+      scopedResult: function (model, queryTuple) {
+        var memoryQuery = model.registeredMemoryQuery(queryTuple)
+          , queryId = model.registeredQueryId(queryTuple);
+        return setupQueryModelScope(model, memoryQuery, queryId);
+      }
+    , registerSubscribe: function (model, queryTuple) {
+        model.registerQuery(queryTuple, 'subs');
+      }
+    , unregisterSubscribe: function (model, queryTuple) {
+        var querySubs = model._querySubs()
+          , hash = QueryBuilder.hash(queryJson);
+        if (! (hash in querySubs)) return;
+        model.unregisterQuery(hash, querySubs);
+      }
+    , subs: function (model) {
+        return model._querySubs();
+      }
+    }, basePattern);
+
+    Model.dataDescriptor(modelPattern);
+  }
+
 , proto: {
+    _loadQuerySubs: function (querySubs) {
+      for (var i = querySubs.length; i--; ) {
+        var queryTuple = querySubs[i];
+        this.registerQuery(queryTuple, 'subs');
+      }
+    }
+  , _querySubs: function () {
+      return this._queryRegistry.lookupWithTag('subs');
+    }
 
     /**
      * @param {Array} queryTuple
      * @return {Object} json representation of the query
      * @api protected
      */
-    queryJSON: function (queryTuple) {
+  , queryJSON: function (queryTuple) {
       return this._queryMotifRegistry.queryJSON(queryTuple);
     }
+
 
     /**
      * Called when loading the model bundle. Loads queries defined by store.query.expose
@@ -156,98 +277,6 @@ module.exports = {
       , subscribe: {value: function (callback) {
           model.subscribe(this, callback);
         }}
-      });
-    }
-
-    /**
-     * fetch(targets..., callback)
-     * Fetches targets which represent a set of paths, path patterns, and/or
-     * queries.
-     *
-     * @param {String|Array} targets[0] representing a path, path pattern, or query
-     * @optional @param {String|Array} targets[1] representing a path, path pattern,
-     *                                 or query
-     * @optional @param {String|Array} ...
-     * @optional @param {String|Array} targets[k] representing a path, path pattern,
-     *                                 or query
-     * @param {Function} callback
-     * @api public
-     */
-  , fetch: function () {
-      var arglen = arguments.length
-        , lastArg = arguments[arglen-1]
-        , callback = (typeof lastArg === 'function') ? lastArg : noop
-        , targets = Array.prototype.slice.call(arguments, 0, callback ? arglen-1 : arglen)
-        , self = this
-        ;
-
-      compileTargets(targets, {
-        model: this
-      , done: function (targets, scopedModels) { /* this === model */
-          self._waitOrFetchData(targets, function (err, data) {
-            if (err) return callback(err);
-            self._addData(data);
-            callback.apply(null, [err].concat(scopedModels));
-          });
-        }
-      });
-    }
-
-  , _addData: function (data) {
-      var memory = this._memory
-        , data = data.data;
-      for (var i = 0, l = data.length; i < l; i++) {
-        var triplet = data[i]
-          , path = triplet[0]
-          , value = triplet[1]
-          , ver = triplet[2];
-        memory.set(path, value, ver);
-        // Need this condition for scenarios where we subscribe to a
-        // non-existing document. Otherwise, a mutator event would be emitted
-        // with an undefined value, triggering filtering and querying listeners
-        // which rely on a document to be defined and possessing an id.
-        if (value !== null && typeof value !== 'undefined') {
-          // TODO Perhaps make another event to differentiate against model.set
-          this.emit('set', [path, value]);
-        }
-      }
-    }
-
-    /**
-     * Fetches the path and/or query targets and passes the result(s) to the callback.
-     *
-     * @param {Array} targets are an Array of paths and/or queries
-     * @param {Function} callback(err, data, ver) where data is an array of
-     * pairs of the form [path, dataAtPath]
-     * @api protected
-     */
-  , _waitOrFetchData: function (targets, callback) {
-      if (!this.connected) return callback('disconnected');
-      this.socket.emit('fetch', targets, this.scopedContext, callback);
-    }
-  }
-
-, server: {
-    _waitOrFetchData: function (targets, cb) {
-      var store = this.store
-        , contextName = this.scopedContext
-        , self = this;
-      this._clientIdPromise.on( function (err, clientId) {
-        if (err) return cb(err);
-        var req = {
-          targets: targets
-        , clientId: clientId
-        , session: self.session
-        , context: store.context(contextName)
-        };
-        var res = {
-          fail: cb
-        , send: function (data) {
-            store.emit('fetch', data, clientId, targets);
-            cb(null, data);
-          }
-        };
-        store.middleware.fetch(req, res);
       });
     }
   }

@@ -22,6 +22,7 @@ mergeAll(racer, plugin, {
 , uuid: function () {
     return uuid.v4();
   }
+, transaction: require('./transaction')
 });
 
 // Note that this plugin is passed by string to prevent Browserify from
@@ -35,7 +36,7 @@ racer
   .use(require('./refs'))
   .use(require('./pubSub'))
   .use(require('./computed'))
-  .use(require('./queries'))
+  .use(require('./descriptor'))
   .use(require('./context'))
   .use(require('./txns'))
   .use(require('./reconnect'));
@@ -43,6 +44,7 @@ racer
 if (isServer) {
   racer.use(__dirname + '/adapters/pubsub-memory');
   racer.use(__dirname + '/accessControl')
+  racer.use(__dirname + '/hooks')
 }
 
 // The browser module must be included last, since it creates a model instance,

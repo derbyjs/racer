@@ -122,7 +122,6 @@ describe 'access control', ->
               store.query.expose 'users', 'withRole', (role) ->
                 return @where('roles').contains([role])
               store.queryAccess 'users', 'withRole', (role, allow) ->
-                console.log -1 != @session.roles.indexOf 'superadmin'
                 return allow(-1 != @session.roles.indexOf 'superadmin')
             browserA:
               tabA:

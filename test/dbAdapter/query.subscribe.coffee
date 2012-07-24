@@ -1,7 +1,7 @@
 {expect} = require '../util'
 {finishAfter} = require '../../lib/util/async'
 {mockFullSetup} = require '../util/model'
-QueryBuilder = require '../../lib/queries/QueryBuilder'
+QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
 sinon = require 'sinon'
 
 makeQuery = (ns) -> new QueryBuilder({from: ns})

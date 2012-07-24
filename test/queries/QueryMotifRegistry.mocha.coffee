@@ -1,5 +1,5 @@
-QueryMotifRegistry = require '../../lib/queries/QueryMotifRegistry'
-QueryBuilder = require '../../lib/queries/QueryBuilder'
+QueryMotifRegistry = require '../../lib/descriptor/query/QueryMotifRegistry'
+QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
 {expect} = require '../util'
 
 describe 'QueryMotifRegistry', ->

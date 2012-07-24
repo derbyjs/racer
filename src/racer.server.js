@@ -20,11 +20,11 @@ function plugin (racer) {
     // we should add a "protected" attribute to particular objects in these
     // directories, and then compile these objects into racer.protected
     queries: {
-      QueryBuilder: require('./queries/QueryBuilder')
-    , MemoryQuery: require('./queries/MemoryQuery')
-    , QueryHub: require('./queries/QueryHub')
-    , QueryNode: require('./queries/QueryNode')
-    , PaginatedQueryNode: require('./queries/PaginatedQueryNode')
+      QueryBuilder: require('./descriptor/query/QueryBuilder')
+    , MemoryQuery: require('./descriptor/query/MemoryQuery')
+    , QueryHub: require('./descriptor/query/QueryHub')
+    , QueryNode: require('./descriptor/query/QueryNode')
+    , PaginatedQueryNode: require('./descriptor/query/PaginatedQueryNode')
     }
   , diffMatchPatch: require('./diffMatchPatch')
   , Memory: require('./Memory')

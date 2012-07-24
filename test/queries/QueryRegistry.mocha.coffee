@@ -1,4 +1,4 @@
-QueryRegistry = require '../../lib/queries/QueryRegistry'
+QueryRegistry = require '../../lib/descriptor/query/QueryRegistry'
 {expect} = require '../util'
 
 describe 'QueryRegistry', ->

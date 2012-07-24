@@ -4,7 +4,7 @@ var lookup = require('../path').lookup
   , indexOf = util.indexOf
   , deepIndexOf = util.deepIndexOf
   , deepEqual = util.deepEqual
-  , QueryBuilder = require('../queries/QueryBuilder')
+  , QueryBuilder = require('../descriptor/query/QueryBuilder')
   , specIdentifier = require('../util/speculative').identifier
 
 module.exports = {

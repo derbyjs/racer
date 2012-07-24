@@ -1,3 +1,6 @@
+var noop = require('./util').noop
+  , Memory = require('./Memory');
+
 /**
  * Transactions are represented as an Array
  * [ ver = vrsion at teh time of the transaction
@@ -6,7 +9,7 @@
  * , arguments]
  */
 
-module.exports = {
+exports = module.exports = {
   create: function (obj) {
     var txn = (obj.ops) ? [obj.ver, obj.id, obj.ops]
                         : [obj.ver, obj.id, obj.method, obj.args]
@@ -108,3 +111,22 @@ function applyTxn (extractor, txn, data, memoryAdapter, ver) {
   args = args.concat([ver, data]);
   return memoryAdapter[method].apply(memoryAdapter, args);
 }
+
+var transaction = exports;
+exports.applyTxnToDoc = (function (memory) {
+  memory.setVersion = noop;
+  return function (txn, doc) {
+    var path = transaction.getPath(txn)
+      , parts = path.split('.')
+      , ns = parts[0]
+      , id = parts[1]
+
+      , world = {}
+      , data = { world: world };
+    world[ns] = {};
+    if (doc) world[ns][id] = doc;
+
+    transaction.applyTxn(txn, data, memory, -1);
+    return memory.get(ns + '.' + id, data);
+  };
+})(new Memory);

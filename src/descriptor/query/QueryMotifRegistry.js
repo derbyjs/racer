@@ -1,5 +1,5 @@
 var QueryBuilder = require('./QueryBuilder')
-  , bundleUtils = require('../bundle/util')
+  , bundleUtils = require('../../bundle/util')
   , bundledFunction = bundleUtils.bundledFunction
   , unbundledFunction = bundleUtils.unbundledFunction
   ;

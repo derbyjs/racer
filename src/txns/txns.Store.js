@@ -67,6 +67,7 @@ module.exports = {
         middleware.txn.add(mode.startIdVerifier);
       }
 
+      //middleware.txn.add(middleware.beforeAccessControl);
       middleware.txn.add(accessController);
       // middleware.add('txn', validator);
       if (mode.detectConflict) {
@@ -80,6 +81,9 @@ module.exports = {
       middleware.txn.add(mode.incrVer);
       // middleware.add('txn', db); // could use db in middleware.fetch.add(db), too. The db file could just define different handlers per channel, so all logic for db is in one file
       middleware.txn.add(writeToDb);
+      middleware.txn.add(function (req, res, next) {
+        middleware.afterDb(req, res, next);
+      });
       middleware.txn.add(publish);
       middleware.txn.add(authorAck);
 

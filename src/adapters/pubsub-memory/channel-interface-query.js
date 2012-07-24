@@ -1,10 +1,9 @@
 var util = require('../../util')
   , isServer = util.isServer
   , deepCopy = util.deepCopy
-  , noop = util.noop
-  , transaction = require('../../transaction')
   , Memory = require('../../Memory')
-  , transaction = require('../../transaction.server');
+  , transaction = require('../../transaction.server')
+  , applyTxnToDoc = transaction.applyTxnToDoc;
 
 console.assert(isServer);
 
@@ -19,33 +18,16 @@ function createQueryInterface (pubSub, store) {
       function (msg, meta) {
         var type = msg.type;
         if (type !== 'txn' || !meta) return;
-        // TODO applyTxn only once, not once per channel type. Is it only done
+        // TODO applyTxnToDoc only once, not once per channel type. Is it only done
         // here?
         var params = msg.params
           , txn = params.data
           , origDoc = meta.origDoc
           , newDoc;
         if (origDoc) newDoc = deepCopy(origDoc);
-        newDoc = applyTxn(txn, newDoc);
+        newDoc = applyTxnToDoc(txn, newDoc);
         queryCoordinator.publish(newDoc, origDoc, txn);
       }
     }
   });
-}
-
-var memory = new Memory;
-memory.setVersion = noop;
-function applyTxn (txn, doc) {
-  var path = transaction.getPath(txn)
-    , parts = path.split('.')
-    , ns = parts[0]
-    , id = parts[1]
-
-    , world = {}
-    , data = { world: world };
-  world[ns] = {};
-  if (doc) world[ns][id] = doc;
-
-  transaction.applyTxn(txn, data, memory, -1);
-  return memory.get(ns + '.' + id, data);
 }

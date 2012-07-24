@@ -1,4 +1,4 @@
-var TransformBuilder = require('../queries/TransformBuilder');
+var TransformBuilder = require('../descriptor/query/TransformBuilder');
 
 module.exports = {
   type: 'Model'

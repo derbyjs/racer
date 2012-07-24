@@ -1,9 +1,8 @@
-var mixinModel = require('./pubSub.Model')
-  , mixinStore = __dirname + '/pubSub.Store';
+var mixinStore = __dirname + '/pubSub.Store';
 
 exports = module.exports = function (racer) {
-  racer.mixin(mixinModel, mixinStore);
+  racer.mixin(mixinStore);
 };
 
-exports.useWith = { server: true, browser: true };
+exports.useWith = { server: false, browser: true };
 exports.decorate = 'racer';

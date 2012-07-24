@@ -1,6 +1,6 @@
 Memory = require '../../Memory'
 {mergeAll, deepCopy} = require '../../util'
-Query = require '../../queries/MemoryQuery'
+Query = require '../../descriptor/query/MemoryQuery'
 
 MUTATORS = ['set', 'del', 'push', 'unshift', 'insert', 'pop', 'shift', 'remove', 'move']
 routePattern = /^[^.]+(?:\.[^.]+)?(?=\.|$)/
@@ -39,14 +39,17 @@ mergeAll DbMemory::, Memory::,
         args = deepCopy args
         match = routePattern.exec path
         docPath = match && match[0]
-        @get docPath, (err, doc) =>
-          return done err if err
-          doc = deepCopy doc
-          try
-            @[method] path, args..., ver, null
-          catch err
-            return done err, doc
-          done null, doc
+        topDocPath = docPath.split('.')[0..1].join('.')
+        @get topDocPath, (err, topDoc) =>
+          topDoc = deepCopy topDoc
+          @get docPath, (err, doc) =>
+            return done err if err
+            oldDoc = topDoc
+            try
+              @[method] path, args..., ver, null
+            catch err
+              return done err, oldDoc
+            done null, oldDoc
 
     getFn = (path, done, next) => @get path, done
     store.route 'get', '*', -1000, getFn

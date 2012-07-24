@@ -1,16 +1,16 @@
 // TODO JSDoc
-var filterUtils = require('../computed/filter')
+var filterUtils = require('../../computed/filter')
   , filterFnFromQuery = filterUtils.filterFnFromQuery
   , filterDomain = filterUtils.filterDomain
-  , sliceDomain = require('../computed/range').sliceDomain
-  , sortUtils = require('../computed/sort')
+  , sliceDomain = require('../../computed/range').sliceDomain
+  , sortUtils = require('../../computed/sort')
   , sortDomain = sortUtils.sortDomain
   , deriveComparator = sortUtils.deriveComparator
-  , projectDomain = require('../computed/project').projectDomain
-  , util = require('../util')
+  , projectDomain = require('../../computed/project').projectDomain
+  , util = require('../../util')
   , Promise = util.Promise
   , merge = util.merge
-  , objectExcept = require('../path').objectExcept
+  , objectExcept = require('../../path').objectExcept
   ;
 
 module.exports = MemoryQuery;
