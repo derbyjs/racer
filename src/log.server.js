@@ -93,6 +93,8 @@ function plugin (racer) {
   , fatalErr: function (err) { return red('Fatal error: ' + err); }
   , "snapshotUpdate:newTxns": function () { return 'Asking client to request a snapshot update of new transactions'; }
   , resyncWithStore: function () { return 'Asking client to resync with store'; }
+  , refreshHtml: function() { return 'Updating HTML templates'; }
+  , refreshCss: function() { return 'Updating CSS'; }
   };
   function joinArgs (args) {
     var argStr = [];
