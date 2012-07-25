@@ -68,8 +68,8 @@ module.exports = {
           each: function (path, datum, ver) {
             triplets.push([path, datum, ver]);
           }
-        , done: function () {
-            res.send(triplets);
+        , done: function (single) {
+            res.send(triplets, single);
             next();
           }
         });
@@ -155,7 +155,7 @@ module.exports = {
           path = queryJson.from + '.' + result.id;
           eachDatumCb(path, result, version);
         }
-        finish(null);
+        finish(queryJson.type === 'findOne');
       });
     }
 

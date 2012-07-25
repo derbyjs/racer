@@ -30,7 +30,7 @@ module.exports = {
           , send: function (triplets) {
               dataTriplets = dataTriplets.concat(triplets);
               if (++timesSendCalled === numPaths) {
-                res.send(dataTriplets);
+                res.send(dataTriplets, false);
               }
             }
           };

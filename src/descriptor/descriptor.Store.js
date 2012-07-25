@@ -56,7 +56,10 @@ module.exports = {
       middleware.fetch.add(function (req, res, next) {
         var targets = req.targets
           , numTargets = targets.length
+
           , data = []
+          , handles = []
+
           , finish = finishAfter(numTargets, next)
           , session = req.session
           , timesSendCalled = 0
@@ -73,14 +76,20 @@ module.exports = {
                 fail: function (err) {
                   res.fail(err);
                 }
-              , send: function (dataTriplets) {
-                  data = data.concat(dataTriplets);
-                  if (++timesSendCalled === numTargets) {
-                    var out = {data: data};
-                    store.emit('fetch', out, req.clientId, targets);
-                    res.send(out);
+              , send: (function (i) {
+                  return function (dataTriplets, single) {
+                    data = data.concat(dataTriplets);
+                    handles[i] = {data: dataTriplets, single: single};
+                    if (++timesSendCalled === numTargets) {
+                      var out = {
+                        data: data
+                      , handles: handles
+                      };
+                      store.emit('fetch', out, req.clientId, targets);
+                      res.send(out);
+                    }
                   }
-                }
+                })(i)
               }
             , type = store.descriptors.typeOf(target)
             , mware = middleware['fetch' + type.name];
@@ -133,24 +142,17 @@ module.exports = {
       var res = {
         fail: cb
       , send: function (data) {
-          // TODO Re-do this so that we can pass back a number of results
-          // equivalent to the number of descriptors passed to Store#fetch
-          data = data.data;
-          if (data.length === 0) {
-            cb(null);
-          } else if (data.length === 1) {
-            // TODO For find, we must pass the cb an Array
-            var datum = data[0]
-              , path  = datum[0]
-              , value = datum[1]
-              , ver   = datum[2];
-            cb(null, value);
-          } else {
-            var value = data.map( function (triplet) {
-              return triplet[1];
-            });
-            cb(null, value);
-          }
+          var handles = data.handles;
+          handles = handles.map( function (x) {
+            var triplets = x.data;
+            // Each triplet is of the form [path, value, ver]
+            if (x.single) {
+              return triplets[0] && triplets[0][1];
+            } else {
+              return triplets;
+            }
+          });
+          cb.apply(null, [null].concat(handles));
         }
       };
       this.middleware.fetch(req, res);
