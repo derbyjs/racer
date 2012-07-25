@@ -1,4 +1,4 @@
-module.exports = function (opts) {
+module.exports = function () {
   var fns = [];
   function run (req, res, done) {
     var i = 0, out;
@@ -8,7 +8,7 @@ module.exports = function (opts) {
                 : done ? done() : out;
     }
     return next();
-  };
+  }
 
   run.add = function (fn) {
     fns.push(fn);

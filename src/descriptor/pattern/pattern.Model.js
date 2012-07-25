@@ -33,6 +33,7 @@ module.exports = {
         return model.at(pathToGlob);
       }
     , registerFetch: function (model, pattern) {
+        // TODO Needed or remove this?
       }
     , registerSubscribe: function (model, pattern) {
         var subs = model._patternSubs;

@@ -119,8 +119,8 @@ module.exports = {
     }
 
   , _addData: function (data) {
-      var memory = this._memory
-        , data = data.data;
+      var memory = this._memory;
+      data = data.data;
 
       for (var i = 0, l = data.length; i < l; i++) {
         var triplet = data[i]
