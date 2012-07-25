@@ -149,7 +149,9 @@ module.exports = {
             if (x.single) {
               return triplets[0] && triplets[0][1];
             } else {
-              return triplets;
+              return triplets.map(function (trip) {
+                return trip[1];
+              });
             }
           });
           cb.apply(null, [null].concat(handles));
