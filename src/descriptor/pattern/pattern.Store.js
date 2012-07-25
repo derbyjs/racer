@@ -15,12 +15,7 @@ module.exports = {
       middleware.fetchPattern.add(function (req, res, next) {
         var paths = expandPath(req.target)
           , numPaths = paths.length
-          , finish = finishAfter(numPaths, function () {
-              if (timesSendCalled === numPaths) {
-                res.send(dataTriplets);
-              }
-              next();
-            })
+          , finish = finishAfter(numPaths, next)
           , dataTriplets = []
           , timesSendCalled = 0
           ;
@@ -33,8 +28,10 @@ module.exports = {
               res.fail(err);
             }
           , send: function (triplets) {
-              timesSendCalled++;
               dataTriplets = dataTriplets.concat(triplets);
+              if (++timesSendCalled === numPaths) {
+                res.send(dataTriplets);
+              }
             }
           };
           middleware.fetchPath(_req, _res, finish);

@@ -57,15 +57,7 @@ module.exports = {
         var targets = req.targets
           , numTargets = targets.length
           , data = []
-          , finish = finishAfter(numTargets, function (err) {
-              if (err) return next(err);
-              var out = {data: data};
-              store.emit('fetch', out, req.clientId, targets);
-              if (timesSendCalled === numTargets) {
-                res.send(out);
-              }
-              next();
-            })
+          , finish = finishAfter(numTargets, next)
           , session = req.session
           , timesSendCalled = 0
           ;
@@ -82,8 +74,12 @@ module.exports = {
                   res.fail(err);
                 }
               , send: function (dataTriplets) {
-                  timesSendCalled++;
                   data = data.concat(dataTriplets);
+                  if (++timesSendCalled === numTargets) {
+                    var out = {data: data};
+                    store.emit('fetch', out, req.clientId, targets);
+                    res.send(out);
+                  }
                 }
               }
             , type = store.descriptors.typeOf(target)
@@ -137,6 +133,8 @@ module.exports = {
       var res = {
         fail: cb
       , send: function (data) {
+          // TODO Re-do this so that we can pass back a number of results
+          // equivalent to the number of descriptors passed to Store#fetch
           data = data.data;
           if (data.length === 0) {
             cb(null);
@@ -148,12 +146,16 @@ module.exports = {
               , ver   = datum[2];
             cb(null, value);
           } else {
-            throw new Error('Unimplemented');
+            var value = data.map( function (triplet) {
+              return triplet[1];
+            });
+            cb(null, value);
           }
         }
       };
       this.middleware.fetch(req, res);
     }
+
     /**
      * @param {Number} ver is the version
      * @param {} clientStartId
