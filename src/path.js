@@ -1,4 +1,7 @@
-var hasKeys = require('./util').hasKeys;
+var util = require('./util')
+  , hasKeys = util.hasKeys;
+
+util.path = exports;
 
 // Test to see if path name contains a segment that starts with an underscore.
 // Such a path is private to the current session and should not be stored
