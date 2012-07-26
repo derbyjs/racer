@@ -77,7 +77,9 @@ module.exports = {
 function sessionMiddleware(opts) {
   opts || (opts = {});
   this.usingSessions = true;
-  setupSocketAuth(this, this.io);
+  if (this.io) {
+    setupSocketAuth(this, this.io);
+  }
 
   // The following properties are used in setupSocketAuth
   this._sessionKey = opts.key || (opts.key = 'connect.sid');
