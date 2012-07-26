@@ -43,21 +43,40 @@ Promise.prototype = {
 
 Promise.parallel = function (promises) {
   var composite = new Promise()
-    , remaining = promises.length
-    , compositeValue = []
     , didErr;
 
-  promises.forEach( function (promise, i) {
-    promise.on( function (err, val) {
-      if (didErr) return;
-      if (err) {
-        didErr = true;
-        return composite.resolve(err);
-      }
-      compositeValue[i] = val;
-      --remaining || composite.resolve(null, compositeValue);
+  if (Array.isArray(promises)) {
+    var compositeValue = []
+      , remaining = promises.length;
+    promises.forEach( function (promise, i) {
+      promise.on( function (err, val) {
+        if (didErr) return;
+        if (err) {
+          didErr = true;
+          return composite.resolve(err);
+        }
+        compositeValue[i] = val;
+        --remaining || composite.resolve(null, compositeValue);
+      });
     });
-  });
+  } else {
+    var compositeValue = {}
+      , remaining = Object.keys(promises).length;
+    for (var k in promises) {
+      var promise = promises[k];
+      (function (k) {
+        promise.on( function (err, val) {
+          if (didErr) return;
+          if (err) {
+            didErr = true;
+            return composite.resolve(err);
+          }
+          compositeValue[k] = val;
+          --remaining || composite.resolve(null, compositeValue);
+        });
+      })(k);
+    }
+  }
 
   return composite;
 };
