@@ -13,6 +13,7 @@ var EventEmitter = require('events').EventEmitter
   , socketDebug = debugGenerator('socket-client-id')
   , racerDebug  = debugGenerator('racer')
   , createMiddleware = require('./middleware')
+  , uuid = require('node-uuid')
   ;
 
 module.exports = Store;
@@ -199,7 +200,7 @@ Store.prototype._nextTxnId = function (callback) {
 };
 
 Store.prototype.uuid = function () {
-  return this.racer.uuid();
+  return uuid.v4();
 };
 
 Store.prototype.createModel = function () {

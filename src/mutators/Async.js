@@ -179,10 +179,11 @@ Async.prototype = {
 , add: function (path, value, callback) {
     callback || (callback = noop);
     var id = value.id
-      , model = this.model
+      , uuid = (this.model && this.model.id || this.uuid)
       , tryId, tryPath;
+
     this.retry( function (atomic) {
-      tryId = id || (value.id = model.id());
+      tryId = id || (value.id = uuid());
       tryPath = path + '.' + tryId;
       atomic.get(tryPath, function (val) {
         if (val != null) return atomic.next('nonUniqueId');
