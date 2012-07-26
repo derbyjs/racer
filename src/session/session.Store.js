@@ -77,6 +77,7 @@ module.exports = {
 function sessionMiddleware(opts) {
   opts || (opts = {});
   this.usingSessions = true;
+  setupSocketAuth(this, this.io);
 
   // The following properties are used in setupSocketAuth
   this._sessionKey = opts.key || (opts.key = 'connect.sid');
@@ -139,7 +140,8 @@ function modelMiddleware() {
  * @api private
  */
 function setupSocketAuth (store, io) {
-  if (! store.usingSessions) return;
+  if (! store.usingSessions || store.didSetupAuth) return;
+  store.didSetupAuth = true;
   // Sets authorization callback for ALL socketio namespaces
   io.set('authorization', function (handshake, accept) {
     var sessStore = store._sessionStore;
