@@ -10,6 +10,7 @@ function Async (options) {
   options || (options = {});
   if (options.get) this.get = options.get;
   if (options.commit) this._commit = options.commit;
+  this.model = options.model;
 
   // Note that async operation clientIds MUST begin with '#', as this is used
   // to treat conflict detection between async and sync transactions differently
@@ -34,14 +35,6 @@ Async.prototype = {
       // TODO When store is mutating, it should have something akin to
       // superadmin rights. Perhaps store.sudo.set
       self._commit(txn, callback);
-    });
-  }
-
-, add: function (path, value, ver, callback) {
-    var id = value.id || (value.id = this.uuid());
-    path += '.' + id;
-    return this.set(path, value, ver, function (err, txn) {
-      return callback(err, value);
     });
   }
 
@@ -149,15 +142,15 @@ Async.prototype = {
     });
   }
 
-, incr: function (path, byNum, ver, callback) {
+, incr: function (path, byNum, callback) {
     if (typeof byNum === 'function') {
       // For incr(path, callback)
       callback = byNum;
       byNum = 1;
     } else {
       if (byNum == null) byNum = 1;
-      callback || (callback = noop);
     }
+    callback || (callback = noop);
     var tryVal;
     this.retry( function (atomic) {
       atomic.get(path, function (val) {
@@ -170,6 +163,7 @@ Async.prototype = {
   }
 
 , setNull: function (path, value, callback) {
+    callback || (callback = noop);
     var tryVal;
     this.retry( function (atomic) {
       atomic.get(path, function (val) {
@@ -179,6 +173,23 @@ Async.prototype = {
       });
     }, function (err) {
       callback(err, tryVal);
+    });
+  }
+
+, add: function (path, value, callback) {
+    callback || (callback = noop);
+    var id = value.id
+      , model = this.model
+      , tryId, tryPath;
+    this.retry( function (atomic) {
+      tryId = id || (value.id = model.id());
+      tryPath = path + '.' + tryId;
+      atomic.get(tryPath, function (val) {
+        if (val != null) return atomic.next('nonUniqueId');
+        atomic.set(tryPath, value);
+      });
+    }, function (err) {
+      callback(err, tryId);
     });
   }
 
@@ -209,6 +220,10 @@ AsyncAtomic.prototype = {
     this.minVer = 0;
     this.count = 0;
   }
+
+, next: function (err) {
+  this.cb(err);
+}
 
 , get: function (path, callback) {
     var self = this
