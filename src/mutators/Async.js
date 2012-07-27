@@ -190,7 +190,7 @@ Async.prototype = {
         atomic.set(tryPath, value);
       });
     }, function (err) {
-      callback(err, value);
+      callback(err, tryId);
     });
   }
 
