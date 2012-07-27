@@ -21,7 +21,7 @@ exports = module.exports = {
 , getVer: function (txn) { return txn[0]; }
 , setVer: function (txn, val) { return txn[0] = val; }
 
-, getId: function (txn) { return txn && txn[1]; }
+, getId: function (txn) { return txn[1]; }
 , setId: function (txn, id) { return txn[1] = id; }
 
 , clientIdAndVer: function (txn) {
@@ -53,8 +53,7 @@ exports = module.exports = {
   }
 
 , getClientId: function (txn) {
-    var id = this.getId(txn);
-    return id && id.split('.')[0];
+    return this.getId(txn).split('.')[0];
   }
 , setClientId: function (txn, clientId) {
     var pair = this.getId(txn).split('.')

@@ -241,12 +241,7 @@ module.exports =
 
 
       txnApplier = new Serializer
-        withEach: (txn) =>
-          # Only apply the remote transaction if the transaction did not
-          # originate from this client
-          onTxn txn unless transaction.getClientId(txn) == @_clientId
-          # TODO Write regression test for this with `return onTxn txn` (was
-          #      breaking tasks)
+        withEach: onTxn
 
         # This timeout is for scenarios when a service that the server proxies to fails. This is for remote transactions.
         onTimeout: ->
