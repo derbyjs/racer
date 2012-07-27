@@ -257,11 +257,12 @@ QueryRegistry.prototype = {
     var queryIdsByTag = this._queryIdsByTag
       , queryIds = queryIdsByTag[tag]
       , queries = this._queries
-      , found = [];
+      , found = []
+      , query;
     if (queryIds) {
       for (var i = 0, l = queryIds.length; i < l; i++) {
-        var currId = queryIds[i];
-        found.push(queries[currId].tuple);
+        query = queries[queryIds[i]];
+        if (query) found.push(query.tuple);
       }
     }
     return found;
