@@ -1,11 +1,22 @@
 {EventEmitter} = require 'events'
 {deepCopy} = require '../../lib/util'
 
+serializeArgs = (args) ->
+  if typeof args[args.length-1] is 'function'
+    fn = args.pop()
+    args = deepCopy args
+    args.push fn
+  else
+    args = deepCopy args
+    #args = JSON.parse JSON.stringify args
+  return args
+
 callEmit = (target, name, args, async) ->
   return if name == 'newListener'
   if async then return process.nextTick ->
     callEmit target, name, args
-  EventEmitter::emit.call target, name, deepCopy(args)...
+  args = serializeArgs args
+  EventEmitter::emit.call target, name, args...
 
 ServerSocketsMock = exports.ServerSocketsMock = ->
   EventEmitter.call this
