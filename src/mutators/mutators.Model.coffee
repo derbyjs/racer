@@ -93,7 +93,7 @@ module.exports =
           path = path + '.' + id
 
         if callback
-          @set path, value, callback
+          @set path, value, (err) -> callback err, id
         else
           @set path, value
         return id
