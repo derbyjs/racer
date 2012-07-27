@@ -50,12 +50,16 @@ module.exports = {
           , ns  = data.ns
           , ver = data.ver
           , txn = data.txn
-          , collection = memory.get(ns);
+          , collection = model.get(ns);
 
         // If the doc is already in the model, don't add it
         if (collection && collection[doc.id]) {
           // But apply the transaction that resulted in the document that is
           // added to the query result set.
+          if (transaction.getClientId(txn) === model._clientId) {
+            // Set to null txn, and still account for num
+            txn = null
+          }
           return model._addRemoteTxn(txn, num);
         }
 
