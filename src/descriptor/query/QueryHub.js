@@ -154,14 +154,13 @@ QueryHub.prototype.publish = function publish (newDoc, oldDoc, txn) {
           case 'addDoc':
             var ns       = msg[1]
               , docToAdd = msg[3];
-            transaction.setVer(txn, pseudoVer());
             publishAddDoc(pubSub, channel, ns, docToAdd, pseudoVer, txn);
             break;
           case 'rmDoc':
             var ns      = msg[1]
               , docToRm = msg[3]
               , docId   = msg[4];
-            publishRmDoc(pubSub, channel, ns, docToRm, docId, pseudoVer);
+            publishRmDoc(pubSub, channel, ns, docToRm, docId, pseudoVer, txn);
             break;
           default:
             throw new Error('Unsupported message type ' + msg[0]);
@@ -176,11 +175,13 @@ function publishFn (pubSub, type, channel, data) {
 }
 
 function publishAddDoc (pubSub, channel, ns, doc, pseudoVer, txn) {
+  transaction.setVer(txn, pseudoVer());
   publishFn(pubSub, 'addDoc', channel, {ns: ns, doc: doc, ver: pseudoVer(), txn: txn});
 }
 
-function publishRmDoc (pubSub, channel, ns, doc, id, pseudoVer) {
-  publishFn(pubSub, 'rmDoc', channel, {ns: ns, doc: doc, ver: pseudoVer(), id: id});
+function publishRmDoc (pubSub, channel, ns, doc, id, pseudoVer, txn) {
+  transaction.setVer(txn, pseudoVer());
+  publishFn(pubSub, 'rmDoc', channel, {ns: ns, doc: doc, ver: pseudoVer(), id: id, txn: txn});
 }
 
 function minSearchSpace (newDoc, oldDoc, txn, queryNodes) {

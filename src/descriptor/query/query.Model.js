@@ -85,6 +85,7 @@ module.exports = {
           , id   = data.id
           , ns   = data.ns
           , ver  = data.ver
+          , txn = data.txn
 
             // TODO Maybe just [clientId, queryId]
           , queryTuple = data.q; // TODO Add q to data
@@ -110,13 +111,18 @@ module.exports = {
         }
 
         var pathToDoc = ns + '.' + id
-          , txn = transaction.create({
-                ver: ver
-              , id: null
-              , method: 'del'
-              , args: [pathToDoc]
-            })
           , oldDoc = model.get(pathToDoc);
+        if (transaction.getClientId(txn) === model._clientId) {
+          txn = null;
+        } else {
+          txn = transaction.create({
+              ver: ver
+            , id: null
+            , method: 'del'
+            , args: [pathToDoc]
+          });
+        }
+
         model._addRemoteTxn(txn, num);
         model.emit('rmDoc', pathToDoc, oldDoc);
       });
