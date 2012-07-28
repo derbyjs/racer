@@ -42,16 +42,21 @@ mergeAll(modelProto, emitterProto, {
     this.disconnect = function () { return socket.disconnect(); };
     this.connect = function (callback) {
       if (callback) socket.once('connect', callback);
-      socket.socket.connect();
+      try {
+        socket.socket.connect();
+      } catch (e) {
+        console.log('catch', e)
+      }
     };
 
     var self = this;
     this.canConnect = true;
-    socket.on('fatalErr', function (msg) {
+    function onFatalErr () {
       self.canConnect = false;
       self.emit('canConnect', false);
       socket.disconnect();
-    });
+    }
+    socket.on('fatalErr', onFatalErr);
 
     this.connected = false;
     function onConnected () {
@@ -72,10 +77,14 @@ mergeAll(modelProto, emitterProto, {
       setTimeout(onConnected, 400);
     });
 
-    // The server can ask the client to reload itself
+    socket.on('error', function (err) {
+      if (err === 'unauthorized') onFatalErr();
+    });
+
     if (typeof window !== 'undefined') {
+      // The server can ask the client to reload itself
       socket.on('reload', function () {
-        window && window.location.reload();
+        window.location.reload();
       });
     }
 

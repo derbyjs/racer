@@ -148,11 +148,11 @@ function setupSocketAuth (store, io) {
   io.set('authorization', function (handshake, accept) {
     var sessStore = store._sessionStore;
     if (! sessStore) {
-      return accept('No session store', false);
+      return accept(null, false);  // No session store
     }
     var cookieHeader = handshake.headers.cookie;
     if (! cookieHeader) {
-      return accept('No cookie containing session id', false);
+      return accept(null, false);  // No cookie containing session id
     }
     var cookies = cookie.parse(cookieHeader);
     var key = store._sessionKey;
@@ -165,20 +165,20 @@ function setupSocketAuth (store, io) {
       if (rawCookie) {
         unsignedCookie = parseSignedCookie(rawCookie, secret);
       } else {
-        return accept('No cookie containing session id', false);
+        return accept(null, false);  // No cookie containing session id
       }
     }
     var sessionId = unsignedCookie
       , clientId = handshake.query.clientId;
     if (store._securePairs[clientId] !== sessionId) {
-      return accept('Unauthorized access', false);
+      return accept(null, false);  // Unauthorized access
     }
     sessStore.load(sessionId, function (err, session) {
       if (err || !session) {
         return accept('Error retrieving session', false);
       }
       handshake.session = session;
-      accept(null, true);
+      accept(null, true);  // Authorized
     });
   });
 }
