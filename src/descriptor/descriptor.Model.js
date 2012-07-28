@@ -56,6 +56,9 @@ module.exports = {
 
       descriptors = this.descriptors.normalize(descriptors);
 
+      // TODO Don't subscribe to a given descriptor again if already
+      // subscribed to the descriptor before (so that we avoid an additional fetch)
+
       this.descriptors.handle(this, descriptors, {
         registerSubscribe: true
       , scopedResult: function (scopedModel) {
