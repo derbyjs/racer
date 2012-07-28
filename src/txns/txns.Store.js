@@ -114,6 +114,9 @@ module.exports = {
         var txn = req.data
           , origDoc = req.origDoc
           , path = transaction.getPath(txn);
+        // Clone so version of the txn that we ack is not incremented in
+        // QueryHub; the clone is instead.
+        txn = txn.slice();
         store.publish(path, 'txn', txn, {origDoc: origDoc});
         next();
       }
