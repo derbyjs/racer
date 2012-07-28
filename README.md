@@ -49,13 +49,19 @@ A bare-bones realtime, collaborative text editor. Demonstrates use of Racer's te
 
   * **Unified server and client interface** &ndash; The same model interface can be used on the server for initial page rendering and on the client for synchronization and user interaction.
 
-## Future features
+  * **Persistent storage** &ndash; Racer provides automatic storage of data via
+    the [racer-db-mongo plugin](https://github.com/codeparty/racer-db-mongo). Racer
+    provides a straightforward API for implementing similar plugins for
+    document stores such as Riak, Couchdb, Postgres HSTORE, and other databases.
 
-  * **Persistent storage** &ndash; Racer will optionally provide automatic storage of data in popular NoSQL document stores and MySQL. Racer will also support extension to support other persistent storage solutions.
+  * **Access control** &ndash; Racer provides a declarative access control API
+    to protect your queries and documents from malicious reads and writes.
+
+## Future features
 
   * **Browser local storage** &ndash; Browser models will also sync to HTML5 localStorage for persistent offline usage.
 
-  * **Validation and access control** &ndash; An implementation of schema-based validation and authorization is planned.
+  * **Validation** &ndash; An implementation of shared and non-shared schema-based validation is planned.
 
   * **More realtime strategies** &ndash; Currently, racer provides basic Software Transactional Memory (STM) and text Operational Transform (OT) methods. In the future it will receive a more robust STM, OT of JSON objects, and potentially other strategies like Diff-Match-Patch.
 
