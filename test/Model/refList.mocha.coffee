@@ -434,3 +434,21 @@ describe 'Model.refList', ->
       expect(value).to.eql 'howdy'
       done()
     model.set '_list.0.name', 'howdy'
+
+
+  describe 'a ref pointing to a refList', ->
+    it 'should emit on set under child', calls 2, (done) ->
+      model = new Model
+      model.refList '_list', 'items', 'map'
+      model.ref '_ref', '_list'
+      model.set 'items',
+        'x3': {id: 'x3', val: 'c'}
+      model.set 'map', ['x3']
+
+      model.on 'set', '_list.0.name', cb = (value) ->
+        expect(value).to.eql 'howdy'
+        done()
+      model.on 'set', 'items.x3.name', cb = (value) ->
+        expect(value).to.eql 'howdy'
+        done()
+      model.set '_ref.0.name', 'howdy'
