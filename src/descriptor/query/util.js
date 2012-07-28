@@ -453,11 +453,6 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
  * @param {Object} doc is the document we want to insert into our query results
  */
 function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
-
-  // Don't insert the doc if it's already in the pointer list
-  var currIds = model.get(pointerPath);
-  if (currIds && ~currIds.indexOf(doc.id)) return;
-
   if (!comparator) {
     var out = model.insert(pointerPath, currResults.length, doc.id);
     return out;
