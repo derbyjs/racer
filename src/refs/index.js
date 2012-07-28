@@ -47,22 +47,19 @@ var mixin = {
         if (!path) return;
 
         // De-reference transactions to operate on their absolute path
-        function deref () {
-          var data = model._specModel()
-            , obj  = memory.get(path, data)
-
-              // $deref may be assigned by a getter during the lookup of path in
-              // data via memory.get(path, data)
-            , fn   = data.$deref;
-          if (fn) {
-            args[0] = fn(method, args, model, obj);
-            if (path === args[0]) return;
-            // Keep de-reffing until we get to the end of a ref chain
-            path = args[0];
-            deref()
-          }
+        var data, obj, fn;
+        while (true) {
+          data = model._specModel();
+          obj = memory.get(path, data);
+          // $deref may be assigned by a getter during the lookup of path in
+          // data via memoty.get(path, data);
+          fn = data.$deref;
+          if (!fn) return;
+          args[0] = fn(method, args, model, obj);
+          if (path === args[0]) return;
+          // Keep de-reffing until we get to the end of a ref chain
+          path = args[0];
         }
-        deref();
       });
     }
 
