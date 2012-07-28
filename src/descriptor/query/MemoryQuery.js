@@ -98,7 +98,25 @@ MemoryQuery.prototype.skip = function skip (howMany) {
 
 // e.g.,
 // sort(['field1', 'asc', 'field2', 'desc', ...])
+/**
+ * mquery.sort(['field1', 'asc', 'field2', 'desc']);
+ *
+ * OR
+ *
+ * mquery.sort( function (x, y) {
+ *   if (x > y) return 1;
+ *   if (x < y) return -1;
+ *   return 0;
+ * });
+ *
+ * @param {Array|Function} params
+ * @return {MemoryQuery}
+ */
 MemoryQuery.prototype.sort = function sort (params) {
+  if (typeof params === 'function') {
+    this._comparator = params;
+    return this;
+  }
   var sort = this._sort;
   if (sort && sort.length) {
     sort = this._sort = this._sort.concat(params);
