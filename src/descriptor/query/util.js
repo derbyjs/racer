@@ -456,7 +456,7 @@ function insertDocAsPointer (comparator, model, pointerPath, currResults, doc) {
 
   // Don't insert the doc if it's already in the pointer list
   var currIds = model.get(pointerPath);
-  if (~currIds.indexOf(doc.id)) return;
+  if (currIds && ~currIds.indexOf(doc.id)) return;
 
   if (!comparator) {
     var out = model.insert(pointerPath, currResults.length, doc.id);
