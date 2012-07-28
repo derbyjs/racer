@@ -39,14 +39,12 @@ mergeAll(modelProto, emitterProto, {
 , _setSocket: function (socket) {
     this.socket = socket;
     this.mixinEmit('socket', this, socket);
-    this.disconnect = function () { return socket.disconnect(); };
+    this.disconnect = function () {
+      socket.disconnect();
+    };
     this.connect = function (callback) {
       if (callback) socket.once('connect', callback);
-      try {
-        socket.socket.connect();
-      } catch (e) {
-        console.log('catch', e)
-      }
+      socket.socket.connect();
     };
 
     var self = this;
