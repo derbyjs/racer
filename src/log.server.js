@@ -108,7 +108,7 @@ function plugin (racer) {
       , id = transaction.getId(txn)
       , args = transaction.getArgs(txn)
       , method = transaction.getMethod(txn)
-    return blue(method) + ' ' + joinArgs(args);
+    return 'ver: ' + ver + ' - ' + blue(method) + ' ' + joinArgs(args);
   }
 
   racer.log.sockets = function (sockets) {
