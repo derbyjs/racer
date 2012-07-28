@@ -71,9 +71,9 @@ proto._genScopedModel = function () {
 
   var queryJson = this.toJSON()
     , memoryQuery = this.memoryQuery = new MemoryQuery(queryJson, filterFn)
-    , result = memoryQuery.syncRun(domain)
     , comparator = this._comparator;
-  if (comparator) result = result.sort(comparator);
+  if (comparator) memoryQuery.sort(comparator);
+   var result = memoryQuery.syncRun(domain);
 
   var queryId = QueryBuilder.hash(queryJson, filterFn);
   return setupQueryModelScope(model, memoryQuery, queryId, result);
