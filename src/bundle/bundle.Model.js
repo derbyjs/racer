@@ -5,9 +5,12 @@ exports.useWith = { server: true, browser: true };
 exports.decorate = 'racer';
 
 function plugin (racer) {
-  var BUNDLE_TIMEOUT = racer.get('bundle timeout') ||
-    racer.set('bundle timeout', 1000);
-  mixin.static = { BUNDLE_TIMEOUT: BUNDLE_TIMEOUT };
+  var timeout = racer.get('bundleTimeout');
+  if (!timeout) {
+    timeout = 1000;
+    racer.set('bundleTimeout', timeout);
+  }
+  mixin.static = { BUNDLE_TIMEOUT: timeout };
   racer.mixin(mixin);
 }
 
