@@ -130,14 +130,14 @@ module.exports = {
           , path = triplet[0]
           , value = triplet[1]
           , ver = triplet[2];
-        memory.set(path, value, ver);
+        var out = memory.set(path, value, ver);
         // Need this condition for scenarios where we subscribe to a
         // non-existing document. Otherwise, a mutator event would  e emitted
         // with an undefined value, triggering filtering and querying listeners
         // which rely on a document to be defined and possessing an id.
         if (value !== null && typeof value !== 'undefined') {
           // TODO Perhaps make another event to differentiate against model.set
-          this.emit('set', [path, value]);
+          this.emit('set', [path, value], out);
         }
       }
     }

@@ -124,7 +124,7 @@ describe 'store.query.expose', ->
               last: 'N'
           done()
 
-    it 'should not add duplicate docs to the results when fetching the same query twice aaa', (done) ->
+    it 'should not add duplicate docs to the results when fetching the same query twice', (done) ->
       store = racer.createStore()
 
       store.query.expose 'users', 'olderThan', (age) ->
