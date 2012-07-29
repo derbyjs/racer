@@ -1,4 +1,5 @@
 var toString = Object.prototype.toString
+  , hasOwnProperty = Object.prototype.hasOwnProperty
   , isServer = typeof window === 'undefined'
   , isProduction = isServer && process.env.NODE_ENV === 'production';
 
@@ -98,13 +99,29 @@ function deepEqual (actual, expected, ignore) {
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical 'prototype' property. Note: this
   // accounts for both named and indexed properties on Arrays.
-  return objEquiv(actual, expected, ignore);
+  if (ignore) {
+    var ignoreMap = {}
+      , i = ignore.length
+    while (i--) {
+      ignoreMap[ignore[i]] = true;
+    }
+  }
+  return objEquiv(actual, expected, ignoreMap);
+}
+
+function keysWithout (obj, ignoreMap) {
+  var out = []
+    , key
+  for (key in obj) {
+    if (!ignoreMap[key] && hasOwnProperty.call(obj, key)) out.push(key);
+  }
+  return out;
 }
 
 /**
- * From node's assert.js
+ * Modified from node's assert.js
  */
-function objEquiv (a, b, ignore) {
+function objEquiv (a, b, ignoreMap) {
   var i, key, ka, kb;
 
   if (a == null || b == null) return false;
@@ -121,15 +138,12 @@ function objEquiv (a, b, ignore) {
     return deepEqual(a, b);
   }
   try {
-    ka = Object.keys(a);
-    kb = Object.keys(b);
-    if (ignore) {
-      i = ignore.length;
-      while (i--) {
-        key = ignore[i];
-        delete ka[key];
-        delete kb[key];
-      }
+    if (ignoreMap) {
+      ka = keysWithout(a, ignoreMap);
+      kb = keysWithout(b, ignoreMap);
+    } else {
+      ka = Object.keys(a);
+      kb = Object.keys(b);
     }
   } catch (e) {
     // happens when one is a string literal and the other isn't
@@ -156,7 +170,7 @@ function objEquiv (a, b, ignore) {
     key = ka[i];
     if (! deepEqual(a[key], b[key])) return false;
   }
-  return true
+  return true;
 }
 
 // TODO Test this
