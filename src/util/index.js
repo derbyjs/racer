@@ -73,10 +73,10 @@ function isArguments (obj) {
 }
 
 /**
- * From node's assert.js
+ * Modified from node's assert.js
  */
-function deepEqual (actual, expected) {
-  // 7.1. All identical values are equivalent, as determined by ==.
+function deepEqual (actual, expected, ignore) {
+  // 7.1. All identical values are equivalent, as determined by ===.
   if (actual === expected) return true;
 
   // 7.2. If the expected value is a Date object, the actual value is
@@ -98,14 +98,16 @@ function deepEqual (actual, expected) {
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical 'prototype' property. Note: this
   // accounts for both named and indexed properties on Arrays.
-  return objEquiv(actual, expected);
+  return objEquiv(actual, expected, ignore);
 }
 
 /**
  * From node's assert.js
  */
-function objEquiv (a, b) {
-  if (a == null || b == null) return false
+function objEquiv (a, b, ignore) {
+  var i, key, ka, kb;
+
+  if (a == null || b == null) return false;
 
   // an identical 'prototype' property.
   if (a.prototype !== b.prototype) return false;
@@ -119,29 +121,39 @@ function objEquiv (a, b) {
     return deepEqual(a, b);
   }
   try {
-    var ka = Object.keys(a)
-      , kb = Object.keys(b);
-  } catch (e) { //happens when one is a string literal and the other isn't
-    return false
+    ka = Object.keys(a);
+    kb = Object.keys(b);
+    if (ignore) {
+      i = ignore.length;
+      while (i--) {
+        key = ignore[i];
+        delete ka[key];
+        delete kb[key];
+      }
+    }
+  } catch (e) {
+    // happens when one is a string literal and the other isn't
+    return false;
   }
   // having the same number of owned properties (keys incorporates
   // hasOwnProperty)
   if (ka.length !== kb.length) return false;
 
-  //the same set of keys (although not necessarily the same order),
-  ka.sort()
-  kb.sort()
+  // the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
 
   //~~~cheap key test
-  var i = ka.length
-  while (i--)
+  i = ka.length;
+  while (i--) {
     if (ka[i] !== kb[i]) return false;
+  }
 
   //equivalent values for every corresponding key, and
   //~~~possibly expensive deep test
-  i = ka.length
+  i = ka.length;
   while (i--) {
-    var key = ka[i]
+    key = ka[i];
     if (! deepEqual(a[key], b[key])) return false;
   }
   return true
