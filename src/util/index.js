@@ -1,70 +1,25 @@
 var toString = Object.prototype.toString
+  , hasOwnProperty = Object.prototype.hasOwnProperty
   , isServer = typeof window === 'undefined'
   , isProduction = isServer && process.env.NODE_ENV === 'production';
 
 module.exports = {
   isServer: isServer
 , isProduction: isProduction
-
 , isArguments: isArguments
-
-, mergeAll: function (to /*, froms... */) {
-    var froms = Array.prototype.slice.call(arguments, 1);
-    for (var i = 0, l = froms.length; i < l; i++) {
-      var from = froms[i];
-      if (from) for (var key in from) to[key] = from[key];
-    }
-    return to;
-  }
-
-, merge: function (to, from) {
-    for (var key in from) to[key] = from[key];
-    return to;
-  }
-
-, hasKeys: function (obj, ignore) {
-    for (var key in obj)
-      if (key !== ignore) return true;
-    return false;
-  }
-
-  /**
-   * Escape a string to be used as teh source of a RegExp such that it matches
-   * literally.
-   */
-, escapeRegExp: function (s) {
-    return s.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
-  }
-
+, mergeAll: mergeAll
+, merge: merge
+, hasKeys: hasKeys
+, escapeRegExp: escapeRegExp
 , deepEqual: deepEqual
-
-, objEquiv: objEquiv
-
 , deepCopy: deepCopy
-
 , indexOf: indexOf
-
-, deepIndexOf: function (list, obj) {
-    return indexOf(list, obj, deepEqual);
-  }
-
+, deepIndexOf: deepIndexOf
 , equalsNaN: equalsNaN
-
-, equal: function (a, b) {
-    return (a === b) || (equalsNaN(a) && equalsNaN(b));
-  }
-
-, noop: function () {}
-
-, countWhile: function (array, predicate) {
-    var count = 0;
-    for (var i = 0, l = array.length; i < l; i++)
-      if (! predicate(array[i], i)) return count++;
-    return count;
-  }
-
+, equal: equal
+, countWhile: countWhile
+, noop: noop
 , Promise: require('./Promise')
-
 , async: require('./async')
 };
 
@@ -72,11 +27,39 @@ function isArguments (obj) {
   return toString.call(obj) === '[object Arguments]';
 }
 
+function mergeAll (to /*, froms... */) {
+  var froms = Array.prototype.slice.call(arguments, 1);
+  for (var i = 0, l = froms.length; i < l; i++) {
+    var from = froms[i];
+    if (from) for (var key in from) to[key] = from[key];
+  }
+  return to;
+}
+
+function merge (to, from) {
+  for (var key in from) to[key] = from[key];
+  return to;
+}
+
+function hasKeys (obj, ignore) {
+  for (var key in obj)
+    if (key !== ignore) return true;
+  return false;
+}
+
 /**
- * From node's assert.js
+   * Escape a string to be used as teh source of a RegExp such that it matches
+   * literally.
+   */
+function escapeRegExp (s) {
+  return s.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+}
+
+/**
+ * Modified from node's assert.js
  */
-function deepEqual (actual, expected) {
-  // 7.1. All identical values are equivalent, as determined by ==.
+function deepEqual (actual, expected, ignore) {
+  // 7.1. All identical values are equivalent, as determined by ===.
   if (actual === expected) return true;
 
   // 7.2. If the expected value is a Date object, the actual value is
@@ -98,14 +81,32 @@ function deepEqual (actual, expected) {
   // (although not necessarily the same order), equivalent values for every
   // corresponding key, and an identical 'prototype' property. Note: this
   // accounts for both named and indexed properties on Arrays.
-  return objEquiv(actual, expected);
+  if (ignore) {
+    var ignoreMap = {}
+      , i = ignore.length
+    while (i--) {
+      ignoreMap[ignore[i]] = true;
+    }
+  }
+  return objEquiv(actual, expected, ignoreMap);
+}
+
+function keysWithout (obj, ignoreMap) {
+  var out = []
+    , key
+  for (key in obj) {
+    if (!ignoreMap[key] && hasOwnProperty.call(obj, key)) out.push(key);
+  }
+  return out;
 }
 
 /**
- * From node's assert.js
+ * Modified from node's assert.js
  */
-function objEquiv (a, b) {
-  if (a == null || b == null) return false
+function objEquiv (a, b, ignoreMap) {
+  var i, key, ka, kb;
+
+  if (a == null || b == null) return false;
 
   // an identical 'prototype' property.
   if (a.prototype !== b.prototype) return false;
@@ -119,32 +120,39 @@ function objEquiv (a, b) {
     return deepEqual(a, b);
   }
   try {
-    var ka = Object.keys(a)
-      , kb = Object.keys(b);
-  } catch (e) { //happens when one is a string literal and the other isn't
-    return false
+    if (ignoreMap) {
+      ka = keysWithout(a, ignoreMap);
+      kb = keysWithout(b, ignoreMap);
+    } else {
+      ka = Object.keys(a);
+      kb = Object.keys(b);
+    }
+  } catch (e) {
+    // happens when one is a string literal and the other isn't
+    return false;
   }
   // having the same number of owned properties (keys incorporates
   // hasOwnProperty)
   if (ka.length !== kb.length) return false;
 
-  //the same set of keys (although not necessarily the same order),
-  ka.sort()
-  kb.sort()
+  // the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
 
   //~~~cheap key test
-  var i = ka.length
-  while (i--)
+  i = ka.length;
+  while (i--) {
     if (ka[i] !== kb[i]) return false;
+  }
 
   //equivalent values for every corresponding key, and
   //~~~possibly expensive deep test
-  i = ka.length
+  i = ka.length;
   while (i--) {
-    var key = ka[i]
+    key = ka[i];
     if (! deepEqual(a[key], b[key])) return false;
   }
-  return true
+  return true;
 }
 
 // TODO Test this
@@ -170,4 +178,23 @@ function indexOf (list, obj, isEqual) {
   return -1;
 }
 
-function equalsNaN (x) { return x !== x; }
+function deepIndexOf (list, obj) {
+  return indexOf(list, obj, deepEqual);
+}
+
+function equalsNaN (x) {
+  return x !== x;
+}
+
+function equal (a, b) {
+  return (a === b) || (equalsNaN(a) && equalsNaN(b));
+}
+
+function countWhile (array, predicate) {
+  var count = 0;
+  for (var i = 0, l = array.length; i < l; i++)
+    if (! predicate(array[i], i)) return count++;
+  return count;
+}
+
+function noop() {}
