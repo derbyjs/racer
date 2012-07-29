@@ -123,3 +123,26 @@ describe 'store.query.expose', ->
               first: 'Brian'
               last: 'N'
           done()
+
+    it 'should not add duplicate docs to the results when fetching the same query twice aaa', (done) ->
+      store = racer.createStore()
+
+      store.query.expose 'users', 'olderThan', (age) ->
+        @where('age').gt(age)
+
+      store.set 'users.1', {
+        id:  '1'
+        age: 25
+      }, null, (err) ->
+        expect(err).to.be.null()
+
+        model = store.createModel()
+
+        query = model.query('users').olderThan(20)
+        model.fetch query, (err, $results) ->
+          expect(err).to.be.null()
+          expect($results.get()).to.have.length(1)
+          model.fetch query, (err, $results) ->
+            expect(err).to.be.null()
+            expect($results.get()).to.have.length(1)
+            done()
