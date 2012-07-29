@@ -6,71 +6,53 @@ var toString = Object.prototype.toString
 module.exports = {
   isServer: isServer
 , isProduction: isProduction
-
 , isArguments: isArguments
-
-, mergeAll: function (to /*, froms... */) {
-    var froms = Array.prototype.slice.call(arguments, 1);
-    for (var i = 0, l = froms.length; i < l; i++) {
-      var from = froms[i];
-      if (from) for (var key in from) to[key] = from[key];
-    }
-    return to;
-  }
-
-, merge: function (to, from) {
-    for (var key in from) to[key] = from[key];
-    return to;
-  }
-
-, hasKeys: function (obj, ignore) {
-    for (var key in obj)
-      if (key !== ignore) return true;
-    return false;
-  }
-
-  /**
-   * Escape a string to be used as teh source of a RegExp such that it matches
-   * literally.
-   */
-, escapeRegExp: function (s) {
-    return s.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
-  }
-
+, mergeAll: mergeAll
+, merge: merge
+, hasKeys: hasKeys
+, escapeRegExp: escapeRegExp
 , deepEqual: deepEqual
-
-, objEquiv: objEquiv
-
 , deepCopy: deepCopy
-
 , indexOf: indexOf
-
-, deepIndexOf: function (list, obj) {
-    return indexOf(list, obj, deepEqual);
-  }
-
+, deepIndexOf: deepIndexOf
 , equalsNaN: equalsNaN
-
-, equal: function (a, b) {
-    return (a === b) || (equalsNaN(a) && equalsNaN(b));
-  }
-
-, noop: function () {}
-
-, countWhile: function (array, predicate) {
-    var count = 0;
-    for (var i = 0, l = array.length; i < l; i++)
-      if (! predicate(array[i], i)) return count++;
-    return count;
-  }
-
+, equal: equal
+, countWhile: countWhile
+, noop: noop
 , Promise: require('./Promise')
-
 , async: require('./async')
 };
 
 function isArguments (obj) {
   return toString.call(obj) === '[object Arguments]';
+}
+
+function mergeAll (to /*, froms... */) {
+  var froms = Array.prototype.slice.call(arguments, 1);
+  for (var i = 0, l = froms.length; i < l; i++) {
+    var from = froms[i];
+    if (from) for (var key in from) to[key] = from[key];
+  }
+  return to;
+}
+
+function merge (to, from) {
+  for (var key in from) to[key] = from[key];
+  return to;
+}
+
+function hasKeys (obj, ignore) {
+  for (var key in obj)
+    if (key !== ignore) return true;
+  return false;
+}
+
+/**
+   * Escape a string to be used as teh source of a RegExp such that it matches
+   * literally.
+   */
+function escapeRegExp (s) {
+  return s.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
 }
 
 /**
@@ -196,4 +178,23 @@ function indexOf (list, obj, isEqual) {
   return -1;
 }
 
-function equalsNaN (x) { return x !== x; }
+function deepIndexOf (list, obj) {
+  return indexOf(list, obj, deepEqual);
+}
+
+function equalsNaN (x) {
+  return x !== x;
+}
+
+function equal (a, b) {
+  return (a === b) || (equalsNaN(a) && equalsNaN(b));
+}
+
+function countWhile (array, predicate) {
+  var count = 0;
+  for (var i = 0, l = array.length; i < l; i++)
+    if (! predicate(array[i], i)) return count++;
+  return count;
+}
+
+function noop() {}
