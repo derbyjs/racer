@@ -129,6 +129,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
       };
     } else {
       currResult = scopedModel.get() || [];
+
       onOverwriteNs = function (docs, each) {
         model.set(pointerPath, []);
         each(docs, function (doc) {
@@ -139,6 +140,10 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
         if (!oldDoc) {
           // If the new doc belongs in our query results...
           if (memoryQuery.filterTest(newDoc, ns)) {
+            if (memoryQuery.isPaginated && currResult.length === memoryQuery._limit) {
+              // TODO Re-do this hack later
+              return;
+            }
             insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, newDoc);
           }
 
@@ -218,6 +223,10 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
               }
 
               // ...or it is not recorded in our query result
+              if (memoryQuery.isPaginated && currResult.length === memoryQuery._limit) {
+                // TODO Re-do this hack later
+                return;
+              }
               return insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, doc);
             }
 
@@ -308,13 +317,14 @@ function handleDocArrayMutation (model, method, _arguments, ns, docArray, callba
     , out = _arguments[1]
     , done = callbacks.done;
 
-  var handled = handleNsMutation(model, method, path, args, out, ns, callbacks, function (docs, cb) {
-    for (var i = 0, l = docs.length; i < l; i++) cb(docs[i]);
-  });
+  if (path === ns) {
+    handleNsMutation(model, method, path, args, out, ns, docArray, callbacks, function (docs, cb) {
+      for (var i = 0, l = docs.length; i < l; i++) cb(docs[i]);
+    });
+    return done && done();
+  }
 
-  if (handled) return done && done();
-
-  handled = handleDocMutation(method, path, args, out, ns, callbacks);
+  var handled = handleDocMutation(method, path, args, out, ns, docArray, callbacks);
 
   if (handled) return done && done();
 
@@ -334,16 +344,16 @@ function handleDocTreeMutation (model, method, _arguments, ns, docTree, callback
     , out = _arguments[1]
     , done = callbacks.done;
 
-  var handled = handleNsMutation(model, method, path, args, out, ns, callbacks, function (docs, cb) {
-    for (var k in docs) cb(docs[k]);
-  });
+  if (ns === path) {
+    handleNsMutation(model, method, path, args, out, ns, docTree, callbacks, function (docs, cb) {
+      for (var k in docs) cb(docs[k]);
+    });
+    return done && done();
+  }
+
+  var handled = handleDocMutation(method, path, args, out, ns, docTree, callbacks);
 
   if (handled) return done && done();
-
-  handled = handleDocMutation(method, path, args, out, ns, callbacks);
-
-  if (handled) return done && done();
-
 
   // Handle mutation on a path inside a document that is an immediate child of the namespace
   var suffix = path.substring(ns.length + 1)
@@ -358,9 +368,10 @@ function handleDocTreeMutation (model, method, _arguments, ns, docTree, callback
  * Handle mutation directly on the path to a document that is an immediate
  * child of the namespace.
  */
-function handleDocMutation (method, path, args, out, ns, callbacks) {
+function handleDocMutation (method, path, args, out, ns, objects, callbacks) {
   // Or directly on the path to a document that is an immediate child of the namespace
-  if (path.substring(ns.length + 1).indexOf('.') !== -1) return false;
+  var rest = path.substring(ns.length + 1);
+  if (rest.indexOf('.') !== -1) return false;
 
   // The mutation can:
   switch (method) {
@@ -372,6 +383,14 @@ function handleDocMutation (method, path, args, out, ns, callbacks) {
     // (2) add or over-write the document with a new version of the document
     case 'set':
     case 'setNull':
+      var belongs;
+      if (Array.isArray(objects)) {
+        belongs = (indexOf(objects, args[1].id, equivId) !== -1);
+      } else {
+        belongs = rest in objects;
+      }
+      if (belongs) return false;
+
       callbacks.onAddDoc(args[1], out);
       break;
 
@@ -383,11 +402,13 @@ function handleDocMutation (method, path, args, out, ns, callbacks) {
 
 /**
  * Handle occurrence when the mutation occured directly on the namespace
+ * @param {Model} model
+ * @param {String} method that caused the ns mutation
+ * @param {String} path 
  */
-function handleNsMutation (model, method, path, args, out, ns, callbacks, iterator) {
+function handleNsMutation (model, method, path, args, out, ns, objects, callbacks, iterator) {
   var Model = model.constructor;
 
-  if (path !== ns) return false;
   switch (method) {
     case 'del': callbacks.onRemoveNs(); break;
 
@@ -403,7 +424,12 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
         , onAddDoc = callbacks.onAddDoc;
       if (Array.isArray(docsToAdd)) {
         for (var i = 0, l = docsToAdd.length; i < l; i++) {
-          onAddDoc(docsToAdd[i]);
+          var doc = docsToAdd[i];
+          // Ensure that the document is in the domain (it may not be if we are
+          // filtering over some query results)
+          if (~indexOf(objects, doc.id, equivId)) {
+            onAddDoc(docsToAdd[i]);
+          }
         }
       } else {
         onAddDoc(docsToAdd);
@@ -440,7 +466,6 @@ function handleNsMutation (model, method, path, args, out, ns, callbacks, iterat
     default:
       throw new Error('Uncaught edge case');
   }
-  return true;
 }
 
 /**
