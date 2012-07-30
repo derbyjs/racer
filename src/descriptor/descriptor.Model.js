@@ -30,8 +30,9 @@ module.exports = {
       descriptors = this.descriptors.normalize(descriptors);
 
       this.descriptors.handle(this, descriptors, {
+        registerFetch: true
         // Runs descriptorType.scopedResult and passes return value to this cb
-        scopedResult: function (scopedModel) {
+      , scopedResult: function (scopedModel) {
           scopedModels.push(scopedModel);
         }
       });

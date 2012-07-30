@@ -29,12 +29,11 @@ module.exports = {
     }
 
   , bundle: function (model, addToBundle) {
-      addToBundle('_loadQuerySubs', model._querySubs());
-
       // TODO Re-write this
       var queryMotifRegistry = model._queryMotifRegistry
         , queryMotifBundle = queryMotifRegistry.toJSON();
       model._onLoad.push(['_loadQueryMotifs', queryMotifBundle]);
+      addToBundle('_loadQueries', model._queryRegistry.bundle());
     }
 
   , socket: function (model, socket) {
@@ -140,6 +139,9 @@ module.exports = {
     , registerSubscribe: function (model, queryTuple) {
         model.registerQuery(queryTuple, 'subs');
       }
+    , registerFetch: function (model, queryTuple) {
+        model.registerQuery(queryTuple, 'fetch');
+      }
     , unregisterSubscribe: function (model, queryTuple) {
         var querySubs = model._querySubs()
           , hash = QueryBuilder.hash(queryJson);
@@ -155,10 +157,13 @@ module.exports = {
   }
 
 , proto: {
-    _loadQuerySubs: function (querySubs) {
-      for (var i = querySubs.length; i--; ) {
-        var queryTuple = querySubs[i];
-        this.registerQuery(queryTuple, 'subs');
+    _loadQueries: function (bundle) {
+      for (var i = 0, l = bundle.length; i < l; i++) {
+        var pair = bundle[i]
+          , queryTuple = pair[0]
+          , tag = pair[1];
+        var force = true;
+        this.registerQuery(queryTuple, tag, force);
       }
     }
   , _querySubs: function () {
@@ -195,12 +200,13 @@ module.exports = {
      * @return {Boolean} true if registered; false if already registered
      * @api protected
      */
-  , registerQuery: function (queryTuple, tag) {
+  , registerQuery: function (queryTuple, tag, force) {
       var queryRegistry = this._queryRegistry
-        , queryId = queryRegistry.add(queryTuple) ||
-                    queryRegistry.queryId(queryTuple)
-        , tagged = tag && queryRegistry.tag(queryId, tag);
-      return tagged || queryId;
+        , queryId = queryRegistry.add(queryTuple, force) ||
+                    queryRegistry.queryId(queryTuple);
+      queryRegistry.tag(queryId, tag);
+      if (!tag) throw new Error("NO TAG");
+      return queryId;
     }
 
     /**
@@ -229,11 +235,7 @@ module.exports = {
      * @api protected
      */
   , registeredMemoryQuery: function (queryTuple) {
-      var queryRegistry = this._queryRegistry;
-      if (!queryRegistry.lookup(queryTuple)) {
-        this.registerQuery(queryTuple, 'fetch');
-      }
-      return queryRegistry.memoryQuery(queryTuple, this._queryMotifRegistry);
+      return this._queryRegistry.memoryQuery(queryTuple, this._queryMotifRegistry);
     }
 
   , registeredQueryId: function (queryTuple) {

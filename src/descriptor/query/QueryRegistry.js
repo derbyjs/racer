@@ -19,6 +19,8 @@ function QueryRegistry () {
   // The `query` property is lazily created via QueryRegistry#memoryQuery
   this._queries = {};
 
+  this._ordered = [];
+
   // Maps ns -> [queryIds...]
   this._queryIdsByNs = {};
 
@@ -89,6 +91,20 @@ QueryRegistry.prototype = {
     return json;
   }
 
+, bundle: function () {
+    var ordered = this._ordered
+      , queries = this._queries
+      , bundle = [];
+    for (var i = 0, l = ordered.length; i < l; i++) {
+      var pair = ordered[i]
+        , queryId = pair[0]
+        , tag = pair[1]
+        ;
+      bundle.push([queries[queryId].tuple, tag]);
+    }
+    return bundle;
+  }
+
   /**
    * Adds a query to the registry.
    *
@@ -96,22 +112,27 @@ QueryRegistry.prototype = {
    * @return {String|null} the query id if add succeeds. null if add fails.
    * @api public
    */
-, add: function (queryTuple) {
+, add: function (queryTuple, force) {
     var queryId = this.queryId(queryTuple);
-    if (queryId) return null;
+    if (!force && queryId) return null;
 
-    queryId = queryTuple[queryTuple.length] = this._nextQueryId();
+    var queries = this._queries;
+    if (! (queryId in queries)) {
+      queryId = queryTuple[queryTuple.length] = this._nextQueryId();
 
-    this._queries[queryId] = {
-      id: queryId
-    , tuple: queryTuple
-    , tags: []
-    };
+      queries[queryId] = {
+        id: queryId
+      , tuple: queryTuple
+      , tags: []
+      };
 
-    var ns = queryTuple[0]
-      , queryIdsByNs = this._queryIdsByNs
-      , queryIds = queryIdsByNs[ns] || (queryIdsByNs[ns] = []);
-    queryIds.push(queryId);
+      var ns = queryTuple[0]
+        , queryIdsByNs = this._queryIdsByNs
+        , queryIds = queryIdsByNs[ns] || (queryIdsByNs[ns] = []);
+      if (queryIds.indexOf(queryId) === -1) {
+        queryIds.push(queryId);
+      }
+    }
 
     return queryId;
   }
@@ -219,6 +240,7 @@ QueryRegistry.prototype = {
       , queryIds = queryIdsByTag[tag] ||
                   (queryIdsByTag[tag] = []);
     if (-1 === queryIds.indexOf(queryId)) {
+      this._ordered.push([queryId, tag]);
       queryIds.push(queryId);
       return true;
     }
