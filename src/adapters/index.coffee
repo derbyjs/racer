@@ -22,5 +22,5 @@ exports.createAdapter = (adapterType, opts) ->
     if typeof Adapter isnt 'function'
       throw new Error "No #{adapterType} adapter found for #{opts.type}"
     adapter = new Adapter opts
-  adapter.connect? (err) -> throw err
+  adapter.connect? (err) -> throw err if err
   return adapter
