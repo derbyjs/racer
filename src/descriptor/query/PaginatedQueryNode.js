@@ -55,6 +55,8 @@ PaginatedQueryNode.prototype.results = function results (db, cb) {
 };
 
 PaginatedQueryNode.prototype.shouldPublish = function (newDoc, oldDoc, txn, store, cb) {
+  return; // TODO Support PaginatedQueryNodes later
+
   var cache = this._cache;
 
   if (!cache) {
