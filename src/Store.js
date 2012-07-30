@@ -93,6 +93,9 @@ Store.prototype.listen = function (to, namespace) {
   io.configure( function () {
     io.set('browser.client', false);
     io.set('transports', racer.get('transports'));
+    if (racer.get('polling duration')) {
+      io.set('polling duration', racer.get('polling duration'));
+    }
   });
   io.configure('production', function () {
     io.set('log level', 1);
