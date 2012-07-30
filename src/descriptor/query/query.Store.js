@@ -144,6 +144,7 @@ module.exports = {
         if (err) return finish(err);
         var path;
         if (Array.isArray(result)) {
+          // TODO When do we use resultIds?
           var resultIds = [];
           for (var i = 0, l = result.length; i < l; i++) {
             var doc = result[i];
