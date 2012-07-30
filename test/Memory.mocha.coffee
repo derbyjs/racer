@@ -109,7 +109,7 @@ describe 'Memory', ->
     try
       memory.pop 'nonArray', ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -121,7 +121,7 @@ describe 'Memory', ->
     try
       memory.push 'nonArray', 5, 6, ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -163,7 +163,7 @@ describe 'Memory', ->
     try
       memory.shift 'nonArray', ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -175,7 +175,7 @@ describe 'Memory', ->
     try
       memory.unshift 'nonArray', 5, 6, ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -222,7 +222,7 @@ describe 'Memory', ->
     try
       memory.insert 'nonArray', 0, 'never added', ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -297,7 +297,7 @@ describe 'Memory', ->
     try
       memory.move 'nonArray', 0, 0, 1, ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 
@@ -312,7 +312,7 @@ describe 'Memory', ->
     try
       memory.remove 'nonArray', 0, 3, ver, null
     catch e
-      expect(e.message).to.contain 'not an Array'
+      expect(e.message.toLowerCase()).to.contain 'not an array'
       didThrowNotAnArray = true
     expect(didThrowNotAnArray).to.be.true
 

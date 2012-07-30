@@ -148,7 +148,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         expect(err).to.be.null()
         store.pop 'globals._.nonArray', ++_ver, (err) ->
           expect(err).to.not.be.null
-          expect(err.message).to.contain 'not an Array'
+          expect(err.message.toLowerCase()).to.contain 'not an array'
           done()
 
     it 'push on a non array should result in a "Not an Array" error', (done) ->
@@ -158,7 +158,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         expect(err).to.be.null()
         store.push 'globals._.nonArray', [5, 6], ++_ver, (err) ->
           expect(err).to.not.be.null
-          expect(err.message).to.contain 'not an Array'
+          expect(err.message.toLowerCase()).to.contain 'not an array'
           done()
 
     it 'should be able to unshift a single value onto an undefined path', (done) ->
@@ -215,7 +215,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         expect(err).to.be.null()
         store.shift 'globals._.nonArray', ++_ver, (err, value, ver) ->
           expect(err).to.not.be.null
-          expect(err.message).to.contain 'not an Array'
+          expect(err.message.toLowerCase()).to.contain 'not an array'
           done()
 
     it 'unshift on a non array should result in a "Not an Array" error', (done) ->
@@ -225,7 +225,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         expect(err).to.be.null()
         store.unshift 'globals._.nonArray', [5, 6], ++_ver, (err, value, ver) ->
           expect(err).to.not.be.null
-          expect(err.message).to.contain 'not an Array'
+          expect(err.message.toLowerCase()).to.contain 'not an array'
           done()
 
     it 'insert 0 on an undefined path should result in a new array', (done) ->
@@ -298,7 +298,7 @@ module.exports = (storeOpts = {}, plugins = []) ->
         expect(err).to.be.null()
         store.insert 'globals._.nonArray', 0, ['never added'], ++_ver, (err) ->
           expect(err).to.not.be.null
-          expect(err.message).to.contain 'not an Array'
+          expect(err.message.toLowerCase()).to.contain 'not an array'
           done()
 
     it 'moving from index A to index B should work', (done) ->
