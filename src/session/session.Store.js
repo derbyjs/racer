@@ -4,7 +4,9 @@ var connect = require('connect')
   , parseSignedCookie = connect.utils.parseSignedCookie
   , createSessionMiddleware = connect.session
   , MemoryStore = createSessionMiddleware.MemoryStore
-  , cookie = require('cookie');
+  , cookie = require('cookie')
+  , finishAfter = require('../util/async').finishAfter
+  ;
 
 /**
  * The following is a description of the lifecycle of a session and of a socket
@@ -84,13 +86,22 @@ function sessionMiddleware(opts) {
   // The following properties are used in setupSocketAuth
   this._sessionKey = opts.key || (opts.key = 'connect.sid');
   this._sessionSecret = opts.secret;
-  var sessionStore = this._sessionStore = opts.store;
 
-  if (!sessionStore) {
-    sessionStore = this._sessionStore = opts.store = new MemoryStore;
-  }
+  // Use in-memory sticky sessions as the option of first resort
+  // TODO Ensure that up and node-http-proxy route requests to the proper
+  // machine. Each of these upstream sites can check the persistent session
+  // store to see which machine & process to route it to. If the machine or
+  // process is down, then the load balancer/up should re-route the request to
+  // a different process, with instructions to load the persistent store into
+  // a sticky session at the new process site.
+  var sessionStore = this._sessionStore = new MemoryStore;
 
-  patchSessionStore(sessionStore, this);
+  // But also (optional) persistent sessions in case of server restarts
+  var persistentStore = opts.store;
+
+  opts.store = sessionStore;
+
+  patchSessionStore(sessionStore, this, persistentStore);
 
   var securePairs = this._securePairs = {}
     , store = this;
@@ -242,8 +253,8 @@ function onSocketConnection (store, socket, clientId) {
 //   Perhaps this would be easiest with a Session store that is a racer Model
 //   or Store.
 
-function patchSessionStore (sessStore, store) {
-  // Re-wrap this._sessionStore.destroy, to also remove the session form
+function patchSessionStore (sessStore, store, persistentStore) {
+  // Re-wrap this._sessionStore.destroy, to also remove the session from
   // every associated socket when the session is destroyed
   var socketsBySessId = store._socketsBySessionId
     , oldSessDestroy = sessStore.destroy;
@@ -251,6 +262,10 @@ function patchSessionStore (sessStore, store) {
   sessStore.destroy = function (sid, fn) {
     var sockets = socketsBySessId[sid]
       , securePairs = store._securePairs;
+
+    if (persistentStore) {
+      fn = finishAfter(2, fn);
+    }
     for (var i = sockets.length; i--; ) {
       var socket = sockets[i]
       delete socket.session;
@@ -258,6 +273,7 @@ function patchSessionStore (sessStore, store) {
       delete securePairs[clientId];
       store.reloadClient(clientId);
     }
+    persistentStore.destroy(sid, fn);
     return oldSessDestroy.call(this, sid, fn);
   };
 
@@ -275,6 +291,8 @@ function patchSessionStore (sessStore, store) {
         } else {
           self.destroy(sid, fn);
         }
+      } else if (persistentStore){
+        persistentStore.get(sid, fn);
       } else {
         fn();
       }
@@ -285,18 +303,11 @@ function patchSessionStore (sessStore, store) {
     var self = this;
     process.nextTick(function(){
       self.sessions[sid] = sess;
-      fn && fn();
+      if (persistentStore) {
+        persistentStore.set(sid, sess, fn);
+      } else {
+        fn && fn();
+      }
     });
-  };
-
-  sessStore.createSession = function (req, sess) {
-    var expires = sess.cookie.expires
-      , orig = sess.cookie.originalMaxAge
-      , update = null == update ? true : false;
-    sess.cookie = new Cookie(sess.cookie);
-    if ('string' == typeof expires) sess.cookie.expires = new Date(expires);
-    sess.cookie.originalMaxAge = orig;
-    req.session = sess;
-    return req.session;
   };
 }
