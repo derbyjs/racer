@@ -276,13 +276,30 @@ module.exports = {
      *       console.log(todos.get());
      *     });
      *
+     *  You do not need to pass query to subscribe. You can also call subscribe
+     *  on the query directly:
+     *
+     *      model.query('todos').forUser('1').subscribe( function (err, todos) {
+     *        console.log(todos.get());
+     *      });
+     *
+     *  This also supports a function signature that's better for
+     *  coffee-script:
+     *
+     *  Example in coffee:
+     *
+     *     model.query 'todos',
+     *       forUser: '1'
+     *       subscribe: (err, todos) ->
+     *         console.log todos.get()
+     *
      * @param {String} ns
      * @return {Object} a query tuple builder
      * @api public
      */
   , query: function (ns) {
       var model = this;
-      return Object.create(this._queryMotifRegistry.queryTupleBuilder(ns), {
+      var builder = Object.create(this._queryMotifRegistry.queryTupleBuilder(ns), {
         fetch: {value: function (callback) {
           model.fetch(this, callback);
         }}
@@ -290,6 +307,23 @@ module.exports = {
           model.subscribe(this, callback);
         }}
       });
+      if (arguments.length == 2) {
+        var params = arguments[1];
+        var getter = 'fetch' in params
+                   ? 'fetch'
+                   : 'subscribe' in params
+                     ? 'subscribe'
+                     : null;
+        if (getter) {
+          var cb = params[getter];
+          delete params[getter];
+        }
+        for (var motif in params) {
+          builder[motif](params[motif]);
+        }
+        if (getter) builder[getter](cb);
+      }
+      return builder;
     }
   }
 };
