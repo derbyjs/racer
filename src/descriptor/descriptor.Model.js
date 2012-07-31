@@ -37,11 +37,20 @@ module.exports = {
         }
       });
 
-      this._upstreamData(descriptors, function (err, data) {
-        if (err) return cb(err);
+      this._upstreamData(descriptors, onUpstreamData);
+
+      function onUpstreamData (err, data) {
+        if (err) {
+          if (err === 'disconnected') {
+            return self.once('connect', function () {
+              self._upstreamData(descriptors, onUpstreamData);
+            });
+          }
+          return cb(err);
+        }
         self._addData(data);
         cb.apply(null, [err].concat(scopedModels));
-      });
+      }
     }
 
     // TODO Do some sort of subscription counting (like reference counting) to
