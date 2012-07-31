@@ -300,11 +300,14 @@ module.exports = {
   , query: function (ns) {
       var model = this;
       var builder = Object.create(this._queryMotifRegistry.queryTupleBuilder(ns), {
-        fetch: {value: function (callback) {
-          model.fetch(this, callback);
+        fetch: {value: function (cb) {
+          model.fetch(this, cb);
         }}
-      , subscribe: {value: function (callback) {
-          model.subscribe(this, callback);
+      , waitFetch: {value: function (cb) {
+          model.waitFetch(this, cb);
+        }}
+      , subscribe: {value: function (cb) {
+          model.subscribe(this, cb);
         }}
       });
       if (arguments.length == 2) {
