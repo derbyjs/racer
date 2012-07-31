@@ -37,20 +37,37 @@ module.exports = {
         }
       });
 
-      this._upstreamData(descriptors, onUpstreamData);
+      this._upstreamData(descriptors, function (err, data) {
+        if (err) return cb(err);
+        self._addData(data);
+        cb.apply(null, [err].concat(scopedModels));
+      });
 
       function onUpstreamData (err, data) {
         if (err) {
-          if (err === 'disconnected') {
+          if (dontCbDisconnected && err === 'disconnected') {
             return self.once('connect', function () {
               self._upstreamData(descriptors, onUpstreamData);
             });
           }
           return cb(err);
         }
-        self._addData(data);
-        cb.apply(null, [err].concat(scopedModels));
       }
+    }
+
+  , waitFetch: function (/* descriptors..., cb */) {
+      var arglen = arguments.length
+        , cb = arguments[arglen-1]
+        , self = this;
+
+      function newCb (err) {
+        if (err === 'disconnected') {
+          return self.once('connect', newCb);
+        }
+        cb.apply(null, arguments);
+      };
+      arguments[arglen-1] = newCb;
+      this.fetch.apply(this, arguments);
     }
 
     // TODO Do some sort of subscription counting (like reference counting) to
