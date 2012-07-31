@@ -88,6 +88,9 @@ module.exports = {
         fetch: {value: function (callback) {
           store.fetch(this, callback);
         }}
+      , waitFetch: {value: function (callback) {
+          store.waitFetch(this, callback);
+        }}
       , subscribe: {value: function (callback) {
           store.subscribe(this, callback);
         }}
