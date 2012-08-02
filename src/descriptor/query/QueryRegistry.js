@@ -116,9 +116,12 @@ QueryRegistry.prototype = {
     var queryId = this.queryId(queryTuple);
     if (!force && queryId) return null;
 
+    if (!queryTuple[2]) queryTuple[2] = null;
+
     var queries = this._queries;
     if (! (queryId in queries)) {
-      queryId = queryTuple[queryTuple.length] = this._nextQueryId();
+      queryId = this._nextQueryId();
+      queryTuple[3] = queryId;
 
       queries[queryId] = {
         id: queryId
@@ -191,19 +194,30 @@ QueryRegistry.prototype = {
    * @param {Array} queryTuple
    */
 , queryId: function (queryTuple) {
-    var last = queryTuple[queryTuple.length - 1];
-    if (typeof last === 'string') return last;
+    // queryTuple has the form:
+    // [ns, argsByMotif, typeMethod, queryId]
+    // where
+    // argsByMotif: maps query motif names to motif arguments
+    // typeMethod: e.g., 'one', 'count'
+    // queryId: is an id (specific to the clientId) assigned by the
+    // QueryRegistry to the query
+    if (queryTuple.length === 4) {
+      return queryTuple[3];
+    }
 
     var ns = queryTuple[0]
       , queryIds = this._queryIdsByNs[ns]
       , queries = this._queries;
     if (!queryIds) return null;
+    var motifs = queryTuple[1]
+      , typeMethod = queryTuple[2];
     for (var i = queryIds.length; i--; ) {
       var queryId = queryIds[i]
-        , tuple = queries[queryId].tuple;
-      // Rm the queryId at the end
-      tuple = tuple.slice(0, tuple.length-1);
-      if (deepEqual(tuple, queryTuple)) {
+        , tuple = queries[queryId].tuple
+        , currMotifs = tuple[1]
+        , currTypeMethod = tuple[2]
+        ;
+      if (deepEqual(currMotifs, motifs) && currTypeMethod == typeMethod) {
         return queryId;
       }
     }

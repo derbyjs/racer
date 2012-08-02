@@ -190,7 +190,7 @@ module.exports = ->
           expect(results).to.eql [users[0], users[1]]
           done()
 
-    describe 'compound queries', ->
+    describe 'composable queries', ->
       beforeEach ->
         @store.query.expose @currNs, 'workingAll', (workdays) ->
           @where('workdays').contains(workdays)
@@ -215,6 +215,12 @@ module.exports = ->
           results = resultsAlias.get()
           expect(results).to.have.length(1)
           expect(results).to.eql [users[1]]
+          done()
+
+      it 'should be able to specify `one` to force a find-one', (done) ->
+        @model.subscribe @query.one(), (err, $result) ->
+          result = $result.get()
+          expect(result).to.eql users[1]
           done()
 
     describe '`only` queries', ->

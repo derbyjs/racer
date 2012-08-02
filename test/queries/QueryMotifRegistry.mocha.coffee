@@ -57,7 +57,7 @@ describe 'QueryMotifRegistry', ->
         @where('gender').equals('female')
       builder = @registry.queryTupleBuilder(ns)
       builder.withRole('admin').female()
-      expect(builder.tuple).to.eql [ns, {withRole: ['admin'], female: []}]
+      expect(builder.tuple).to.eql [ns, {withRole: ['admin'], female: []}, null]
 
   describe '#queryJSON', ->
     it 'should return a JSON representation of the query', ->

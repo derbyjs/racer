@@ -118,15 +118,18 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
       , onAddDoc, onOverwriteNs, currResult;
 
     if (memoryQuery.type === 'findOne') {
-      currResult = scopedModel.get();
-      onOverwriteNs = function (docs) {
+      onOverwriteNs = function (docs, each) {
         var results = equivFindQuery.syncRun(docs);
-        if (results.length) {
-          model.set(pointerPath, results[0]);
-        } else {
-          model.set(pointerPath, null);
-        }
+        each(docs, function (doc) {
+          if (equivFindQuery.filterTest(doc, ns)) onAddDoc(doc);
+        });
       };
+
+      onAddDoc = function (newDoc, oldDoc) {
+        // TODO Think through this logic more
+        docsAdded.push(newDoc);
+      };
+
     } else {
       currResult = scopedModel.get() || [];
 
@@ -136,6 +139,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           if (memoryQuery.filterTest(doc, ns)) onAddDoc(doc);
         });
       };
+
       onAddDoc = function (newDoc, oldDoc) {
         if (!oldDoc) {
           // If the new doc belongs in our query results...
@@ -237,10 +241,11 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
         };
         break;
       case 'findOne':
+        currResult = scopedModel.get();
         var equivFindQuery = new MemoryQuery(Object.create(memoryQuery.toJSON(), {
               type: { value: 'find' }
             }))
-          , docsAdded = [currResult];
+          , docsAdded = currResult ? [currResult] : [];
 
         callbacks = {
           onRemoveNs: function () {
@@ -250,9 +255,7 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
           // In this case, docs is the same as searchSpace.
         , onOverwriteNs: onOverwriteNs
 
-        , onAddDoc: function (newDoc, oldDoc) {
-            docsAdded.push(newDoc);
-          }
+        , onAddDoc: onAddDoc
 
         , onRmDoc: function (oldDoc) {
             if (oldDoc.id === (currResult && currResult.id)) {
@@ -272,7 +275,9 @@ function createMutatorListener (model, pointerPath, ns, scopedModel, memoryQuery
               return model.set(pointerPath, null);
             }
             var comparator = memoryQuery._comparator;
-            if (!comparator) return;
+            if (!comparator) {
+              return model.set(pointerPath, doc.id);
+            }
             if (comparator(doc, currResult) < 0) {
               model.set(pointerPath, doc.id);
             }
@@ -389,7 +394,7 @@ function handleDocMutation (method, path, args, out, ns, objects, callbacks) {
       } else {
         belongs = rest in objects;
       }
-      if (belongs) return false;
+      if (belongs && !out) return false;
 
       callbacks.onAddDoc(args[1], out);
       break;
@@ -404,7 +409,7 @@ function handleDocMutation (method, path, args, out, ns, objects, callbacks) {
  * Handle occurrence when the mutation occured directly on the namespace
  * @param {Model} model
  * @param {String} method that caused the ns mutation
- * @param {String} path 
+ * @param {String} path
  */
 function handleNsMutation (model, method, path, args, out, ns, objects, callbacks, iterator) {
   var Model = model.constructor;

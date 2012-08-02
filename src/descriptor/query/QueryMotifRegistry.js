@@ -117,7 +117,7 @@ QueryMotifRegistry.prototype ={
     callbacksByName[motifName] = callback;
 
     var tupleFactories = this._tupleFactories;
-    tupleFactories = tupleFactories[ns] || (tupleFactories[ns] = {});
+    tupleFactories = tupleFactories[ns] || (tupleFactories[ns] = Object.create(tupleFactoryProto));
 
     tupleFactories[motifName] = function addToTuple () {
       var args = Array.prototype.slice.call(arguments);
@@ -175,7 +175,7 @@ QueryMotifRegistry.prototype ={
                       'collection of documents');
     }
     return Object.create(tupleFactories, {
-      tuple: { value: [ns, {}] }
+      tuple: { value: [ns, {}, null] }
     });
   }
 
@@ -189,10 +189,17 @@ QueryMotifRegistry.prototype ={
    * @api public
    */
 , queryJSON: function (queryTuple) {
+    // Instantiate a QueryBuilder.
+    // Loop through the motifs of the queryTuple, and apply the corresponding motif logic to augment the QueryBuilder.
+    // Tack on the query type in the queryTuple (e.g., 'one', 'count', etc.), if
+  // specified -- otherwise, default to 'find' type.
+    // Convert the QueryBuilder instance to json
     var ns = queryTuple[0]
+      , queryBuilder = new QueryBuilder({from: ns})
+
       , queryComponents = queryTuple[1]
       , callbacksByName = this._byNs[ns]
-      , queryBuilder = new QueryBuilder({from: ns});
+      ;
 
     for (var motifName in queryComponents) {
       var callback = callbacksByName
@@ -201,6 +208,11 @@ QueryMotifRegistry.prototype ={
       if (! callback) return null;
       var queryArgs = queryComponents[motifName];
       callback.apply(queryBuilder, queryArgs);
+    }
+
+    var typeMethod = queryTuple[2];
+    if (typeMethod) {
+      queryBuilder[typeMethod]();
     }
     return queryBuilder.toJSON();
   }
@@ -247,3 +259,11 @@ QueryMotifRegistry.prototype ={
     return cb && cb.length;
   }
 }
+
+var tupleFactoryProto = {
+  // Specifies the query should return a single result
+  one: function () {
+    this.tuple[2] = 'one';
+    return this;
+  }
+};

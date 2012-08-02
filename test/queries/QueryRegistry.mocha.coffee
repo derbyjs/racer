@@ -11,7 +11,7 @@ describe 'QueryRegistry', ->
       @registry.add [ns, {withRole: ['admin']}]
       {id, tuple, tags} = @registry.lookup [ns,{withRole: ['admin']}]
       expect(id).to.equal '1'
-      expect(tuple).to.eql [ns, {withRole: ['admin']}, '1']
+      expect(tuple).to.eql [ns, {withRole: ['admin']}, null, '1']
       expect(tags).to.eql []
 
     it 'should not find a query that was not added', ->
@@ -51,7 +51,7 @@ describe 'QueryRegistry', ->
       @registry.tag '1', 'subs'
       results = @registry.lookupWithTag 'subs'
       expect(results).to.eql [
-        [ns, {withRole: ['admin']}, '1']
+        [ns, {withRole: ['admin']}, null, '1']
       ]
 
     it 'should not return query tuples that have not been tagged', ->
