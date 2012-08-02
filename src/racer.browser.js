@@ -41,7 +41,7 @@ function plugin (racer) {
 
     // TODO If socket is passed into racer, make sure to add clientId query param
     ioOptions.query = 'clientId=' + clientId;
-    model._setSocket(socket || io.connect(ioUri + '?clientId=' + clientId), ioOptions);
+    model._setSocket(socket || io.connect(ioUri + '?clientId=' + clientId, ioOptions));
 
     IS_READY = true;
     racer.emit('ready', model);
