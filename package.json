@@ -9,7 +9,8 @@
   "version": "0.3.12",
   "main": "./lib/racer.js",
   "scripts": {
-    "test": "make test"
+    "test": "make test",
+    "install" : "./scripts/install"
   },
   "dependencies": {
     "socket.io": ">=0.9.6",
@@ -23,13 +24,13 @@
     "connect": "2.x",
     "debug": ">=0.7.0",
     "ansi-color": ">=0.2.1",
-    "cookie": "0.0.4"
+    "cookie": "0.0.4",
+    "coffee-script": "1.3.x"
   },
   "devDependencies": {
     "mocha": "1.2.x",
     "expect.js": ">=0.1.2",
     "sinon": "1.3.x",
-    "coffee-script": "1.3.x",
     "racer-journal-redis": "*",
     "racer-pubsub-redis": "*",
     "racer-db-mongo": "*",
