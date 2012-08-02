@@ -55,8 +55,6 @@ module.exports = {
     }
 
   , middleware: function (store, middleware, createMiddleware) {
-      // TODO pass back plural docs to send, not singular doc,
-      //      for fetchQuery
       middleware.fetchQuery = createMiddleware();
       middleware.fetchQuery.add(function (req, res, next) {
         req.context.guardQuery(req, res, next);
@@ -141,19 +139,15 @@ module.exports = {
   , _fetchAndCompileQueryData: function (queryTuple, opts) {
       var eachDatumCb = opts.each
         , finish = opts.done
-        , queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
-        , queryId = queryTuple[queryTuple.length-1];
+        , queryJson = this._queryMotifRegistry.queryJSON(queryTuple);
       this._fetchQueryData(queryTuple, function (err, result, version) {
         if (err) return finish(err);
         var path;
         if (Array.isArray(result)) {
-          // TODO When do we use resultIds?
-          var resultIds = [];
           for (var i = 0, l = result.length; i < l; i++) {
             var doc = result[i];
             path = queryJson.from + '.' + doc.id;
             eachDatumCb(path, doc, version);
-            resultIds.push(doc.id);
           }
         } else if (result) {
           path = queryJson.from + '.' + result.id;
@@ -168,8 +162,7 @@ module.exports = {
      * @param {Function} callback(err, result, version)
      */
   , _fetchQueryData: function (queryTuple, callback) {
-      var queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
-        , queryId = queryTuple[queryTuple.length-1];
+      var queryJson = this._queryMotifRegistry.queryJSON(queryTuple);
       // TODO fetch(queryTuple, ...) ?
       this._queryCoordinator.fetch(queryJson, callback);
     }
