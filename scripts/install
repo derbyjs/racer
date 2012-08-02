@@ -1,4 +1,0 @@
-#! /bin/bash
-./scripts/compile-macro
-./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src ./dev
-cd src && find . -path "*.js" | cpio -pd ../lib && cd ..
