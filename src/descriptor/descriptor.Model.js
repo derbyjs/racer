@@ -42,17 +42,6 @@ module.exports = {
         self._addData(data);
         cb.apply(null, [err].concat(scopedModels));
       });
-
-      function onUpstreamData (err, data) {
-        if (err) {
-          if (dontCbDisconnected && err === 'disconnected') {
-            return self.once('connect', function () {
-              self._upstreamData(descriptors, onUpstreamData);
-            });
-          }
-          return cb(err);
-        }
-      }
     }
 
   , waitFetch: function (/* descriptors..., cb */) {
