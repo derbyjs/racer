@@ -79,9 +79,10 @@ function plugin (racer) {
 
   racer.settings = { env: process.env.NODE_ENV || 'development' };
   racer.io = {};
-  [racer, racer.io].forEach(makeConfigurable);
+  racer.ioClient = {};
+  [racer, racer.io, racer.ioClient].forEach(makeConfigurable);
 
-  racer.io.configure( function () {
+  racer.io.configure(function () {
     racer.io.set('transports', ['websocket', 'xhr-polling']);
     racer.io.disable('browser client');
   });
@@ -90,6 +91,11 @@ function plugin (racer) {
   });
   racer.io.configure('development', function () {
     racer.io.set('log level', 0);
+  });
+
+  racer.ioClient.configure(function() {
+    racer.ioClient.set('reconnection delay', 100);
+    racer.ioClient.set('max reconnection attempts', 20);
   });
 
   racer.configure('production', function () {

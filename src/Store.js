@@ -195,6 +195,7 @@ Store.prototype.createModel = function () {
   var model = new this.racer.protected.Model({
     store: this
   , _ioUri: this._ioUri
+  , _ioOptions: this.racer.ioClient.settings
   });
 
   if (this._mode.startId) {
