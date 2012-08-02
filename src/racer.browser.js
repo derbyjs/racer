@@ -17,12 +17,13 @@ exports.decorate = 'racer';
 
 function plugin (racer) {
   racer.init = function (tuple, socket) {
-    var clientId = tuple[0]
-      , memory   = tuple[1]
-      , count    = tuple[2]
-      , onLoad   = tuple[3]
-      , startId  = tuple[4]
-      , ioUri    = tuple[5];
+    var clientId  = tuple[0]
+      , memory    = tuple[1]
+      , count     = tuple[2]
+      , onLoad    = tuple[3]
+      , startId   = tuple[4]
+      , ioUri     = tuple[5]
+      , ioOptions = tuple[6];
 
     model = new this.protected.Model;
     model._clientId = clientId;
@@ -39,11 +40,8 @@ function plugin (racer) {
     racer.emit('init', model);
 
     // TODO If socket is passed into racer, make sure to add clientId query param
-    model._setSocket(socket || io.connect(ioUri + '?clientId=' + clientId), {
-      'reconnection delay': 100
-    , 'max reconnection attempts': 20
-    , query: 'clientId=' + clientId
-    });
+    ioOptions.query = 'clientId=' + clientId;
+    model._setSocket(socket || io.connect(ioUri + '?clientId=' + clientId, ioOptions));
 
     IS_READY = true;
     racer.emit('ready', model);

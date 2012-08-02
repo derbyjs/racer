@@ -36,25 +36,67 @@ function plugin (racer) {
 
   /* Racer Server-side Configuration */
 
+  function makeConfigurable (module) {
+    module.settings || (module.settings = {});
+    module.configure = function (env, callback) {
+      if (typeof env === 'function') {
+        callback = env;
+        env = 'all';
+      }
+      if ((env === 'all') || (env === racer.get('env'))) {
+        callback.call(this);
+      }
+      return this;
+    };
+
+    module.set = function (setting, value) {
+      this.settings[setting] = value;
+      return this;
+    };
+    module.enable = function (setting) {
+      return this.set(setting, true);
+    };
+    module.disable = function (setting) {
+      return this.set(setting, false);
+    };
+
+    module.get = function (setting) {
+      return this.settings[setting];
+    };
+    module.enabled = function (setting) {
+      return !!this.get(setting);
+    };
+    module.disabled = function (setting) {
+      return !this.get(setting);
+    };
+
+    module.applyConfiguration = function (configurable) {
+      for (var setting in this.settings) {
+        configurable.set(setting, this.settings[setting]);
+      };
+    };
+  }
+
   racer.settings = { env: process.env.NODE_ENV || 'development' };
+  racer.io = {};
+  racer.ioClient = {};
+  [racer, racer.io, racer.ioClient].forEach(makeConfigurable);
 
-  racer.configure = function () {
-    var envs = Array.prototype.slice.call(arguments, 0, arguments.length-1)
-      , fn = arguments[arguments.length-1];
-    if (envs[0] === 'all' || ~envs.indexOf(this.settings.env)) {
-      fn.call(this);
-    }
-    return this;
-  };
+  racer.io.configure(function () {
+    racer.io.set('transports', ['websocket', 'xhr-polling']);
+    racer.io.disable('browser client');
+  });
+  racer.io.configure('production', function () {
+    racer.io.set('log level', 1);
+  });
+  racer.io.configure('development', function () {
+    racer.io.set('log level', 0);
+  });
 
-  racer.set = function (setting, value) {
-    this.settings[setting] = value;
-    return this;
-  };
-
-  racer.get = function (setting) { return this.settings[setting]; };
-
-  racer.set('transports', ['websocket', 'xhr-polling']);
+  racer.ioClient.configure(function() {
+    racer.ioClient.set('reconnection delay', 100);
+    racer.ioClient.set('max reconnection attempts', 20);
+  });
 
   racer.configure('production', function () {
     this.set('minify', true);
@@ -105,7 +147,7 @@ function plugin (racer) {
       options.debug = true;
     }
 
-    socketioClient.builder(this.get('transports'), {minify: minify}, function (err, value) {
+    socketioClient.builder(this.io.get('transports'), {minify: minify}, function (err, value) {
       callback(err, value + ';' + browserify.bundle(options));
     });
   };

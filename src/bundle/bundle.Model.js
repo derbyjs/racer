@@ -42,7 +42,15 @@ var mixin = {
     }
 
   , _bundle: function (callback) {
-      callback(JSON.stringify([this._clientId, this._memory, this._count, this._onLoad, this._startId, this._ioUri]));
+      callback(JSON.stringify([
+        this._clientId
+      , this._memory
+      , this._count
+      , this._onLoad
+      , this._startId
+      , this._ioUri
+      , this._ioOptions
+      ]));
       this._commit = errorOnCommit;
     }
   }
