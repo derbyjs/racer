@@ -7,6 +7,10 @@ compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
 compile-macro:
 	./scripts/watch-macro
+deploy:
+	@mkdir -p 'dev'
+	./scripts/compile-macro
+	./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src ./dev
 
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
