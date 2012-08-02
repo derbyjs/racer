@@ -11,6 +11,7 @@ deploy:
 	@mkdir -p 'dev'
 	./scripts/compile-macro
 	./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src ./dev
+	cd src && find . -path "*.js" | cpio -pd ../lib && cd ..
 
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
