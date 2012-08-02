@@ -10,7 +10,7 @@
   "main": "./lib/racer.js",
   "scripts": {
     "test": "make test",
-    "install" : "scripts/compile.js"
+    "install" : "./scripts/install"
   },
   "dependencies": {
     "socket.io": ">=0.9.6",
