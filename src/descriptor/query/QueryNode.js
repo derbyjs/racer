@@ -6,8 +6,10 @@ var MemoryQuery = require('./MemoryQuery')
 
 exports = module.exports = QueryNode;
 
-// QueryNodes are located in a QueryHub where query pub sub and query fetches
-// are routed.
+/**
+ * QueryNodes are located in a QueryHub where query pub sub and query fetches
+ * are routed.
+ */
 
 function QueryNode (queryJson) {
   this.ns = queryJson.from;
