@@ -65,7 +65,7 @@ exports.onRemoveNs = function (docs, findOneQuery, model) {
 // TODO Think through this logic more
 exports.onAddDoc = function (newDoc, oldDoc, findOneQuery, model, searchSpace, currResult) {
   var ns = findOneQuery.ns
-    , doesBelong = memoryQuery.filterTest(newDoc, ns);
+    , doesBelong = findOneQuery.filterTest(newDoc, ns);
   if (! doesBelong) return;
   var pointerPath = getPointerPath(findOneQuery.id);
   if (currResult) {
