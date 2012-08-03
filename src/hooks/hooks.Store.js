@@ -15,20 +15,20 @@ module.exports = {
   }
 
 , proto: {
-    beforeAccessControl: function (mutator, path, callback) {
+    beforeAccessControl: function (mutator, path, cb) {
       var fn = gatedMiddleware(mutator, path, function (req, res, next) {
         var txn = req.data
           , caller = {session: req.session};
-        callback.call(caller, txn, req.origDoc, next);
+        cb.call(caller, txn, req.origDoc, next);
       });
       this.middleware.beforeAccessControl.add(fn);
       return this;
     }
-  , afterDb: function (mutator, path, callback) {
+  , afterDb: function (mutator, path, cb) {
       var fn = gatedMiddleware(mutator, path, function (req, res, next) {
         var txn = req.data
           , caller = {session: req.session};
-        callback.call(caller, txn, req.origDoc, next);
+        cb.call(caller, txn, req.origDoc, next);
       });
       this.middleware.afterDb.add(fn);
       return this;
@@ -37,7 +37,7 @@ module.exports = {
 }
 
 // TODO Re-factor: All of this is very similar to accessControl writeGuard
-function gatedMiddleware (mutator, path, callback) {
+function gatedMiddleware (mutator, path, cb) {
   var regexp = eventRegExp(path);
   return function (req, res, next) {
     var txn = req.data
@@ -49,6 +49,6 @@ function gatedMiddleware (mutator, path, callback) {
     var path = transaction.getPath(txn);
     if (! regexp.test(path)) return next();
 
-    callback(req, res, next);
+    cb(req, res, next);
   };
 }
