@@ -1,9 +1,12 @@
-// A query hub manages some subset of the cloud's active queries, where
-// "active" means that at least one client is subscribed to the query. A Store
-// will interact with a QueryHub via a QueryCoordinator. The QueryCoordinator
-// will route a query fetch, subscribe, and unsubscribe to the proper QueryHub
-// (ideally doing so in a replicated and sharded env). A QueryHub is
-// responsible for these incoming query-related responsibilities.
+/**
+ * A query hub manages some subset of the cloud's active queries, where
+ * "active" means that at least one client is subscribed to the query. A Store
+ * will interact with a QueryHub via a QueryCoordinator. The QueryCoordinator
+ * will route a query fetch, subscribe, and unsubscribe to the proper QueryHub
+ * (ideally doing so in a replicated and sharded env). A QueryHub isPaginated
+ * responsible for these incoming query-related responsibilities.
+ */
+
 //
 // TODO Outstanding Questions:
 //
@@ -40,12 +43,11 @@ QueryHub.prototype._findOrCreateQNode = function _findOrCreateQNode (queryJson) 
 function addQNode (hub, queryJson) {
   var hash = QueryBuilder.hash(queryJson)
     , reverseIndex = hub._reverseIndex
-    , queryNodes = hub._queryNodes;
-  var QNode = isPaginated(queryJson)
+    , queryNodes = hub._queryNodes
+    , QNode = isPaginated(queryJson)
             ? PaginatedQueryNode
-            : QueryNode;
-
-  var ns = queryJson.from;
+            : QueryNode
+    , ns = queryJson.from;
   queryNodes = queryNodes[ns] || (queryNodes[ns] = {});
   return queryNodes[hash] = new QNode(queryJson);
 }

@@ -360,8 +360,8 @@ methods.forEach( function (method) {
   };
 });
 
-proto.one = function one () {
-  this.type = 'findOne';
-  this._json.type = 'findOne';
-  return this;
-};
+var queryTypes = require('./types')
+  , registerType = require('./types/register');
+for (var t in queryTypes) {
+  registerType(QueryBuilder, t, queryTypes[t]);
+}

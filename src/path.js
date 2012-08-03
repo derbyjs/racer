@@ -159,6 +159,13 @@ exports.objectExcept = function objectExcept (from, exceptions) {
   return to;
 };
 
+/**
+ * TODO Rename to isPrefixOf because more String generic? (no path implication)
+ * Returns true if `prefix` is a prefix of `path`. Otherwise, returns false.
+ * @param {String} prefix
+ * @param {String} path
+ * @return {Boolean}
+ */
 exports.isSubPathOf = function isSubPathOf (path, fullPath) {
   return path === fullPath.substring(0, path.length);
 };
@@ -232,4 +239,14 @@ exports.join = function join () {
     }
   }
   return joinedPath.join('.');
+};
+
+exports.isImmediateChild = function (ns, path) {
+  var rest = path.substring(ns.length + /* dot */ 1);
+  return -1 === rest.indexOf('.');
+};
+
+exports.isGrandchild = function (ns, path) {
+  var rest = path.substring(ns.length + /* dot */ 1);
+  return -1 !== rest.indexOf('.');
 };

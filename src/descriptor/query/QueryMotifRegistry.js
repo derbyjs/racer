@@ -260,10 +260,14 @@ QueryMotifRegistry.prototype ={
   }
 }
 
-var tupleFactoryProto = {
-  // Specifies the query should return a single result
-  one: function () {
-    this.tuple[2] = 'one';
-    return this;
-  }
-};
+var queryTypes = require('./types');
+var tupleFactoryProto = {};
+for (var t in queryTypes) {
+  (function (t) {
+    // t could be: 'find', 'one', 'count', etc. -- see ./types
+    tupleFactoryProto[t] = function () {
+      this.tuple[2] = t;
+      return this;
+    };
+  })(t);
+}

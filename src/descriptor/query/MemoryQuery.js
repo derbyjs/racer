@@ -2,11 +2,8 @@
 var filterUtils = require('../../computed/filter')
   , filterFnFromQuery = filterUtils.filterFnFromQuery
   , filterDomain = filterUtils.filterDomain
-  , sliceDomain = require('../../computed/range').sliceDomain
   , sortUtils = require('../../computed/sort')
-  , sortDomain = sortUtils.sortDomain
   , deriveComparator = sortUtils.deriveComparator
-  , projectDomain = require('../../computed/project').projectDomain
   , util = require('../../util')
   , Promise = util.Promise
   , merge = util.merge
@@ -32,7 +29,7 @@ function MemoryQuery (json, filterFn) {
   this._filter = filterFn || filterFnFromQuery(filteredJson);
   for (var k in json) {
     if (k === 'type') {
-      // find() or findOne()
+      // json[k] can be: 'find', 'findOne', 'count', etc.
       this[json[k]]();
     } else if (k in this) {
       this[k](json[k]);
@@ -112,7 +109,7 @@ MemoryQuery.prototype.skip = function skip (howMany) {
  * @param {Array|Function} params
  * @return {MemoryQuery}
  */
-MemoryQuery.prototype.sort = function sort (params) {
+MemoryQuery.prototype.sort = function (params) {
   if (typeof params === 'function') {
     this._comparator = params;
     return this;
@@ -127,24 +124,13 @@ MemoryQuery.prototype.sort = function sort (params) {
   return this;
 };
 
-MemoryQuery.prototype.find = function find () {
-  this.type = 'find';
-  this._json.type = 'find';
-  return this;
-};
-
-MemoryQuery.prototype.findOne = function findOne () {
-  this.type = 'findOne';
-  this._json.type = 'findOne';
-  return this;
-};
 
 MemoryQuery.prototype.filterTest = function filterTest (doc, ns) {
   if (ns !== this._json.from) return false;
   return this._filter(doc);
 };
 
-MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
+MemoryQuery.prototype.run = function (memoryAdapter, cb) {
   var promise = (new Promise).on(cb)
     , searchSpace = memoryAdapter._get(this._json.from)
     , matches = this.syncRun(searchSpace);
@@ -154,33 +140,13 @@ MemoryQuery.prototype.run = function run (memoryAdapter, cb) {
   return promise;
 };
 
-MemoryQuery.prototype.syncRun = function syncRun (searchSpace) {
+MemoryQuery.prototype.syncRun = function (searchSpace) {
   var matches = filterDomain(searchSpace, this._filter, this._json.from);
+  return this.getType(this.type).exec(matches, this);
+};
 
-  // Query results should always be a list. sort co-erces the results into a
-  // list even if comparator is not present.
-  matches = sortDomain(matches, this._comparator);
-
-  // Handle skip/limit for pagination
-  var skip = this._skip
-    , limit = this._limit;
-  if (typeof limit !== 'undefined') {
-    matches = sliceDomain(matches, skip, limit);
-  }
-
-  // Truncate to limit the work of the next field filtering step
-  if (this.type === 'findOne') {
-    matches = [matches[0]];
-  }
-
-  // Selectively return the documents with a subset of fields based on
-  // `except` or `only`
-  var only = this._only
-    , except = this._except;
-  if (only || except) {
-    matches = projectDomain(matches, only || except, !!except);
-  }
-
-  if (this.type === 'findOne') return matches[0];
-  return matches;
+var queryTypes = require('./types')
+  , registerType = require('./types/register');
+for (var t in queryTypes) {
+  registerType(MemoryQuery, t, queryTypes[t]);
 }

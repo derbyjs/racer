@@ -153,7 +153,7 @@ module.exports = {
           path = queryJson.from + '.' + result.id;
           eachDatumCb(path, result, version);
         }
-        finish(queryJson.type === 'findOne');
+        finish(queryJson.type === 'findOne' || queryJson.type === 'one');
       });
     }
 
