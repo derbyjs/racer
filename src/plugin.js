@@ -13,8 +13,10 @@ module.exports = {
     plugable[name] = object;
   }
 
-  // @param {Function} plugin(racer, options)
-  // @param {Object} options that we pass to the plugin invocation
+  /**
+   * @param {Function} plugin(racer, options)
+   * @param {Object} options that we pass to the plugin invocation
+   */
 , use: function (plugin, options) {
     if (typeof plugin === 'string') {
       if (!isServer) return this;
