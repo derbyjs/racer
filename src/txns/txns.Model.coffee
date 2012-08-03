@@ -5,7 +5,6 @@ transaction = require '../transaction'
 {isPrivate} = require '../path'
 {create: specCreate} = require '../util/speculative'
 # AtomicModel = require './AtomicModel'
-{mergeTxn} = require './diff'
 createMiddleware = require '../middleware'
 arrayMutator = null
 

@@ -26,7 +26,6 @@ function plugin (racer) {
     , QueryNode: require('./descriptor/query/QueryNode')
     , PaginatedQueryNode: require('./descriptor/query/PaginatedQueryNode')
     }
-  , diffMatchPatch: require('./diffMatchPatch')
   , Memory: require('./Memory')
   , path: require('./path')
   , Serializer: require('./Serializer')
