@@ -1,3 +1,8 @@
+/**
+ * A Taxonomy is a registry of descriptor types. It's an approach to achieve
+ * polymorphism for the logic represented here by handle, normalize, and typeOf
+ * across different descriptor instances (e.g., query, pattern, search)
+ */
 module.exports = Taxonomy;
 
 function Taxonomy () {
