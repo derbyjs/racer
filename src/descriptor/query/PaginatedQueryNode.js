@@ -374,6 +374,8 @@ function relPosition (comparator, cache, doc) {
 
   if (cacheLen === 0) return null;
 
+  if (!comparator) return Infinity;
+
   var firstDoc = cache[0]
     , lastDoc  = cache[cacheLen-1];
   if (!firstDoc) return;
