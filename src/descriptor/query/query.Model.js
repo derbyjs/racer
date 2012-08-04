@@ -186,6 +186,7 @@ function loadQueries(bundle) {
       , tag = pair[1];
     var force = true;
     this.registerQuery(queryTuple, tag, force);
+    scopedResult(this, queryTuple);
   }
 }
 function querySubs() {
