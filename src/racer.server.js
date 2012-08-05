@@ -142,7 +142,7 @@ function plugin (racer) {
     }
 
     // Add pseudo filenames and line numbers in browser debugging
-    if (! isProduction && options.debug != null) {
+    if (!isProduction && options.debug == null) {
       options.debug = true;
     }
 
