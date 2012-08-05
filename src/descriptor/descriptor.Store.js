@@ -121,7 +121,20 @@ module.exports = {
       });
 
       socket.on('fetch:snapshot', function (ver, clientStartId, subs) {
-        store._onSnapshotRequest(ver, clientStartId, clientId, socket, subs);
+        // TODO Unify the code that is transforming the
+        // queryMotifRegistry.queryJSON; it's scattered all over the place. See
+        // pubSub.Store.js inside the subscribe middleware for similar code
+        var snapshotTargets = []
+          , queryMotifRegistry = store._queryMotifRegistry;
+        for (var i = 0, l = subsc.length; i < l; i++) {
+          var sub = subs[i];
+          snapshotTargets.push(
+            (typeof sub === 'string')
+            ? sub
+            : queryMotifRegistry.queryJSON(sub)
+          );
+        }
+        store._onSnapshotRequest(ver, clientStartId, clientId, socket, snapshotTargets);
       });
     }
   }
@@ -165,7 +178,8 @@ module.exports = {
      * @param {} clientStartId
      * @param {String} clientId
      * @param {Socket} socket
-     * @param {Array} subs
+     * @param {Array} subs are an array of descriptors,
+     * e.g., ['a.*', ['users', {withName: ['Brian']}, 'one', 'some-queryId']]
      * @param {Boolean} shouldSubscribe
      * @api private
      */
