@@ -126,7 +126,7 @@ module.exports = {
         // pubSub.Store.js inside the subscribe middleware for similar code
         var snapshotTargets = []
           , queryMotifRegistry = store._queryMotifRegistry;
-        for (var i = 0, l = subsc.length; i < l; i++) {
+        for (var i = 0, l = subs.length; i < l; i++) {
           var sub = subs[i];
           snapshotTargets.push(
             (typeof sub === 'string')
