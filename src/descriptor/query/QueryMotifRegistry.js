@@ -210,8 +210,15 @@ QueryMotifRegistry.prototype ={
       callback.apply(queryBuilder, queryArgs);
     }
 
-    var typeMethod = queryTuple[2] || 'find';
-    queryBuilder[typeMethod]();
+    // A typeMethod (e.g., 'one', 'count') declared in query motif chaining
+    // should take precedence over any declared inside a motif definition callback
+    var typeMethod = queryTuple[2];
+    if (typeMethod) queryBuilder[typeMethod]();
+
+    // But if neither the query motif chaining nor the motif definition define
+    // a query type, then default to the 'find' query type.
+    if (! queryBuilder.type) queryBuilder.find();
+
     return queryBuilder.toJSON();
   }
 
