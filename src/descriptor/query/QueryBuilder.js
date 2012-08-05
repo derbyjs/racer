@@ -9,6 +9,7 @@ var reserved = {
   , lte: 1
   , within: 1
   , contains: 1
+  , exists: 1
 };
 
 var validQueryParams = {
@@ -136,6 +137,7 @@ QueryBuilder._createFromJsonFn = function (QueryBuilderKlass) {
         case 'lte':
         case 'within':
         case 'contains':
+        case 'exists':
           var fields = json[param];
           for (var field in fields) {
             q.where(field)[param](fields[field]);
@@ -161,6 +163,7 @@ var ABBREVS = {
       , lte: '$lte'
       , within: '$w'
       , contains: '$c'
+      , exists: '$x'
 
       , byId: '$id'
 
@@ -235,6 +238,7 @@ QueryBuilder.hash = function (json, filterFn) {
       case 'gte':
       case 'lt':
       case 'lte':
+      case 'exists':
         group = [ABBREVS[method]];
         fields = group[group.length] = [];
         groups.push(group);
@@ -346,7 +350,7 @@ methods = [
     'equals'
   , 'notEquals'
   , 'gt', 'gte', 'lt', 'lte'
-  , 'within', 'contains'
+  , 'within', 'contains', 'exists'
 ];
 
 methods.forEach( function (method) {

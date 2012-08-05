@@ -107,6 +107,11 @@ var fieldPredicates = {
       }
       return true;
     }
+  , exists: function (fieldName, shouldExist, doc) {
+      var val = lookup(fieldName, doc)
+        , doesExist = (typeof val !== 'undefined');
+      return doesExist === shouldExist;
+    }
 };
 
 for (var queryKey in fieldPredicates) {

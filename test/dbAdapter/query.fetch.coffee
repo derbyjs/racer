@@ -7,13 +7,64 @@ module.exports = ->
     users = [
       { id: '0', name: 'brian', age: 25, workdays: ['mon', 'tue', 'wed'] }
       { id: '1', name: 'nate' , age: 26, workdays: ['mon', 'wed', 'fri'] }
-      { id: '2', name: 'x'    , age: 27, workdays: ['mon', 'thu', 'fri'] }
+      { id: '2', name: 'x'    , age: 27, workdays: ['mon', 'thu', 'fri'], height: "7'" }
     ]
 
     beforeEach (done) ->
       forEach users, (user, callback) =>
         @store.set "#{@currNs}.#{user.id}", user, null, callback
       , done
+
+    describe 'one parameter `exists(true)` queries aaa', ->
+      beforeEach ->
+        @store.query.expose @currNs, 'withExistingHeight', ->
+          @where('height').exists(true)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).withExistingHeight()
+
+      it 'should load the found docs into the proper namespace', (done) ->
+        @model.subscribe @query, =>
+          expect(@model.get "#{@currNs}.2").to.eql users[2]
+          done()
+
+      it 'should not load un-found docs into the proper document namespace', (done) ->
+        @model.subscribe @query, =>
+          for i in [0, 1]
+            expect(@model.get "#{@currNs}.#{i}").to.equal undefined
+          done()
+
+      it 'should pass back a model alias to a refList of result documents', (done) ->
+        @model.subscribe @query, (err, $results) =>
+          results = $results.get()
+          expect(results).to.have.length 1
+          expect(results[0]).to.eql users[2]
+          done()
+
+    describe 'one parameter `exists(false)` queries aaa', ->
+      beforeEach ->
+        @store.query.expose @currNs, 'withNonExistingHeight', ->
+          @where('height').exists(false)
+        @model = @store.createModel()
+        @query = @model.query(@currNs).withNonExistingHeight()
+
+      it 'should load the found docs into the proper namespace', (done) ->
+        @model.subscribe @query, =>
+          for i in [0, 1]
+            expect(@model.get "#{@currNs}.#{i}").to.eql users[i]
+          done()
+
+      it 'should not load un-found docs into the proper document namespace', (done) ->
+        @model.subscribe @query, =>
+          expect(@model.get "#{@currNs}.2").to.equal undefined
+          done()
+
+      it 'should pass back a model alias to a refList of result documents', (done) ->
+        @model.subscribe @query, (err, $results) =>
+          results = $results.get()
+          expect(results).to.have.length 2
+          for i in [0, 1]
+            expect(results[i]).to.eql users[i]
+          done()
 
     describe 'one parameter `equals` queries', ->
       beforeEach ->
