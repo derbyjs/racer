@@ -69,6 +69,7 @@ describe 'QueryMotifRegistry', ->
         from: 'users'
         contains:
           roles: ['admin']
+        type: 'find'
 
     it 'should return null for query tuples that use unregistered query motifs', ->
       @registry.add 'users', 'female', ->
