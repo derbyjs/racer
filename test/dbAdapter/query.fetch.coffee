@@ -15,7 +15,7 @@ module.exports = ->
         @store.set "#{@currNs}.#{user.id}", user, null, callback
       , done
 
-    describe 'one parameter `exists(true)` queries aaa', ->
+    describe 'one parameter `exists(true)` queries', ->
       beforeEach ->
         @store.query.expose @currNs, 'withExistingHeight', ->
           @where('height').exists(true)
@@ -40,7 +40,7 @@ module.exports = ->
           expect(results[0]).to.eql users[2]
           done()
 
-    describe 'one parameter `exists(false)` queries aaa', ->
+    describe 'one parameter `exists(false)` queries', ->
       beforeEach ->
         @store.query.expose @currNs, 'withNonExistingHeight', ->
           @where('height').exists(false)
