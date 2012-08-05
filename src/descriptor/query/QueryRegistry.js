@@ -2,7 +2,9 @@
 
 var deepEqual = require('../../util').deepEqual
   , objectExcept = require('../../path').objectExcept
-  , MemoryQuery = require('./MemoryQuery');
+  , MemoryQuery = require('./MemoryQuery')
+  , QueryBuilder = require('./QueryBuilder')
+  ;
 
 module.exports = QueryRegistry;
 
@@ -112,7 +114,7 @@ QueryRegistry.prototype = {
    * @return {String|null} the query id if add succeeds. null if add fails.
    * @api public
    */
-, add: function (queryTuple, force) {
+, add: function (queryTuple, queryMotifRegistry, force) {
     var queryId = this.queryId(queryTuple);
     if (!force && queryId) return null;
 
@@ -120,7 +122,12 @@ QueryRegistry.prototype = {
 
     var queries = this._queries;
     if (! (queryId in queries)) {
-      queryId = this._nextQueryId();
+      if (queryTuple[2] === 'count') { // TODO Use types/ somehow
+        var queryJson = queryMotifRegistry.queryJSON(queryTuple);
+        queryId = QueryBuilder.hash(queryJson);
+      } else {
+        queryId = this._nextQueryId();
+      }
       queryTuple[3] = queryId;
 
       queries[queryId] = {

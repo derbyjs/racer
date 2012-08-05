@@ -225,7 +225,7 @@ function loadQueryMotifs(queryMotifBundle) {
  */
 function registerQuery(queryTuple, tag, force) {
   var queryRegistry = this._queryRegistry
-    , queryId = queryRegistry.add(queryTuple, force) ||
+    , queryId = queryRegistry.add(queryTuple, this._queryMotifRegistry, force) ||
                 queryRegistry.queryId(queryTuple);
   queryRegistry.tag(queryId, tag);
   if (!tag) throw new Error("NO TAG");

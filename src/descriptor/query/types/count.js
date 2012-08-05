@@ -1,6 +1,9 @@
 var PRIVATE_COLLECTION = require('./constants').PRIVATE_COLLECTION
 exports.exec = function (matches, memoryQuery) {
-  return matches.length;
+  if (Array.isArray(matches)) {
+    return matches.length
+  }
+  return Object.keys(matches).length;
 };
 
 exports.assignInitialResult = function (model, queryId, initialResult) {

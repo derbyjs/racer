@@ -1,5 +1,6 @@
 var queryDescriptor = require('./base')
   , QueryHub = require('./QueryHub')
+  , queryTypes = require('./types')
   , QueryMotifRegistry = require('./QueryMotifRegistry')
   , merge = require('../../util').merge
   ;
@@ -139,7 +140,8 @@ module.exports = {
   , _fetchAndCompileQueryData: function (queryTuple, opts) {
       var eachDatumCb = opts.each
         , finish = opts.done
-        , queryJson = this._queryMotifRegistry.queryJSON(queryTuple);
+        , queryJson = this._queryMotifRegistry.queryJSON(queryTuple)
+        , queryType = queryTypes[queryTuple[2]];
       this._fetchQueryData(queryTuple, function (err, result, version) {
         if (err) return finish(err);
         var path;
@@ -150,7 +152,12 @@ module.exports = {
             eachDatumCb(path, doc, version);
           }
         } else if (result) {
-          path = queryJson.from + '.' + result.id;
+          // TODO Replace conditional with polymorphic approach
+          if (queryJson.type === 'count') {
+            path = '_$queries.' + queryTuple[3] + '.count';
+          } else {
+            path = queryJson.from + '.' + result.id;
+          }
           eachDatumCb(path, result, version);
         }
         finish(queryJson.type === 'findOne' || queryJson.type === 'one');
