@@ -143,10 +143,10 @@ module.exports = {
 
       for (var i = 0, l = data.length; i < l; i++) {
         var triplet = data[i]
-          , path = triplet[0]
+          , path  = triplet[0]
           , value = triplet[1]
-          , ver = triplet[2];
-        var out = memory.set(path, value, ver);
+          , ver   = triplet[2]
+          , out = memory.set(path, value, ver);
         // Need this condition for scenarios where we subscribe to a
         // non-existing document. Otherwise, a mutator event would  e emitted
         // with an undefined value, triggering filtering and querying listeners

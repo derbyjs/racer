@@ -20,14 +20,14 @@ function QueryNode (queryJson) {
   this.filter = this.query._filter;
 }
 
-QueryNode.prototype.results = function results (db, cb) {
+QueryNode.prototype.result = function (db, cb) {
   var dbQuery = new db.Query(this.json);
-  return dbQuery.run(db, function (err, found) {
+  return dbQuery.run(db, function (err, result) {
     if (db instanceof DbMemory) {
       if (err) return cb(err);
-      return cb(null, deepCopy(found));
+      return cb(null, deepCopy(result));
     }
-    return cb(err, found);
+    return cb(err, result);
   });
 };
 
