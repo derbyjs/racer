@@ -7,7 +7,7 @@ var QueryBuilder = require('./QueryBuilder')
   , indexOf = require('../../util').indexOf
   ;
 
-module.exports = { setupQueryModelScope: setupQueryModelScope };
+module.exports = setupQueryModelScope;
 
 /**
  * Given a model, query, and the query's initial result(s), this function sets

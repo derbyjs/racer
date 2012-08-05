@@ -1,6 +1,6 @@
 var basePattern = require('./base')
   , mergeAll = require('../../util').mergeAll
-  , setupQueryModelScope = require('./util').setupQueryModelScope
+  , setupQueryModelScope = require('./scope')
 
   , transaction = require('../../transaction')
   , QueryBuilder = require('./QueryBuilder')

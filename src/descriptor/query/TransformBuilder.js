@@ -1,6 +1,6 @@
 var QueryBuilder = require('./QueryBuilder')
   , MemoryQuery = require('./MemoryQuery')
-  , setupQueryModelScope = require('./util').setupQueryModelScope
+  , setupQueryModelScope = require('./scope')
   , filterDomain = require('../../computed/filter').filterDomain
   ;
 
