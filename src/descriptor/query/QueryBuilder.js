@@ -350,7 +350,7 @@ methods = [
     'equals'
   , 'notEquals'
   , 'gt', 'gte', 'lt', 'lte'
-  , 'within', 'contains', 'exists'
+  , 'within', 'contains'
 ];
 
 methods.forEach( function (method) {
@@ -363,6 +363,15 @@ methods.forEach( function (method) {
     return this;
   };
 });
+
+proto.exists = function (val) {
+  var json = this._json
+    , cond = json[method] || (json[method] = {});
+  cond[this._currField] = (!arguments.length)
+                        ? true // exists() is shorthand for exists(true)
+                        : val;
+  return this;
+};
 
 var queryTypes = require('./types')
   , registerType = require('./types/register');
