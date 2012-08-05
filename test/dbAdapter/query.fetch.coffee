@@ -223,6 +223,12 @@ module.exports = ->
           expect(result).to.eql users[1]
           done()
 
+      it 'should be able to specify `count` to force an aggregate query', (done) ->
+        @model.subscribe @query.count(), (err, $result) ->
+          result = $result.get()
+          expect(result).to.equal 1
+          done()
+
     describe '`only` queries', ->
       beforeEach ->
         @store.query.expose @currNs, 'olderThanWithNameAndAge', (age) ->
