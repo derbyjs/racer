@@ -210,10 +210,8 @@ QueryMotifRegistry.prototype ={
       callback.apply(queryBuilder, queryArgs);
     }
 
-    var typeMethod = queryTuple[2];
-    if (typeMethod) {
-      queryBuilder[typeMethod]();
-    }
+    var typeMethod = queryTuple[2] || 'find';
+    queryBuilder[typeMethod]();
     return queryBuilder.toJSON();
   }
 
