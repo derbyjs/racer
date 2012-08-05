@@ -131,7 +131,6 @@ describe 'Model transaction handling', ->
       modelB.set '_test.color', 'orange'
       modelB.set '_test.color', 'yellow'
 
-
   it 'transactions should not be requested if pending less than timeout', calls 0, (done) ->
     [model, sockets] = mockSocketModel '0', 'fetchCurrSnapshot', (ver) ->
       done()
