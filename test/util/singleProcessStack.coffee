@@ -97,6 +97,7 @@ Browser::createTab =  (clientName, callback) ->
     ioUtil.request = (xdomain) =>
       xhr = __request__.call ioUtil, xdomain
       xhr.setRequestHeader 'cookie', "connect.sid=#{@sessionId}"
+      # TODO Comment this out if we're to run tests with reconnects
       ioUtil.request = __request__
       return xhr
 
@@ -111,6 +112,9 @@ Browser::createTab =  (clientName, callback) ->
     clientId = bundle[0]
     browser = this
     browserRacer.on 'init', (browserModel) ->
+      #browserModel.connect = (cb) ->
+        #socket.once 'connect', cb if cb
+        # socketConnect()
       changeEnvTo 'server'
       callback null, new Tab(browser, clientName, browserModel)
     browserRacer.init bundle

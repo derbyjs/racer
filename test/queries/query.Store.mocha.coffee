@@ -1,6 +1,7 @@
 {expect} = require '../util'
 racer = require '../../lib/racer'
 QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
+setup = require '../util/singleProcessStack'
 
 describe 'store.query.expose', ->
   describe 'query builder action inside callback', ->
@@ -16,11 +17,6 @@ describe 'store.query.expose', ->
             where:
               name: 'brian'
               age: 26
-
-#        store.query.expose 'users', 'csQuery',
-#          where:
-#            name: (name) -> name
-#            age: 26
 
         store.query.expose 'users', 'jsQueryComplex', ->
           @where('name').equals('Gnarls')
@@ -146,3 +142,44 @@ describe 'store.query.expose', ->
             expect(err).to.be.null()
             expect($results.get()).to.have.length(1)
             done()
+
+#    it 'should send query subscriptions over properly on a resync with Store when it has been disconnected long enough for the Store to forget it @slow bbb', (done) ->
+#      # Txn serializer timeout is 1 second
+#      @timeout 3000
+#
+#      run = setup
+#        config: (racer, store) ->
+#          store.query.expose 'users', 'olderThan', (age) ->
+#            @where('age').gt(age)
+#        browserA:
+#          tabA:
+#            server: (req, serverModel, bundleModel, store) ->
+#              store.set 'users.1',
+#                id: 1
+#                age: 25
+#              , null, (err) ->
+#                expect(err).to.be.null()
+#                query = serverModel.query('users').olderThan(20)
+#                serverModel.subscribe query, (err, $results) ->
+#                  expect(err).to.be.null()
+#                  bundleModel serverModel
+#            browser: (model) ->
+#            onSocketCxn: (socket, tab) ->
+#              model = tab.model
+#
+#              model.disconnect()
+#
+#              setTimeout ->
+#                model.on 'resyncWithStore', ->
+#                  console.log 'RWS', arguments
+#                model.on 'snapshotUpdate:replace', (data, num) ->
+#                  teardown done
+#                console.log "CONNECT"
+#                model.connect()
+#              , 2000
+#
+#              model.socket.on 'snapshotUpdate:replace', (data, num) ->
+#                teardown done
+#                socket.disconnect 'booted'
+#
+#      teardown = run()
