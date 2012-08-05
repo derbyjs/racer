@@ -198,8 +198,9 @@ function minSearchSpace (newDoc, oldDoc, txn, queryNodes) {
 QueryHub.prototype.fetch = function fetch (queryJson, cb) {
   var queryNode = this._findOrCreateQNode(queryJson)
     , db = this._store._db;
-  return queryNode.results(db, function (err, found) {
+  return queryNode.result(db, function (err, result) {
     // TODO Handle version consistency in face of concurrent writes during query
-    return cb(err, found, db.version);
+    if (err) return cb(err);
+    return cb(null, result, db.version);
   });
 };
