@@ -366,7 +366,7 @@ methods.forEach( function (method) {
 
 proto.exists = function (val) {
   var json = this._json
-    , cond = json[method] || (json[method] = {});
+    , cond = json.exists || (json.exists = {});
   cond[this._currField] = (!arguments.length)
                         ? true // exists() is shorthand for exists(true)
                         : val;
