@@ -87,6 +87,7 @@ module.exports =
             throw 'model.add() requires an object argument'
           path = id = value.id ||= @id()
         else
+          value ||= {}
           if typeof value isnt 'object'
             throw 'model.add() requires an object argument'
           id = value.id ||= @id()

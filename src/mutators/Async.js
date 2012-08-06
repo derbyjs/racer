@@ -178,6 +178,7 @@ Async.prototype = {
 
 , add: function (path, value, callback) {
     callback || (callback = noop);
+    value || (value = {});
     var id = value.id
       , uuid = (this.model && this.model.id || this.uuid)
       , tryId, tryPath;
