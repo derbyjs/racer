@@ -1,5 +1,6 @@
 var eventRegExp = require('../path').eventRegExp
   , transaction = require('../transaction')
+  , applyTxnToDoc = transaction.applyTxnToDoc
   , createMiddleware = require('../middleware')
   ;
 
@@ -27,8 +28,17 @@ module.exports = {
   , afterDb: function (mutator, path, cb) {
       var fn = gatedMiddleware(mutator, path, function (req, res, next) {
         var txn = req.data
+          , arity = cb.length
+          , oldDoc = req.origDoc
           , caller = {session: req.session};
-        cb.call(caller, txn, req.origDoc, next);
+        if (arity === 4) {
+          var newDoc = applyTxnToDoc(txn, oldDoc);
+          cb.call(caller, txn, newDoc, oldDoc, next);
+        } else if (arity === 3) {
+          cb.call(caller, txn, oldDoc, next);
+        } else {
+          throw new Error('Must have 3 to 4 arguments');
+        }
       });
       this.middleware.afterDb.add(fn);
       return this;
