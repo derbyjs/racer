@@ -13,7 +13,7 @@ var fs = require('fs')
   , TARG = './lib/';
 
 // Shim for Node 0.6
-fs.exists || (fs.exists = fs.exists)
+fs.exists || (fs.exists = path.exists)
 
 compilePath(SRC, true, path.normalize(SRC));
 
