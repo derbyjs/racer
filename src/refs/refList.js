@@ -132,7 +132,11 @@ function createGetter (from, to, key) {
           if (obj.constructor === Object) {
             docToAdd = obj[idVal];
           } else if (Array.isArray(obj)) {
-            docToAdd = obj[indexOf(obj, idVal, function (id, doc) { return doc.id === id; })];
+            docToAdd = obj[indexOf(obj, idVal, function (id, doc) {
+              // TODO: Brian to investigate. Code should be able to work without
+              // checking for existence of the doc first
+              return doc && doc.id === id;
+            })];
           } else {
             throw new TypeError();
           }
