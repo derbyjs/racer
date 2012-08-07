@@ -91,6 +91,8 @@ function createMutatorListener (model, scopedModel, memoryQuery, queryId) {
       , currResult = scopedModel.get() || queryType.resultDefault
       ;
 
+    console.log(method, path, ns);
+
     // Ignore irrelevant paths. Because any mutation on any object causes model
     // to fire a "mutator" event, we will want to ignore most of these mutator
     // events because our listener is only concerned about mutations that

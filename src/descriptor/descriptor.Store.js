@@ -25,8 +25,24 @@ module.exports = {
       }
       middleware.snapshot.add( function (req, res, next) {
         var clientId = req.clientId;
+
+        // TODO Unify the code that is transforming the
+        // queryMotifRegistry.queryJSON; it's scattered all over the place. See
+        // pubSub.Store.js inside the subscribe middleware for similar code
+        var subs = req.subs
+          , subPayload = []
+          , queryMotifRegistry = store._queryMotifRegistry;
+        for (var i = 0, l = subs.length; i < l; i++) {
+          var sub = subs[i];
+          subPayload.push(
+            (typeof sub === 'string')
+            ? sub
+            : queryMotifRegistry.queryJSON(sub)
+          );
+        }
+
         if (req.shouldSubscribe) {
-          store._pubSub.subscribe(clientId, req.subs);
+          store._pubSub.subscribe(clientId, subPayload);
         }
         mode.snapshotSince({
           ver: req.ver
@@ -52,7 +68,7 @@ module.exports = {
         });
       });
 
-      middleware.fetch = createMiddleware()
+      middleware.fetch = createMiddleware();
       middleware.fetch.add(function (req, res, next) {
         var targets = req.targets
           , numTargets = targets.length
@@ -121,20 +137,7 @@ module.exports = {
       });
 
       socket.on('fetch:snapshot', function (ver, clientStartId, subs) {
-        // TODO Unify the code that is transforming the
-        // queryMotifRegistry.queryJSON; it's scattered all over the place. See
-        // pubSub.Store.js inside the subscribe middleware for similar code
-        var snapshotTargets = []
-          , queryMotifRegistry = store._queryMotifRegistry;
-        for (var i = 0, l = subs.length; i < l; i++) {
-          var sub = subs[i];
-          snapshotTargets.push(
-            (typeof sub === 'string')
-            ? sub
-            : queryMotifRegistry.queryJSON(sub)
-          );
-        }
-        store._onSnapshotRequest(ver, clientStartId, clientId, socket, snapshotTargets);
+        store._onSnapshotRequest(ver, clientStartId, clientId, socket, subs);
       });
     }
   }
