@@ -33,7 +33,7 @@ function QueryRegistry () {
   this._nextId = 1;
   var self = this;
   this._nextQueryId = function () {
-    return (self._nextId++).toString();
+    return '_' + (self._nextId++);
   }
 }
 
