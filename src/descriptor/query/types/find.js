@@ -76,11 +76,16 @@ exports.onAddDoc = function (newDoc, oldDoc, memoryQuery, model, searchSpace, cu
     , doesBelong = memoryQuery.filterTest(newDoc, ns)
     ;
   if (! doesBelong) return;
+
+  var pointerPath = getPointerPath(memoryQuery.id)
+    , pointers = model.get(pointerPath)
+    , alreadyAResult = (pointers && (-1 !== pointers.indexOf(newDoc.id)));
+  if (alreadyAResult) return;
+
   if (memoryQuery.isPaginated && currResult.length === memoryQuery._limit) {
     // TODO Re-do this hack later
     return;
   }
-  var pointerPath = getPointerPath(memoryQuery.id);
   insertDocAsPointer(memoryQuery._comparator, model, pointerPath, currResult, newDoc);
 };
 
