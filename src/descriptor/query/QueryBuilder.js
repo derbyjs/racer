@@ -151,7 +151,7 @@ QueryBuilder._createFromJsonFn = function (QueryBuilderKlass) {
   }
 };
 
-QueryBuilder.fromJSON = QueryBuilder._createFromJsonFn(QueryBuilder);
+QueryBuilder.fromJson = QueryBuilder._createFromJsonFn(QueryBuilder);
 
 // We use ABBREVS for query hashing, so our hashes are more compressed.
 var ABBREVS = {

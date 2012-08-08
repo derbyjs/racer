@@ -47,11 +47,11 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         hash2 = QueryBuilder.hash json1, (y) -> y.id == '1'
         expect(hash1).to.not.equal hash2
 
-    describe 'fromJSON', ->
+    describe 'fromJson', ->
       it 'should instantiate the correct query', ->
         q0 = query('users').where('name').equals('brian').where('age').equals(26).sort(['name', 'asc']).limit(5).skip(10)
         json = q0.toJSON()
-        qf = QueryBuilder.fromJSON(json)
+        qf = QueryBuilder.fromJson(json)
         expect(qf).to.eql(q0)
 
     describe '#hash', ->

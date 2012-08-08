@@ -178,7 +178,6 @@ function subs(model) {
   return model._querySubs();
 }
 
-
 function loadQueries(bundle) {
   for (var i = 0, l = bundle.length; i < l; i++) {
     var pair = bundle[i]

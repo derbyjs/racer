@@ -12,7 +12,12 @@ function TransformBuilder (model, source) {
   this.from(source);
 }
 
-TransformBuilder.fromJSON = QueryBuilder._createFromJsonFn(TransformBuilder);
+var fromJson = QueryBuilder._createFromJsonFn(TransformBuilder);
+TransformBuilder.fromJson = function (model, source) {
+  var builder = fromJson(source);
+  builder._model = model;
+  return builder;
+};
 
 var proto = TransformBuilder.prototype = new QueryBuilder();
 

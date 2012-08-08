@@ -120,9 +120,6 @@ var mixin = {
      * @return {Model} a model scope scoped to `from`
      */
   , ref: function (from, to, key, hardLink) {
-      if (to instanceof TransformBuilder) {
-        return this.ref(from, to.path());
-      }
       return this._createRef(createRef, 'ref', from, to, key, hardLink);
     }
 
@@ -155,7 +152,12 @@ var mixin = {
       } else if (this._at) {
         from = this._at + '.' + from;
       }
-      if (to._at) to = to._at;
+      if (to instanceof TransformBuilder) {
+        var builder = to;
+        to = to.path();
+      } else if (to._at) {
+        to = to._at;
+      }
       if (key && key._at) key = key._at;
 
       var model = this._root;
@@ -165,10 +167,12 @@ var mixin = {
 
       model.setRefGetter(from, getter);
 
-      // The server model adds [from, getter, [refType, from, to, key]] to
-      // this._refsToBundle
-      if (this._onCreateRef) {
-        this._onCreateRef(refType, from, to, key, getter);
+      if (builder) {
+        if (this._onCreateComputedRef) this._onCreateComputedRef(from, builder, getter);
+      } else {
+        // The server model adds [from, getter, [refType, from, to, key]] to
+        // this._refsToBundle
+        if (this._onCreateRef) this._onCreateRef(refType, from, to, key, getter);
       }
 
       return model.at(from);
@@ -193,6 +197,11 @@ var mixin = {
       var newValue = this.get(path);
       this.emit('set', [path, newValue], prevValue, true);
     }
+
+  , _loadComputedRef: function (from, source) {
+    var builder = TransformBuilder.fromJson(this, source);
+    this.ref(from, builder);
+  }
 
     /**
      * TODO
