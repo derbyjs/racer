@@ -10,7 +10,7 @@ describe 'QueryRegistry', ->
       ns = 'users'
       @registry.add [ns, {withRole: ['admin']}]
       {id, tuple, tags} = @registry.lookup [ns,{withRole: ['admin']}]
-      expect(id).to.equal '1'
+      expect(id).to.equal '_1'
       expect(tuple).to.eql [ns, {withRole: ['admin']}, null, '1']
       expect(tags).to.eql []
 
@@ -31,7 +31,7 @@ describe 'QueryRegistry', ->
       ns = 'users'
       @registry.add [ns, {withRole: ['admin']}]
       queryId = @registry.queryId [ns, {withRole: ['admin']}]
-      expect(queryId).to.equal '1'
+      expect(queryId).to.equal '_1'
 
   describe 'QueryRegistry.fromJSON', ->
     it 'should be equivalent to the QueryRegistry that generated the json', ->

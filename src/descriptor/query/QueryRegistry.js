@@ -76,7 +76,7 @@ QueryRegistry.fromJSON = function (json, queryMotifRegistry) {
 
     // Keep track of a max queryId, so we can assign the _nextQueryId upon the
     // next call to QueryRegistry#add
-    maxQueryId = Math.max(maxQueryId, parseInt(queryId, 10));
+    maxQueryId = Math.max(maxQueryId, parseInt(queryId.slice(1 /* rm '_'*/), 10));
   }
   registry._nextId = ++maxQueryId;
   return registry;
