@@ -153,7 +153,7 @@ lookupSet = Memory.lookupSet = (path, data, speculative, pathType) ->
       if pathType is 'object'
         # Cover case where property is a number and it NOT a doc id
         # We treat the value at <collection>.<docid> as an Object, not an Array
-        if i != 1 && /^[0-9]+$/.test(props[i])
+        if (i != 1 || isPrivate firstProp) && /^[0-9]+$/.test(props[i])
           curr = parent[prop] = if speculative then createArray() else []
         else if i != len
           curr = parent[prop] = if speculative then createObject() else {}
