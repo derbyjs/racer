@@ -98,6 +98,7 @@ exports.onInsertDocs = function (newDocs, memoryQuery, model, searchSpace, currR
 exports.onRmDoc = function (oldDoc, memoryQuery, model) {
   // If the doc is no longer in our data, but our results have a reference to
   // it, then remove the reference to the doc.
+  if (!oldDoc) return;
   var queryId = memoryQuery.id
     , pointerPath = getPointerPath(queryId)
   var pos = model.get(pointerPath).indexOf(oldDoc.id);
