@@ -243,13 +243,13 @@ function eventListener (method, pattern, callback, at) {
   var regexp = eventRegExp(pattern);
 
   if (method === 'mutator') {
-    return function (mutatorMethod, args) {
-      var path = args[0];
+    return function (mutatorMethod, _arguments) {
+      var args = _arguments[0]
+        , path = args[0];
       if (! regexp.test(path)) return;
 
-      args = Array.prototype.slice.call(args, 1);
       var captures = regexp.exec(path).slice(1)
-        , callbackArgs = [mutatorMethod].concat(captures).concat(args);
+        , callbackArgs = captures.concat([mutatorMethod, _arguments]);
       callback.apply(null, callbackArgs);
       return true;
     }
