@@ -2,6 +2,7 @@ var QueryBuilder = require('./QueryBuilder')
   , bundleUtils = require('../../bundle/util')
   , bundledFunction = bundleUtils.bundledFunction
   , unbundledFunction = bundleUtils.unbundledFunction
+  , deepCopy = require('../../util').deepCopy
   ;
 
 module.exports = QueryMotifRegistry;
@@ -121,7 +122,12 @@ QueryMotifRegistry.prototype ={
 
     tupleFactories[motifName] = function addToTuple () {
       var args = Array.prototype.slice.call(arguments);
-      this.tuple[1][motifName] = args;
+      // deepCopy the args in case any of the arguments are direct references
+      // to an Object or Array stored in our Model Memory. If we don't do this,
+      // then we can end up having the query change underneath the registry,
+      // which causes problems because the rest of our code expects the
+      // registry to point to an immutable query.
+      this.tuple[1][motifName] = deepCopy(args);
       return this;
     };
   }
