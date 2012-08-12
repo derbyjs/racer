@@ -241,6 +241,20 @@ function eventListener (method, pattern, callback, at) {
 
   // on(method, pattern, callback)
   var regexp = eventRegExp(pattern);
+
+  if (method === 'mutator') {
+    return function (mutatorMethod, args) {
+      var path = args[0];
+      if (! regexp.test(path)) return;
+
+      args = Array.prototype.slice.call(args, 1);
+      var captures = regexp.exec(path).slice(1)
+        , callbackArgs = [mutatorMethod].concat(captures).concat(args);
+      callback.apply(null, callbackArgs);
+      return true;
+    }
+  }
+
   return function (args, out, isLocal, pass) {
     var path = args[0];
     if (! regexp.test(path)) return;
