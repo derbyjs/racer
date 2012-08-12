@@ -1,6 +1,7 @@
 var Promise = require('../util/Promise')
   , transaction = require('../transaction')
   , createMiddleware = require('../middleware')
+  , noop = require('../util').noop
   ;
 
 module.exports = {
@@ -174,9 +175,9 @@ module.exports = {
         req.startId = this._mode._startId;
       }
       var res = {
-        fail: callback
+        fail: callback || noop
       , send: function (txn) {
-          callback(null, txn);
+          callback && callback(null, txn);
         }
       };
       this.middleware.txn(req, res);
