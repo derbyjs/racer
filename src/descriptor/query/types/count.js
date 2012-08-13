@@ -20,6 +20,8 @@ function getResultPath (queryId) {
 }
 
 exports.onOverwriteNs = function (docs, countQuery, model) {
+  return; // TODO Figure out how best to handle count later
+
   var queryId = findOneQuery.id
     , count = countQuery.syncRun(docs);
   model.set(getResultPath(queryId), count);
@@ -30,18 +32,25 @@ exports.onRemoveNs = function (docs, countQuery, model) {
 };
 
 exports.onAddDoc = function (newDoc, oldDoc, countQuery, model, searchSpace, currResult) {
+  return; // TODO Figure out how best to handle count later
+
   var ns = countQuery.ns
     , doesBelong = countQuery.filterTest(newDoc, ns);
   if (! doesBelong) return;
   var resultPath = getResultPath(countQuery.id);
+  console.log(currResult)
   model.set(resultPath, (currResult || 0) + 1);
 };
 
 exports.onInsertDocs = function (newDocs, countQuery, model, searchSpace, currResult) {
+  return; // TODO Figure out how best to handle count later
+
   model.set(pointerPath, currResult + newDocs.length);
 };
 
 exports.onRmDoc = function (oldDoc, countQuery, model, searchSpace, currResult) {
+  return; // TODO Figure out how best to handle count later
+
   var ns = countQuery.ns
     , doesBelong = countQuery.filterTest(oldDoc, ns);
   if (! doesBelong) return;
@@ -50,6 +59,7 @@ exports.onRmDoc = function (oldDoc, countQuery, model, searchSpace, currResult) 
 };
 
 exports.onUpdateDocProperty = function (doc, countQuery, model, searchSpace, currResult) {
+  return; // TODO Figure out how best to handle count later
   var resultPath = getResultPath(countQuery.id)
     , count = countQuery.syncRun(searchSpace);
   model.set(resultPath, count);

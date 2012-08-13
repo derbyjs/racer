@@ -88,8 +88,10 @@ function createMutatorListener (model, scopedModel, memoryQuery, queryId) {
         // taken place.
       , searchSpace = model.get(ns)
       , queryType = queryTypes[memoryQuery.type]
-      , currResult = scopedModel.get() || queryType.resultDefault
+      , currResult = scopedModel.get()
       ;
+
+    if (currResult == null) currResult = queryType.resultDefault;
 
     // Ignore irrelevant paths. Because any mutation on any object causes model
     // to fire a "mutator" event, we will want to ignore most of these mutator
