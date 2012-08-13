@@ -30,7 +30,7 @@ exports.exec = function (matches, memoryQuery) {
 };
 
 exports.assignInitialResult = function (model, queryId, initialResult) {
-  if (!initialResult) return;
+  if (!initialResult) return model.set(getPointerPath(queryId), []);
   var ids = [];
   for (var i = 0, l = initialResult.length; i < l; i++) {
     ids.push(initialResult[i].id);
