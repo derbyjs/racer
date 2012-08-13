@@ -184,6 +184,7 @@ function noDots (path) {
 // TODO Close ABBREVS with reverse ABBREVS?
 QueryBuilder.hash = function (json, filterFn) {
   var groups = []
+    , typeHash
     , nsHash
     , byIdHash
     , selectHash
@@ -196,6 +197,9 @@ QueryBuilder.hash = function (json, filterFn) {
   for (var method in json) {
     var val = json[method];
     switch (method) {
+      case 'type':
+        typeHash = json[method];
+        break;
       case 'from':
         nsHash = noDots(val);
         break;
@@ -249,7 +253,7 @@ QueryBuilder.hash = function (json, filterFn) {
     }
   }
 
-  var hash = nsHash;
+  var hash = nsHash + SEP + typeHash;
   if (byIdHash)  hash += SEP + byIdHash;
   if (sortHash)   hash += SEP + sortHash;
   if (selectHash) hash += SEP + selectHash;
