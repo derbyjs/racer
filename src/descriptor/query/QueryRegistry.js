@@ -116,6 +116,16 @@ QueryRegistry.prototype = {
    */
 , add: function (queryTuple, queryMotifRegistry, force) {
     var queryId = this.queryId(queryTuple);
+
+    // NOTE It's important for some query types to send the queryId to the
+    // Store, so the Store can use it. For example, the `count` query needs to
+    // send over the queryId, so that the Store can send back the proper data
+    // instructions that includes a path at which to store the count result.
+    // TODO In the future, we can figure out the path based on a more generic
+    // means to load data into our Model from the Store. So we can remove this
+    // line later
+    if (!queryTuple[3]) queryTuple[3] = queryId;
+
     if (!force && queryId) return null;
 
     if (!queryTuple[2]) queryTuple[2] = null;
