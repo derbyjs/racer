@@ -3,6 +3,7 @@ var queryDescriptor = require('./base')
   , queryTypes = require('./types')
   , QueryMotifRegistry = require('./QueryMotifRegistry')
   , merge = require('../../util').merge
+  , PRIVATE_COLLECTION = require('./types/constants').PRIVATE_COLLECTION
   ;
 
 module.exports = {
@@ -154,7 +155,7 @@ module.exports = {
         } else if (result) {
           // TODO Replace conditional with polymorphic approach
           if (queryJson.type === 'count') {
-            path = '_$queries.' + queryTuple[3] + '.count';
+            path = PRIVATE_COLLECTION + '.' + queryTuple[3] + '.count';
           } else {
             path = queryJson.from + '.' + result.id;
           }
