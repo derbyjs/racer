@@ -2,6 +2,7 @@ var eventRegExp = require('../path').eventRegExp
   , transaction = require('../transaction')
   , applyTxnToDoc = transaction.applyTxnToDoc
   , createMiddleware = require('../middleware')
+  , deepCopy = require('../util').deepCopy
   ;
 
 module.exports = {
@@ -32,7 +33,9 @@ module.exports = {
           , oldDoc = req.origDoc
           , caller = {session: req.session};
         if (arity === 4) {
-          var newDoc = applyTxnToDoc(txn, oldDoc);
+          // TOOD: Check other places in code where applyTxnToDoc is used and see
+          // if we deepCopy in all of those places
+          var newDoc = applyTxnToDoc(txn, deepCopy(oldDoc));
           cb.call(caller, txn, newDoc, oldDoc, next);
         } else if (arity === 3) {
           cb.call(caller, txn, oldDoc, next);
