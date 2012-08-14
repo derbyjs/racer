@@ -171,8 +171,12 @@ mergeAll(modelProto, emitterProto, {
 
 , _on: emitterProto.on
 , on: function (type, pattern, callback) {
-    var listener = eventListener(type, pattern, callback, this._at);
+    var self = this
+      , listener = eventListener(type, pattern, callback, this._at);
     this._on(type, listener);
+    listener.cleanup = function () {
+      self.removeListener(type, listener);
+    }
     return listener;
   }
 
