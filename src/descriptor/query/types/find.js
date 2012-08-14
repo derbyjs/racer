@@ -48,7 +48,7 @@ function refPath (queryId) {
 }
 
 function getPointerPath (queryId) {
-  return PRIVATE_COLLECTION + '.' + queryId + '.resulIds'
+  return PRIVATE_COLLECTION + '.' + queryId + '.resultIds'
 }
 
 // All of these callbacks are semantically relative to our search
