@@ -26,7 +26,9 @@ module.exports = setupQueryModelScope;
 function setupQueryModelScope (model, memoryQuery, queryId, initialResult) {
   var type = queryTypes[memoryQuery.type];
 
-  type.assignInitialResult(model, queryId, initialResult);
+  if (typeof initialResult !== 'undefined') {
+    type.assignInitialResult(model, queryId, initialResult);
+  }
 
   var scopedModel = type.createScopedModel(model, memoryQuery, queryId, initialResult);
 
