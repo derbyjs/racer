@@ -46,7 +46,7 @@ function refPath (queryId) {
 }
 
 function getPointerPath (queryId) {
-  return PRIVATE_COLLECTION + '.' + queryId + '.resulId';
+  return PRIVATE_COLLECTION + '.' + queryId + '.resultId';
 }
 
 // In this case, docs is the same as searchSpace.
