@@ -147,7 +147,7 @@ module.exports = {
           , value = triplet[1]
           , ver   = triplet[2];
         if (ver == null) {
-          throw new Error('Adding data in this context should not be speculative');
+          throw new Error('Adding data in this context should not be speculative _addData ' + path + ', ' + value + ', ' + ver);
         }
         var out = memory.set(path, value, ver);
         // Need this condition for scenarios where we subscribe to a
