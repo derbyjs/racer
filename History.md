@@ -1,5 +1,16 @@
 # Racer change history
 
+## 0.3.13
+Mostly bug fixes
+
+- Simple implementation of count() query aggregation
+- Support for exists() query
+- add waitFetch convenience method for fetching only after connecting
+- Fix specifying Browserify debug mode
+- Fix re-initailzation of queries in browser
+- Fix lots of session bugs
+- Fix lots of query bugs
+
 ## 0.3.12
 Add initial support for authorization and access control
 
