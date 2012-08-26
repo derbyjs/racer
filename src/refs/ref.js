@@ -112,21 +112,24 @@ function setupRefWithKeyListeners (model, from, to, key, getter) {
 
   addListener(listeners, model, from, getter, key, function (match, mutator, args) {
     var docs = model.get(to)
-      , id;
+      , id, out;
     if (mutator === 'set') {
       id = args[1];
+      out = args.out;
       if (Array.isArray(docs)) {
         args[1] = docs && docs[ indexOf(docs, id, equivId) ];
-        args.out = docs && docs[ indexOf(docs, args.out, equivId) ];
+        args.out = docs && docs[ indexOf(docs, out, equivId) ];
       } else {
-        args[1] = docs && docs[id];
-        args.out = docs && docs[args.out];
+        // model.get is used in case this points to a ref
+        args[1] = model.get(to + '.' + id);
+        args.out = model.get(to + '.' + out);
       }
     } else if (mutator === 'del') {
       if (Array.isArray(docs)) {
-        args.out = docs && docs[ indexOf(docs, args.out, equivId) ];
+        args.out = docs && docs[ indexOf(docs, out, equivId) ];
       } else {
-        args.out = docs && docs[args.out];
+        // model.get is used in case this points to a ref
+        args.out = model.get(to + '.' + out);
       }
     }
     return from;
