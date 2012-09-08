@@ -193,6 +193,7 @@ module.exports = {
       , shouldSubscribe: shouldSubscribe
       , subs: subs
       , ver: ver
+      , session: socket.session
         // TODO Pass in proper context
       , context: this.context(this.scopedContext)
       };
