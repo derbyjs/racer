@@ -80,6 +80,7 @@ module.exports = {
         middleware.txn.add(mode.addToJournal);
       }
       middleware.txn.add(mode.incrVer);
+      middleware.txn.add(incrClientNum);
       // middleware.add('txn', db); // could use db in middleware.fetch.add(db), too. The db file could just define different handlers per channel, so all logic for db is in one file
       middleware.txn.add(writeToDb);
       middleware.txn.add(function (req, res, next) {
@@ -95,6 +96,13 @@ module.exports = {
         var contextName = transaction.getContext(txn);
         var context = store.context(contextName);
         context.guardWrite(req, res, next);
+      }
+
+      function incrClientNum (req, res, next) {
+        if (req.socket) { // Only generate txn serialization nums for requests originating from a browser model
+          res.num = store._txnClock.nextTxnNum(req.clientId);
+        }
+        next();
       }
 
       // TODO Optimize function defns
@@ -124,12 +132,8 @@ module.exports = {
 
       function authorAck (req, res, next) {
         var txn = req.data;
-        if (req.socket) { // Only generate txn serialization nums for requests originating from a browser model
-          var num = store._txnClock.nextTxnNum(req.clientId);
-          res.send(txn, num);
-        } else {
-          res.send(txn);
-        }
+        console.log("RES.NUM", res.num);
+        res.send(txn, res.num);
         next();
       }
     }
