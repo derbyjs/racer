@@ -15,7 +15,14 @@ function Lww (store) {
   this.startIdVerifier = createStartIdVerifier(function (callback) {
     callback(null, self._startId);
   });
-  this.incrVer = this.incrVer.bind(this);
+
+  var self = this;
+  this.incrVer = function (req, res, next) {
+    var txn = req.data;
+    var ver = req.newVer = self._nextVer++;
+    transaction.setVer(txn, ver);
+    return next();
+  };
 }
 
 Lww.prototype = {
@@ -24,13 +31,6 @@ Lww.prototype = {
     var startId = this._startId ||
                  (this._startId = (+new Date).toString(36));
     callback(null, startId);
-  }
-
-, incrVer: function (req, res, next) {
-    var txn = req.data;
-    var ver = req.newVer = this._nextVer++;
-    transaction.setVer(txn, ver);
-    return next();
   }
 
 , flush: function (callback) { callback(null); }
