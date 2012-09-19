@@ -168,6 +168,7 @@ var mixin = {
       model.setRefGetter(from, getter);
 
       if (builder) {
+        // This is used for server-side bundling of filters
         if (this._onCreateComputedRef) this._onCreateComputedRef(from, builder, getter);
       } else {
         // The server model adds [from, getter, [refType, from, to, key]] to
