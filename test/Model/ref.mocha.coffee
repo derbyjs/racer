@@ -18,13 +18,9 @@ describe 'Model.ref with Model.refList', ->
 
     model.set '_profile._roles.0._hash.key', 'xyz'
     expect(model.get '_profile._roles.0').to.specEql
-      id: 'a'
-      roles:
-        x:
-          id: 'x'
-          _hash:
-            key: 'xyz'
-      roleIds: ['x']
+      id: 'x'
+      _hash:
+        key: 'xyz'
 
 describe 'Model.ref', ->
 
