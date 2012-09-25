@@ -2,6 +2,30 @@
 transaction = require '../../lib/transaction'
 {mockSocketModel, BrowserModel: Model} = require '../util/model'
 
+describe 'Model.ref with Model.refList', ->
+  it 'should not mess up assignment aaa', ->
+    model = new Model
+    model.set 'profiles',
+      a:
+        id: 'a'
+        roles:
+          x:
+            id: 'x'
+        roleIds: ['x']
+
+    model.ref '_profile', 'profiles.a'
+    model.refList '_profile._roles', '_profile.roles', '_profile.roleIds'
+
+    model.set '_profile._roles.0._hash.key', 'xyz'
+    expect(model.get '_profile._roles.0').to.specEql
+      id: 'a'
+      roles:
+        x:
+          id: 'x'
+          _hash:
+            key: 'xyz'
+      roleIds: ['x']
+
 describe 'Model.ref', ->
 
   it 'should support getting', ->
