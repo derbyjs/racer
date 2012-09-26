@@ -20,6 +20,21 @@ describe 'In browser filters', ->
           expect(model.get('_results')).to.eql [userTwo]
 
         describe 'in response to local mutations that add to the results', ->
+          describe 'when the mutation is expressed with the filter', ->
+            it 'should emit mutation events on the dependency document aaa', (done) ->
+              model = new Model
+              model.set 'tasks',
+                a:
+                  id: 'a'
+                b:
+                  id: 'b'
+              model.ref '_filtered', model.filter('tasks').where('completed').exists(false)
+              model.on 'set', 'tasks.a.completed', (val, oldVal) ->
+                expect(val).to.equal true
+                done()
+              console.log model.get '_filtered.length'
+              model.set '_filtered.0.completed', true
+
           it 'should return a scoped model whose results update automatically', ->
             model =  new Model
 
