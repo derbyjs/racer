@@ -41,6 +41,8 @@ proto.sort = function (sortSpec) {
   return __sort__.call(this, sortSpec);
 };
 
+// Quack like a Model (delegates to Model#get and Model#path)
+
 /**
  * Registers, executes, and sets up listeners for a model query, the first time
  * this is called. Subsequent calls just return the cached scoped model
