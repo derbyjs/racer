@@ -473,6 +473,15 @@ describe 'Model.refList', ->
             id: 'x'
         roleIds: ['x']
 
+    it 'should support length aaa', (done) ->
+      model = new Model
+      model.refList '_list', 'items', '_map'
+      model.ref '_ref', '_list'
+      model.set 'items',
+        'x3': {id: 'x3', val: 'c'}
+      model.set '_map', ['x3']
+      expect(model.get '_ref.length').to.equal 1
+
 #      model.set '_profile._roles.0._hash.key', 'xyz'
 #      expect(model.get '_profile._roles.0').to.specEql
 #        id: 'x'
