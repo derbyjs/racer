@@ -110,9 +110,8 @@ var mixin = {
 
         ee.on('refWithKey', function (node, dereffedToPath, id, rest, hardLink) {
           var dereffedRefPath = dereffedToPath + '.' + id;
-          if (! ( // unless we're
-            (method === 'del' && !rest.length) || // deleting a ref
-            (hardLink && !rest.length)            // updating a hardLink
+          if (hardLink || ! ( // unless we're a hardLink or...
+            !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedRefPath, rest);
             if (id && (!node || node.id !== id)) {
@@ -123,11 +122,13 @@ var mixin = {
           }
         });
         ee.on('refWithoutKey', function (node, dereffedToPath, rest, hardLink) {
-          if (! ( // unless we're
-            (method === 'del' && !rest.length) || // deleting a ref
-            (hardLink && !rest.length)            // updating a hardLink
+          if (hardLink || ! ( // unless we're a hardLink or...
+            !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedToPath, rest);
+            console.log("SET ARGS", joinPaths(dereffedToPath, rest));
+          } else {
+            console.log("DONT SET ARGS", joinPaths(dereffedToPath, rest), args[0]);
           }
         });
         var data = model._specModel();
