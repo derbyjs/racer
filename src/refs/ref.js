@@ -142,7 +142,7 @@ function createGetterWithoutKey (to, hardLink) {
     ee && ee.emit('refWithoutKey', out.node, out.path, rest, hardLink);
 
     if (rest.length && Array.isArray(out.node)) {
-      var lastAnalyzedProp = out.path.slice(out.node.lastIndexOf('.') + 1);
+      var lastAnalyzedProp = out.path.slice(out.path.lastIndexOf('.') + 1);
       if (lastAnalyzedProp.charAt(0) === '_') {
         // Rewind if we analyzed a ref list but was not aware of lookahead member
         out.rewind = true;
