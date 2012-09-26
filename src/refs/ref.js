@@ -137,8 +137,14 @@ function equivId (id, doc) {
 }
 
 function createGetterWithoutKey (to, hardLink) {
-  return function getter (data, pathToRef, rest, ee) {
-    var out = treeLookup(data, to, {prevRest: rest});
+  return function getter (data, pathToRef, rest, ee, prevRests) {
+    if (! prevRests) {
+      prevRests = [rest];
+    } else {
+      prevRests.push(rest);
+    }
+    var out = treeLookup(data, to, {prevRests: prevRests});
+    prevRests.pop();
     ee && ee.emit('refWithoutKey', out.node, out.path, rest, hardLink);
     if (typeof out.node === 'undefined') out.halt = true;
     return out;

@@ -65,7 +65,7 @@ function createGetter (from, to, key) {
    * path we still want to lookup up on the dereferenced lookup
    * @return {Array} {node, path}
    */
-  var getter = function (data, pathToRef, rest, ee, prevRest) {
+  var getter = function (data, pathToRef, rest, ee, prevRests) {
     var toOut = treeLookup(data, to)
       , domain   = toOut.node || {} // formerly obj
       , dereffed = toOut.path
@@ -80,8 +80,9 @@ function createGetter (from, to, key) {
       if (pointerList) {
         // returned node should be an array of dereferenced documents
         for (var k = 0, kk = pointerList.length; k < kk; k++) {
-          var id = pointerList[k];
-          var docToAdd;
+          var id = pointerList[k]
+            , docToAdd
+            ;
           if (domain.constructor == Object) {
             docToAdd = domain[id];
           } else if (Array.isArray(domain)) {
@@ -93,21 +94,20 @@ function createGetter (from, to, key) {
         }
       }
 
-      ee && ee.emit('refList', node, pathToRef, rest, pointerList, dereffed, dereffedKey);
-
       var out = {};
 
       // Look ahead to see if we need to access a member of this refList and
       // modify the property chain so it makes sense in the context of the
       // dereferenced refList
-      if (prevRest && prevRest.length) {
+      var prevRest = lastNonEmptyList(prevRests);
+      if (prevRest) {
         var nextProp = prevRest[0];
         if (nextProp === 'length') {
           out.node = node;
           out.path = pathToRef;
         } else {
-          var refListIndex = parseInt(nextProp, 10);
-          var id = pointerList[refListIndex]
+          var refListIndex = parseInt(nextProp, 10)
+            , id = pointerList[refListIndex];
           prevRest[0] = id;
           out.node = domain;
           out.path = dereffed;
@@ -116,6 +116,8 @@ function createGetter (from, to, key) {
         out.node = node;
         out.path = pathToRef;
       }
+
+      ee && ee.emit('refList', node, pathToRef, rest, pointerList, dereffed, dereffedKey);
 
       if (typeof node === 'undefined') out.halt = true;
       return out;
@@ -136,4 +138,14 @@ function createGetter (from, to, key) {
   };
 
   return getter;
+}
+
+function lastNonEmptyList (listOfLists) {
+  if (! listOfLists) return;
+  var i = listOfLists.length;
+  if (! i) return;
+  while (i--) {
+    var list = listOfLists[i];
+    if (list.length) return list;
+  }
 }

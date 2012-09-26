@@ -39,7 +39,7 @@ function traverse (tree, path, iter) {
 function lookup (tree, path, meta, ee) {
   var getRef   = meta && meta.getRef
     , skipLast = meta && meta.skipLast
-    , prevRest = meta && meta.prevRest
+    , prevRests = meta && meta.prevRests
     ;
   if (skipLast && path.indexOf('.') === -1) {
     return {
@@ -60,7 +60,7 @@ function lookup (tree, path, meta, ee) {
         if (halt) out.halt = true;
         return out;
       }
-      var out = node(tree, pathToNode, rest, ee, prevRest);
+      var out = node(tree, pathToNode, rest, ee, prevRests);
 
       if (halt) out.halt = true;
       return out;
