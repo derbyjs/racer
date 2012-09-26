@@ -45,18 +45,20 @@ module.exports = {
     }
 
   , waitFetch: function (/* descriptors..., cb */) {
-      var arglen = arguments.length
-        , cb = arguments[arglen-1]
-        , self = this;
+      var args = arguments
+        , cbIndex = args.length - 1
+        , cb = args[cbIndex]
+        , self = this
 
-      function newCb (err) {
+      args[cbIndex] = function (err) {
         if (err === 'disconnected') {
-          return self.once('connect', newCb);
-        }
+          return self.once('connect', function() {
+            self.fetch.apply(self, args);
+          });
+        };
         cb.apply(null, arguments);
       };
-      arguments[arglen-1] = newCb;
-      this.fetch.apply(this, arguments);
+      this.fetch.apply(this, args);
     }
 
     // TODO Do some sort of subscription counting (like reference counting) to
