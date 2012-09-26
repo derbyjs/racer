@@ -3,16 +3,7 @@ var pathUtils = require('../path')
   , eventRegExp = pathUtils.eventRegExp;
 
 module.exports = {
-  // TODO This is a horribly named function.
-  //
-  // $deref is invoked in:
-  // - via derefPath in refs/util.js
-  // - refs/index.js in the 'beforeTxn' callback.
-  derefPath: function (data, to) {
-    return data.$deref ? data.$deref() : to;
-  }
-
-, addListener: addListener
+  addListener: addListener
 
   /**
    * Asserts that the path of a ref is private.

@@ -1,14 +1,16 @@
 var pathUtils             = require('../path')
   , regExpPathOrParent    = pathUtils.regExpPathOrParent
   , regExpPathsOrChildren = pathUtils.regExpPathsOrChildren
+  , joinPaths             = pathUtils.join
+  , treeLookup            = require('../tree').lookup
   , refUtils              = require('./util')
-  , derefPath             = refUtils.derefPath
   , assertPrivateRefPath  = refUtils.assertPrivateRefPath
   , createRef             = require('./ref')
   , createRefList         = require('./refList')
   , equal                 = require('../util').equal
   , unbundledFunction     = require('../bundle/util').unbundledFunction
   , TransformBuilder      = require('../descriptor/query/TransformBuilder') // ugh - leaky abstraction
+  , EventEmitter          = require('events').EventEmitter
   ;
 
 exports = module.exports = plugin;
@@ -42,23 +44,100 @@ var mixin = {
       }
 
       var memory = model._memory;
+
+      // De-reference transactions to operate on their absolute path
       model.on('beforeTxn', function (method, args) {
         var path = args[0];
-        if (!path) return;
+        if (!path) return; // TODO Will path ever be falsy?
 
-        // De-reference transactions to operate on their absolute path
-        var data, obj, fn;
-        while (true) {
-          data = model._specModel();
-          obj = memory.get(path, data);
-          // $deref may be assigned by a getter during the lookup of path in
-          // data via memoty.get(path, data);
-          fn = data.$deref;
-          if (!fn) return;
-          args[0] = fn(method, args, model, obj);
-          if (path === args[0]) return;
-          // Keep de-reffing until we get to the end of a ref chain
-          path = args[0];
+        var ee = new EventEmitter();
+        ee.on('refList', function (node, pathToRef, rest, pointerList) {
+          if (!rest.length) {
+            var basicMutators = Model.basicMutator;
+            if (!method || (method in basicMutators)) return;
+
+            var arrayMutators = Model.arrayMutator
+              , mutator = arrayMutators[method];
+            if (! mutator) throw new Error(method + ' unsupported on refList');
+
+            var j, arg, indexArgs;
+            // Handle index args if they are specified by id
+            if (indexArgs = mutator.indexArgs) for (var k = 0, kk = indexArgs.length; k < kk; k++) {
+              j = indexArgs[k]
+              arg = args[j];
+              if (!arg) continue;
+              id = arg.id;
+              if (id == null) continue;
+              // Replace id arg with the current index for the given id
+              var idIndex = pointerList.indexOf(id);
+              if (idIndex !== -1) args[j] = idIndex;
+            } // end if (indexArgs)
+
+            if (j = mutator.insertArgs) while (arg = args[j]) {
+              id = (arg.id != null)
+                 ? arg.id
+                 : (arg.id = model.id());
+              // Set the object being inserted if it contains any properties
+              // other than id
+              if (hasKeys(arg, 'id')) {
+                model.set(dereffed + '.' + id, arg);
+              }
+              args[j] = id;
+              j++;
+            }
+          }
+        });
+        ee.on('refListMember', function (node, pointerList, memberKeyPath) {
+          // TODO Additional model methods should be done atomically with the
+          // original txn instead of making an additional txn
+          var id;
+          if (method === 'set') {
+            var origSetTo = args[1];
+            id = (origSetTo.id != null)
+               ? origSetTo.id
+               : (origSetTo.id = model.id());
+            model.set(memberKeyPath, id);
+          } else if (method === 'del') {
+            id = node.id;
+            if (id == null) {
+              throw new Error('Cannot delete refList item without id');
+            }
+            model.del(memberKeyPath);
+          } else {
+            throw new Error(method + ' unsupported on refList index');
+          }
+        });
+
+        ee.on('refWithKey', function (node, dereffedToPath, id, rest, hardLink) {
+          var dereffedRefPath = dereffedToPath + '.' + id;
+          if (! ( // unless we're
+            (method === 'del' && !rest.length) || // deleting a ref
+            (hardLink && !rest.length)            // updating a hardLink
+          )) {
+            args[0] = joinPaths(dereffedRefPath, rest);
+            if (id && (!node || node.id !== id)) {
+              if (method === 'set') {
+                model.set(dereffedRefPath + '.id', id);
+              }
+            }
+          }
+        });
+        ee.on('refWithoutKey', function (node, dereffedToPath, rest, hardLink) {
+          if (! ( // unless we're
+            (method === 'del' && !rest.length) || // deleting a ref
+            (hardLink && !rest.length)            // updating a hardLink
+          )) {
+            args[0] = joinPaths(dereffedToPath, rest);
+          }
+        });
+        var data = model._specModel();
+        var path = args[0];
+        var getRef = false;
+        // If we are setting a ref or refList or model.fn
+        if (method === 'set' && typeof args[1] === 'function') {
+          treeLookup(data.world, path, {getRef: getRef, skipLast: true}, ee);
+        } else {
+          treeLookup(data.world, path, {getRef: getRef}, ee);
         }
       });
     }
@@ -107,8 +186,7 @@ var mixin = {
   , dereference: function (path, getRef) {
       if (!getRef) getRef = false;
       var data = this._specModel();
-      this._memory.get(path, data, getRef);
-      return derefPath(data, path);
+      return treeLookup(data.world, path, {getRef: getRef}).path;
     }
 
     /**

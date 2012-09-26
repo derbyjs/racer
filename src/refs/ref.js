@@ -1,12 +1,13 @@
 var refUtils = require('./util')
-  , derefPath = refUtils.derefPath
   , addListener = refUtils.addListener
   , pathUtil = require('../path')
   , joinPaths = pathUtil.join
   , regExpPathOrParent = pathUtil.regExpPathOrParent
   , lookup = pathUtil.lookup
   , indexOf = require('../util').indexOf
+  , indexOfFn = require('../util').indexOfFn
   , Model = require('../Model')
+  , treeLookup = require('../tree').lookup
   ;
 
 exports = module.exports = createRef;
@@ -27,24 +28,7 @@ function createRef (model, from, to, key, hardLink) {
   return getter;
 }
 
-/**
- * Generates a function that is assigned to data.$deref
- * @param {Number} len
- * @param {Number} i
- * @param {String} path
- * @param {String} currPath
- * @param {Boolean} hardLink
- * @return {Function}
- */
-function derefFn (len, i, path, currPath, hardLink) {
-  if (hardLink) return function () {
-    return currPath;
-  };
-  return function (method) {
-    return (i === len && method in Model.basicMutator) ? path : currPath;
-  };
-}
-
+// TODO Rewrite *WithKey to work
 /**
  * Returns a getter function that is assigned to the ref's `from` path. When a
  * lookup function encounters the getter, it invokes the getter in order to
@@ -69,28 +53,40 @@ function createGetterWithKey (to, key, hardLink) {
    * @return {[Object, String, Number]} [current node in data, current path,
    * current props index]
    */
-  return function getter (lookup, data, path, props, len, i) {
-    // Here, lookup(to, data) is called in order for derefPath to work because
-    // derefPath looks for data.$deref, which is lazily re-assigned on a lookup
-    var obj = lookup(to, data)
-      , dereffedPath = derefPath(data, to);
+  return function getter (data, pathToRef, rest, ee) {
+    var toOut          = treeLookup(data, to, {hardLink: hardLink}, ee)
+      , domain         = toOut.node
+      , dereffedToPath = toOut.path
 
-    // Unset $deref
-    data.$deref = null;
+      , keyOut          = treeLookup(data, key, {hardLink: hardLink}, ee)
+      , id              = keyOut.node
+      , out
+      ;
 
-    var pointer = lookup(key, data);
-    if (Array.isArray(obj)) {
-      dereffedPath += '.' + indexOf(obj, pointer, equivId);
-    } else if (!obj || obj.constructor === Object) {
-      dereffedPath += '.' + pointer;
+    if (Array.isArray(domain)) {
+      var index = indexOfFn(domain, function (doc) {
+        return doc.id === id;
+      });
+      out = {
+        path: dereffedToPath + '.' + index
+      , node: domain[index]
+      }
+    } else if (! domain) {
+      out = {
+        path: dereffedToPath + '.' + id
+      , node: undefined
+      }
+    } else if (domain.constructor === Object) {
+      out = {
+        path: dereffedToPath + '.' + id
+      , node: domain[id]
+      }
+    } else {
+      throw new Error();
     }
-    var curr = lookup(dereffedPath, data)
-      , currPath = joinPaths(dereffedPath, props.slice(i));
-
-    // Reset $deref
-    data.$deref = derefFn(len, i, path, currPath, hardLink);
-
-    return [curr, currPath, i];
+    if (typeof out.node === 'undefined') out.halt = true;
+    ee && ee.emit('refWithKey', out.node, dereffedToPath, id, rest, hardLink);
+    return out;
   }
 }
 
@@ -141,15 +137,11 @@ function equivId (id, doc) {
 }
 
 function createGetterWithoutKey (to, hardLink) {
-  // TODO Bleeding abstraction - This is very much coupled to Memory's implementation and internals.
-  return function getter (lookup, data, path, props, len, i) {
-    var curr = lookup(to, data)
-      , dereffedPath = derefPath(data, to)
-      , currPath = joinPaths(dereffedPath, props.slice(i));
-
-    data.$deref = derefFn(len, i, path, currPath, hardLink);
-
-    return [curr, currPath, i];
+  return function getter (data, pathToRef, rest, ee) {
+    var out = treeLookup(data, to, {hardLink: hardLink}, ee);
+    ee && ee.emit('refWithoutKey', out.node, out.path, rest, hardLink);
+    if (typeof out.node === 'undefined') out.halt = true;
+    return out;
   };
 }
 

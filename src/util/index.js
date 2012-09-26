@@ -14,6 +14,7 @@ module.exports = {
 , deepEqual: deepEqual
 , deepCopy: deepCopy
 , indexOf: indexOf
+, indexOfFn: indexOfFn
 , deepIndexOf: deepIndexOf
 , equalsNaN: equalsNaN
 , equal: equal
@@ -175,6 +176,13 @@ function deepCopy (obj) {
 function indexOf (list, obj, isEqual) {
   for (var i = 0, l = list.length; i < l; i++)
     if (isEqual(obj, list[i])) return i;
+  return -1;
+}
+
+function indexOfFn (list, fn) {
+  for (var i = 0, l = list.length; i < l; i++) {
+    if (fn(list[i])) return i;
+  }
   return -1;
 }
 

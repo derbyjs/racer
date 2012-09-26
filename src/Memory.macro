@@ -1,5 +1,6 @@
 {clone, create, createObject, createArray} = require './util/speculative'
 {isPrivate} = require './path'
+{lookup: treeLookup} = require './tree'
 
 Memory = module.exports = ->
   @flush()
@@ -28,10 +29,7 @@ Memory:: =
 
   get: (path, data, getRef) ->
     data ||= @_data
-    # Note that $deref is set to null instead of being deleted; deleting a
-    # value in a speculative model would not override the underlying value
-    data.$deref = null
-    return lookup path, data, getRef if path
+    return treeLookup(data.world, path, {getRef}).node if path
     return data.world
 
   set: (path, value, ver, data) ->
