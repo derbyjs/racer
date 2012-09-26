@@ -1,7 +1,6 @@
 var refUtils = require('./util')
   , addListener = refUtils.addListener
   , pathUtil = require('../path')
-  , joinPaths = pathUtil.join
   , regExpPathOrParent = pathUtil.regExpPathOrParent
   , lookup = pathUtil.lookup
   , indexOf = require('../util').indexOf
@@ -54,11 +53,11 @@ function createGetterWithKey (to, key, hardLink) {
    * current props index]
    */
   return function getter (data, pathToRef, rest, ee) {
-    var toOut          = treeLookup(data, to, {hardLink: hardLink}, ee)
+    var toOut          = treeLookup(data, to, null)
       , domain         = toOut.node
       , dereffedToPath = toOut.path
 
-      , keyOut          = treeLookup(data, key, {hardLink: hardLink}, ee)
+      , keyOut          = treeLookup(data, key, null)
       , id              = keyOut.node
       , out
       ;
@@ -108,10 +107,11 @@ function setupRefWithKeyListeners (model, from, to, key, getter) {
 
   addListener(listeners, model, from, getter, key, function (match, mutator, args) {
     var docs = model.get(to)
-      , id, out;
+      , id
+      , out = args.out
+      ;
     if (mutator === 'set') {
       id = args[1];
-      out = args.out;
       if (Array.isArray(docs)) {
         args[1] = docs && docs[ indexOf(docs, id, equivId) ];
         args.out = docs && docs[ indexOf(docs, out, equivId) ];
@@ -138,7 +138,7 @@ function equivId (id, doc) {
 
 function createGetterWithoutKey (to, hardLink) {
   return function getter (data, pathToRef, rest, ee) {
-    var out = treeLookup(data, to, {hardLink: hardLink}, ee);
+    var out = treeLookup(data, to, null);
     ee && ee.emit('refWithoutKey', out.node, out.path, rest, hardLink);
     if (typeof out.node === 'undefined') out.halt = true;
     return out;

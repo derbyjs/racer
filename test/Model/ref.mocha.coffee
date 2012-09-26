@@ -29,7 +29,7 @@ describe 'Model.ref with Model.refList', ->
 #      _hash:
 #        key: 'xyz'
 
-describe 'Model.ref aaa', ->
+describe 'Model.ref', ->
 
   it 'should support getting', ->
     model = new Model
@@ -409,7 +409,7 @@ describe 'Model.ref aaa', ->
       done()
     model.set 'colorName', 'red'
 
-  it 'should emit when deleting the key path', (done) ->
+  it 'should emit when deleting the key path bbb', (done) ->
     model = new Model
     model.set 'colors',
       green:

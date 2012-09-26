@@ -114,11 +114,6 @@ var mixin = {
             !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedRefPath, rest);
-            if (id && (!node || node.id !== id)) {
-              if (method === 'set') {
-                model.set(dereffedRefPath + '.id', id);
-              }
-            }
           }
         });
         ee.on('refWithoutKey', function (node, dereffedToPath, rest, hardLink) {
@@ -126,9 +121,6 @@ var mixin = {
             !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedToPath, rest);
-            console.log("SET ARGS", joinPaths(dereffedToPath, rest));
-          } else {
-            console.log("DONT SET ARGS", joinPaths(dereffedToPath, rest), args[0]);
           }
         });
         var data = model._specModel();
