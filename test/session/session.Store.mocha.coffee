@@ -177,3 +177,6 @@ describe 'Server-side sessions', ->
     describe 're-logging in from another window', ->
       it 'should load the last page seen before the prior logout'
       it 'should load the home page in the window triggering the re-login'
+
+    describe 'logging in from another window', ->
+      it 'should load the desired page that redirected to the login page'
