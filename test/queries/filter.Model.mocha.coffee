@@ -34,7 +34,7 @@ describe 'In browser filters', ->
                 done()
               model.set '_filtered.0.completed', true
 
-            it 'should emit mutation events on the dependency document, when the filter has an extra ref of indirection aaa', (done) ->
+            it 'should emit mutation events on the dependency document, when the filter has an extra ref of indirection', (done) ->
               model = new Model
               model.set 'tasks',
                 a:
