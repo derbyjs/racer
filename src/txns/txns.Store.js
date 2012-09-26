@@ -126,7 +126,12 @@ module.exports = {
 
       function authorAck (req, res, next) {
         var txn = req.data
-          , num = txnClock.nextTxnNum(req.clientId);
+          , num
+        // Only generate txn serialization nums for requests originating from a browser model
+        // TODO: Is this really correct? Might this be messing up tests in offline.mocha?
+        if (req.socket) {
+          num = txnClock.nextTxnNum(req.clientId);
+        }
         res.send(txn, num);
         next();
       }
