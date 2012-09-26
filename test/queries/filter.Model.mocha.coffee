@@ -21,7 +21,7 @@ describe 'In browser filters', ->
 
         describe 'in response to local mutations that add to the results', ->
           describe 'when the mutation is expressed with the filter', ->
-            it 'should emit mutation events on the dependency document aaa', (done) ->
+            it 'should emit mutation events on the dependency document', (done) ->
               model = new Model
               model.set 'tasks',
                 a:

@@ -65,7 +65,7 @@ function createGetter (from, to, key) {
    * path we still want to lookup up on the dereferenced lookup
    * @return {Array} {node, path}
    */
-  var getter = function (data, pathToRef, rest, ee) {
+  var getter = function (data, pathToRef, rest, ee, prevRest) {
     var toOut = treeLookup(data, to)
       , domain   = toOut.node || {} // formerly obj
       , dereffed = toOut.path
@@ -92,9 +92,25 @@ function createGetter (from, to, key) {
           node.push(docToAdd);
         }
       }
+
       ee && ee.emit('refList', node, pathToRef, rest, pointerList, dereffed, dereffedKey);
 
-      var out = {node: node, path: pathToRef};
+      var out = {};
+
+      // Look ahead to see if we need to access a member of this refList and
+      // modify the property chain so it makes sense in the context of the
+      // dereferenced refList
+      if (prevRest && prevRest.length) {
+        var refListIndex = parseInt(prevRest[0], 10);
+        var id = pointerList[refListIndex]
+        prevRest[0] = id;
+        out.path = dereffed;
+        out.node = domain;
+      } else {
+        out.node = node;
+        out.path = pathToRef;
+      }
+
       if (typeof node === 'undefined') out.halt = true;
       return out;
     } else {

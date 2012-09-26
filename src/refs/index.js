@@ -133,7 +133,6 @@ var mixin = {
             !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedToPath, rest);
-
           }
         });
         var data = model._specModel();
