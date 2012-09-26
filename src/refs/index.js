@@ -7,7 +7,9 @@ var pathUtils             = require('../path')
   , assertPrivateRefPath  = refUtils.assertPrivateRefPath
   , createRef             = require('./ref')
   , createRefList         = require('./refList')
-  , equal                 = require('../util').equal
+  , utils                 = require('../util')
+  , equal                 = utils.equal
+  , hasKeys               = utils.hasKeys
   , unbundledFunction     = require('../bundle/util').unbundledFunction
   , TransformBuilder      = require('../descriptor/query/TransformBuilder') // ugh - leaky abstraction
   , EventEmitter          = require('events').EventEmitter
@@ -51,7 +53,8 @@ var mixin = {
         if (!path) return; // TODO Will path ever be falsy?
 
         var ee = new EventEmitter();
-        ee.on('refList', function (node, pathToRef, rest, pointerList) {
+        ee.on('refList', function (node, pathToRef, rest, pointerList, dereffed, pathToPointerList) {
+          var id;
           if (!rest.length) {
             var basicMutators = Model.basicMutator;
             if (!method || (method in basicMutators)) return;
@@ -59,6 +62,8 @@ var mixin = {
             var arrayMutators = Model.arrayMutator
               , mutator = arrayMutators[method];
             if (! mutator) throw new Error(method + ' unsupported on refList');
+
+            args[0] = pathToPointerList;
 
             var j, arg, indexArgs;
             // Handle index args if they are specified by id
@@ -87,22 +92,29 @@ var mixin = {
             }
           }
         });
-        ee.on('refListMember', function (node, pointerList, memberKeyPath) {
+        ee.on('refListMember', function (node, pointerList, memberKeyPath, domainPath, id, rest) {
           // TODO Additional model methods should be done atomically with the
           // original txn instead of making an additional txn
-          var id;
           if (method === 'set') {
             var origSetTo = args[1];
-            id = (origSetTo.id != null)
-               ? origSetTo.id
-               : (origSetTo.id = model.id());
+            if (!id) {
+              id = (origSetTo.id != null)
+                 ? origSetTo.id
+                 : (origSetTo.id = model.id());
+            }
             model.set(memberKeyPath, id);
+            args[0] = joinPaths(domainPath, id, rest);
           } else if (method === 'del') {
             id = node.id;
             if (id == null) {
               throw new Error('Cannot delete refList item without id');
             }
-            model.del(memberKeyPath);
+            if (! rest.length) {
+              model.del(memberKeyPath);
+            }
+            args[0] = joinPaths(domainPath, id, rest);
+          } else if (rest.length) {
+            args[0] = joinPaths(domainPath, id, rest);
           } else {
             throw new Error(method + ' unsupported on refList index');
           }
@@ -121,6 +133,7 @@ var mixin = {
             !rest.length && method === 'del' // ...deleting a ref
           )) {
             args[0] = joinPaths(dereffedToPath, rest);
+
           }
         });
         var data = model._specModel();
@@ -352,7 +365,7 @@ var mixin = {
 
       var model = this.pass(listener);
 
-      var updateVal = function () {
+      function updateVal () {
         prevVal = currVal;
         var inputVals = [];
         for (var i = 0, l = inputs.length; i < l; i++) {

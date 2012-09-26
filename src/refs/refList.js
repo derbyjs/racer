@@ -1,5 +1,4 @@
 var util = require('../util')
-  , hasKeys = util.hasKeys
   , indexOf = util.indexOf
   , indexOfFn = util.indexOfFn
   , refUtils = require('./util')
@@ -83,7 +82,7 @@ function createGetter (from, to, key) {
         for (var k = 0, kk = pointerList.length; k < kk; k++) {
           var id = pointerList[k];
           var docToAdd;
-          if (domain.constructor == 'Object') {
+          if (domain.constructor == Object) {
             docToAdd = domain[id];
           } else if (Array.isArray(domain)) {
             docToAdd = domain[indexOfFn(domain, function (doc) { return doc.id == id; })]
@@ -93,8 +92,11 @@ function createGetter (from, to, key) {
           node.push(docToAdd);
         }
       }
-      ee && ee.emit('refList', node, pathToRef, rest, pointerList);
-      return {node: node, path: pathToRef};
+      ee && ee.emit('refList', node, pathToRef, rest, pointerList, dereffed, dereffedKey);
+
+      var out = {node: node, path: pathToRef};
+      if (typeof node === 'undefined') out.halt = true;
+      return out;
     } else {
       if (rest.length === 1 && rest[0] === 'length') {
         rest.shift();
@@ -103,9 +105,11 @@ function createGetter (from, to, key) {
       var index = parseInt(rest.shift(), 10);
       var id = pointerList && pointerList[index];
       var node = domain && domain[id];
-      ee && ee.emit('refListMember', node, pointerList, dereffedKey + '.' + index);
-      id = pointerList[index];
-      return {node: node, path: dereffed + '.' + id}
+      ee && ee.emit('refListMember', node, pointerList, dereffedKey + '.' + index, dereffed, id, rest);
+      id = pointerList && pointerList[index];
+      var out = {node: node, path: dereffed + '.' + id};
+      if (typeof node === 'undefined') out.halt = true;
+      return out;
     }
   };
 
