@@ -29,11 +29,24 @@ describe 'In browser filters', ->
                 b:
                   id: 'b'
               model.ref '_filtered', model.filter('tasks').where('completed').exists(false)
-              model.on 'set', 'tasks.a.completed', (val, oldVal) ->
+              model.on 'set', 'tasks.*.completed', (id, val, oldVal) ->
                 expect(val).to.equal true
                 done()
-              console.log model.get '_filtered.length'
               model.set '_filtered.0.completed', true
+
+            it 'should emit mutation events on the dependency document, when the filter has an extra ref of indirection aaa', (done) ->
+              model = new Model
+              model.set 'tasks',
+                a:
+                  id: 'a'
+                b:
+                  id: 'b'
+              model.ref '_filtered', model.filter('tasks').where('completed').exists(false)
+              model.on 'set', 'tasks.*.completed', (id, val, oldVal) ->
+                expect(val).to.equal true
+                done()
+              model.ref '_a', '_filtered'
+              model.set '_a.0.completed', true
 
           it 'should return a scoped model whose results update automatically', ->
             model =  new Model
