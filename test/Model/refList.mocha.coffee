@@ -473,7 +473,7 @@ describe 'Model.refList', ->
             id: 'x'
         roleIds: ['x']
 
-    it 'should support length aaa', (done) ->
+    it 'should support length', ->
       model = new Model
       model.refList '_list', 'items', '_map'
       model.ref '_ref', '_list'

@@ -101,11 +101,17 @@ function createGetter (from, to, key) {
       // modify the property chain so it makes sense in the context of the
       // dereferenced refList
       if (prevRest && prevRest.length) {
-        var refListIndex = parseInt(prevRest[0], 10);
-        var id = pointerList[refListIndex]
-        prevRest[0] = id;
-        out.path = dereffed;
-        out.node = domain;
+        var nextProp = prevRest[0];
+        if (nextProp === 'length') {
+          out.node = node;
+          out.path = pathToRef;
+        } else {
+          var refListIndex = parseInt(nextProp, 10);
+          var id = pointerList[refListIndex]
+          prevRest[0] = id;
+          out.node = domain;
+          out.path = dereffed;
+        }
       } else {
         out.node = node;
         out.path = pathToRef;
