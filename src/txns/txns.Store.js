@@ -12,18 +12,18 @@ module.exports = {
       var clientSockets = store._clientSockets
         , localModels = store._localModels
 
-        , nextTxnNum = {};
+        , clientNum = {};
 
       var txnClock = store._txnClock = {
         unregister: function (clientId) {
-          delete nextTxnNum[clientId];
+          delete clientNum[clientId];
         }
       , register: function (clientId) {
-          nextTxnNum[clientId] = 1;
+          clientNum[clientId] = 1;
         }
       , nextTxnNum: function (clientId) {
-          if (! (clientId in nextTxnNum)) this.register(clientId);
-          return nextTxnNum[clientId]++;
+          if (! (clientId in clientNum)) this.register(clientId);
+          return clientNum[clientId]++;
         }
       };
 
@@ -63,7 +63,9 @@ module.exports = {
   , middleware: function (store, middleware) {
       middleware.txn = createMiddleware();
 
-      var mode = store._mode;
+      var mode = store._mode
+        , txnClock = store._txnClock;
+
       if (mode.startIdVerifier) {
         middleware.txn.add(mode.startIdVerifier);
       }
@@ -80,7 +82,6 @@ module.exports = {
         middleware.txn.add(mode.addToJournal);
       }
       middleware.txn.add(mode.incrVer);
-      middleware.txn.add(incrClientNum);
       // middleware.add('txn', db); // could use db in middleware.fetch.add(db), too. The db file could just define different handlers per channel, so all logic for db is in one file
       middleware.txn.add(writeToDb);
       middleware.txn.add(function (req, res, next) {
@@ -96,13 +97,6 @@ module.exports = {
         var contextName = transaction.getContext(txn);
         var context = store.context(contextName);
         context.guardWrite(req, res, next);
-      }
-
-      function incrClientNum (req, res, next) {
-        if (req.socket) { // Only generate txn serialization nums for requests originating from a browser model
-          res.num = store._txnClock.nextTxnNum(req.clientId);
-        }
-        next();
       }
 
       // TODO Optimize function defns
@@ -131,15 +125,19 @@ module.exports = {
       }
 
       function authorAck (req, res, next) {
-        var txn = req.data;
-        console.log("RES.NUM", res.num);
-        res.send(txn, res.num);
+        var txn = req.data
+          , num
+        // Only generate txn serialization nums for requests originating from a browser model
+        // TODO: Is this really correct? Might this be messing up tests in offline.mocha?
+        if (req.socket) {
+          num = txnClock.nextTxnNum(req.clientId);
+        }
+        res.send(txn, num);
         next();
       }
     }
 
   , socket: function (store, socket, clientId) {
-      var txnClock = store._txnClock;
       // This is used to prevent emitting duplicate transactions
       socket.__ver = 0;
 
