@@ -87,7 +87,8 @@ function plugin (racer) {
   , fetch: function (targets, contextName) { return blue('fetch ') + joinArgs(targets); }
   };
   racer.log.outgoing.events = {
-    txnOk: function () { return false; }
+    txnOk: function (txn, num) { return "txnOk (num: " + num + ") " + handleTxn(txn); }
+  // , txnOk: function (txn, num) { return false; }
   , txn: handleTxn
   , newListener: function () { return false; }
   , fatalErr: function (err) { return red('Fatal error: ' + err); }
