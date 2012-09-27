@@ -82,6 +82,7 @@ module.exports = {
         middleware.txn.add(mode.addToJournal);
       }
       middleware.txn.add(mode.incrVer);
+      middleware.txn.add(setClientSerializationParams);
       // middleware.add('txn', db); // could use db in middleware.fetch.add(db), too. The db file could just define different handlers per channel, so all logic for db is in one file
       middleware.txn.add(writeToDb);
       middleware.txn.add(publish);
@@ -97,6 +98,18 @@ module.exports = {
         var contextName = transaction.getContext(txn);
         var context = store.context(contextName);
         context.guardWrite(req, res, next);
+      }
+
+      var expectedVerByClient = {};
+      var clientSerializers = {};
+      function setClientSerializationParams (req, res, next) {
+        var clientId = req.clientId;
+        if (! (clientId in expectedVerByClient)) {
+          // TODO GC these upon client disconnect
+          expectedVerByClient[clientId] = [];
+        }
+        expectedVerByClient[clientId].push(req.newVer);
+        next();
       }
 
       // TODO Optimize function defns
@@ -125,14 +138,35 @@ module.exports = {
       }
 
       function authorAck (req, res, next) {
-        var txn = req.data
-          , num
-        // Only generate txn serialization nums for requests originating from a browser model
-        // TODO: Is this really correct? Might this be messing up tests in offline.mocha?
+        var txn = req.data;
         if (req.socket) {
-          num = txnClock.nextTxnNum(req.clientId);
+          // Only generate txn serialization nums for requests originating from a browser model
+          // TODO: Is this really correct? Might this be messing up tests in offline.mocha?
+
+          // Make sure to send messages back to the user in an order that is
+          // monotonic with the version number
+          var clientId = req.clientId
+            , expectedVers = expectedVerByClient[clientId]
+            , pendingAck;
+            ;
+          while (typeof expectedVers[0] === 'function') {
+            pendingAck = expectedVers.shift();
+            pendingAck();
+          }
+          if (expectedVers[0] === req.newVer) {
+            expectedVers.shift();
+            var num = txnClock.nextTxnNum(req.clientId);
+            res.send(txn, num);
+          } else {
+            pendingAck = function () {
+              var num = txnClock.nextTxnNum(req.clientId);
+              res.send(txn, num);
+            };
+            expectedVers[expectedVers.indexOf(req.newVer)] = pendingAck;
+          }
+        } else {
+          res.send(txn);
         }
-        res.send(txn, num);
         next();
       }
     }
