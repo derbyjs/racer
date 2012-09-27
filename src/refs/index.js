@@ -130,7 +130,7 @@ var mixin = {
         });
         ee.on('refWithoutKey', function (node, dereffedToPath, rest, hardLink) {
           if (hardLink || ! ( // unless we're a hardLink or...
-            !rest.length && method === 'del' // ...deleting a ref
+            !rest.length && (method === 'del' || method == 'set') // ...deleting or over-writing a ref
           )) {
             args[0] = joinPaths(dereffedToPath, rest);
           }

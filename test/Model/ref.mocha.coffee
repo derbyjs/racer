@@ -576,3 +576,28 @@ describe 'Model.ref', ->
     model.set 'colors',
       blue: {hex: '#00f', id: 'blue'}
       green: 'hi'
+
+  describe 'over-writing a reference to point elsewhere', ->
+    it 'should resolve to the new destination', ->
+      model = new Model
+      model.set '_x', 1
+      model.set '_y', 2
+      model.ref '_profile', '_x'
+      expect(model.get '_profile').to.equal 1
+      model.ref '_profile', '_y'
+      expect(model.get '_profile').to.equal 2
+
+  describe 'setting directly on a ref that is not a hard link', ->
+    it 'should remove the ref and replace it with the set value', ->
+      model = new Model
+      model.set '_x', 1
+      model.ref '_profile', '_x'
+      model.set '_profile', 100
+      expect(model.get '_profile').to.equal 100
+
+    it 'should not set the value of what was pointed to before', ->
+      model = new Model
+      model.set '_x', 1
+      model.ref '_profile', '_x'
+      model.set '_profile', 100
+      expect(model.get '_x').to.equal 1
