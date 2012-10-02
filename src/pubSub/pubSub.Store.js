@@ -1,6 +1,7 @@
 var finishAfter = require('../util/async').finishAfter
   , PubSub = require('./PubSub')
   , createMiddleware = require('../middleware')
+  , transaction = require('../transaction')
   ;
 
 module.exports = {
@@ -24,10 +25,19 @@ module.exports = {
       // subscribes to.
       ['addDoc', 'rmDoc'].forEach( function (messageType) {
         pubSub.on(messageType, function (clientId, params) {
-          var num = store._txnClock.nextTxnNum(clientId)
-            , socket = store._clientSockets[clientId];
+          // Only publish to clients that have a socket connection
+          var socket = store._clientSockets[clientId];
           if (!socket) return;
-          return socket.emit(messageType, params, num);
+
+          // Don't publish to the authoring client
+          var txn = params.data.txn;
+
+          if (clientId === transaction.getClientId(txn)) {
+            return;
+          }
+
+          // Publish to a non-authoring client
+          return store.serialEmit(socket, messageType, params);
         });
       });
     }

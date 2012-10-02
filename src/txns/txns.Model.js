@@ -8,10 +8,10 @@ var Memory = require('../Memory')
   , arrayMutator = null
 
     // Timeout in milliseconds after which sent transactions will be resent
-  , SEND_TIMEOUT = 10000
+  , SEND_TIMEOUT = 20000
 
     // Interval in milliseconds to check timeouts for queued transactions
-  , RESEND_INTERVAL = 2000
+  , RESEND_INTERVAL = 20000
   ;
 
 module.exports = {
