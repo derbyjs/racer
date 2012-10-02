@@ -111,9 +111,9 @@ module.exports = {
       store.serialEmit = serialEmit;
       store.serialCleanup = function (txn) {
         var ver = transaction.getVer(txn);
+        publishQueueByVer[Math.floor(ver)].okToClear = true;
         tmp(versToPublish, publishQueueByVer, ver, noop, {
           afterEmit: function () {
-            publishQueueByVer[ver].okToClear = true;
             flush(versToPublish, publishQueueByVer, Math.floor(ver));
           }
         });
