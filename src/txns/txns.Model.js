@@ -405,7 +405,10 @@ module.exports = {
               self._removeTxn(transaction.getId(txn));
               txn.callback(err, txn);
             }
-          , send: function (txn) { self._onTxn(txn); }
+          , send: function (txn) {
+              self._onTxn(txn);
+              self.store.serialCleanup(txn);
+            }
           };
       this.store.middleware.txn(req, res);
     }
