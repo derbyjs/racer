@@ -88,6 +88,14 @@ module.exports = {
             path = at + '.' + path;
           }
         }
+
+        // Replace special unicode characters that cause a Syntax Error ILLEGAL
+        // in v8 and chromium
+        // http://timelessrepo.com/json-isnt-a-javascript-subset
+        // http://code.google.com/p/v8/issues/detail?can=2&start=0&num=100&q=&colspec=ID%20Type%20Status%20Priority%20Owner%20Summary%20HW%20OS%20Area%20Stars&groupby=&sort=&id=1939
+        if (typeof value === 'string') {
+          value = value.replace(/\u2028/g, "\n").replace(/\u2029/g, "\n");
+        }
         return this._sendToMiddleware('set', [path, value], cb);
       }
     }
