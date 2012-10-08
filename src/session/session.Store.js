@@ -67,11 +67,8 @@ function sessionMiddleware(opts) {
 
   patchSessionStore(sessionStore, this, persistentStore);
 
-  // securePairs maps model clientId to a sessionID
-  var securePairs = this._securePairs = {};
   var store = this;
   this.on('createRequestModel', function (req, model) {
-    securePairs[model._clientId] = req.sessionID;
     var session = model.session = req.session;
     var userId = session.userId || session.auth && session.auth.userId;
     if (userId) model.set('_userId', userId);
@@ -144,14 +141,9 @@ function setupSocketAuth (store, io) {
         return accept(null, false);  // No cookie containing session id
       }
     }
-    var sessionId = unsignedCookie
-      , clientId = handshake.query.clientId;
-    if (store._securePairs[clientId] !== sessionId) {
-      return accept(null, false);  // Unauthorized access
-    }
-    sessStore.load(sessionId, function (err, session) {
+    sessStore.load(unsignedCookie, function (err, session) {
       if (err || !session) {
-        return accept('Error retrieving session', false);
+        return accept(err, false); // Error retrieving session
       }
       handshake.session = session;
       accept(null, true);  // Authorized
@@ -183,7 +175,6 @@ function onSocketConnection (store, socket, clientId) {
     if (~pos) {
       sockets.splice(pos, 1);
       if (!sockets.length) delete socketsBySessId[sessionId];
-      delete store._securePairs[clientId];
     }
   });
 
@@ -226,7 +217,6 @@ function patchSessionStore (sessStore, store, persistentStore) {
 
   sessStore.destroy = function (sid, fn) {
     var sockets = socketsBySessId[sid]
-      , securePairs = store._securePairs;
 
     if (persistentStore) {
       fn = finishAfter(2, fn);
@@ -235,7 +225,6 @@ function patchSessionStore (sessStore, store, persistentStore) {
       var socket = sockets[i]
       delete socket.session;
       var clientId = socket.handshake.query.clientId;
-      delete securePairs[clientId];
       store.reloadClient(clientId);
     }
     persistentStore.destroy(sid, fn);
