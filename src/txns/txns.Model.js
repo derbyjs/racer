@@ -46,14 +46,14 @@ module.exports = {
 
       model._count = {txn: 0};
 
-      var txns = model._txns = {} // transaction id -> transaction
-        , txnQueue = model._txnQueue = []; // [transactionIds...]
+      model._txns = {}; // transaction id -> transaction
+      model._txnQueue = []; // [transactionIds...]
 
       model._removeTxn = function (txnId) {
-        delete txns[txnId];
-        var i = txnQueue.indexOf(txnId);
+        delete this._txns[txnId];
+        var i = this._txnQueue.indexOf(txnId);
         if (~i) {
-          txnQueue.splice(i, 1);
+          this._txnQueue.splice(i, 1);
           specCache.invalidate();
         }
       };
@@ -67,7 +67,7 @@ module.exports = {
         if (!txn) return;
 
         // Copy meta properties onto this txn if it matches one in the queue
-        var txnQ = txns[transaction.getId(txn)];
+        var txnQ = model._txns[transaction.getId(txn)];
         if (txnQ) {
           txn.callback = txnQ.callback;
           txn.emitted = txnQ.emitted;
@@ -221,11 +221,8 @@ module.exports = {
 
   , socket: function (model, socket) {
       var memory    = model._memory
-        , txns      = model._txns
-        , txnQueue  = model._txnQueue
         , removeTxn = model._removeTxn
         , onTxn     = model._onTxn
-        ;
 
       // The startId is the ID of the last Journal restart. This is sent along with
       // each versioned message from the Model so that the Store can map the model's
@@ -242,20 +239,28 @@ module.exports = {
         // Clear and remember any locally queued transactions. We recall the
         // remembered transactions later when we replay them on top of the
         // incoming snapshot.
-        var toReplay = [];
+        var toReplay = []
+          , txnQueue = model._txnQueue
+          , txns = model._txns
         for (var i = 0, l = txnQueue.length; i < l; i++) {
           var txnId = txnQueue[i];
           toReplay.push(txns[txnId]);
         }
-        txnQueue.length = 0;
-        var txns = model._txns = {};
+        model._txnQueue = [];
+        model._txns = {};
         model._specCache.invalidate();
 
         // Reset the number used to keep track of pending transactions
         txnApplier.clearPending();
-        if (typeof num !== 'undefined') txnApplier.setIndex(num+1);
+        if (num != null) txnApplier.setIndex(num + 1);
 
         memory.eraseNonPrivate();
+        var maxVersion = 0
+          , targetData = data.data
+        for (var i = targetData.length; i--;) {
+          maxVersion = Math.max(targetData[i][2], maxVersion);
+        }
+        memory.version = maxVersion;
         // TODO memory.flush?
         model._addData(data);
 
@@ -265,7 +270,6 @@ module.exports = {
           var txn = toReplay[i]
             , method = transaction.getMethod(txn)
             , args = transaction.getArgs(txn)
-            ;
           model[method].apply(model, args);
         }
       });
@@ -278,9 +282,11 @@ module.exports = {
 
         // Reset the number used to keep track of pending transactions
         txnApplier.clearPending();
-        if (typeof num !== 'undefined') txnApplier.setIndex(num+1);
+        if (typeof num !== 'undefined') txnApplier.setIndex(num + 1);
 
         // Resend all transactions in the queue
+        var txns = model._txns
+          , txnQueue = model._txnQueue
         for (var i = 0, l = txnQueue.length; i < l; i++) {
           var id = txnQueue[i];
           // TODO In access control tests, same mutation sent twice as 2
@@ -307,6 +313,8 @@ module.exports = {
         // Evaluate to clear out private transactions at the beginning of the
         // queue
         model._specModel();
+        var txns = model._txns
+          , txnQueue = model._txnQueue
         for (var i = 0, l = txnQueue.length; i < l; i++) {
           var id = txnQueue[i]
             , txn = txns[id];
@@ -352,7 +360,7 @@ module.exports = {
       // server/store applies a transaction that originated from this model successfully
       socket.on('txnOk', function (rcvTxn, num) {
         var txnId = transaction.getId(rcvTxn)
-          , txn = txns[txnId];
+          , txn = model._txns[txnId];
         if (!txn) return;
         var ver = transaction.getVer(rcvTxn);
         transaction.setVer(txn, ver);
@@ -362,7 +370,7 @@ module.exports = {
       // The model receives 'txnErr' from the server/store after the
       // server/store attempts to apply this transaction but fails
       socket.on('txnErr', function (err, txnId) {
-        var txn = txns[txnId]
+        var txn = model._txns[txnId]
           , callback = txn && txn.callback;
         removeTxn(txnId);
         if (callback) {
@@ -529,9 +537,7 @@ module.exports = {
   , _specModel: function () {
       var txns = this._txns
         , txnQueue = this._txnQueue
-        , txn
-        , out
-        , data;
+        , txn, out, data
       while ((txn = txns[txnQueue[0]]) && txn.isPrivate) {
         out = this._applyTxn(txn, true);
       }
