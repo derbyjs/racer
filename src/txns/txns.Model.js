@@ -236,24 +236,20 @@ module.exports = {
       socket.on('snapshotUpdate:replace', function (data, num) {
         // TODO Over-ride and replay diff as events?
 
-        // Clear and remember any locally queued transactions. We recall the
-        // remembered transactions later when we replay them on top of the
-        // incoming snapshot.
-        var toReplay = []
-          , txnQueue = model._txnQueue
-          , txns = model._txns
-        for (var i = 0, l = txnQueue.length; i < l; i++) {
-          var txnId = txnQueue[i];
-          toReplay.push(txns[txnId]);
-        }
-        model._txnQueue = [];
-        model._txns = {};
-        model._specCache.invalidate();
+        // TODO: OMG NASTY HACK, but this prevents a number of issues that can
+        // come up if rendering in strange states
+        if (DERBY) DERBY.view.dom._preventUpdates = true;
+
+        var oldTxnQueue = model._txnQueue
+          , oldTxns = model._txns
+          , txnQueue = model._txnQueue = []
+          , txns = model._txns = {};
 
         // Reset the number used to keep track of pending transactions
         txnApplier.clearPending();
         if (num != null) txnApplier.setIndex(num + 1);
 
+        model._specCache.invalidate();
         memory.eraseNonPrivate();
         var maxVersion = 0
           , targetData = data.data
@@ -261,17 +257,23 @@ module.exports = {
           maxVersion = Math.max(targetData[i][2], maxVersion);
         }
         memory.version = maxVersion;
+
         // TODO memory.flush?
         model._addData(data);
 
-        model.emit('reInit');
-
-        for (var i = 0, l = toReplay.length; i < l; i++) {
-          var txn = toReplay[i]
-            , method = transaction.getMethod(txn)
-            , args = transaction.getArgs(txn)
-          model[method].apply(model, args);
+        var txnId, txn
+        for (var i = 0, l = oldTxnQueue.length; i < l; i++) {
+          txnId = oldTxnQueue[i];
+          txn = oldTxns[txnId];
+          transaction.setVer(txn, maxVersion);
+          txns[txnId] = txn;
+          txnQueue.push(txnId);
+          commit(txn);
         }
+
+        if (DERBY) DERBY.view.dom._preventUpdates = false;
+
+        model.emit('reInit');
       });
 
       socket.on('snapshotUpdate:newTxns', function (newTxns, num) {
