@@ -49,11 +49,12 @@ mergeAll(modelProto, emitterProto, {
 
     var self = this;
     this.canConnect = true;
-    function onFatalErr () {
+    function onFatalErr (reason) {
       self.canConnect = false;
       self.emit('canConnect', false);
       onConnected();
       socket.disconnect();
+      console.error('fatalErr', reason);
     }
     socket.on('fatalErr', onFatalErr);
 
@@ -77,7 +78,7 @@ mergeAll(modelProto, emitterProto, {
     });
 
     socket.on('error', function (err) {
-      if (~err.indexOf('unauthorized')) onFatalErr();
+      if (~err.indexOf('unauthorized')) onFatalErr(err);
     });
 
     if (typeof window !== 'undefined') {
