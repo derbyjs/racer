@@ -29,10 +29,9 @@ function isArguments (obj) {
 }
 
 function mergeAll (to /*, froms... */) {
-  var froms = Array.prototype.slice.call(arguments, 1);
-  for (var i = 0, l = froms.length; i < l; i++) {
-    var from = froms[i];
-    if (from) for (var key in from) to[key] = from[key];
+  for (var i = 1, l = arguments.length, from, key; i < l; i++) {
+    from = arguments[i];
+    if (from) for (key in from) to[key] = from[key];
   }
   return to;
 }
