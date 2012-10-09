@@ -1,6 +1,5 @@
 // TODO Add in redis adapter for version clock
 var transaction = require('../transaction.server')
-  , createStartIdVerifier = require('./shared').createStartIdVerifier
 
 module.exports = function (opts) {
   var store = opts.store;
@@ -10,8 +9,6 @@ module.exports = function (opts) {
 function Lww (store) {
   this._store = store;
   this._nextVer = 1;
-  // TODO Remove this startId requirement for lww
-  this.startIdVerifier = createStartIdVerifier(this.startId.bind(this));
 
   var self = this;
   this.incrVer = function (req, res, next) {
@@ -23,10 +20,9 @@ function Lww (store) {
 }
 
 Lww.prototype = {
-  // TODO Remove this startId requirement for lww
+  // TODO Remove startId altogether for LWW?
   startId: function (callback) {
-    var startId = this._startId || (this._startId = (+new Date).toString(36));
-    callback(null, startId);
+    callback(null, -1);
   }
 
 , flush: function (callback) { callback(null); }
