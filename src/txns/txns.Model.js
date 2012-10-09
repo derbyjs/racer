@@ -302,9 +302,6 @@ module.exports = {
         }
       });
 
-      // Set an interval to check for transactions that have been in the queue
-      // for too long and resend them
-      var resendInterval = null;
       function resend () {
         var now = +new Date;
         // Evaluate to clear out private transactions at the beginning of the
@@ -318,26 +315,27 @@ module.exports = {
         }
       }
 
+      // Set an interval to check for transactions that have been in the queue
+      // for too long and resend them
+      var resendInterval = null;
       function setupResendInterval () {
-        if (!resendInterval) {
-          resendInterval = setInterval(resend, RESEND_INTERVAL);
-        }
+        if (!resendInterval) resendInterval = setInterval(resend, RESEND_INTERVAL);
       }
 
       function teardownResendInterval () {
         if (resendInterval) clearInterval(resendInterval);
         resendInterval = null;
-      }
-
-      if (model.connected) {
-        setupResendInterval();
-      } else {
-        model.once('connect', setupResendInterval);
+        if (model.connected) {
+          setupResendInterval();
+        } else {
+          model.once('connect', setupResendInterval);
+        }
       }
 
       // Stop resending transactions until reconnect
       // TODO Stop asking for missed remote transactions until reconnect
       socket.on('disconnect', teardownResendInterval);
+      teardownResendInterval();
 
       model._addRemoteTxn = addRemoteTxn;
       function addRemoteTxn (txn, num) {
