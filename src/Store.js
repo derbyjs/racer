@@ -2,7 +2,6 @@ var EventEmitter = require('events').EventEmitter
   , socketio = require('socket.io')
   , Promise = require('./util/Promise')
   , createAdapter = require('./adapters').createAdapter
-  , transaction = require('./transaction.server')
   , pathUtils = require('./path')
   , eventRegExp = pathUtils.eventRegExp
   , subPathToDoc = pathUtils.subPathToDoc
