@@ -6,10 +6,8 @@
 // Static isReady and model variables are used, so that the ready function can
 // be called anonymously. This assumes that only one instance of Racer is
 // running, which should be the case in the browser.
-var IS_READY,
-    model;
-
-IS_READY = model = null;
+var IS_READY
+  , model;
 
 exports = module.exports = plugin;
 exports.useWith = { server: false, browser: true };
