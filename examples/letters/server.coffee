@@ -2,13 +2,16 @@ express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
 racer = require 'racer'
+http = require 'http'
 
-app = express.createServer()
+app = express()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
 
+server = http.createServer(app)
+
 store = racer.createStore
-  listen: app    # A port or http server
+  listen: server # A port or http server
   mode: {type: 'stm'}    # Enable STM conflict detection. Last-writer-wins by default
 
 # Clear all existing data on restart
@@ -84,6 +87,6 @@ store.sockets.on 'connection', (socket) ->
     store.incr playersPath
     socket.on 'disconnect', -> store.incr playersPath, -1
 
-app.listen 3010
+server.listen 3010
 console.log 'Go to http://localhost:3010/lobby'
 console.log 'Go to http://localhost:3010/powder-room'
