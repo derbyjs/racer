@@ -1,7 +1,0 @@
-#! /usr/bin/env node
-
-var macro = require('../src/util/macro')
-  , extension = /\.macro$/
-
-macro.files(__dirname + '/../src', extension).forEach(macro.compile)
-macro.watch(__dirname + '/../src', extension, macro.compile)
