@@ -3,6 +3,5 @@
 *.rdb
 test-output.tmp
 node_modules/
-lib/
 examples/*/*.js
 scratch/

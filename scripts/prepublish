@@ -1,4 +1,2 @@
 #! /bin/bash
-./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src ./dev
 ./node_modules/coffee-script/bin/coffee -bc ./examples/*/*.coffee
-cd src && find . -path "*.js" | cpio -pd ../lib && cd ..

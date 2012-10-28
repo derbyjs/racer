@@ -1,12 +1,5 @@
-compile:
-	@make compile-coffee & ./scripts/watch-src-js && fg
-compile-coffee:
-	./node_modules/coffee-script/bin/coffee -bw -o ./lib -c ./src
 compile-examples:
 	./node_modules/coffee-script/bin/coffee -bcw ./examples/*/*.coffee
-deploy:
-	./node_modules/coffee-script/bin/coffee -b -o ./lib -c ./src
-	cd src && find . -path "*.js" | cpio -pd ../lib && cd ..
 
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')

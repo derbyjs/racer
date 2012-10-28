@@ -3,4 +3,3 @@
 *.rdb
 test-output.tmp
 node_modules/
-dev/
