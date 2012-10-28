@@ -27,7 +27,7 @@ function traverse (tree, path, iter) {
     // parts can be modified by iter(...)
     next = iter(curr, currPath, props, parent);
     currPath = next.path;
-    curr     = next.node;
+    curr = next.node;
     if (next.halt) break;
   }
   return {
@@ -37,7 +37,7 @@ function traverse (tree, path, iter) {
 }
 
 function lookup (tree, path, meta, ee) {
-  var getRef   = meta && meta.getRef
+  var getRef = meta && meta.getRef
     , skipLast = meta && meta.skipLast
     , prevRests = meta && meta.prevRests
     ;
@@ -71,10 +71,3 @@ function lookup (tree, path, meta, ee) {
     return out;
   });
 }
-
-
-//function lookup (obj, path) {
-//  var dotPos = path.indexOf('.');
-//  var leadingProp = path.slice(0, dotPos);
-//  return lookup(obj[leadingProp], path.slice(dotPos + 1));
-//}
