@@ -1,4 +1,5 @@
 *.swp
+*.un~
 *.gz
 *.rdb
 test-output.tmp
