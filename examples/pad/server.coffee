@@ -3,13 +3,18 @@ gzip = require 'connect-gzip'
 fs = require 'fs'
 racer = require 'racer'
 racer.use require 'racer/lib/ot'
+http = require 'http'
 
-app = express.createServer()
+app = express()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
 
+#In express 3.0, socket.IO's listen() method expects an http.Server
+#   instance - create an http server from the express app object
+server = http.createServer(app)
+
 store = racer.createStore
-  listen: app    # A port or http server
+  listen: server # A port or http server
 
 # Clear all existing data on restart
 store.flush()
@@ -42,5 +47,5 @@ app.get '/:group', (req, res) ->
       <script src=script.js></script>
       """
 
-app.listen 3011
+server.listen 3011
 console.log 'Go to http://localhost:3011/racer'

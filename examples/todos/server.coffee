@@ -3,15 +3,18 @@ gzip = require 'connect-gzip'
 fs = require 'fs'
 racer = require 'racer'
 shared = require './shared'
+http = require 'http'
 
 racer.use(racer.logPlugin)
 
-app = express.createServer()
+app = express()
   .use(express.favicon())
   .use(gzip.staticGzip(__dirname))
 
+server = http.createServer(app)
+
 store = racer.createStore
-  listen: app    # A port or http server
+  listen: server # A port or http server
 
 # Clear all existing data on restart
 store.flush()
@@ -61,5 +64,5 @@ app.get '/:groupName', (req, res) ->
       <script src=script.js></script>
       """
 
-app.listen 3012
+server.listen 3012
 console.log 'Go to http://localhost:3012/racer'
