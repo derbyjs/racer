@@ -51,7 +51,7 @@ describe 'Model transaction handling', ->
       sockets._disconnect()
       done()
 
-    model._memory._data = world: {color: 'green'}
+    model._memory._data.world = {color: 'green'}
     model.del 'color'
     expect(model._txnQueue).to.eql ['0.0']
 
