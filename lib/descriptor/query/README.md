@@ -156,7 +156,7 @@ console.log(derbyPosts.get());
 // You always will want to assign the transformation to a Model ref, so you can
 // use the results with a human-readable path (here '_derbyPosts') in your
 // views.
-var derbyPostsRef = model.ref('_derbyPosts', postsWithDerby);
+var derbyPostsRef = model.ref('_derbyPosts', derbyPosts);
 
 // derbyPostsRef is a scoped Model
 
