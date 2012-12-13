@@ -466,11 +466,11 @@ describe 'Model.ref', ->
     model = new Model
     num = model.listeners('mutator').length
     model.ref '_color', 'colors.green'
-    expect(model.listeners('mutator').length).to.equal num + 3
+    expect(model.listeners('mutator').length).to.equal num + 1
     model.ref '_color', 'colors.green'
-    expect(model.listeners('mutator').length).to.equal num + 6
+    expect(model.listeners('mutator').length).to.equal num + 2
     model.set 'colors.green.hex', '#0f0'
-    expect(model.listeners('mutator').length).to.equal num + 3
+    expect(model.listeners('mutator').length).to.equal num + 1
 
   it 'supports specifying from path via scoped model', ->
     model = new Model

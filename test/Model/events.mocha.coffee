@@ -15,10 +15,10 @@ describe 'Model events', ->
       expect(value).to.equal 'green'
       if count is 0
         expect(model._txnQueue.length).to.eql 1
-        expect(model._memory._data).to.specEql world: {}
+        expect(model._memory._data.world).to.specEql {}
       else
         expect(model._txnQueue.length).to.eql 0
-        expect(model._memory._data).to.specEql world: {color: 'green'}
+        expect(model._memory._data.world).to.specEql {color: 'green'}
       expect(model.get 'color').to.equal 'green'
       count++
       sockets._disconnect()

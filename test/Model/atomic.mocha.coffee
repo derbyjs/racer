@@ -106,10 +106,9 @@
 #       atomicModel.set 'volume', 'high'
 #     , (err) ->
 #       expect(err).to.be.null()
-#       expect(model._adapter._data).to.specEql
-#         world:
-#           color: 'green'
-#           volume: 'high'
+#       expect(model._adapter._data.world).to.specEql
+#         color: 'green'
+#         volume: 'high'
 #       sockets._disconnect()
 #       done()
 

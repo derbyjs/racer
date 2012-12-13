@@ -5,7 +5,7 @@ describe 'Model mutators', ->
 
   it 'get should return the adapter data when there are no pending transactions', ->
     model = new Model
-    model._memory._data = world: {a: 1}
+    model._memory._data.world = {a: 1}
     expect(model.get()).to.eql {a: 1}
 
   it 'test speculative value of set', ->
@@ -28,7 +28,7 @@ describe 'Model mutators', ->
           id: 'numbers'
           first: 2
           second: 10
-    expect(model._memory._data).to.specEql world: {}
+    expect(model._memory._data.world).to.specEql {}
 
     model.set 'info.numbers.third', 13
     expect(model.get()).to.specEql
@@ -39,7 +39,7 @@ describe 'Model mutators', ->
           first: 2
           second: 10
           third: 13
-    expect(model._memory._data).to.specEql world: {}
+    expect(model._memory._data.world).to.specEql {}
 
     model._removeTxn '0.1'
     model._removeTxn '0.2'
@@ -49,25 +49,24 @@ describe 'Model mutators', ->
         numbers:
           id: 'numbers'
           third: 13
-    expect(model._memory._data).to.specEql world: {}
+    expect(model._memory._data.world).to.specEql {}
 
   "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
     model = new Model
-    model._memory._data = world: {obj: {}}
-    expect(model._memory._data).to.specEql world: {obj: {}}
+    model._memory._data.world = {obj: {}}
+    expect(model._memory._data.world).to.specEql {obj: {}}
     model.set 'obj.a', 'b'
-    expect(model._memory._data).to.specEql world: {obj: {}}
+    expect(model._memory._data.world).to.specEql {obj: {}}
 
   it 'test speculative value of del', ->
     model = new Model
     model._clientId = '0'
-    model._memory._data =
-      world:
-        color: 'green'
-        info:
-          numbers:
-            first: 2
-            second: 10
+    model._memory._data.world =
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
 
     previous = model.del 'color'
     expect(previous).to.eql 'green'
@@ -77,13 +76,12 @@ describe 'Model mutators', ->
           first: 2
           second: 10
 
-    expect(model._memory._data).to.specEql
-      world:
-        color: 'green'
-        info:
-          numbers:
-            first: 2
-            second: 10
+    expect(model._memory._data.world).to.specEql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
 
     model.set 'color', 'red'
     expect(model.get()).to.specEql
@@ -104,13 +102,12 @@ describe 'Model mutators', ->
     expect(model.get()).to.specEql
       info: {}
 
-    expect(model._memory._data).to.specEql
-      world:
-        color: 'green'
-        info:
-          numbers:
-            first: 2
-            second: 10
+    expect(model._memory._data.world).to.specEql
+      color: 'green'
+      info:
+        numbers:
+          first: 2
+          second: 10
 
     # Make sure deleting something that doesn't exist isn't a problem
     model.del 'a.b.c'
@@ -151,7 +148,7 @@ describe 'Model mutators', ->
 
     model.push 'colors', 'green'
     expect(model.get 'colors').to.specEql ['green']
-    expect(model._memory._data).to.specEql world: {}
+    expect(model._memory._data.world).to.specEql {}
 
   it 'model push should instantiate an undefined path to a new array and insert new members at the end', ->
     model = new Model
