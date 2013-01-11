@@ -1,6 +1,7 @@
 {expect} = require '../util'
 racer = require '../../lib/racer'
 QueryBuilder = require '../../lib/descriptor/query/QueryBuilder'
+QueryMotifRegistry = require '../../lib/descriptor/query/QueryMotifRegistry'
 setup = require '../util/singleProcessStack'
 
 describe 'store.query.expose', ->
@@ -120,7 +121,7 @@ describe 'store.query.expose', ->
               last: 'N'
           done()
 
-    it 'should not add duplicate docs to the results when fetching the same query twice', (done) ->
+    it 'should not add duplicate docs to the results when fetching the same query twice yyy', (done) ->
       store = racer.createStore()
 
       store.query.expose 'users', 'olderThan', (age) ->
@@ -142,6 +143,23 @@ describe 'store.query.expose', ->
             expect(err).to.be.null()
             expect($results.get()).to.have.length(1)
             done()
+
+    it 'should gracefully handle queries that use undefined query motifs', (done) ->
+      store = racer.createStore()
+      model = store.createModel()
+
+      model._queryMotifRegistry = new QueryMotifRegistry
+      model._queryMotifRegistry.add 'users', 'olderThan', (age) ->
+        @where('age').gt(age)
+      # This query won't make sense to the Store because Store has no record of
+      # this query motif
+      query = model.query('users').olderThan(20)
+
+      store._queryMotifRegistry.remove 'users', 'olderThan'
+      model.fetch query, (err, $results) ->
+        expect(err).to.be.null()
+        expect($results.get()).to.have.length(0)
+        done()
 
 #    it 'should send query subscriptions over properly on a resync with Store when it has been disconnected long enough for the Store to forget it @slow bbb', (done) ->
 #      # Txn serializer timeout is 1 second
