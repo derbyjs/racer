@@ -2,7 +2,7 @@
 setup = require '../util/singleProcessStack'
 
 describe 'bundling of filters', ->
-  it 'should be able to unbundle the same filter in the browser xxx', (done) ->
+  it 'should be able to unbundle the same function-powered filter in the browser', (done) ->
     run = setup
       browserA:
         tabA:
