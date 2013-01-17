@@ -24,7 +24,7 @@
     "debug": ">=0.7.0",
     "ansi-color": ">=0.2.1",
     "cookie": "0.0.4",
-    "racer-util": "0.0.1"
+    "racer-util": "0.0.2"
   },
   "devDependencies": {
     "mocha": "1.2.x",
