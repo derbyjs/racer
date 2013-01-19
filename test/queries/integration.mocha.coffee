@@ -76,6 +76,7 @@ describe 'filter integration', ->
             browser: (model) ->
               expect(model.get('_b.length')).to.equal 1
               expect(model.get('_b.0.name')).to.equal 'Brian'
+              expect(model.get('_b')).to.specEql [{id: 'b', name: 'Brian', age: 27}]
             onSocketCxn: (socket) ->
               socket.on 'disconnect', ->
                 teardown done
