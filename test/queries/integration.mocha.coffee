@@ -55,16 +55,16 @@ describe 'filter integration', ->
       teardown = run()
 
   describe 'preservation', ->
-    it 'should be able to load the same filtered results in the browser xxx', (done) ->
+    it 'should be able to load the same filtered results in the browser', (done) ->
       run = setup
         browserA:
           tabA:
             server: (req, serverModel, bundleModel, store) ->
               store.query.expose 'users',
                 olderThan: (age) -> @where('age').gt(age)
-              store.set 'users.1', id: 1, name: 'Brian', age: 27, null, (err) ->
+              store.set 'users.b', id: 'b', name: 'Brian', age: 27, null, (err) ->
                 expect(err).to.be.null()
-                store.set 'users.2', id: 2, name: 'Nate', age: 28, null, (err) ->
+                store.set 'users.n', id: 'n', name: 'Nate', age: 28, null, (err) ->
                   serverModel.query('users').olderThan(25).fetch (err, $users) ->
                     serverModel.set '_letter', 'B'
                     filter = serverModel.filter $users, (user, id, model) ->
