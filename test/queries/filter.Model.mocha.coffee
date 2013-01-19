@@ -427,7 +427,7 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 32
 
-    describe 'among search results', ->
+    describe 'among another filter results', ->
       it 'should return a scoped model with access to results', ->
         model =  new Model
 
