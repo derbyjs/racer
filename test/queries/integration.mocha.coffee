@@ -1,5 +1,6 @@
 {expect} = require '../util'
 setup = require '../util/singleProcessStack'
+{finishAfter} = require '../../lib/util/async'
 
 describe 'filter integration', ->
   describe 'bundling', ->
@@ -81,5 +82,64 @@ describe 'filter integration', ->
               socket.on 'disconnect', ->
                 teardown done
               socket.disconnect 'booted'
+
+      teardown = run()
+
+  describe 'reacting', ->
+    it 'filters on queries should react to changes from other tabs', (done) ->
+      sockets = {}
+      tabs = {}
+      models = {}
+      run = setup
+        browser:
+          tabA:
+            server: (req, serverModel, bundleModel, store) ->
+              store.query.expose 'users', named: (name) -> @where('name').equals('Brian')
+              store.set 'users.1.name', 'Ryan', null, (err) ->
+                expect(err).to.be.null()
+                query = serverModel.query('users').named('Brian')
+                serverModel.subscribe query, (err, $results) ->
+                  filter = $results.filter (user, id, model) ->
+                    user.name == 'Brian'
+                  serverModel.ref '_b', filter
+                  expect(serverModel.get('_b.length')).to.equal 0
+                  bundleModel serverModel
+            browser: (model) ->
+              models.A = model
+              expect(model.get('_b.length')).to.equal 0
+            onSocketCxn: (socket, tab) ->
+              sockets.A = socket
+              tabs.A = tab
+              wait()
+          tabB:
+            server: (req, serverModel, bundleModel, store) ->
+              store.set 'users.1.name', 'Ryan', null, (err) ->
+                expect(err).to.be.null()
+                query = serverModel.query('users').named('Brian')
+                serverModel.subscribe query, (err, $results) ->
+                  filter = $results.filter (user, id, model) ->
+                    user.name == 'Brian'
+                  serverModel.ref '_b', filter
+                  expect(serverModel.get('_b.length')).to.equal 0
+                  bundleModel serverModel
+            browser: (model) ->
+              models.B = model
+              expect(model.get('_b.length')).to.equal 0
+            onSocketCxn: (socket, tab) ->
+              sockets.B = socket
+              tabs.B = tab
+              wait()
+
+        wait = finishAfter 2, ->
+          models.A.on 'insert', '_b', ->
+            finish = finishAfter Object.keys(sockets).length, ->
+              teardown done
+            for k, socket of sockets
+              socket.on 'disconnect', finish
+              socket.disconnect 'booted'
+          models.B.set 'users.1.name', 'Brian'
+          setTimeout ->
+            console.log models.A.get '_b'
+          , 500
 
       teardown = run()
