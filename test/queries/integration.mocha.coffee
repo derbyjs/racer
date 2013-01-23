@@ -100,7 +100,7 @@ describe 'filter integration', ->
                 query = serverModel.query('users').named('Brian')
                 serverModel.subscribe query, (err, $results) ->
                   filter = $results.filter (user, id, model) ->
-                    user.name == 'Brian'
+                    user.name in ['Bri' + 'an', 'Bryan']
                   serverModel.ref '_b', filter
                   expect(serverModel.get('_b.length')).to.equal 0
                   bundleModel serverModel
@@ -117,14 +117,9 @@ describe 'filter integration', ->
                 expect(err).to.be.null()
                 query = serverModel.query('users').named('Brian')
                 serverModel.subscribe query, (err, $results) ->
-                  filter = $results.filter (user, id, model) ->
-                    user.name == 'Brian'
-                  serverModel.ref '_b', filter
-                  expect(serverModel.get('_b.length')).to.equal 0
                   bundleModel serverModel
             browser: (model) ->
               models.B = model
-              expect(model.get('_b.length')).to.equal 0
             onSocketCxn: (socket, tab) ->
               sockets.B = socket
               tabs.B = tab
@@ -138,8 +133,5 @@ describe 'filter integration', ->
               socket.on 'disconnect', finish
               socket.disconnect 'booted'
           models.B.set 'users.1.name', 'Brian'
-          setTimeout ->
-            console.log models.A.get '_b'
-          , 500
 
       teardown = run()
