@@ -482,6 +482,25 @@ describe 'In browser filters', ->
 
           model.set 'users.3', userThree = {id: '3', age: 32}
 
+        describe 'when first filter results are an array', ->
+          it 'should return a scoped model whose results update automatically', (done) ->
+            model =  new Model
+
+            model.set 'users.x', id: 'x', age: 30
+            model.set 'users.y', id: 'y', age: 31
+
+            baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            baseResults = model.ref '_baseResults', baseComputation
+
+            computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+
+            model.on 'set', '_results.*.age', (index, age) ->
+              expect(age).to.equal 32
+              done()
+
+            model.set 'users.y.age', 32
+
       describe 'in response to local mutations that remove a result', ->
         it 'should return a scoped model whose results update automatically', ->
           model =  new Model
