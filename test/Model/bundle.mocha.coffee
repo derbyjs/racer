@@ -30,28 +30,29 @@ describe 'Model bundle', ->
 
   it '(before all txns have been applied) should wait for all txns to be applied', (done) ->
     store = @store
-    model = store.createModel()
+    store.set 'groups', {racer: {id: 'racer'}}, null, (err) ->
+      model = store.createModel()
 
-    model.subscribe 'groups.racer', (err, group) ->
-      group.set 'name', 'racer'
+      model.subscribe 'groups.racer', (err, group) ->
+        group.set 'name', 'racer'
 
-      # Simulate this latency scenario
-      flush = ->
-        fn() for fn in buffer
-        return
-      commit = store._commit
-      buffer = []
-      store._commit = ->
-        args = arguments
-        buffer.push -> commit.apply(store, args)
+        # Simulate this latency scenario
+        flush = ->
+          fn() for fn in buffer
+          return
+        commit = store._commit
+        buffer = []
+        store._commit = ->
+          args = arguments
+          buffer.push -> commit.apply(store, args)
 
-      group.set 'age', 1
-      model.bundle (bundle) ->
-        {data} = JSON.parse(bundle)[1]
-        expect(data.groups.racer).to.eql {id: 'racer', name: 'racer', age: 1}
-        done()
+        group.set 'age', 1
+        model.bundle (bundle) ->
+          {data} = JSON.parse(bundle)[1]
+          expect(data.groups.racer).to.eql {id: 'racer', name: 'racer', age: 1}
+          done()
 
-      process.nextTick flush
+        process.nextTick flush
 
   it 'should buffer any transactions received after its own txn application, and send those down to the browser upon socket.io connection'
 

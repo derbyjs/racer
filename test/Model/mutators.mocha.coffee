@@ -12,17 +12,22 @@ describe 'Model mutators', ->
     model = new Model
     model._clientId = '0'
 
-    previous = model.set 'color', 'green'
+    previous = model.set 'colors.first',
+      id: 'first'
+      value: 'green'
     expect(previous).to.equal undefined
-    expect(model.get 'color').to.eql 'green'
+    expect(model.get 'colors.first.value').to.eql 'green'
 
-    previous = model.set 'color', 'red'
+    previous = model.set 'colors.first.value', 'red'
     expect(previous).to.equal 'green'
-    expect(model.get 'color').to.eql 'red'
+    expect(model.get 'colors.first.value').to.eql 'red'
 
-    model.set 'info.numbers', first: 2, second: 10
+    model.set 'info.numbers', id: 'numbers', first: 2, second: 10
     expect(model.get()).to.specEql
-      color: 'red'
+      colors:
+        first:
+          id: 'first'
+          value: 'red'
       info:
         numbers:
           id: 'numbers'
@@ -32,7 +37,10 @@ describe 'Model mutators', ->
 
     model.set 'info.numbers.third', 13
     expect(model.get()).to.specEql
-      color: 'red'
+      colors:
+        first:
+          id: 'first'
+          value: 'red'
       info:
         numbers:
           id: 'numbers'
@@ -42,13 +50,17 @@ describe 'Model mutators', ->
     expect(model._memory._data.world).to.specEql {}
 
     model._removeTxn '0.1'
-    model._removeTxn '0.2'
+    model._removeTxn '0.3'
     expect(model.get()).to.specEql
-      color: 'green'
+      colors:
+        first:
+          id: 'first'
+          value: 'green'
       info:
         numbers:
           id: 'numbers'
-          third: 13
+          first: 2
+          second: 10
     expect(model._memory._data.world).to.specEql {}
 
   "speculative mutations of an existing object should not modify the adapter's underlying presentation of that object": ->
