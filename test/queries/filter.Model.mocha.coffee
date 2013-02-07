@@ -3,6 +3,10 @@
 sinon = require 'sinon'
 
 describe 'In browser filters', ->
+  beforeEach ->
+    Model::allowWritesOnAbsentDoc = true
+  afterEach ->
+    delete Model::allowWritesOnAbsentDoc
   describe 'Model#filter', ->
     describe 'among documents under a top-level namespace', ->
       describe 'filter by both function and query methods', ->

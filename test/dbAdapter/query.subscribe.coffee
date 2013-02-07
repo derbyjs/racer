@@ -256,7 +256,7 @@ module.exports = (plugins) ->
                         expect(results.get()).to.specEql [docOne, {id: '2', age: 21}]
                         done()
 
-                      modelA.set "#{currNs}.2.age", 21
+                      store.set "#{currNs}.2.age", 21
 
           describe 'that causes a deletion from the query set', ->
             it 'should update the relevant query results alias', (done) ->
