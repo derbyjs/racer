@@ -323,8 +323,9 @@ describe 'Model.ref', ->
 
   it 'should emit on both paths when setting under reference with key', calls 2, (done) ->
     model = new Model
-    model.set 'colorName', 'green'
-    model.ref '_color', 'colors', 'colorName'
+    model.set 'colors.green', {id: 'green'}
+    model.set '_colorName', 'green'
+    model.ref '_color', 'colors', '_colorName'
     model.on 'set', 'colors.green.*', cb = (prop, value, previous, isLocal) ->
       expect(prop).to.equal 'hex'
       expect(value).to.equal '#0f0'
@@ -336,8 +337,9 @@ describe 'Model.ref', ->
 
   it 'should emit on both paths when setting under referenced path with key', calls 2, (done) ->
     model = new Model
-    model.set 'colorName', 'green'
-    model.ref '_color', 'colors', 'colorName'
+    model.set 'colors.green', {id: 'green'}
+    model.set '_colorName', 'green'
+    model.ref '_color', 'colors', '_colorName'
     model.on 'set', 'colors.green.*', cb = (prop, value, previous, isLocal) ->
       expect(prop).to.equal 'hex'
       expect(value).to.equal '#0f0'

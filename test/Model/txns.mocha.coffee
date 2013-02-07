@@ -117,7 +117,7 @@ describe 'Model transaction handling', ->
       __emit__ = serverSocketA.emit
       serverSocketA.emit = (name, args...) ->
         # Don't send the 2nd txn, so we trigger txn serializer to time out
-        return if name == 'txn' && transaction.getVer(args[0]) == 2
+        return if name == 'txn' && transaction.getVer(args[0]) == 3
         # Send all other pub sub messages
         __emit__.call @, name, args...
 
@@ -162,14 +162,14 @@ describe 'Model transaction handling', ->
       transaction.setVer txn, ++ver
       sockets.emit 'txn', txn
       sockets._disconnect()
-    model.set 'color', 'green', (err, path, value) ->
+    model.set 'docs.x', {id: 'x', color: 'green'}, (err, path, value) ->
       expect(err).to.be.null()
-      expect(path).to.equal 'color'
-      expect(value).to.equal 'green'
+      expect(path).to.equal 'docs.x'
+      expect(value).to.eql {id: 'x', color: 'green'}
       done()
-    model.del 'color', (err, path) ->
+    model.del 'docs.x.color', (err, path) ->
       expect(err).to.be.null()
-      expect(path).to.equal 'color'
+      expect(path).to.equal 'docs.x.color'
       done()
 
   it 'model mutator methods should callback with error on confict', calls 2, (done) ->
