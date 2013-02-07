@@ -20,7 +20,9 @@ do the following:
 
 ```javascript
 store = racer.createStore();
-store.accessControl = true; // false by default
+store.accessControl.readPath = true; // false by default
+store.accessControl.query    = true; // false by default
+store.accessControl.write    = true; // false by default
 ```
 
 Turning this on blocks read and write access to everything. To enable access to
