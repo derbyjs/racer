@@ -41,7 +41,7 @@ store.query.expose('users', 'withRole', function (role) {
   return this.where('roles').contains([role]);
 });
 
-store.queryAccess('users', 'withRole', function (role, accept) {
+store.queryAccess('users', 'withRole', function (role, accept, onErr) {
   // Every Store#queryAccess callback has access to the session of the client
   // attempting to fetch the query motif "withRole" over the "users"
   // namespace.
@@ -65,7 +65,7 @@ Proctecting reading the value at a path (or paths defined by a path pattern) is
 achieved in a similar manner as protecting queries:
 
 ```javascript
-store.readPathAccess('users.*', function (pathFragment, accept) {
+store.readPathAccess('users.*', function (pathFragment, accept, onErr) {
   var session = this.session;
   accept(session.isMember);
 });
@@ -78,7 +78,7 @@ specify the mutator method.
 
 ```javascript
 // Only let users set their own passwords
-store.writeAccess('set', 'users.*.password', function (userId, accept) {
+store.writeAccess('set', 'users.*.password', function (userId, accept, onErr) {
   var allowed = (userId === this.session.userId);
   accept(allowed);
 });
@@ -89,7 +89,7 @@ path or path pattern:
 
 ```javascript
 // Only let users set, delete, push, pop, etc against the list of their cars
-store.writeAccess('*', 'users.*.cars', function (userId, accept) {
+store.writeAccess('*', 'users.*.cars', function (userId, accept, onErr) {
   var allowed = (userId === this.session.userId);
   accept(allowed);
 });
