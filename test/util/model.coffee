@@ -110,21 +110,21 @@ exports.mockFullSetup = (store, done, plugins, callback) ->
   plugins ||= []
   numBrowsers = callback.length - 1 # subtract 1 for the done parameter
   serverSockets = new ServerSocketsMock()
-  testPath = "tests.#{++ns}"
+  testPath = "tests.x#{++ns}"
+  store.set testPath, {id: ns}, null, (err) ->
+    allDone = (err) ->
+      return done err if err
+      serverSockets._disconnect()
+      done()
 
-  allDone = (err) ->
-    return done err if err
-    serverSockets._disconnect()
-    done()
-
-  browserModels = []
-  i = numBrowsers
-  store.setSockets serverSockets
-  while i--
-    createBrowserModel store, testPath, plugins,
-      preBundle: preBundle
-      postBundle: postBundle
-      preConnect: preConnect
-      postConnect: (model) ->
-        browserModels.push model
-        --numBrowsers || callback browserModels..., allDone
+    browserModels = []
+    i = numBrowsers
+    store.setSockets serverSockets
+    while i--
+      createBrowserModel store, testPath, plugins,
+        preBundle: preBundle
+        postBundle: postBundle
+        preConnect: preConnect
+        postConnect: (model) ->
+          browserModels.push model
+          --numBrowsers || callback browserModels..., allDone
