@@ -604,7 +604,7 @@ describe 'Model.ref', ->
       expect(model.get '_x').to.equal 1
 
   describe 'mutating on an empty ref', ->
-    it 'should not execute the set and console.warn xxx', ->
+    it 'should not execute the set and console.warn', ->
       model = new Model
       $doc = model.ref '_x', 'docs', '_id'
       $doc.set 'name', 'Brian'
