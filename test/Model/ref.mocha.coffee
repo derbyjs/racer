@@ -602,3 +602,10 @@ describe 'Model.ref', ->
       model.ref '_profile', '_x'
       model.set '_profile', 100
       expect(model.get '_x').to.equal 1
+
+  describe 'mutating on an empty ref', ->
+    it 'should not execute the set and console.warn xxx', ->
+      model = new Model
+      $doc = model.ref '_x', 'docs', '_id'
+      $doc.set 'name', 'Brian'
+      expect(model.get 'docs.undefined').to.eql undefined
