@@ -32,17 +32,19 @@ describe 'Model.ref', ->
   it 'should support setting', ->
     model = new Model
 
-    model.ref '_color', 'colors', 'selected'
+    model.ref '_color', 'colors', '_selected'
     ref = model._getRef '_color'
     expect(model.get()).to.specEql
       _color: ref
 
     # Set a key value
-    model.set 'selected', 'blue'
+    model.set '_selected', 'blue'
     expect(model.get()).to.specEql
       _color: ref
-      selected: 'blue'
+      _selected: 'blue'
 
+    model.set 'colors',
+      blue: {id: 'blue'}
     # Setting a property on a reference should update the referenced object
     model.set '_color.hex', '#0f0'
     expect(model.get()).to.specEql
@@ -51,7 +53,7 @@ describe 'Model.ref', ->
           id: 'blue'
           hex: '#0f0'
       _color: ref
-      selected: 'blue'
+      _selected: 'blue'
 
     # Creating a ref on a path that is currently a reference should modify
     # the reference, similar to setting an object reference in Javascript
@@ -63,7 +65,7 @@ describe 'Model.ref', ->
           id: 'blue'
           hex: '#0f0'
       _color: ref2
-      selected: 'blue'
+      _selected: 'blue'
 
     # Test setting on a non-keyed reference
     model.set '_color.compliment', 'yellow'
@@ -74,7 +76,7 @@ describe 'Model.ref', ->
           hex: '#0f0'
           compliment: 'yellow'
       _color: ref2
-      selected: 'blue'
+      _selected: 'blue'
 
   it 'should update the referenced object when made as a hardLink', ->
     model = new Model
@@ -102,7 +104,7 @@ describe 'Model.ref', ->
     model.set '_colors.mine', 'yellow'
     expect(model.get '_color').to.equal 'red'
 
-  it 'should handle undefined and null key values', ->
+  it 'should not support undefined and null key values', ->
     model = new Model
     model.set 'colors',
       green:
@@ -114,9 +116,6 @@ describe 'Model.ref', ->
 
     model.set '_color.hex', '#ff0'
     expect(model.get 'colors').to.specEql
-      undefined:
-        id: 'undefined'
-        hex: '#ff0'
       green:
         id: 'green'
         hex: '#0f0'
@@ -127,12 +126,6 @@ describe 'Model.ref', ->
 
     model.set '_color.hex', '#ff0'
     expect(model.get 'colors').to.specEql
-      undefined:
-        id: 'undefined'
-        hex: '#ff0'
-      null:
-        id: 'null'
-        hex: '#ff0'
       green:
         id: 'green'
         hex: '#0f0'
@@ -181,6 +174,9 @@ describe 'Model.ref', ->
 
   it 'does not have an effect after being deleted', ->
     model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
     model.ref '_color', 'colors.green'
     ref = model._getRef '_color'
     model.set '_color.hex', '#0f0'
@@ -323,8 +319,9 @@ describe 'Model.ref', ->
 
   it 'should emit on both paths when setting under reference with key', calls 2, (done) ->
     model = new Model
-    model.set 'colorName', 'green'
-    model.ref '_color', 'colors', 'colorName'
+    model.set 'colors.green', {id: 'green'}
+    model.set '_colorName', 'green'
+    model.ref '_color', 'colors', '_colorName'
     model.on 'set', 'colors.green.*', cb = (prop, value, previous, isLocal) ->
       expect(prop).to.equal 'hex'
       expect(value).to.equal '#0f0'
@@ -336,8 +333,9 @@ describe 'Model.ref', ->
 
   it 'should emit on both paths when setting under referenced path with key', calls 2, (done) ->
     model = new Model
-    model.set 'colorName', 'green'
-    model.ref '_color', 'colors', 'colorName'
+    model.set 'colors.green', {id: 'green'}
+    model.set '_colorName', 'green'
+    model.ref '_color', 'colors', '_colorName'
     model.on 'set', 'colors.green.*', cb = (prop, value, previous, isLocal) ->
       expect(prop).to.equal 'hex'
       expect(value).to.equal '#0f0'
@@ -527,6 +525,9 @@ describe 'Model.ref', ->
 
   it 'returns a scoped model for the from argument', ->
     model = new Model
+    model.set 'colors',
+      green:
+        id: 'green'
     color = model.ref '_color', 'colors.green'
     expect(color.path()).to.equal '_color'
     color.set 'hex', '#0f0'
@@ -601,3 +602,10 @@ describe 'Model.ref', ->
       model.ref '_profile', '_x'
       model.set '_profile', 100
       expect(model.get '_x').to.equal 1
+
+  describe 'mutating on an empty ref', ->
+    it 'should not execute the set and console.warn', ->
+      model = new Model
+      $doc = model.ref '_x', 'docs', '_id'
+      $doc.set 'name', 'Brian'
+      expect(model.get 'docs.undefined').to.eql undefined

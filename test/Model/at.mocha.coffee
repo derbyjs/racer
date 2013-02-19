@@ -155,8 +155,10 @@ describe 'Model.at', ->
     expect(stuff.get()).to.specEql expected
     expect(model.get 'stuff').to.specEql expected
 
-    id = stuff.add 'foo', {b: 1}
-    expect(stuff.get 'foo.' + id).to.specEql {id, b: 1}
+    $doc = model.at('stuff.' + id)
+
+    id = $doc.add 'foo', {b: 1}
+    expect($doc.get 'foo.' + id).to.specEql {id, b: 1}
 
   it 'supports push', ->
     model = new Model
@@ -347,14 +349,14 @@ describe 'Model.at', ->
     model = new Model
     colors = model.at 'colors'
 
-    model.set 'colors.5.name', 'blue'
+    model.set 'colors.x5', id: 'x5', name: 'blue'
 
     colors.on 'set', '*.name', (id, value, previous, isLocal, pass) ->
-      expect(id).to.equal '5'
+      expect(id).to.equal 'x5'
       expect(value).to.equal 'green'
       expect(previous).to.equal 'blue'
       expect(isLocal).to.be.true
       expect(pass).to.equal undefined
       done()
 
-    model.set 'colors.5.name', 'green'
+    model.set 'colors.x5.name', 'green'

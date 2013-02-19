@@ -76,7 +76,7 @@ describe 'access control', ->
                     req.session.roles = ['guest']
                     serverModel[reader] 'users.1.ssn', (err, basicUsers) ->
                       expect(err).to.not.be.null()
-                      expect(err).to.equal 'Unauthorized'
+                      expect(err).to.equal '403 Unauthorized'
                       bundleModel serverModel
                 browser: (model) ->
                   expect(model.get('users.1.ssn')).to.eql undefined
@@ -104,7 +104,7 @@ describe 'access control', ->
                   model = tab.model
                   model.on 'connect', ->
                     model[reader] 'users.1.ssn', (err, scopedModel) ->
-                      expect(err).to.equal 'Unauthorized'
+                      expect(err).to.equal '403 Unauthorized'
                       expect(scopedModel).to.eql undefined
                       socket.on 'disconnect', ->
                         teardown done
@@ -190,7 +190,7 @@ describe 'access control', ->
                     req.session.roles = ['guest']
                     query = serverModel.query('users').withRole('superadmin')
                     serverModel[reader] query, (err, basicUsers) ->
-                      expect(err).to.equal 'Unauthorized'
+                      expect(err).to.equal '403 Unauthorized'
                       bundleModel serverModel
                 browser: (model) ->
                   expect(model.get('users.1')).to.eql undefined
@@ -223,7 +223,7 @@ describe 'access control', ->
                   model.on 'connect', ->
                     query = model.query('users').withRole('superadmin')
                     model[reader] query, (err, users) ->
-                      expect(err).to.equal 'Unauthorized'
+                      expect(err).to.equal '403 Unauthorized'
                       expect(model.get('users.1')).to.eql undefined
                       socket.on 'disconnect', ->
                         teardown done
@@ -290,7 +290,7 @@ describe 'access control', ->
             server: (req, serverModel, bundleModel, store) ->
               req.session.roles = ['guest']
               serverModel.set 'users.1.role', 'guest', (err) ->
-                expect(err).to.equal 'Unauthorized'
+                expect(err).to.equal '403 Unauthorized'
                 expect(serverModel.get('users.1.role')).to.eql undefined
                 bundleModel serverModel
             browser: (model) ->
@@ -316,7 +316,7 @@ describe 'access control', ->
               model = tab.model
               model.on 'connect', ->
                 model.set 'users.1.role', 'guest', (err) ->
-                  expect(err).to.equal 'Unauthorized'
+                  expect(err).to.equal '403 Unauthorized'
                   expect(model.get('users.1.role')).to.eql undefined
                   socket.on 'disconnect', ->
                     teardown done

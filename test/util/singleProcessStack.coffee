@@ -6,45 +6,48 @@ _url = require 'url'
 async = require 'async'
 
 module.exports = (browsers) ->
-  # We have one app that all browsers connect to
-  app = connect().use(connect.cookieParser())
-
-  changeEnvTo 'server'
-  racer = require '../../lib/racer'
-  store = racer.createStore()
-
-  if config = browsers.config
-    config racer, store
-
-  app.use store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
-  app.use store.modelMiddleware()
-
-  app.use '/logout', (req, res) ->
-    req.session.destroy()
-    res.end()
-
-  # Maps model clientIds to the clientNames we give them for tests.
-  idsToNames = {}
-
-  # The last middleware for handling '/' requests. This is intended for each
-  # tab's first request for the entire page.
-  app.use (req, res, next) ->
-    return next() if /socket.io/.test req.url
-    {clientName, browserName} = _url.parse(req.url, true).query
-
-    # Simulate bundling the server Model & sending it to the browser
-    bundleModel = (serverModel) ->
-      serverModel.bundle (bundle) -> res.end(bundle)
-
-    serverModel = req.getModel()
-    idsToNames[serverModel._clientId] = clientName
-    browsers[browserName][clientName].server req, serverModel, bundleModel, store
-
+  ports = [4000...5000]
   return run = ->
+    # We have one app that all browsers connect to
+    app = connect().use(connect.cookieParser())
+
+    changeEnvTo 'server'
+    racer = require '../../lib/racer'
+    store = racer.createStore()
+
+    if config = browsers.config
+      config racer, store
+
+    app.use store.sessionMiddleware key: 'connect.sid', secret: 'xxx'
+    app.use store.modelMiddleware()
+
+    app.use '/logout', (req, res) ->
+      req.session.destroy()
+      res.end()
+
+    # Maps model clientIds to the clientNames we give them for tests.
+    idsToNames = {}
+
+    # The last middleware for handling '/' requests. This is intended for each
+    # tab's first request for the entire page.
+    app.use (req, res, next) ->
+      return next() if /socket.io/.test req.url
+      {clientName, browserName} = _url.parse(req.url, true).query
+
+      # Simulate bundling the server Model & sending it to the browser
+      bundleModel = (serverModel) ->
+        serverModel.bundle (bundle) -> res.end(bundle)
+
+      serverModel = req.getModel()
+      idsToNames[serverModel._clientId] = clientName
+      browsers[browserName][clientName].server req, serverModel, bundleModel, store
+
     tabs = {}
 
     webServer = http.createServer(app)
-    webServer.listen 3000, ->
+    rand = Math.floor(Math.random() * 1000)
+    port = ports[rand]
+    webServer.listen port, ->
       store.listen webServer
 
       store.io.sockets.on 'connection', (socket) ->
@@ -58,7 +61,7 @@ module.exports = (browsers) ->
         clients = browsers[browserName]
         for clientName of clients
           series[clientName] = do (browser, clientName, clients) -> (callback) ->
-            browser.createTab clientName, (err, tab) ->
+            browser.createTab clientName, port, (err, tab) ->
               tabs[clientName] = tab
               clients[clientName].browser tab.model
               callback err, tab
@@ -74,7 +77,7 @@ module.exports = (browsers) ->
 Browser = (@browserName, @app, @server) ->
   return
 
-Browser::createTab =  (clientName, callback) ->
+Browser::createTab =  (clientName, port, callback) ->
   req = @app.request(@server).get("/?browserName=#{@browserName}&clientName=#{clientName}")
   req.set('cookie', "connect.sid=#{@sessionId}") if @sessionId
   req.end (res) =>
@@ -87,7 +90,7 @@ Browser::createTab =  (clientName, callback) ->
     global.io = require 'socket.io-client'
     __connect__ = global.io.connect
     global.io.connect = (path) ->
-      out = __connect__.call @, "http://127.0.0.1:3000" + path
+      out = __connect__.call @, "http://127.0.0.1:#{port}" + path
       @connect = __connect__
       return out
     ioUtil = global.io.util

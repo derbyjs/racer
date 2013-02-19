@@ -3,8 +3,29 @@
 sinon = require 'sinon'
 
 describe 'In browser filters', ->
+  beforeEach ->
+    Model::allowWritesOnAbsentDoc = true
+  afterEach ->
+    delete Model::allowWritesOnAbsentDoc
   describe 'Model#filter', ->
     describe 'among documents under a top-level namespace', ->
+      describe 'filter by both function and query methods', ->
+        it 'should return a scoped model with access to results', ->
+          model =  new Model
+
+          model.set 'users.1', id: '1', age: 20
+          model.set 'users.2', userTwo = id: '2', age: 30
+          model.set 'users.3', id: '3', age: 40
+
+          computation = model.at('users').filter
+            where:
+              age: {gt: 20}
+          computation = computation.filter (user) ->
+            user.age < 40
+          results = model.ref '_results', computation
+          expect(results.get()).to.eql [userTwo]
+          expect(model.get('_results')).to.eql [userTwo]
+
       describe 'without sort descriptors (change this later to return unordered results)', ->
         it 'should return a scoped model with access to results', ->
           model =  new Model
@@ -410,7 +431,7 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 32
 
-    describe 'among search results', ->
+    describe 'among another filter results', ->
       it 'should return a scoped model with access to results', ->
         model =  new Model
 
@@ -464,6 +485,25 @@ describe 'In browser filters', ->
             done()
 
           model.set 'users.3', userThree = {id: '3', age: 32}
+
+        describe 'when first filter results are an array', ->
+          it 'should return a scoped model whose results update automatically', (done) ->
+            model =  new Model
+
+            model.set 'users.x', id: 'x', age: 30
+            model.set 'users.y', id: 'y', age: 31
+
+            baseComputation = model.filter('users').where('age').gte(30).sort(['age', 'asc'])
+            baseResults = model.ref '_baseResults', baseComputation
+
+            computation = model.filter(baseResults).where('age').gte(31).sort(['age', 'asc'])
+            results = model.ref '_results', computation
+
+            model.on 'set', '_results.*.age', (index, age) ->
+              expect(age).to.equal 32
+              done()
+
+            model.set 'users.y.age', 32
 
       describe 'in response to local mutations that remove a result', ->
         it 'should return a scoped model whose results update automatically', ->

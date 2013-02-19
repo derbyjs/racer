@@ -28,7 +28,7 @@ describe 'Memory journal adapter', ->
         clientId = model._clientId
         journal.startId (origStartId) ->
           model.set '_test.color', 'green', ->
-            expect(journal._txns.length).to.equal 1
+            expect(journal._txns.length).to.equal 2
 
             # TODO Add this to another test
             # expect(journal._txnClock[clientId]).to.be.above 0
