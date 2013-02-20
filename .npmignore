@@ -3,3 +3,5 @@
 *.rdb
 test-output.tmp
 node_modules/
+coverage.html
+lib-cov/
