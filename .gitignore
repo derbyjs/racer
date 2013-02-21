@@ -8,3 +8,4 @@ examples/*/*.js
 scratch/
 lib-cov/
 coverage.html
+report/
