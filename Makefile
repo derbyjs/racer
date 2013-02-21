@@ -4,7 +4,10 @@ compile-examples:
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
 MOCHA := ./node_modules/mocha/bin/mocha
+PLATO := ./node_modules/.bin/plato
 OUT_FILE = "test-output.tmp"
+OUT_REPORT = "report"
+JSHINTRC = ".jshintrc"
 REPORTER = "spec"
 
 g = "."
@@ -34,6 +37,9 @@ test-cov: lib-cov
 		$(MOCHA) $(MOCHA_TESTS) \
 		--reporter html-cov > coverage.html
 
+report:
+	$(PLATO) -r -l $(JSHINTRC) -d $(OUT_REPORT) lib/
+
 test: test-mocha
 test-all: test-mocha test-external
 test!:
@@ -41,3 +47,9 @@ test!:
 
 lib-cov:
 	@jscoverage --no-highlight lib lib-cov
+
+clean:
+	rm -rf report/
+	rm -rf lib-cov/
+	rm -f coverage.html
+	rm -f $(OUT_FILE)
