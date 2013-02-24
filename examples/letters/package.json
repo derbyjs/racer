@@ -4,7 +4,6 @@
   "version": "0.0.12",
   "main": "./server.js",
   "dependencies": {
-    "racer": "*",
     "express": ">=2.4",
     "connect-gzip": ">=0.1"
   },
