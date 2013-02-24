@@ -1,4 +1,4 @@
-racer = require 'racer'
+racer = require '../../lib/racer'
 todoHtml = require('./shared').todoHtml
 
 process.nextTick ->

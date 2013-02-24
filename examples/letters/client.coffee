@@ -1,4 +1,4 @@
-racer = require 'racer'
+racer = require '../../lib/racer'
 
 process.nextTick ->
   racer.init @init

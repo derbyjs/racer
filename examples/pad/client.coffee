@@ -1,5 +1,5 @@
-racer = require 'racer'
-racer.use require 'racer/lib/ot'
+racer = require '../../lib/racer'
+racer.use require '../..//lib/ot'
 
 process.nextTick ->
   racer.init @init
