@@ -29,12 +29,6 @@ http://todos.racerjs.com/racer
 
 Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application. The application code does not handle conflicts, so conflicting changes simply fail to be applied.
 
-### Pad
-
-http://pad.racerjs.com/racer
-
-A bare-bones realtime, collaborative text editor. Demonstrates use of Racer's text OT methods.
-
 ## Features
 
   * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. Clients may subscribe to a limited set of information relevant to the current session.
@@ -63,7 +57,7 @@ A bare-bones realtime, collaborative text editor. Demonstrates use of Racer's te
 
   * **Validation** &ndash; An implementation of shared and non-shared schema-based validation is planned.
 
-  * **More realtime strategies** &ndash; Currently, racer provides basic Software Transactional Memory (STM) and text Operational Transform (OT) methods. In the future it will receive a more robust STM, OT of JSON objects, and potentially other strategies like Diff-Match-Patch.
+  * **More realtime strategies** &ndash; Currently, racer provides basic Software Transactional Memory (STM). In the future it will receive a more robust STM, Operational Transformation (OT), and potentially other strategies like Diff-Match-Patch.
 
 ## Installation
 
