@@ -1,7 +1,7 @@
 express = require 'express'
 gzip = require 'connect-gzip'
 fs = require 'fs'
-racer = require 'racer'
+racer = require '../../lib/racer'
 http = require 'http'
 
 app = express()
