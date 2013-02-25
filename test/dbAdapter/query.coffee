@@ -36,7 +36,8 @@ module.exports = (storeOpts = {}, plugins = []) ->
 
     shouldBeSubscribable plugins
 
-    shouldSupportPaginatedSubscribe plugins
+    # TODO: Paginated subscriptions don't work
+    # shouldSupportPaginatedSubscribe plugins
 
     # These are queries whose parameter values can dynamically change. For
     # example, this could come in handy in the following scenario:
