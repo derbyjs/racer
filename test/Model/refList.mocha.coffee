@@ -514,3 +514,30 @@ describe 'Model.refList', ->
       expect(model.get('_items')[0]).to.eql { id: 31, name: 'b' }
       expect(model.get '_items.0').to.eql { id: 31, name: 'b' }
 
+  describe 'an evil complex chained refList', ->
+    model = new Model
+    model.set 'items',
+      'x1': {id: 'x1', val: 'a'}
+      'x2': {id: 'x2', val: 'b'}
+      'x3': {id: 'x3', val: 'c'}
+    model.set '_map1', ['x3', 'x1']
+    model.set '_keyMap', {a:'x1', b:'x2'}
+    model.set '_keyList', ['a', 'b']
+
+    model.set '_lists', {}
+    model.refList '_lists.1', 'items', '_map1'
+
+    #TODO: Keyed refs cannot nest
+    #model.set 'baseList', 1
+    #model.ref '_lists.transitionValues', '_lists', 'baseList'
+    model.ref '_lists.transitionValues', '_lists.1'
+
+    model.refList '_lists.transitionKeys', '_keyMap', '_keyList'
+    model.refList '_lists.3', '_lists.transitionValues', '_lists.transitionKeys'
+
+    it 'should not leak IDs not in the middle', ->
+      expect(model.get '_lists.3').to.eql [{id: 'x1', val: 'a'}, undefined]
+    it 'should allow access via nested paths', ->
+      expect(model.get '_lists.3.0').to.eql {id: 'x1', val: 'a'}
+      expect(model.get '_lists.3.1').to.eql undefined
+      expect(model.get '_lists.3.length').to.eql 2
