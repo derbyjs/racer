@@ -40,7 +40,8 @@ describe 'Model.refList', ->
     model.refList '_list', 'items', '_map'
 
     model.set '_list.0', {id: 'x3', val: 'c'}
-    model.set '_list.1', {id: 'x1', val: 'a'}
+    model.set '_list.1', {id: 'x1'}
+    model.set '_list.1.val', 'a'
     expect(Array.isArray model.get('_map')).to.be.true
     expect(model.get '_map').to.specEql ['x3', 'x1']
     expect(model.get 'items').to.specEql
@@ -537,7 +538,7 @@ describe 'Model.refList', ->
 
     it 'should not leak IDs not in the middle', ->
       expect(model.get '_lists.3').to.eql [{id: 'x1', val: 'a'}, undefined]
-    it 'should allow access via nested paths', ->
+    it 'should still allow access via nested paths', ->
       expect(model.get '_lists.3.0').to.eql {id: 'x1', val: 'a'}
       expect(model.get '_lists.3.1').to.eql undefined
       expect(model.get '_lists.3.length').to.eql 2
