@@ -493,3 +493,24 @@ describe 'Model.refList', ->
       expect(model.get 'items').to.specEql
         'x3': {id: 'x3', val: 'c'}
       expect(model.get '_map').to.specEql ['x3']
+
+    it 'should allow access via nested paths', ->
+      model = new Model
+      model.set "_data", 
+        '21': { id: 21, name: 'a' }
+        '31': { id: 31, name: 'b' }
+        '41': { id: 41, name: 'c' }
+      
+      model.ref "_all", model.filter('_data')
+      model.ref "_subset", model.filter("_all").where('name').within(['b', 'c'])
+
+      expect(model.get('_subset')[0]).to.eql { id: 31, name: 'b' }
+      expect(model.get '_subset.0').to.eql { id: 31, name: 'b' }
+
+      model.set("_keys", [31,41]);
+
+      model.refList("_items", "_all", "_keys");
+
+      expect(model.get('_items')[0]).to.eql { id: 31, name: 'b' }
+      expect(model.get '_items.0').to.eql { id: 31, name: 'b' }
+
