@@ -23,6 +23,15 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         q2 = query('users').where('name').equals('nate')
         expect(q1.hash()).to.not.eql q2.hash()
 
+      it 'should create different hashes for different regexps', ->
+        q1 = query('users').where('name').regexp(/brian/)
+        q2 = query('users').where('name').regexp(/nate/)
+        expect(q1.hash()).to.not.eql q2.hash()
+      it 'should create different hashes for different regexp flags', ->
+        q1 = query('users').where('name').regexp(/nate/i)
+        q2 = query('users').where('name').regexp(/nate/m)
+        expect(q1.hash()).to.not.eql q2.hash()
+
       it 'should create different hash for byId vs empty query', ->
         q1 = query('users')
         q2 = query('users').byId('1')
@@ -123,5 +132,12 @@ exports.shouldActLikeQueryBuilder = (QueryBuilder) ->
         js = query('users').byId('1')
         cs = query 'users', byId: '1'
         expect(js.hash()).to.eql(cs.hash())
+      it 'should handle comparisons to regex literals', ->
+        js = query('users').where('name').regexp(/^[A-Z][a-z']+$/)
+        cs = query 'users',
+          where:
+            name: /^[A-Z][a-z']+$/
+        expect(js.hash()).to.eql(cs.hash())
+        
 
 describe 'QueryBuilder', exports.shouldActLikeQueryBuilder QueryBuilder
