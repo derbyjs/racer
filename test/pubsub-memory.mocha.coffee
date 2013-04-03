@@ -1,1 +1,0 @@
-require('./pubSubAdapter') type: 'Memory'
