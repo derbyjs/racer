@@ -3,10 +3,11 @@ var fs = require('fs');
 var express = require('express');
 var handlebars = require('handlebars');
 var racer = require('../../lib/racer');
-var share = require('share')
+var share = require('sharejs-prototype')
 
 var app = express()
   .use(express.favicon())
+  .use(express.static(__dirname + '/public'))
 
 var server = http.createServer(app);
 var store = racer.createStore({
@@ -15,9 +16,6 @@ var store = racer.createStore({
 });
 
 app.use(store.socketMiddleware());
-
-var index = fs.readFileSync(__dirname + '/index.handlebars', 'utf-8');
-var indexTemplate = handlebars.compile(index);
 
 app.get('/script.js', function(req, res) {
   racer.js({
@@ -30,6 +28,8 @@ app.get('/script.js', function(req, res) {
 
 app.get('/', function(req, res, next) {
   var model = store.createModel();
+  var index = fs.readFileSync(__dirname + '/index.handlebars', 'utf-8');
+  var indexTemplate = handlebars.compile(index);
   model.bundle(function(err, bundle) {
     if (err) return next(err);
     var html = indexTemplate({bundle: bundle});
@@ -37,6 +37,7 @@ app.get('/', function(req, res, next) {
   });
 });
 
-server.listen(3013, function() {
-  console.log('Go to http://localhost:3013/');
+var port = Math.floor(3000 + Math.random() * 50);
+server.listen(port, function() {
+  console.log("Go to http://localhost:" + port);
 });
