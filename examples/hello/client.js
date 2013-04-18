@@ -1,7 +1,6 @@
 var racer = require('../../lib/racer');
 
 racer.on('ready', function(model) {
-  window.model = model;
   model.subscribeDoc('rooms', 'home', function(err) {
     setup(model.at('rooms.home'));
   });
@@ -22,21 +21,23 @@ function setup(model) {
   model.on('stringInsert', function(index, text, isLocal) {
     if (isLocal) return;
     function transformCursor(cursor) {
-      return (index < cursor) ? cursor + text.length : cursor;
+      return (index <= cursor) ? cursor + text.length : cursor;
     }
     var previous = getValue();
     var newText = previous.slice(0, index) + text + previous.slice(index);
     replaceText(textarea, newText, transformCursor);
+    if (textarea.value !== model.get()) debugger;
   });
 
   model.on('stringRemove', function(index, howMany, isLocal) {
     if (isLocal) return;
     function transformCursor(cursor) {
-      return (index < cursor) ? cursor - Math.min(text.length, cursor - index) : cursor;
+      return (index < cursor) ? Math.max(index, cursor - howMany) : cursor;
     }
     var previous = getValue();
     var newText = previous.slice(0, index) + previous.slice(index + howMany);
     replaceText(textarea, newText, transformCursor);
+    if (textarea.value !== model.get()) debugger;
   });
 
   function onInput() {
@@ -64,7 +65,6 @@ function replaceText(textarea, newText, transformCursor) {
     textarea.selectionStart = transformCursor(start);
     textarea.selectionEnd = transformCursor(end);
   }
-  if (textarea.value !== model.get()) debugger;
 }
 
 // Create an op which converts previous -> value.
