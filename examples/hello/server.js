@@ -3,7 +3,7 @@ var fs = require('fs');
 var express = require('express');
 var handlebars = require('handlebars');
 var racer = require('../../lib/racer');
-var share = require('sharejs-prototype')
+var share = require('sharejs-prototype');
 
 var app = express()
   .use(express.favicon())
@@ -30,14 +30,20 @@ app.get('/', function(req, res, next) {
   var model = store.createModel();
   var index = fs.readFileSync(__dirname + '/index.handlebars', 'utf-8');
   var indexTemplate = handlebars.compile(index);
-  model.bundle(function(err, bundle) {
+  model.subscribeDoc('rooms', 'home', function(err) {
     if (err) return next(err);
-    var html = indexTemplate({bundle: bundle});
-    res.send(html);
-  });
+    model.bundle(function(err, bundle) {
+      if (err) return next(err);
+      var html = indexTemplate({
+        text: model.get('rooms.home')
+      , bundle: bundle
+      });
+      res.send(html);
+    });
+  })
 });
 
-var port = Math.floor(3000 + Math.random() * 50);
+var port = process.env.PORT || 3000;
 server.listen(port, function() {
   console.log("Go to http://localhost:" + port);
 });
