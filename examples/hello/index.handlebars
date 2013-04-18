@@ -1,9 +1,22 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Hello</title>
+<style>
+#text {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  top: 24px;
+  font: 16px/1.2 sans-serif;
+  padding: 4px 7px;
+}
+body {
+  background: #ddd;
+}
+</style>
 
-<h1>Hello</h1>
-<input value="Hello">
+<textarea id="text">{{text}}</textarea>
 
 <script>window.RACER_BUNDLE = {{{bundle}}};</script>
 <script src="/json0.uncompressed.js"></script>
