@@ -3,11 +3,12 @@ var fs = require('fs');
 var express = require('express');
 var handlebars = require('handlebars');
 var racer = require('../../lib/racer');
-var share = require('sharejs-prototype');
+var share = require('share');
 
 var app = express()
   .use(express.favicon())
   .use(express.static(__dirname + '/public'))
+  .use(express.static(__dirname + '/node_modules/racer/node_modules/share/webclient'))
 
 var server = http.createServer(app);
 var store = racer.createStore({
