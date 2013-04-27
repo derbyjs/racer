@@ -14,7 +14,7 @@ move = (array, from, to, howMany) ->
 applyDiff = (before, diff) ->
   out = before.slice()
   for item in diff
-    console.log 'applying:', out, item
+    # console.log 'applying:', out, item
     if item instanceof InsertDiff
       insert out, item.index, item.values
     else if item instanceof RemoveDiff
@@ -26,32 +26,36 @@ applyDiff = (before, diff) ->
 randomWhole = (max) ->
   Math.floor Math.random() * (max + 1)
 
-randomArray = ->
-  i = randomWhole 10
-  return (randomWhole 10 while i--)
+randomArray = (maxLength = 20, maxValues = maxLength) ->
+  i = randomWhole maxLength
+  return (randomWhole maxValues while i--)
+
+testDiff = (before, after) ->
+  # console.log()
+  # console.log 'before =', before
+  # console.log 'after =', after
+  diff = arrayDiff before, after
+  expected = applyDiff before, diff
+  expect(expected).to.eql after
 
 describe 'arrayDiff', ->
 
-  testDiff = (before, after) ->
-    diff = arrayDiff(before, after)
-    console.log('DIFF', diff)
-    expected = applyDiff before, diff
-    console.log(expected)
-    expect(expected).to.eql after
+  it 'diffs empty arrays', ->
+    testDiff [], []
+    testDiff [], [0, 1, 2]
+    testDiff [0, 1, 2], []
 
-  # it "diffs", ->
-  #   before = [ 2, 2, 0, 1, 5 ]
-  #   after = [ 4, 1, 5, 2, 0 ]
-  #   testDiff before, after
-
-  # it "diffs", ->
-  #   before = [ 2, 0, 4, 2 ]
-  #   after = [ 4, 2, 1, 0 ]
-  #   testDiff before, after
+  it 'diffs randomly rearranged arrays of numbers', ->
+    i = 1000
+    while i--
+      # before = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+      before = randomArray 50
+      after = before.slice().sort(-> Math.random() - 0.5)
+      testDiff before, after
 
   it "diffs random arrays of numbers", ->
     i = 1000
     while i--
-      before = randomArray()
-      after = randomArray()
+      before = randomArray 50, 20
+      after = randomArray 50, 20
       testDiff before, after
