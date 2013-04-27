@@ -52,6 +52,7 @@ describe 'arrayDiff', ->
       before = randomArray 50
       after = before.slice().sort(-> Math.random() - 0.5)
       testDiff before, after
+    return
 
   it "diffs random arrays of numbers", ->
     i = 1000
@@ -59,3 +60,4 @@ describe 'arrayDiff', ->
       before = randomArray 50, 20
       after = randomArray 50, 20
       testDiff before, after
+    return
