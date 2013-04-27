@@ -3,11 +3,11 @@ Model = require '../../lib/Model'
 
 describe 'fn', ->
 
-  describe 'fn, removeFn, and run', ->
+  describe 'fn and run', ->
 
     it 'supports fn with a getter function', ->
       model = new Model
-      model.fn 'sum', (a, b) -> a + b
+      Model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
       result = model.run 'sum', '_nums.a', '_nums.b'
@@ -15,7 +15,7 @@ describe 'fn', ->
 
     it 'supports fn with an object', ->
       model = new Model
-      model.fn 'sum',
+      Model.fn 'sum',
         get: (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
@@ -24,7 +24,7 @@ describe 'fn', ->
 
     it 'supports fn with variable arguments', ->
       model = new Model
-      model.fn 'sum', (args...) ->
+      Model.fn 'sum', (args...) ->
         sum = 0
         sum += arg for arg in args
         return sum
@@ -36,7 +36,7 @@ describe 'fn', ->
 
     it 'supports scoped model paths', ->
       model = new Model
-      model.fn 'sum', (a, b) -> a + b
+      Model.fn 'sum', (a, b) -> a + b
       $nums = model.at '_nums'
       $nums.set 'a', 2
       $nums.set 'b', 4
@@ -45,19 +45,11 @@ describe 'fn', ->
       result = $nums.run 'sum', 'a', 'b'
       expect(result).to.equal 6
 
-    it 'supports removeFn', ->
-      model = new Model
-      model.fn 'sum', (a, b) -> a + b
-      run = -> model.run 'sum', 'x', 'y'
-      run()
-      model.removeFn 'sum'
-      expect(run).to.throwException()
-
   describe 'start', ->
 
     it 'sets the output immediately on start', ->
       model = new Model
-      model.fn 'sum', (a, b) -> a + b
+      Model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
       value = model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
@@ -66,7 +58,7 @@ describe 'fn', ->
 
     it 'sets the output when an input changes', ->
       model = new Model
-      model.fn 'sum', (a, b) -> a + b
+      Model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
       model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
@@ -76,7 +68,7 @@ describe 'fn', ->
 
     it 'sets the output when a parent of the input changes', ->
       model = new Model
-      model.fn 'sum', (a, b) -> a + b
+      Model.fn 'sum', (a, b) -> a + b
       model.set '_nums.in', {a: 2,  b: 4}
       model.start 'sum', '_nums.sum', '_nums.in.a', '_nums.in.b'
       expect(model.get '_nums.sum').to.equal 6
@@ -86,7 +78,7 @@ describe 'fn', ->
     it 'does not set the output when a sibling of the input changes', ->
       model = new Model
       count = 0
-      model.fn 'sum', (a, b) -> count++; a + b
+      Model.fn 'sum', (a, b) -> count++; a + b
       model.set '_nums.in', {a: 2,  b: 4}
       model.start 'sum', '_nums.sum', '_nums.in.a', '_nums.in.b'
       expect(model.get '_nums.sum').to.equal 6
