@@ -89,3 +89,22 @@ describe 'fn', ->
       model.set '_nums.in.c', -1
       expect(model.get '_nums.sum').to.equal 7
       expect(count).to.equal 2
+
+    it 'sets the input when the output changes', ->
+      Model.fn 'fullName',
+        get: (first, last) -> first + ' ' + last
+        set: (fullName) -> fullName.split ' '
+      model = new Model
+      model.set '_user.name',
+        first: 'John'
+        last: 'Smith'
+      model.at('_user.name').start 'fullName', 'full', 'first', 'last'
+      expect(model.get '_user.name').to.eql
+        first: 'John'
+        last: 'Smith'
+        full: 'John Smith'
+      model.set '_user.name.full', 'Jane Doe'
+      expect(model.get '_user.name').to.eql
+        first: 'Jane'
+        last: 'Doe'
+        full: 'Jane Doe'
