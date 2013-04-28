@@ -4,14 +4,13 @@ compile-examples:
 ROOT := $(shell pwd)
 MOCHA_TESTS := $(shell find test/ -name '*.mocha.coffee')
 MOCHA := ./node_modules/mocha/bin/mocha
-OUT_FILE = "test-output.tmp"
 
 g = "."
 
 test-mocha:
 	@NODE_ENV=test $(MOCHA) \
 		--grep "$(g)" \
-		$(MOCHA_TESTS) | tee $(OUT_FILE)
+		$(MOCHA_TESTS)
 
 test-external:
 	cd $(ROOT)/node_modules/racer-journal-redis/; make test
@@ -25,9 +24,7 @@ test-fast:
 		--reporter spec \
 		--timeout 500 \
 		--grep "^(?:(?!@slow).)*$$" \
-		$(MOCHA_TESTS) | tee $(OUT_FILE)
+		$(MOCHA_TESTS)
 
 test: test-mocha
 test-all: test-mocha test-external
-test!:
-	@perl -n -e '/\[31m  0\) (.*?).\[0m/ && print "make test g=\"$$1\$$\""' $(OUT_FILE) | sh
