@@ -45,7 +45,7 @@ describe 'fn', ->
       result = $nums.run 'sum', 'a', 'b'
       expect(result).to.equal 6
 
-  describe 'start', ->
+  describe 'start and stop with getter', ->
 
     it 'sets the output immediately on start', ->
       model = new Model
@@ -89,6 +89,24 @@ describe 'fn', ->
       model.set '_nums.in.c', -1
       expect(model.get '_nums.sum').to.equal 7
       expect(count).to.equal 2
+
+    it 'can call stop without start', ->
+      model = new Model
+      model.stop '_nums.sum'
+
+    it 'stops updating after calling stop', ->
+      Model.fn 'sum', (a, b) -> a + b
+      model = new Model
+      model.set '_nums.a', 2
+      model.set '_nums.b', 4
+      model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
+      model.set '_nums.a', 1
+      expect(model.get '_nums.sum').to.equal 5
+      model.stop '_nums.sum'
+      model.set '_nums.a', 3
+      expect(model.get '_nums.sum').to.equal 5
+
+  describe 'setter', ->
 
     it 'sets the input when the output changes', ->
       Model.fn 'fullName',
