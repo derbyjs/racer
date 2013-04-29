@@ -148,6 +148,21 @@ describe 'fn', ->
       model.move '_test.in.a', 0, 1
       expect(model.get '_test.out').to.eql model.get('_test.in')
 
+    it 'emits move event on input when output changes', (done) ->
+      model = new Model
+      model.set '_test.in',
+        a: [
+          {x: 1, y: 2}
+          {x: 2, y: 0}
+        ]
+      model.start 'unity', '_test.out', '_test.in'
+      model.on 'all', '_test.in**', (path, event) ->
+        expect(event).to.equal 'move'
+        expect(path).to.equal 'a'
+        done()
+      model.move '_test.out.a', 0, 1
+      expect(model.get '_test.out').to.eql model.get('_test.in')
+
     it 'emits granular change event under an array when input changes', (done) ->
       model = new Model
       model.set '_test.in',
@@ -161,4 +176,19 @@ describe 'fn', ->
         expect(path).to.equal 'a.0.x'
         done()
       model.set '_test.in.a.0.x', 3
+      expect(model.get '_test.out').to.eql model.get('_test.in')
+
+    it 'emits granular change event under an array when output changes', (done) ->
+      model = new Model
+      model.set '_test.in',
+        a: [
+          {x: 1, y: 2}
+          {x: 2, y: 0}
+        ]
+      model.start 'unity', '_test.out', '_test.in'
+      model.on 'all', '_test.in**', (path, event) ->
+        expect(event).to.equal 'change'
+        expect(path).to.equal 'a.0.x'
+        done()
+      model.set '_test.out.a.0.x', 3
       expect(model.get '_test.out').to.eql model.get('_test.in')
