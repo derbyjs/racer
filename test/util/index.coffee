@@ -5,8 +5,11 @@ exports.expect = expect = require 'expect.js'
 exports.calls = (num, fn) ->
   (done) ->
     done() if num == n = 0
-    fn.call @, ->
+    fn.call this, ->
       done() if ++n >= num
+
+exports.inspect = (value, depth = null, showHidden = true) ->
+  console.log inspect value, {depth, showHidden}
 
 expect.Assertion::NaN = ->
   @assert @obj != @obj,
