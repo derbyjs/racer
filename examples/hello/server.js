@@ -23,21 +23,31 @@ app.get('/script.js', function(req, res) {
   });
 });
 
-app.get('/', function(req, res, next) {
+app.get('/:roomId', function(req, res, next) {
   var model = store.createModel();
   var index = fs.readFileSync(__dirname + '/index.handlebars', 'utf-8');
   var indexTemplate = handlebars.compile(index);
-  model.subscribeDoc('rooms', 'home', function(err) {
+  
+  var roomId = req.params.roomId;
+  var roomQuery = model.query('rooms', {_id:roomId});
+  roomQuery.subscribe(function(err) {
     if (err) return next(err);
+
+    model.ref('_room', 'rooms.' + roomId);
+
     model.bundle(function(err, bundle) {
       if (err) return next(err);
       var html = indexTemplate({
-        text: model.get('rooms.home')
+        text: model.get('_room')
       , bundle: bundle
       });
       res.send(html);
     });
   })
+});
+
+app.get('/', function(req, res) {
+  res.redirect('/home');
 });
 
 var port = process.env.PORT || 3000;

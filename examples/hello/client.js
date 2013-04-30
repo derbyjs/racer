@@ -1,9 +1,8 @@
 var racer = require('../../lib/racer');
 
 racer.on('ready', function(model) {
-  model.subscribeDoc('rooms', 'home', function(err) {
-    setup(model.at('rooms.home'));
-  });
+  window.model = model;
+  setup(model.at('_room'));
 });
 
 racer.init(window.RACER_BUNDLE);
