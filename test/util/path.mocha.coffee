@@ -1,11 +1,11 @@
-{expect} = require './util'
+{expect} = require './index'
 { isPrivate
 , regExp
 , eventRegExp
 , split
 , expand
 , objectExcept
-, join} = require '../lib/path'
+, join} = require '../../lib/util/path'
 
 testRegExps = (reList, sources, matches, nonMatches) ->
   for re, i in reList

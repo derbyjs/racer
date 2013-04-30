@@ -131,17 +131,17 @@ module.exports = (createDoc) ->
 
     it 'can push on an undefined property', ->
       doc = createDoc()
-      len = doc.push ['friends'], ['jim', 'dan'], ->
-      expect(len).equal 2
-      expect(doc.get()).eql {friends: ['jim', 'dan']}
+      len = doc.push ['friends'], 'jim', ->
+      expect(len).equal 1
+      expect(doc.get()).eql {friends: ['jim']}
 
     it 'can push on a defined array', ->
       doc = createDoc()
-      len = doc.push ['friends'], ['jim', 'dan'], ->
+      len = doc.push ['friends'], 'jim', ->
+      expect(len).equal 1
+      len = doc.push ['friends'], 'sue', ->
       expect(len).equal 2
-      len = doc.push ['friends'], ['sue'], ->
-      expect(len).equal 3
-      expect(doc.get()).eql {friends: ['jim', 'dan', 'sue']}
+      expect(doc.get()).eql {friends: ['jim', 'sue']}
 
     it 'throws a TypeError when pushing on a non-array', (done) ->
       doc = createDoc()
