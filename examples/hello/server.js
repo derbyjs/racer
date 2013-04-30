@@ -7,8 +7,6 @@ var share = require('share');
 
 var app = express()
   .use(express.favicon())
-  .use(express.static(__dirname + '/public'))
-  .use(express.static(__dirname + '/node_modules/racer/node_modules/share/webclient'))
 
 var server = http.createServer(app);
 var store = racer.createStore({
@@ -19,9 +17,7 @@ var store = racer.createStore({
 app.use(store.socketMiddleware());
 
 app.get('/script.js', function(req, res) {
-  racer.js({
-    entry: __dirname + '/client.js'
-  }, function(err, js) {
+  racer.bundle(__dirname + '/client.js', function(err, js) {
     res.type('js');
     res.send(js);
   });
