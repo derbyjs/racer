@@ -66,10 +66,11 @@ function replaceText(pad, newText, transformCursor) {
 
 // Create an op which converts previous -> value.
 //
-// This function should be called every time the text element is changed. Because changes are
-// always localised, the diffing is quite easy.
+// This function should be called every time the text element is changed.
+// Because changes are always localized, the diffing is quite easy.
 //
-// This algorithm is O(N), but I suspect you could speed it up somehow using regular expressions.
+// This algorithm is O(N), but I suspect you could speed it up somehow using
+// regular expressions.
 function applyChange(model, previous, value) {
   if (previous === value) return;
   var start = 0;
