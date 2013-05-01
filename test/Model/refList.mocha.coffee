@@ -373,3 +373,34 @@ describe 'ref', ->
           expect(inserted).to.eql [8]
       ]
       model.push 'nums.even', 8
+
+  describe 'updates on `from` mutations', ->
+
+    it 'updates `to` and `ids` when `from` is set', ->
+      model = setup()
+      model.set 'list', [
+        {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+      ]
+      expect(model.get 'ids').to.eql ['green', 'red']
+      expect(model.get 'colors').to.eql
+        green: {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+      # Changing items in the `from` list can only create new objects
+      # under `to`, and it does not remove them
+      model.del 'list'
+      expect(model.get 'ids').to.eql []
+      expect(model.get 'colors').to.eql
+        green: {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+      model.set 'list', [
+        {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+      ]
+      expect(model.get 'ids').to.eql ['blue', 'yellow', 'red']
+      expect(model.get 'colors').to.eql
+        green: {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        blue: {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        yellow: {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
