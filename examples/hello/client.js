@@ -88,10 +88,10 @@ function applyChange(model, previous, value) {
 
   if (previous.length !== start + end) {
     var howMany = previous.length - start - end;
-    model.stringRemove(null, start, howMany);
+    model.stringRemove(start, howMany);
   }
   if (value.length !== start + end) {
     var inserted = value.slice(start, value.length - end);
-    model.stringInsert(null, start, inserted);
+    model.stringInsert(start, inserted);
   }
 }
