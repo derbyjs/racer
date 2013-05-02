@@ -15,6 +15,13 @@ function setup(model) {
     return pad.value.replace(/\r\n/g, '\n');
   }
 
+  model.on('change', function(value) {
+    function transformCursor(cursor) {
+      return 0;
+    }
+    replaceText(pad, value || '', transformCursor);
+  });
+
   model.on('stringInsert', function(index, text, isLocal) {
     if (isLocal) return;
     function transformCursor(cursor) {
