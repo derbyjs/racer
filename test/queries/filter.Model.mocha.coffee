@@ -431,6 +431,18 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 32
 
+        describe 'in response to mutations on the filter results impacting results', ->
+          it 'should update the results', ->
+            model = new Model
+            model.set 'a.b.c', [
+              docA = {id: 'A', age: 30}
+            , docB = {id: 'B', age: 31}
+            ]
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            $results = model.ref '_results', computation
+            $results.incr '0.age', -1
+            expect($results.get()).to.eql [docB]
+
     describe 'among another filter results', ->
       it 'should return a scoped model with access to results', ->
         model =  new Model
