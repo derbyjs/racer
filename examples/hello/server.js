@@ -27,7 +27,7 @@ app.get('/:roomId', function(req, res, next) {
   var model = store.createModel();
   var index = fs.readFileSync(__dirname + '/index.handlebars', 'utf-8');
   var indexTemplate = handlebars.compile(index);
-  
+
   var roomId = req.params.roomId;
   var roomQuery = model.query('rooms', {_id:roomId});
   roomQuery.subscribe(function(err) {
