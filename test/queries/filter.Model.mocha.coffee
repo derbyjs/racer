@@ -397,7 +397,7 @@ describe 'In browser filters', ->
             model.set 'a.b.c.0.age', 29
 
         describe 'in response to local mutations that remove the underlying document originally in a filter of a filter', ->
-          it 'aaa should return a scoped model whose results update automatically, without console.warning', ->
+          it 'should return a scoped model whose results update automatically, without console.warning', ->
             model =  new Model
 
             model.set 'collection.a', docA = {id: 'a', age: 30}
