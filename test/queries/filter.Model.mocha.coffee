@@ -826,6 +826,17 @@ describe 'In browser filters', ->
 
           model.set 'a.b.c.1.age', 30
 
+        it 'should not include a new doc that does not match if a filter().one()', ->
+          model = new Model
+          model.set 'collection.a', docA = {id: 'a', age: 30}
+          model.set 'collection.b', {id: 'b', age: 31}
+          $results = model.ref '_result', model.filter('collection').where('age').gte(40).sort(['age', 'asc'])
+          expect($results.get()).to.eql([])
+          $compoundResult = model.ref '_compoundResult', $results.filter().where('age').gte(50).sort(['age', 'asc']).one()
+          expect($compoundResult.get()).to.eql(undefined)
+          model.set 'collection.a.age', 40
+          expect($compoundResult.get()).to.eql undefined
+
     describe 'among search results', ->
       it 'should return a scoped model with access to result', ->
         model =  new Model
