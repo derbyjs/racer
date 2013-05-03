@@ -396,6 +396,28 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 29
 
+        describe 'in response to local mutations that remove the underlying document originally in a filter of a filter', ->
+          it 'aaa should return a scoped model whose results update automatically, without console.warning', ->
+            model =  new Model
+
+            model.set 'collection.a', docA = {id: 'a', age: 30}
+            model.set 'collection.b', docB = {id: 'b', age: 31}
+
+            warn = console.warn
+            console.warn = warnSpy = sinon.spy()
+
+            computation = model.filter('collection').where('age').gte(20).sort(['age', 'asc'])
+            $results = model.ref '_results', computation
+            expect($results.get()).to.eql [docA, docB]
+            $compoundResults = model.ref '_compoundResults', $results.filter().where('age').gte(29).sort(['age', 'asc'])
+            model.del 'collection.b'
+            expect($compoundResults.get()).to.specEql [docA]
+
+            console.warn = warn
+
+            expect(warnSpy).to.have.callCount(0)
+
+
         describe 'in response to local mutations that re-order the results', ->
           it 'should return a scoped model whose results update automatically', ->
             model =  new Model
@@ -431,7 +453,7 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 32
 
-        describe 'in response to mutations on the filter results impacting results', ->
+        describe 'in response to mutations on the filter results updating results', ->
           it 'should update the results', ->
             model = new Model
             model.set 'a.b.c', [
