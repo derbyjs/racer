@@ -837,6 +837,16 @@ describe 'In browser filters', ->
           model.set 'collection.a.age', 40
           expect($compoundResult.get()).to.eql undefined
 
+        it 'should react to the domain being set, without console.warning', ->
+          model = new Model
+          $result = model.ref '_result', model.filter('a.b.c').where('age').gte(40).sort(['age', 'asc']).one()
+          expect($result.get()).to.eql(undefined)
+          warn = console.warn
+          console.warn = warnSpy = sinon.spy()
+          model.set 'a.b.c', []
+          console.warn = warn
+          expect(warnSpy).to.have.callCount(0)
+
     describe 'among search results', ->
       it 'should return a scoped model with access to result', ->
         model =  new Model
