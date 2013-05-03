@@ -1,6 +1,6 @@
+sinon = require 'sinon'
 {expect} = require '../util'
 {BrowserModel: Model} = require '../util/model'
-sinon = require 'sinon'
 
 describe 'In browser filters', ->
   beforeEach ->
@@ -846,6 +846,16 @@ describe 'In browser filters', ->
           model.set 'a.b.c', []
           console.warn = warn
           expect(warnSpy).to.have.callCount(0)
+
+        it 'should emit events on the ref when the object pointed to updates an attribute', ->
+          model = new Model
+          $result = model.ref '_result', model.filter('a.b.c').where('age').gte(40).sort(['age', 'asc']).one()
+          model.set 'a.b.c', [{id: 'a', age: 40}]
+          spy = sinon.spy()
+          $result.on 'set', 'age', spy
+          model.incr 'a.b.c.0.age', 1
+          expect(spy).to.have.callCount(1)
+          expect(spy).to.be.calledWith(41, 40)
 
     describe 'among search results', ->
       it 'should return a scoped model with access to result', ->
