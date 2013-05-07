@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "express": "3.x",
-    "coffeeify": "0.x"
+    "express": "~3.2.3",
+    "coffeeify": "~0.4.0"
   },
   "private": true
 }

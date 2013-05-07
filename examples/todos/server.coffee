@@ -45,15 +45,13 @@ app.get '/:groupName', (req, res, next) ->
       id2 = group.add 'todos', {completed: false, text: 'Another example'}
       group.set 'todoIds', [id1, id2, id0]
     model.ref '_group', group
-    todosQuery = model.query 'todos', '_group.todoIds'
-    model.subscribe todosQuery, (err) ->
-      todosQuery.ref '_page.todoList'
-      # model.bundle waits for any pending model operations to complete and then
-      # returns the JSON data for initialization on the client
-      model.bundle (err, bundle) ->
-        return next err if err
-        todos = model.get '_page.todoList'
-        res.send templates.page({todos, bundle})
+    todosQuery.refList '_page.todoList', group.at('todos'), group.at('todoIds')
+    # model.bundle waits for any pending model operations to complete and then
+    # returns the JSON data for initialization on the client
+    model.bundle (err, bundle) ->
+      return next err if err
+      todos = model.get '_page.todoList'
+      res.send templates.page({todos, bundle})
 
 port = process.env.PORT || 3000;
 server.listen port, ->
