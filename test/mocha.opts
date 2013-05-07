@@ -4,4 +4,3 @@
 --growl
 --debug
 --compilers coffee:coffee-script
---globals io

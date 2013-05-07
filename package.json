@@ -9,26 +9,23 @@
   "version": "0.5.0alpha",
   "main": "./lib/racer.js",
   "scripts": {
-    "test": "make test"
+    "test": "grunt test"
   },
   "dependencies": {
     "browserify": "2.x",
     "uglify-js": "2.x",
-    "node-uuid": "1.3.3",
+    "node-uuid": "1.x",
     "connect": "2.x",
-    "racer-util": "0.0.2",
     "browserchannel": "*",
-    "share": "*",
-    "ot-types": "*"
+    "share": "*"
   },
   "devDependencies": {
-    "mocha": "1.2.x",
-    "expect.js": ">=0.1.2",
-    "coffee-script": "1.x",
-    "async": "*"
-  },
-  "engines": {
-    "node": ">=0.4.0"
+    "grunt": "~0.4.1",
+    "mocha": "~1.9.0",
+    "expect.js": "~0.2.0",
+    "coffee-script": "~1.6.2",
+    "grunt-simple-mocha": "~0.4.0",
+    "grunt-contrib-jshint": "~0.4.3"
   },
   "optionalDependencies": {}
 }
