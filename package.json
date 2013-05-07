@@ -15,9 +15,9 @@
     "browserify": "2.x",
     "uglify-js": "2.x",
     "node-uuid": "1.x",
-    "connect": "2.x",
-    "browserchannel": "*",
-    "share": "*"
+    "browserchannel": "~1.0.2",
+    "share": "git://github.com/josephg/ShareJS.git#rewrite",
+    "deep-is": "~0.1.1"
   },
   "devDependencies": {
     "grunt": "~0.4.1",
