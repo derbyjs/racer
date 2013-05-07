@@ -59,14 +59,12 @@ Install Racer with
 $ npm install racer
 ```
 
-In addition, racer requires Redis with scripting support for storing a journal of transactions. See the Derby [installation instructions](http://derbyjs.com/#getting_started).
-
 ## Tests
 
-The tests will flush Redis and MongoDB databases available via the default configurations, so don't run them in a production environment. The full suite currently requires a running Redis and MongoDB server to complete. Run the tests with
+Run the tests with
 
 ```
-$ make test
+$ npm test
 ```
 
 ## Usage
