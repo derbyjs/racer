@@ -1,7 +1,7 @@
 exports.page = ({todos, bundle} = {}) ->
   listHtml = (exports.todo todo for todo in todos || []).join('')
   # Escape end of tag sequence, since this is being put in a script tag
-  bundle = bundle.replace /<\//g, '<\\/'
+  bundle = JSON.stringify(bundle).replace /<\//g, '<\\/'
   """
   <!DOCTYPE html>
   <title>Todos</title>

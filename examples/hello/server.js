@@ -40,7 +40,7 @@ app.get('/:roomId', function(req, res, next) {
       if (err) return next(err);
       var html = indexPage({
         text: model.get('_room')
-      , bundle: bundle.replace(/<\//g, '<\\/')
+      , bundle: JSON.stringify(bundle).replace(/<\//g, '<\\/')
       });
       res.send(html);
     });
