@@ -15,19 +15,11 @@ If you are interested in contributing, please reach out to [Brian](https://githu
 
 There are currently two demos, which are included under the examples directory.
 
-### Letters
-
-http://letters.racerjs.com/lobby
-
-The letters game allows for multiple players to drag around refrigerator magnet style letters in realtime. It supports multiple rooms, where the room name is the URL path.
-
-Letters demonstrates how applications can use Racer to provide application specific conflict resolution. Try using Firefox's Work Offline feature to move some letters while you move the same letters in another browser that is still connected. Then, disable offline mode and reconnect. Note that conflicting moves are shown along with the new moves that were successfully made. It is then possible to accept or override the moves that were already made.
-
 ### Todos
 
 http://todos.racerjs.com/racer
 
-Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application. The application code does not handle conflicts, so conflicting changes simply fail to be applied.
+Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application.
 
 ## Features
 
