@@ -26,15 +26,3 @@ describe 'util', ->
       expect(a).to.eql x: 7, y: [1, 3], fn: fn, z: {}
       # But not the second
       expect(b).to.eql x: 7, z: {}
-
-  describe 'util.hasKeys', ->
-
-    it 'detects whether an object has any properties', ->
-      expect(util.hasKeys {}).to.be.false
-      expect(util.hasKeys {a: undefined}).to.be.true
-      expect(util.hasKeys {a: 1, b: {}}).to.be.true
-
-    it 'supports an ignore option', ->
-      expect(util.hasKeys {a: 2}).to.be.true
-      expect(util.hasKeys {a: 2}, 'a').to.be.false
-      expect(util.hasKeys {a: 2, b: 3}, 'a').to.be.true
