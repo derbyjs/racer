@@ -5,7 +5,6 @@ module.exports = function(grunt) {
       options: {
         laxcomma: true
       , eqnull: true
-      , unused: true
       , eqeqeq: true
       , indent: 2
       , newcap: true
@@ -15,6 +14,7 @@ module.exports = function(grunt) {
       , supernew: true
       , funcscope: true
       , shadow: true
+      , expr: true
       , node: true
       }
     , all: ['Gruntfile.js', 'lib/**/*.js']
