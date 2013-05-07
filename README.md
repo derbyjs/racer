@@ -1,6 +1,6 @@
 # Racer
 
-Racer is a realtime model synchronization engine for Node.js. It enables mutliple users to interact with the same data objects via sophisticated conflict detection and resolution algorithms. At the same time, it provides a simple object accessor and event interface for writing application logic.
+Racer is a realtime model synchronization engine for Node.js. By leveraging ShareJS, mutliple users can interact with the same data objects in realtime and offline via sophisticated conflict resolution algorithms. It scales across servers horizontally, and clients can express data subscriptions in terms of queries and specific documents. At the same time, it provides a simple object accessor and event interface for writing application logic.
 
 [![Build
 Status](https://secure.travis-ci.org/codeparty/racer.png?branch=0.5)](https://travis-ci.org/codeparty/racer/branches)
@@ -9,15 +9,19 @@ Status](https://secure.travis-ci.org/codeparty/racer.png?branch=0.5)](https://tr
 
 Racer is alpha software. While it should work well enough for prototyping and weekend projects, it is still undergoing major development. APIs are subject to change.
 
-If you are interested in contributing, please reach out to [Brian](https://github.com/bnoguchi) and [Nate](https://github.com/nateps).
+If you are interested in contributing, please reach out to [Joseph](https://github.com/josephg), [Nate](https://github.com/nateps), and [Brian](https://github.com/bnoguchi).
 
 ## Demos
 
 There are currently two demos, which are included under the examples directory.
 
+### Pad
+
+http://pad.racerjs.com/home
+
 ### Todos
 
-http://todos.racerjs.com/racer
+http://todos.racerjs.com/home
 
 Todos is a classic todo list demo that demonstrates the use of Racer's array methods in a more realistic application.
 

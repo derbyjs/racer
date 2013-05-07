@@ -36,6 +36,7 @@ app.get('/:roomId', function(req, res, next) {
     if (err) return next(err);
 
     model.ref('_room', roomPath);
+    model.stringInsert('_room', 0, '!')
     model.bundle(function(err, bundle) {
       if (err) return next(err);
       var html = indexPage({

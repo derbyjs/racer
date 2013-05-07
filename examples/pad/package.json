@@ -1,11 +1,11 @@
 {
-  "name": "racer-hello-example",
+  "name": "racer-pad-example",
   "description": "",
   "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "express": "3.x",
-    "handlebars": "*"
+    "express": "~3.2.3",
+    "handlebars": "~1.0.10"
   },
   "private": true
 }
