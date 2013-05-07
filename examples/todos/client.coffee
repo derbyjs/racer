@@ -1,9 +1,7 @@
 racer = require '../../lib/racer'
-todoHtml = require('./shared').todoHtml
+templates = require './templates.coffee'
 
-process.nextTick ->
-  racer.init @init
-  delete @init
+racer.init global.RACER_BUNDLE
 
 # racer.ready returns a callback function for a DOM ready event. Its callback
 # will only be called once both the model data are loaded and the event that
@@ -12,35 +10,25 @@ process.nextTick ->
 # the model data to be loaded.
 # Calling $() with a function is equivalent to $(document).ready() in jQuery
 $ racer.ready (model) ->
+  window.model = model
+
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'
   overlay = $ '#overlay'
-  list = model.at '_todoList'
-
+  list = model.at '_page.todoList'
 
   ## Update the DOM when the model changes ##
-
-  model.on 'connectionStatus', (connected, canConnect) ->
-    overlay.html(if connected
-      ''
-    else if canConnect
-      '<p id=info>Offline<span id=reconnect> &ndash; <a href=# onclick="return todos.connect()">Reconnect</a></span>'
-    else
-      '<p id=info>Unable to reconnect &ndash; <a href=javascript:window.location.reload()>Reload</a>'
-    )
-
-  list.on 'push', (value) ->
-    todoList.append todoHtml(value)
-
-  list.on 'insert', (index, value) ->
-    todoList.children().eq(index).before todoHtml(value)
 
   model.on 'set', '_group.todos.*.completed', (id, value) ->
     $("##{id}").toggleClass 'completed', value
     $("#check#{id}").prop 'checked', value
 
+  list.on 'insert', (index, value) ->
+    todoList.children().eq(index).before templates.todo(value)
+
   list.on 'remove', (index, howMany, [id]) ->
+    console.log(arguments)
     $("##{id}").remove()
 
   list.on 'move', (from, to, howMany, [id]) ->
@@ -58,6 +46,11 @@ $ racer.ready (model) ->
     el.html value
 
   ## Update the model in response to DOM events ##
+
+  indexById = (id) ->
+    for todo, i in list.get()
+      return i if todo?.id is id
+    return -1
 
   window.todos =
 
@@ -78,7 +71,7 @@ $ racer.ready (model) ->
       for todo, i in items
         break if todo.completed
       todo =
-        id: model.incr('_group.nextId').toString()
+        id: model.id()
         completed: false
         text: text
       if i == items.length
@@ -90,10 +83,10 @@ $ racer.ready (model) ->
     check: (checkbox, id) ->
       model.set "_group.todos.#{id}.completed", checkbox.checked
       # Move the item to the bottom if it was checked off
-      list.move {id}, -1 if checkbox.checked
+      list.move indexById(id), -1 if checkbox.checked
 
     del: (id) ->
-      list.remove id: id
+      list.remove indexById(id)
 
   todoList.sortable
     handle: '.handle'
@@ -102,7 +95,7 @@ $ racer.ready (model) ->
     update: (e, ui) ->
       item = ui.item[0]
       to = todoList.children().index(item)
-      list.move {id: item.id}, to
+      list.move indexById(item.id), to
 
   # Watch for changes to the contenteditable fields
   lastHtml = ''

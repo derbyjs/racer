@@ -1,11 +1,11 @@
 {
   "name": "racer-todos-example",
   "description": "Todo list demo for Racer",
-  "version": "0.0.12",
+  "version": "0.0.0",
   "main": "./server.js",
   "dependencies": {
-    "express": ">=2.4",
-    "connect-gzip": ">=0.1"
+    "express": "3.x",
+    "coffeeify": "0.x"
   },
   "private": true
 }

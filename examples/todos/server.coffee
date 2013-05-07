@@ -1,68 +1,60 @@
-express = require 'express'
-gzip = require 'connect-gzip'
 fs = require 'fs'
-racer = require '../../lib/racer'
-shared = require './shared'
 http = require 'http'
-
-racer.use(racer.logPlugin)
+coffeeify = require 'coffeeify'
+express = require 'express'
+racer = require '../../lib/racer'
+templates = require './templates'
 
 app = express()
-  .use(express.favicon())
-  .use(gzip.staticGzip(__dirname))
-
-server = http.createServer(app)
-
+server = http.createServer app
 store = racer.createStore
-  listen: server # A port or http server
+  server: server
+  db: racer.db.mongo 'localhost:27017/test?auto_reconnect', safe: true
 
-# Clear all existing data on restart
-store.flush()
+app
+  .use(express.favicon())
+  .use(express.static __dirname + '/public')
+  .use(store.socketMiddleware())
+  .use(store.modelMiddleware())
 
-# racer.js returns a browserify bundle of the racer client side code and the
-# socket.io client side code as well as any additional browserify options
-racer.js entry: __dirname + '/client.js', (err, js) ->
-  fs.writeFileSync __dirname + '/script.js', js
+# Add support for directly requiring coffeescript in browserify bundles
+racer.on 'beforeBundle', (browserify) ->
+  browserify.transform coffeeify
+
+app.get '/script.js', (req, res, next) ->
+  racer.bundle __dirname + '/client.coffee', (err, js) ->
+    return next err if err
+    res.type 'js'
+    res.send js
 
 app.get '/', (req, res) ->
   res.redirect '/racer'
 
-app.get '/:groupName', (req, res) ->
+app.get '/:groupName', (req, res, next) ->
   groupName = req.params.groupName
-  model = store.createModel()
-  model.subscribe "groups.#{groupName}", (err, group) ->
+  # Only handle URLs that use alphanumberic characters, underscores, and dashes
+  return next() unless /^[a-zA-Z0-9_-]+$/.test groupName
+  model = req.getModel()
+  group = model.at "groups.#{groupName}"
+  model.subscribe group, (err) ->
+    return next err if err
+    # Create some todos if this is a new group
+    unless group.get 'todoIds'
+      id0 = group.add 'todos', {completed: true, text: 'Done already'}
+      id1 = group.add 'todos', {completed: false, text: 'Example todo'}
+      id2 = group.add 'todos', {completed: false, text: 'Another example'}
+      group.set 'todoIds', [id1, id2, id0]
     model.ref '_group', group
-    group.setNull
-      todos:
-        0: {id: 0, completed: true, text: 'This one is done already'}
-        1: {id: 1, completed: false, text: 'Example todo'}
-        2: {id: 2, completed: false, text: 'Another example'}
-      todoIds: [1, 2, 0]
-      nextId: 3
-    # Refs must be explicitly declared per model; they are not stored as data
-    model.refList '_todoList', '_group.todos', '_group.todoIds'
-    # model.bundle waits for any pending model operations to complete and then
-    # returns the JSON data for initialization on the client
-    model.bundle (bundle) ->
-      listHtml = (shared.todoHtml todo for todo in model.get '_todoList').join('')
-      res.send """
-      <!DOCTYPE html>
-      <title>Todos</title>
-      <link rel=stylesheet href=style.css>
-      <body>
-      <div id=overlay></div>
-      <!-- calling via timeout keeps the page from redirecting if an error is thrown -->
-      <form id=head onsubmit="setTimeout(todos.addTodo, 0);return false">
-        <h1>Todos</h1>
-        <div id=add><div id=add-input><input id=new-todo></div><input id=add-button type=submit value=Add></div>
-      </form>
-      <div id=dragbox></div>
-      <div id=content><ul id=todos>#{listHtml}</ul></div>
-      <script>init=#{bundle}</script>
-      <script src=https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js></script>
-      <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js></script>
-      <script src=script.js></script>
-      """
+    todosQuery = model.query 'todos', '_group.todoIds'
+    model.subscribe todosQuery, (err) ->
+      todosQuery.ref '_page.todoList'
+      # model.bundle waits for any pending model operations to complete and then
+      # returns the JSON data for initialization on the client
+      model.bundle (err, bundle) ->
+        return next err if err
+        todos = model.get '_page.todoList'
+        res.send templates.page({todos, bundle})
 
-server.listen 3012
-console.log 'Go to http://localhost:3012/racer'
+port = process.env.PORT || 3000;
+server.listen port, ->
+  console.log 'Go to http://localhost:' + port
