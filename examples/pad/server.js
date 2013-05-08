@@ -18,6 +18,7 @@ app
   .use(express.favicon())
   .use(store.socketMiddleware())
   .use(store.modelMiddleware())
+  .use(express.compress())
   .use(app.router)
 
 app.use(function(err, req, res, next) {
@@ -25,8 +26,24 @@ app.use(function(err, req, res, next) {
   res.send(500, 'Something broke!');
 });
 
-app.get('/script.js', function(req, res, next) {
+function scriptBundle(cb) {
+  // Use Browserify to generate a script file containing all of the client-side
+  // scripts, Racer, and BrowserChannel
   store.bundle(__dirname + '/client.js', function(err, js) {
+    if (err) return cb(err);
+    // Cache the result of the first bundling in production mode, which is
+    // deteremined by the NODE_ENV environment variable
+    if (racer.util.isProduction) {
+      scriptBundle = function(cb) {
+        cb(null, js);
+      };
+    }
+    cb(null, js);
+  });
+}
+
+app.get('/script.js', function(req, res, next) {
+  scriptBundle(function(err, js) {
     if (err) return next(err);
     res.type('js');
     res.send(js);

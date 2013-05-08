@@ -16,6 +16,7 @@ store
 
 app
   .use(express.favicon())
+  .use(express.compress())
   .use(express.static __dirname + '/public')
   .use(store.socketMiddleware())
   .use(store.modelMiddleware())
