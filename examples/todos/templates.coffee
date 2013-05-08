@@ -1,11 +1,11 @@
-exports.page = ({todos, bundle} = {}) ->
+exports.page = ({groupName, todos, bundle} = {}) ->
   listHtml = (exports.todo todo for todo in todos || []).join('')
   # Escape bundle for use in an HTML attribute in single quotes, since
   # JSON will have lots of double quotes
   bundle = JSON.stringify(bundle).replace /'/g, '&#39;'
   """
   <!DOCTYPE html>
-  <title>Todos</title>
+  <title>Racer todos - #{groupName}</title>
   <link rel=stylesheet href=style.css>
   <body>
   <div id=overlay></div>

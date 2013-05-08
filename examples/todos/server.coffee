@@ -76,7 +76,7 @@ app.get '/:groupName', (req, res, next) ->
     model.bundle (err, bundle) ->
       return next err if err
       todos = model.get '_page.todoList'
-      res.send templates.page({todos, bundle})
+      res.send templates.page({todos, bundle, groupName})
 
 port = process.env.PORT || 3000;
 server.listen port, ->
