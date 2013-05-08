@@ -1,15 +1,9 @@
-racer = require '../../lib/racer'
+racer = require 'racer'
 templates = require './templates.coffee'
 
 racer.init global.RACER_BUNDLE
 
-# racer.ready returns a callback function for a DOM ready event. Its callback
-# will only be called once both the model data are loaded and the event that
-# it is passed to occurs.
-# Alternatively, racer.onload can be set to a function that only waits for
-# the model data to be loaded.
-# Calling $() with a function is equivalent to $(document).ready() in jQuery
-$ racer.ready (model) ->
+$ -> racer.ready (model) ->
   window.model = model
 
   model.on 'all', '**', console.log.bind(console)

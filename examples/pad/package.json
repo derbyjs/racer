@@ -5,7 +5,8 @@
   "main": "./server.js",
   "dependencies": {
     "express": "~3.2.3",
-    "handlebars": "~1.0.10"
+    "handlebars": "~1.0.10",
+    "racer-browserchannel": "git://github.com/codeparty/racer-browserchannel"
   },
   "private": true
 }

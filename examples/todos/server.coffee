@@ -2,7 +2,7 @@ fs = require 'fs'
 http = require 'http'
 coffeeify = require 'coffeeify'
 express = require 'express'
-racer = require '../../lib/racer'
+racer = require '../../../racer'
 templates = require './templates'
 
 app = express()
@@ -10,6 +10,9 @@ server = http.createServer app
 store = racer.createStore
   server: server
   db: racer.db.mongo 'localhost:27017/test?auto_reconnect', safe: true
+
+store
+  .use(require('racer-browserchannel'))
 
 app
   .use(express.favicon())
@@ -23,11 +26,11 @@ app.use (err, req, res, next) ->
   res.send 500, 'Something broke!'
 
 # Add support for directly requiring coffeescript in browserify bundles
-racer.on 'beforeBundle', (browserify) ->
+store.on 'bundle', (browserify) ->
   browserify.transform coffeeify
 
 app.get '/script.js', (req, res, next) ->
-  racer.bundle __dirname + '/client.coffee', (err, js) ->
+  store.bundle __dirname + '/client.coffee', (err, js) ->
     return next err if err
     res.type 'js'
     res.send js

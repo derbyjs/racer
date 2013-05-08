@@ -1,6 +1,6 @@
-var racer = require('../../lib/racer');
+var racer = require('racer');
 
-racer.on('ready', function(model) {
+racer.ready(function(model) {
   window.model = model;
   setup(model.at('_room'));
 });
@@ -65,7 +65,7 @@ function replaceText(pad, newText, transformCursor) {
     pad.scrollTop = scrollTop;
   }
 
-  if (window.document.activeElement === pad) {
+  if (document.activeElement === pad) {
     pad.selectionStart = transformCursor(start);
     pad.selectionEnd = transformCursor(end);
   }

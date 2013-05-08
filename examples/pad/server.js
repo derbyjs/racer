@@ -2,15 +2,17 @@ var fs = require('fs');
 var http = require('http');
 var express = require('express');
 var handlebars = require('handlebars');
-var racer = require('../../lib/racer');
-var share = require('share');
+var racer = require('../../../racer');
 
 var app = express();
 var server = http.createServer(app);
 var store = racer.createStore({
   server: server
-, db: share.db.mongo('localhost:27017/test?auto_reconnect', {safe: true})
+, db: racer.db.mongo('localhost:27017/test?auto_reconnect', {safe: true})
 });
+
+store
+  .use(require('racer-browserchannel'))
 
 app
   .use(express.favicon())
@@ -24,7 +26,7 @@ app.use(function(err, req, res, next) {
 });
 
 app.get('/script.js', function(req, res, next) {
-  racer.bundle(__dirname + '/client.js', function(err, js) {
+  store.bundle(__dirname + '/client.js', function(err, js) {
     if (err) return next(err);
     res.type('js');
     res.send(js);
