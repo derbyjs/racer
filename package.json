@@ -7,7 +7,7 @@
     "url": "git://github.com/codeparty/racer.git"
   },
   "version": "0.5.0alpha",
-  "main": "./lib/racer.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "grunt test"
   },
@@ -15,7 +15,6 @@
     "browserify": "2.x",
     "uglify-js": "2.x",
     "node-uuid": "1.x",
-    "browserchannel": "~1.0.2",
     "share": "git://github.com/josephg/ShareJS.git#rewrite",
     "deep-is": "~0.1.1"
   },
