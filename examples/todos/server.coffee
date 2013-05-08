@@ -16,6 +16,11 @@ app
   .use(express.static __dirname + '/public')
   .use(store.socketMiddleware())
   .use(store.modelMiddleware())
+  .use(app.router)
+
+app.use (err, req, res, next) ->
+  console.error err.stack || (new Error err).stack
+  res.send 500, 'Something broke!'
 
 # Add support for directly requiring coffeescript in browserify bundles
 racer.on 'beforeBundle', (browserify) ->
@@ -28,7 +33,7 @@ app.get '/script.js', (req, res, next) ->
     res.send js
 
 app.get '/', (req, res) ->
-  res.redirect '/racer'
+  res.redirect '/home'
 
 app.get '/:groupName', (req, res, next) ->
   groupName = req.params.groupName
@@ -45,7 +50,7 @@ app.get '/:groupName', (req, res, next) ->
       id2 = group.add 'todos', {completed: false, text: 'Another example'}
       group.set 'todoIds', [id1, id2, id0]
     model.ref '_group', group
-    todosQuery.refList '_page.todoList', group.at('todos'), group.at('todoIds')
+    model.refList '_page.todoList', '_group.todos', '_group.todoIds'
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
     model.bundle (err, bundle) ->

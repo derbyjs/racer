@@ -16,6 +16,12 @@ app
   .use(express.favicon())
   .use(store.socketMiddleware())
   .use(store.modelMiddleware())
+  .use(app.router)
+
+app.use(function(err, req, res, next) {
+  console.error(err.stack || (new Error(err)).stack);
+  res.send(500, 'Something broke!');
+});
 
 app.get('/script.js', function(req, res, next) {
   racer.bundle(__dirname + '/client.js', function(err, js) {
