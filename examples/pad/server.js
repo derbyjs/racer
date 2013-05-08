@@ -55,17 +55,18 @@ var indexPage = handlebars.compile(indexTemplate);
 
 app.get('/:roomId', function(req, res, next) {
   var model = req.getModel();
+  // Only handle URLs that use alphanumberic characters, underscores, and dashes
+  if (!/^[a-zA-Z0-9_-]+$/.test(req.params.roomId)) return next();
 
   var roomPath = 'rooms.' + req.params.roomId;
   model.subscribe(roomPath, function(err) {
     if (err) return next(err);
 
     model.ref('_room', roomPath);
-    model.stringInsert('_room', 0, '!')
     model.bundle(function(err, bundle) {
       if (err) return next(err);
       var html = indexPage({
-        text: model.get('_room')
+        text: model.get(roomPath)
       , bundle: JSON.stringify(bundle).replace(/<\//g, '<\\/')
       });
       res.send(html);
