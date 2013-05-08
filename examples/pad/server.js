@@ -31,14 +31,17 @@ function scriptBundle(cb) {
   // scripts, Racer, and BrowserChannel
   store.bundle(__dirname + '/client.js', function(err, js) {
     if (err) return cb(err);
-    // Cache the result of the first bundling in production mode, which is
-    // deteremined by the NODE_ENV environment variable
-    if (racer.util.isProduction) {
-      scriptBundle = function(cb) {
-        cb(null, js);
-      };
-    }
     cb(null, js);
+  });
+}
+// Immediately cache the result of the bundling in production mode, which is
+// deteremined by the NODE_ENV environment variable. In development, the bundle
+// will be recreated on every page refresh
+if (racer.util.isProduction) {
+  scriptBundle(function(err, js) {
+    scriptBundle = function(cb) {
+      cb(null, js);
+    };
   });
 }
 
@@ -66,8 +69,11 @@ app.get('/:roomId', function(req, res, next) {
     model.bundle(function(err, bundle) {
       if (err) return next(err);
       var html = indexPage({
-        text: model.get(roomPath)
-      , bundle: JSON.stringify(bundle).replace(/<\//g, '<\\/')
+        room: req.params.roomId
+      , text: model.get(roomPath)
+        // Escape bundle for use in an HTML attribute in single quotes, since
+        // JSON will have lots of double quotes
+      , bundle: JSON.stringify(bundle).replace(/'/g, '&#39;')
       });
       res.send(html);
     });

@@ -1,11 +1,10 @@
-var racer = require('racer');
-
-racer.ready(function(model) {
+require('racer').ready(function(model) {
+  // model is exposed on the window for convenience in debugging. There is no
+  // need to do this normally
   window.model = model;
+  // model.at() scopes all model operations underneath a particular path
   setup(model.at('_room'));
 });
-
-racer.init(window.RACER_BUNDLE);
 
 function setup(model) {
   var pad = document.getElementById('pad');

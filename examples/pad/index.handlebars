@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Hello</title>
+<title>Racer pad - {{room}}</title>
 <style>
 #pad {
   position: absolute;
@@ -18,5 +18,4 @@ body {
 
 <textarea id="pad" autofocus>{{text}}</textarea>
 
-<script>window.RACER_BUNDLE = {{{bundle}}};</script>
-<script async src="/script.js"></script>
+<script async src="/script.js" onload='require("racer").init({{{bundle}}})'></script>
