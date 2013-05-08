@@ -12,6 +12,8 @@ racer.init global.RACER_BUNDLE
 $ racer.ready (model) ->
   window.model = model
 
+  model.on 'all', '**', console.log.bind(console)
+
   newTodo = $ '#new-todo'
   todoList = $ '#todos'
   content = $ '#content'
@@ -27,9 +29,8 @@ $ racer.ready (model) ->
   list.on 'insert', (index, value) ->
     todoList.children().eq(index).before templates.todo(value)
 
-  list.on 'remove', (index, howMany, [id]) ->
-    console.log(arguments)
-    $("##{id}").remove()
+  list.on 'remove', (index, removed) ->
+    $("##{todo.id}").remove() for todo in removed
 
   list.on 'move', (from, to, howMany, [id]) ->
     target = todoList.children().get to
@@ -70,15 +71,10 @@ $ racer.ready (model) ->
       items = list.get()
       for todo, i in items
         break if todo.completed
-      todo =
+      list.insert i,
         id: model.id()
         completed: false
         text: text
-      if i == items.length
-        # Append to the end if there are no completed items
-        list.push todo
-      else
-        list.insert i, todo
 
     check: (checkbox, id) ->
       model.set "_group.todos.#{id}.completed", checkbox.checked
