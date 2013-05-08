@@ -39,6 +39,7 @@ function scriptBundle(cb) {
 // will be recreated on every page refresh
 if (racer.util.isProduction) {
   scriptBundle(function(err, js) {
+    if (err) return;
     scriptBundle = function(cb) {
       cb(null, js);
     };

@@ -1,7 +1,8 @@
 exports.page = ({todos, bundle} = {}) ->
   listHtml = (exports.todo todo for todo in todos || []).join('')
-  # Escape end of tag sequence, since this is being put in a script tag
-  bundle = JSON.stringify(bundle).replace /<\//g, '<\\/'
+  # Escape bundle for use in an HTML attribute in single quotes, since
+  # JSON will have lots of double quotes
+  bundle = JSON.stringify(bundle).replace /'/g, '&#39;'
   """
   <!DOCTYPE html>
   <title>Todos</title>
@@ -15,10 +16,7 @@ exports.page = ({todos, bundle} = {}) ->
   </form>
   <div id=dragbox></div>
   <div id=content><ul id=todos>#{listHtml}</ul></div>
-  <script>window.RACER_BUNDLE = #{bundle}</script>
-  <script src=https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js></script>
-  <script src=https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js></script>
-  <script src=/script.js></script>
+  <script async src=/script.js onload='require("racer").init(#{bundle})'></script>
   """
 
 exports.todo = ({id, text, completed} = {}) ->

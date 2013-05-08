@@ -1,9 +1,7 @@
 racer = require 'racer'
 templates = require './templates.coffee'
 
-racer.init global.RACER_BUNDLE
-
-$ -> racer.ready (model) ->
+racer.ready (model) -> $ ->
   window.model = model
 
   model.on 'all', '**', console.log.bind(console)
@@ -130,7 +128,6 @@ $ -> racer.ready (model) ->
   # See: https://developer.mozilla.org/en/Rich-Text_Editing_in_Mozilla
   document.execCommand 'useCSS', false, true
   document.execCommand 'styleWithCSS', false, false
-
 
   htmlEscape = (s) ->
     unless s? then '' else s.toString().replace /&(?!\s)|</g, (s) ->

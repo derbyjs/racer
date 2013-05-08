@@ -26,12 +26,28 @@ app.use (err, req, res, next) ->
   console.error err.stack || (new Error err).stack
   res.send 500, 'Something broke!'
 
-# Add support for directly requiring coffeescript in browserify bundles
 store.on 'bundle', (browserify) ->
+  browserify.add __dirname + '/public/jquery-1.9.1.min.js'
+  browserify.add __dirname + '/public/jquery-ui-1.10.3.custom.min.js'
+  # Add support for directly requiring coffeescript in browserify bundles
   browserify.transform coffeeify
 
-app.get '/script.js', (req, res, next) ->
+scriptBundle = (cb) ->
+  # Use Browserify to generate a script file containing all of the client-side
+  # scripts, Racer, and BrowserChannel
   store.bundle __dirname + '/client.coffee', (err, js) ->
+    return cb err if err
+    cb null, js
+# Immediately cache the result of the bundling in production mode, which is
+# deteremined by the NODE_ENV environment variable. In development, the bundle
+# will be recreated on every page refresh
+if racer.util.isProduction
+  scriptBundle (err, js) ->
+    return if err
+    scriptBundle = (cb) -> cb null, js
+
+app.get '/script.js', (req, res, next) ->
+  scriptBundle (err, js) ->
     return next err if err
     res.type 'js'
     res.send js
