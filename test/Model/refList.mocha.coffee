@@ -17,11 +17,18 @@ describe 'ref', ->
       model.set 'ids', ['red', 'green', 'red']
       model.refList 'list', 'colors', 'ids'
       return model
-
-  expectEvents = (model, done, events) ->
-    model.on 'all', 'list**', ->
+  
+  expectEvents = (pattern, model, done, events) ->
+    model.on 'all', pattern, ->
       events.shift() arguments...
       done() unless events.length
+    done() unless events?.length
+  expectFromEvents = (model, done, events) ->
+    expectEvents 'list**', model, done, events
+  expectToEvents = (model, done, events) ->
+    expectEvents 'colors**', model, done, events
+  expectIdsEvents = (model, done, events) ->
+    expectEvents 'ids**', model, done, events
 
   describe 'sets output on initial call', ->
 
@@ -216,7 +223,7 @@ describe 'ref', ->
       model = (new Model).at '_page'
       model.set 'ids', ['red', 'green', 'red']
       model.refList 'list', 'colors', 'ids'
-      expectEvents model, done, [
+      expectFromEvents model, done, [
         (capture, method, index, removed) ->
           expect(capture).to.equal ''
           expect(method).to.equal 'remove'
@@ -275,7 +282,7 @@ describe 'ref', ->
       model = (new Model).at '_page'
       model.set 'ids', ['red', 'green', 'red']
       model.refList 'list', 'colors', 'ids'
-      expectEvents model, done, [
+      expectFromEvents model, done, [
         (capture, method, value, previous) ->
           expect(capture).to.equal '0'
           expect(method).to.equal 'change'
@@ -309,7 +316,7 @@ describe 'ref', ->
 
     it 'emits on `from` when `to` descendants are set', (done) ->
       model = setup()
-      expectEvents model, done, [
+      expectFromEvents model, done, [
         (capture, method, value, previous) ->
           expect(capture).to.equal '0.hex'
           expect(method).to.equal 'change'
@@ -360,7 +367,7 @@ describe 'ref', ->
         odd: [1, 3]
       model.set 'ids', ['even', 'odd', 'even']
       model.refList 'list', 'nums', 'ids'
-      expectEvents model, done, [
+      expectFromEvents model, done, [
         (capture, method, index, inserted) ->
           expect(capture).to.equal '0'
           expect(method).to.equal 'insert'
@@ -404,3 +411,43 @@ describe 'ref', ->
         red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
         blue: {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
         yellow: {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+
+    it 'emits on `to` when `from` is set', (done) ->
+      model = setup()
+      expectToEvents model, done, [
+        (capture, method, value, previous) ->
+          expect(capture).to.equal 'blue'
+          expect(method).to.equal 'change'
+          expect(value).to.eql {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+          expect(previous).to.eql undefined
+        (capture, method, value, previous) ->
+          expect(capture).to.equal 'yellow'
+          expect(method).to.equal 'change'
+          expect(value).to.eql {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+          expect(previous).to.eql undefined
+      ]
+      model.set 'list', [
+        {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+      ]
+
+    it 'emits on `ids` when `from is set', (done) ->
+      model = setup()
+      expectIdsEvents model, done, [
+        (capture, method, value, previous) ->
+          expect(capture).to.equal ''
+          expect(method).to.equal 'change'
+          expect(value).to.eql ['blue', 'red', 'yellow']
+          expect(previous).to.eql ['red', 'green', 'red']
+      ]
+      model.set 'list', [
+        {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+      ]
+
+    it 'emits nothing on `to` when `from` is set, removing items', (done) ->
+      model = setup()
+      expectToEvents model, done, []
+      model.set 'list', []
