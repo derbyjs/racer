@@ -6,95 +6,87 @@ racer.ready (model) -> $ ->
 
   model.on 'all', '**', console.log.bind(console)
 
-  newTodo = $ '#new-todo'
-  todoList = $ '#todos'
-  content = $ '#content'
-  overlay = $ '#overlay'
-  list = model.at '_page.todoList'
+  list = $('#todos')
+  listModel = model.at '_page.todoList'
 
   ## Update the DOM when the model changes ##
 
-  model.on 'set', '_group.todos.*.completed', (id, value) ->
-    $("##{id}").toggleClass 'completed', value
-    $("#check#{id}").prop 'checked', value
+  listModel.on 'change', '*.completed', (index, value) ->
+    item = list.children().eq(index)
+    item.toggleClass 'completed', value
+    item('[type=checkbox]').prop 'checked', value
 
-  list.on 'insert', (index, value) ->
-    todoList.children().eq(index).before templates.todo(value)
+  listModel.on 'change', '*.text', (index, value) ->
+    item = list.children().eq(index).find('.text')
+    return if item.is ':focus'
+    item.html value
 
-  list.on 'remove', (index, removed) ->
-    $("##{todo.id}").remove() for todo in removed
+  listModel.on 'insert', (index, values) ->
+    html = (templates.todo value for value in values).join ''
+    list.children().eq(index).before html
 
-  list.on 'move', (from, to, howMany, [id]) ->
-    target = todoList.children().get to
-    # Don't move if the item is already in the right position
-    return if id.toString() is target.id
-    if from > to && to != -1
-      $("##{id}").insertBefore target
-    else
-      $("##{id}").insertAfter target
+  listModel.on 'remove', (index, removed) ->
+    console.log(arguments)
+    console.log(index, index + removed.length)
+    console.log list.children().slice(index, index + removed.length)
 
-  model.on 'set', '_group.todos.*.text', (id, value) ->
-    el = $ "#text#{id}"
-    return if el.is ':focus'
-    el.html value
+  listModel.on 'move', (from, to, howMany, isLocal) ->
+    # Ignore if generated locally, since the sortable will have already
+    # moved the elements
+    return if isLocal
+    moved = list.children().slice from, from + howMany
+    index = if from > to then to else to + howMany
+    moved.insertBefore list.children().get(to)
 
   ## Update the model in response to DOM events ##
 
-  indexById = (id) ->
-    for todo, i in list.get()
-      return i if todo?.id is id
-    return -1
+  $('#head').on 'submit', ->
+    # Don't add a blank todo
+    return unless text = htmlEscape $('#new-todo').val()
+    $('#new-todo').val ''
+    # Insert the new todo before the first completed item
+    items = listModel.get()
+    for todo, i in items
+      break if todo.completed
+    listModel.insert i,
+      id: model.id()
+      completed: false
+      text: text
 
-  window.todos =
+  list.on 'change', '[type=checkbox]', (e) ->
+    item = $(e.target).parents('li')
+    index = list.children().index(item)
+    listModel.set index + '.completed', e.target.checked
+    # Move the item to the bottom if it was checked off
+    listModel.move index, -1 if checkbox.checked
 
-    connect: ->
-      reconnect = document.getElementById 'reconnect'
-      reconnect.style.display = 'none'
-      # Hide the reconnect link for a second so it looks like something is going on
-      setTimeout (-> reconnect.style.display = 'inline'), 1000
-      model.socket.connect()
-      return false
+  list.on 'click', '.delete', (e) ->
+    item = $(e.target).parents('li')
+    index = list.children().index(item)
+    listModel.remove index
 
-    addTodo: ->
-      # Don't add a blank todo
-      return unless text = htmlEscape newTodo.val()
-      newTodo.val ''
-      # Insert the new todo before the first completed item in the list
-      items = list.get()
-      for todo, i in items
-        break if todo.completed
-      list.insert i,
-        id: model.id()
-        completed: false
-        text: text
-
-    check: (checkbox, id) ->
-      model.set "_group.todos.#{id}.completed", checkbox.checked
-      # Move the item to the bottom if it was checked off
-      list.move indexById(id), -1 if checkbox.checked
-
-    del: (id) ->
-      list.remove indexById(id)
-
-  todoList.sortable
+  from = null
+  list.sortable
     handle: '.handle'
     axis: 'y'
     containment: '#dragbox'
+    start: (e, ui) ->
+      item = ui.item[0]
+      from = list.children().index(item)
     update: (e, ui) ->
       item = ui.item[0]
-      to = todoList.children().index(item)
-      list.move indexById(item.id), to
+      to = list.children().index(item)
+      listModel.move from, to
 
   # Watch for changes to the contenteditable fields
   lastHtml = ''
   checkChanged = (e) ->
-    html = content.html()
+    html = $('#content').html()
     return if html == lastHtml
     lastHtml = html
-    target = e.target
-    return unless id = target.getAttribute 'data-id'
-    text = target.innerHTML
-    model.set "_group.todos.#{id}.text", text
+    item = $(e.target).parents('li')
+    index = list.children().index(item)
+    listModel.set index + '.text', e.target.innerHTML
   # Paste and dragover events are fired before the HTML is actually updated
   checkChangedDelayed = (e) ->
     setTimeout checkChanged, 10, e
@@ -117,7 +109,7 @@ racer.ready (model) -> $ ->
     e.preventDefault() if e.preventDefault
     return false
 
-  content
+  $('#content')
     .keydown(checkShortcuts)
     .keydown(checkChanged)
     .keyup(checkChanged)
