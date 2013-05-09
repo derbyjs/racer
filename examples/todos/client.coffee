@@ -16,7 +16,7 @@ racer.ready (model) -> $ ->
 
   listModel.on 'change', '*.text', (index, value) ->
     item = list.children().eq(index).find('.text')
-    return if item.is ':focus'
+    return if item.html() == value
     item.html value
 
   listModel.on 'insert', (index, values) ->

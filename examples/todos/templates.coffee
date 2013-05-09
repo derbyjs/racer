@@ -16,7 +16,9 @@ exports.page = ({groupName, todos, bundle} = {}) ->
     </div>
   </form>
   <div id="dragbox"></div>
-  <div id="content"><ul id="todos">#{listHtml}</ul></div>
+  <form id="content" autocomplete="off">
+    <ul id="todos">#{listHtml}</ul>
+  </form>
   <script async src="/script.js" onload='require("racer").init(#{bundle})'></script>
   """
 
