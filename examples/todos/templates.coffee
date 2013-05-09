@@ -36,7 +36,7 @@ exports.todo = ({id, text, completed} = {}) ->
       <td width="100%">
         <div class="todo">
           <label><input type="checkbox" #{checked}><i></i></label>
-          <div class="text" contenteditable>#{text}</div>
+          <div class="text" contenteditable>#{text || ''}</div>
         </div>
       </td>
       <td width="0"><button type="button" class="delete">Delete</button></td>

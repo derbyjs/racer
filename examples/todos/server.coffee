@@ -65,16 +65,17 @@ app.get '/:groupName', (req, res, next) ->
 
   model = req.getModel()
   group = model.at "groups.#{groupName}"
-  model.subscribe group, (err) ->
+  todosQuery = model.query 'todos', {}
+  model.subscribe group, todosQuery, (err) ->
     return next err if err
     # Create some todos if this is a new group
     unless group.get 'todoIds'
-      id0 = group.add 'todos', {completed: true, text: 'Done already'}
-      id1 = group.add 'todos', {completed: false, text: 'Example todo'}
-      id2 = group.add 'todos', {completed: false, text: 'Another example'}
+      id0 = model.add 'todos', {completed: true, text: 'Done already'}
+      id1 = model.add 'todos', {completed: false, text: 'Example todo'}
+      id2 = model.add 'todos', {completed: false, text: 'Another example'}
       group.set 'todoIds', [id1, id2, id0]
     model.ref '_group', group
-    model.refList '_page.todoList', '_group.todos', '_group.todoIds'
+    model.refList '_page.todoList', 'todos', '_group.todoIds'
     # model.bundle waits for any pending model operations to complete and then
     # returns the JSON data for initialization on the client
     model.bundle (err, bundle) ->
