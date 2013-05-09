@@ -14,7 +14,7 @@ racer.ready (model) -> $ ->
   listModel.on 'change', '*.completed', (index, value) ->
     item = list.children().eq(index)
     item.toggleClass 'completed', value
-    item('[type=checkbox]').prop 'checked', value
+    item.find('[type=checkbox]').prop 'checked', value
 
   listModel.on 'change', '*.text', (index, value) ->
     item = list.children().eq(index).find('.text')
@@ -23,20 +23,25 @@ racer.ready (model) -> $ ->
 
   listModel.on 'insert', (index, values) ->
     html = (templates.todo value for value in values).join ''
-    list.children().eq(index).before html
+    target = list.children().eq(index)
+    if target.length
+      target.before html
+    else
+      list.append html
 
   listModel.on 'remove', (index, removed) ->
-    console.log(arguments)
-    console.log(index, index + removed.length)
-    console.log list.children().slice(index, index + removed.length)
+    list.children().slice(index, index + removed.length).remove()
 
-  listModel.on 'move', (from, to, howMany, isLocal) ->
-    # Ignore if generated locally, since the sortable will have already
-    # moved the elements
-    return if isLocal
+  listModel.on 'move', (from, to, howMany, isLocal, pass) ->
+    # If caused by sortable, it will have already moved the element
+    return if pass == 'sortable'
     moved = list.children().slice from, from + howMany
     index = if from > to then to else to + howMany
-    moved.insertBefore list.children().get(to)
+    target = list.children().eq index
+    if target.length
+      target.before moved
+    else
+      list.append moved
 
   ## Update the model in response to DOM events ##
 
@@ -58,7 +63,7 @@ racer.ready (model) -> $ ->
     index = list.children().index(item)
     listModel.set index + '.completed', e.target.checked
     # Move the item to the bottom if it was checked off
-    listModel.move index, -1 if checkbox.checked
+    listModel.move index, -1 if e.target.checked
 
   list.on 'click', '.delete', (e) ->
     item = $(e.target).parents('li')
@@ -76,7 +81,7 @@ racer.ready (model) -> $ ->
     update: (e, ui) ->
       item = ui.item[0]
       to = list.children().index(item)
-      listModel.move from, to
+      listModel.pass('sortable').move from, to
 
   # Watch for changes to the contenteditable fields
   lastHtml = ''
