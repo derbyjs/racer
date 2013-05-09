@@ -7,6 +7,8 @@ racer.ready (model) -> $ ->
   list = $('#todos')
   listModel = model.at '_page.todoList'
 
+  model.on 'all', '**', console.log.bind(console)
+
   ## Update the DOM when the model changes ##
 
   listModel.on 'change', '*.completed', (index, value) ->
@@ -18,6 +20,9 @@ racer.ready (model) -> $ ->
     item = list.children().eq(index).find('.text')
     return if item.html() == value
     item.html value
+
+  listModel.on 'load', '*', (index, value) ->
+    list.children().eq(index).replaceWith templates.todo(value)
 
   listModel.on 'insert', (index, values) ->
     html = (templates.todo value for value in values).join ''

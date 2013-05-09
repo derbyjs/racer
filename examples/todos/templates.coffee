@@ -22,21 +22,24 @@ exports.page = ({groupName, todos, bundle} = {}) ->
   <script async src="/script.js" onload='require("racer").init(#{bundle})'></script>
   """
 
-exports.todo = ({id, text, completed} = {}) ->
-  if completed
+exports.todo = (todo) ->
+  unless todo
+    return '<li style="display:none"></li>'
+
+  if todo.completed
     completed = 'completed'
     checked = 'checked'
   else
     completed = ''
     checked = ''
   """
-  <li id="#{id}" class="#{completed}">
+  <li id="#{todo.id}" class="#{completed}">
     <table width="100%">
       <td class="handle" width="0"></td>
       <td width="100%">
         <div class="todo">
           <label><input type="checkbox" #{checked}><i></i></label>
-          <div class="text" contenteditable>#{text || ''}</div>
+          <div class="text" contenteditable>#{todo.text || ''}</div>
         </div>
       </td>
       <td width="0"><button type="button" class="delete">Delete</button></td>
