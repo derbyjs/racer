@@ -4,8 +4,6 @@ templates = require './templates.coffee'
 racer.ready (model) -> $ ->
   window.model = model
 
-  model.on 'all', '**', console.log.bind(console)
-
   list = $('#todos')
   listModel = model.at '_page.todoList'
 
@@ -81,6 +79,9 @@ racer.ready (model) -> $ ->
     update: (e, ui) ->
       item = ui.item[0]
       to = list.children().index(item)
+      # model.pass() will pass an extra argument along to events resulting from
+      # mutations. It is often used to ignore events when something has already
+      # been updated and to avoid infinite loops
       listModel.pass('sortable').move from, to
 
   # Watch for changes to the contenteditable fields
