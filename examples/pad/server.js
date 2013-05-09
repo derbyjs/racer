@@ -61,6 +61,9 @@ app.get('/:roomId', function(req, res, next) {
   var model = req.getModel();
   // Only handle URLs that use alphanumberic characters, underscores, and dashes
   if (!/^[a-zA-Z0-9_-]+$/.test(req.params.roomId)) return next();
+  // Prevent the browser from storing the HTML response in its back cache, since
+  // that will cause it to render with the data from the initial load first
+  res.setHeader('Cache-Control', 'no-store');
 
   var roomPath = 'rooms.' + req.params.roomId;
   model.subscribe(roomPath, function(err) {

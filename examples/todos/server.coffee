@@ -59,6 +59,10 @@ app.get '/:groupName', (req, res, next) ->
   groupName = req.params.groupName
   # Only handle URLs that use alphanumberic characters, underscores, and dashes
   return next() unless /^[a-zA-Z0-9_-]+$/.test groupName
+  # Prevent the browser from storing the HTML response in its back cache, since
+  # that will cause it to render with the data from the initial load first
+  res.setHeader 'Cache-Control', 'no-store'
+
   model = req.getModel()
   group = model.at "groups.#{groupName}"
   model.subscribe group, (err) ->
