@@ -65,7 +65,7 @@ app.get '/:groupName', (req, res, next) ->
 
   model = req.getModel()
   group = model.at "groups.#{groupName}"
-  model.subscribe group, (err) ->
+  group.subscribe (err) ->
     return next err if err
 
     # Create some todos if this is a new group
@@ -76,16 +76,18 @@ app.get '/:groupName', (req, res, next) ->
       id2 = model.add 'todos', {completed: false, text: 'Another example'}
       todoIds.set [id1, id2, id0]
 
-    todosQuery = model.query 'todos', todoIds
-    model.subscribe todosQuery, (err) ->
+    # Queries may be specified in terms of a Mongo query or a model path that
+    # contains an id or list of ids
+    model.query('todos', todoIds).subscribe (err) ->
       return next err if err
-      model.refList '_page.list', 'todos', todoIds
+
+      # Create a two-way updated list with todos as items
+      list = model.refList '_page.list', 'todos', todoIds
       # model.bundle waits for any pending model operations to complete and then
       # returns the JSON data for initialization on the client
       model.bundle (err, bundle) ->
         return next err if err
-        list = model.get '_page.list'
-        res.send templates.page({list, bundle, groupName})
+        res.send templates.page({list: list.get(), bundle, groupName})
 
 port = process.env.PORT || 3000;
 server.listen port, ->
