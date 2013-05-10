@@ -65,23 +65,27 @@ app.get '/:groupName', (req, res, next) ->
 
   model = req.getModel()
   group = model.at "groups.#{groupName}"
-  todosQuery = model.query 'todos', {}
-  model.subscribe group, todosQuery, (err) ->
+  model.subscribe group, (err) ->
     return next err if err
+
     # Create some todos if this is a new group
-    unless group.get 'todoIds'
+    todoIds = group.at 'todoIds'
+    unless todoIds.get()
       id0 = model.add 'todos', {completed: true, text: 'Done already'}
       id1 = model.add 'todos', {completed: false, text: 'Example todo'}
       id2 = model.add 'todos', {completed: false, text: 'Another example'}
-      group.set 'todoIds', [id1, id2, id0]
-    model.ref '_group', group
-    model.refList '_page.todoList', 'todos', '_group.todoIds'
-    # model.bundle waits for any pending model operations to complete and then
-    # returns the JSON data for initialization on the client
-    model.bundle (err, bundle) ->
+      todoIds.set [id1, id2, id0]
+
+    todosQuery = model.query 'todos', todoIds
+    model.subscribe todosQuery, (err) ->
       return next err if err
-      todos = model.get '_page.todoList'
-      res.send templates.page({todos, bundle, groupName})
+      model.refList '_page.todoList', 'todos', todoIds
+      # model.bundle waits for any pending model operations to complete and then
+      # returns the JSON data for initialization on the client
+      model.bundle (err, bundle) ->
+        return next err if err
+        todos = model.get '_page.todoList'
+        res.send templates.page({todos, bundle, groupName})
 
 port = process.env.PORT || 3000;
 server.listen port, ->
