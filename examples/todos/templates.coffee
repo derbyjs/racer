@@ -32,6 +32,7 @@ exports.todo = (todo) ->
   else
     completed = ''
     checked = ''
+  text = (todo.text || '').replace /"/g, '&quot;'
   """
   <li id="#{todo.id}" class="#{completed}">
     <table width="100%">
@@ -39,7 +40,7 @@ exports.todo = (todo) ->
       <td width="100%">
         <div class="todo">
           <label><input type="checkbox" #{checked}><i></i></label>
-          <div class="text" contenteditable>#{todo.text || ''}</div>
+          <input class="text" value="#{text}"><i></i>
         </div>
       </td>
       <td width="0"><button type="button" class="delete">Delete</button></td>

@@ -7,8 +7,6 @@ racer.ready (model) -> $ ->
   list = $('#todos')
   listModel = model.at '_page.todoList'
 
-  model.on 'all', '**', console.log.bind(console)
-
   ## Update the DOM when the model changes ##
 
   listModel.on 'change', '*.completed', (index, value) ->
@@ -18,10 +16,9 @@ racer.ready (model) -> $ ->
 
   listModel.on 'change', '*.text', (index, value) ->
     item = list.children().eq(index).find('.text')
-    return if item.html() == value
-    item.html value
+    item.val value unless item.val() == value
 
-  listModel.on 'load', '*', (index, value) ->
+  listModel.on 'change', '*', (index, value) ->
     list.children().eq(index).replaceWith templates.todo(value)
 
   listModel.on 'insert', (index, values) ->
@@ -48,10 +45,12 @@ racer.ready (model) -> $ ->
 
   ## Update the model in response to DOM events ##
 
+  newTodo = $('#new-todo')
   $('#head').on 'submit', ->
+    text = newTodo.val()
     # Don't add a blank todo
-    return unless text = htmlEscape $('#new-todo').val()
-    $('#new-todo').val ''
+    return unless text
+    newTodo.val ''
     # Insert the new todo before the first completed item
     items = listModel.get()
     for todo, i in items
@@ -61,17 +60,21 @@ racer.ready (model) -> $ ->
       completed: false
       text: text
 
-  list.on 'change', '[type=checkbox]', (e) ->
+  eventIndex = (e) ->
     item = $(e.target).parents('li')
-    index = list.children().index(item)
+    return list.children().index(item)
+
+  list.on 'change', '[type=checkbox]', (e) ->
+    index = eventIndex e
     listModel.set index + '.completed', e.target.checked
     # Move the item to the bottom if it was checked off
     listModel.move index, -1 if e.target.checked
 
+  list.on 'input', '.text', (e) ->
+    listModel.set eventIndex(e) + '.text', e.target.value
+
   list.on 'click', '.delete', (e) ->
-    item = $(e.target).parents('li')
-    index = list.children().index(item)
-    listModel.remove index
+    listModel.remove eventIndex(e)
 
   from = null
   list.sortable
@@ -88,50 +91,3 @@ racer.ready (model) -> $ ->
       # mutations. It is often used to ignore events when something has already
       # been updated and to avoid infinite loops
       listModel.pass('sortable').move from, to
-
-  # Watch for changes to the contenteditable fields
-  lastHtml = ''
-  checkChanged = (e) ->
-    html = $('#content').html()
-    return if html == lastHtml
-    lastHtml = html
-    item = $(e.target).parents('li')
-    index = list.children().index(item)
-    listModel.set index + '.text', e.target.innerHTML
-  # Paste and dragover events are fired before the HTML is actually updated
-  checkChangedDelayed = (e) ->
-    setTimeout checkChanged, 10, e
-
-  # Shortcuts
-  # Bold: Ctrl/Cmd + B
-  # Italic: Ctrl/Cmd + I
-  # Clear formatting: Ctrl/Cmd + Space -or- Ctrl/Cmd + \
-  checkShortcuts = (e) ->
-    return unless e.metaKey || e.ctrlKey
-    code = e.which
-    return unless command = (switch code
-      when 66 then 'bold'
-      when 73 then 'italic'
-      when 32 then 'removeFormat'
-      when 220 then 'removeFormat'
-      else null
-    )
-    document.execCommand command, false, null
-    e.preventDefault() if e.preventDefault
-    return false
-
-  $('#content')
-    .keydown(checkShortcuts)
-    .keydown(checkChanged)
-    .keyup(checkChanged)
-    .bind('paste', checkChangedDelayed)
-    .bind('dragover', checkChangedDelayed)
-
-  # Tell Firefox to use elements for styles instead of CSS
-  # See: https://developer.mozilla.org/en/Rich-Text_Editing_in_Mozilla
-  document.execCommand 'useCSS', false, true
-  document.execCommand 'styleWithCSS', false, false
-
-  htmlEscape = (s) ->
-    unless s? then '' else s.toString().replace /&(?!\s)|</g, (s) ->
-      if s is '&' then '&amp;' else '&lt;'
