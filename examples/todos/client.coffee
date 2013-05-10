@@ -4,8 +4,8 @@ templates = require './templates.coffee'
 racer.ready (model) -> $ ->
   window.model = model
 
-  list = $('#todos')
-  listModel = model.at '_page.todoList'
+  list = $('#list')
+  listModel = model.at '_page.list'
 
   ## Update the DOM when the model changes ##
 

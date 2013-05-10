@@ -1,5 +1,5 @@
-exports.page = ({groupName, todos, bundle} = {}) ->
-  listHtml = (exports.todo todo for todo in todos || []).join('')
+exports.page = ({groupName, list, bundle} = {}) ->
+  listHtml = (exports.todo todo for todo in list || []).join('')
   # Escape bundle for use in an HTML attribute in single quotes, since
   # JSON will have lots of double quotes
   bundle = JSON.stringify(bundle).replace /'/g, '&#39;'
@@ -17,7 +17,7 @@ exports.page = ({groupName, todos, bundle} = {}) ->
   </form>
   <div id="dragbox"></div>
   <form id="content" autocomplete="off">
-    <ul id="todos">#{listHtml}</ul>
+    <ul id="list">#{listHtml}</ul>
   </form>
   <script async src="/script.js" onload='require("racer").init(#{bundle})'></script>
   """

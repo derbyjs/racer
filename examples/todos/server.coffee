@@ -79,13 +79,13 @@ app.get '/:groupName', (req, res, next) ->
     todosQuery = model.query 'todos', todoIds
     model.subscribe todosQuery, (err) ->
       return next err if err
-      model.refList '_page.todoList', 'todos', todoIds
+      model.refList '_page.list', 'todos', todoIds
       # model.bundle waits for any pending model operations to complete and then
       # returns the JSON data for initialization on the client
       model.bundle (err, bundle) ->
         return next err if err
-        todos = model.get '_page.todoList'
-        res.send templates.page({todos, bundle, groupName})
+        list = model.get '_page.list'
+        res.send templates.page({list, bundle, groupName})
 
 port = process.env.PORT || 3000;
 server.listen port, ->
