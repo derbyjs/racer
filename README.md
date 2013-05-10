@@ -1,6 +1,6 @@
 # Racer
 
-Racer is a realtime model synchronization engine for Node.js. By leveraging [ShareJS](http://sharejs.org/), multiple users can interact with the same data in realtime via sophisticated conflict resolution algorithms. It supports PubSub across multiple servers for horizontal scaling. Clients can express data subscriptions and fetches in terms of queries and specific documents. At the same time, it provides a simple model mutator and event interface for writing application logic.
+Racer is a realtime model synchronization engine for Node.js. By leveraging [ShareJS](http://sharejs.org/), multiple users can interact with the same data in realtime via Operational Transformation, a sophisticated conflict resolution algorithm that works in realtime and with offline clients. ShareJS also supports PubSub across multiple servers for horizontal scaling. Clients can express data subscriptions and fetches in terms of queries and specific documents, so different clients can be subscribed to different overlapping sets of data. On top of this sophisticated backend, Racer provides a simple model and event interface for writing application logic.
 
 [![Build
 Status](https://secure.travis-ci.org/codeparty/racer.png?branch=0.5)](https://travis-ci.org/codeparty/racer/branches)
@@ -9,7 +9,7 @@ Status](https://secure.travis-ci.org/codeparty/racer.png?branch=0.5)](https://tr
 
 Racer is alpha software. We are now on the road to a production ready version, but we are currently cleaning up the code, finishing loose ends, and testing.
 
-If you are interested in contributing, please reach out to [Joseph](https://github.com/josephg), [Nate](https://github.com/nateps), and [Brian](https://github.com/bnoguchi).
+If you are interested in contributing, please reach out to [Nate](https://github.com/nateps), [Joseph](https://github.com/josephg), and [Brian](https://github.com/bnoguchi).
 
 ## Demos
 
@@ -30,7 +30,7 @@ Classic todo list demonstrating the use of Racer's model methods.
 
 ## Features
 
-  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [`racer-browserchannel`](https://github.com/codeparty/racer-browserchannel) adapter is recommended for connecting browsers in realtime.
+  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [racer-browserchannel](https://github.com/codeparty/racer-browserchannel) adapter is recommended for connecting browsers in realtime.
 
   * **Realtime query subscriptions** &ndash; Clients may subscribe to a limited set of information relevant to the current session. Both document and realtime query subscriptions are supported. Currently, arbitrary Mongo queries are supported.
 
