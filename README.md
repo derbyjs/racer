@@ -30,7 +30,7 @@ Classic todo list demonstrating the use of Racer's model methods.
 
 ## Features
 
-  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [https://github.com/codeparty/racer-browserchannel](`racer-browserchannel`) adapter is recommended for connecting browsers in realtime.
+  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [https://github.com/codeparty/racer-browserchannel](racer-browserchannel) adapter is recommended for connecting browsers in realtime.
 
   * **Realtime query subscriptions** &ndash; Clients may subscribe to a limited set of information relevant to the current session. Both document and realtime query subscriptions are supported. Currently, arbitrary Mongo queries are supported.
 
@@ -93,7 +93,9 @@ $ npm test
 
 ## Usage
 
-For now, Racer is mostly documented along with Derby, an MVC framework that includes Racer. See the Derby [model docs](http://derbyjs.com/#models). Racer can be used independently or with other client frameworks like Angular, but Racer and Derby are designed to work especially well together.
+Racer can be used independently as shown in the examples, but Racer and Derby are designed to work especially well together. Racer can also be used along with other MVC frameworks, such as Angular.
+
+The previous version of Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/#models). The new version is similar, but lots of API specifics have changed slightly. New documentation is coming soon.
 
 ### MIT License
 Copyright (c) 2011 by Brian Noguchi and Nate Smith
