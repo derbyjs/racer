@@ -13,7 +13,7 @@ If you are interested in contributing, please reach out to [Joseph](https://gith
 
 ## Demos
 
-There are currently two demos, which are included under the examples directory. See [#installation](Installation) below.
+There are currently two demos, which are included under the examples directory. See [Installation](#installation) below.
 
 ### Pad
 
@@ -30,7 +30,7 @@ Classic todo list demonstrating the use of Racer's model methods.
 
 ## Features
 
-  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [https://github.com/codeparty/racer-browserchannel](racer-browserchannel) adapter is recommended for connecting browsers in realtime.
+  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [`racer-browserchannel`](https://github.com/codeparty/racer-browserchannel) adapter is recommended for connecting browsers in realtime.
 
   * **Realtime query subscriptions** &ndash; Clients may subscribe to a limited set of information relevant to the current session. Both document and realtime query subscriptions are supported. Currently, arbitrary Mongo queries are supported.
 
