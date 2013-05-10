@@ -55,7 +55,7 @@ racer.ready (model) -> $ ->
     # Insert the new todo before the first completed item
     items = listModel.get()
     for todo, i in items
-      break if todo.completed
+      break if todo?.completed
     listModel.insert i,
       id: model.id()
       completed: false
