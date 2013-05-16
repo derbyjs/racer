@@ -7,7 +7,7 @@ Status](https://secure.travis-ci.org/codeparty/racer.png)](http://travis-ci.org/
 
 ## Disclaimer
 
-Racer is alpha software. While it should work well enough for prototyping and weekend projects, it is still undergoing major development. APIs are subject to change.
+Racer is alpha software. It is **currently undergoing a full rewrite on the [0.5 branch](https://github.com/codeparty/racer/tree/0.5)**. The new version will support a similar feature set and API, but many specifics are changing. 0.5 will be a beta suitable for early production deployments.
 
 If you are interested in contributing, please reach out to [Brian](https://github.com/bnoguchi) and [Nate](https://github.com/nateps).
 

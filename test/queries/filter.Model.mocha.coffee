@@ -1,6 +1,6 @@
+sinon = require 'sinon'
 {expect} = require '../util'
 {BrowserModel: Model} = require '../util/model'
-sinon = require 'sinon'
 
 describe 'In browser filters', ->
   beforeEach ->
@@ -396,6 +396,28 @@ describe 'In browser filters', ->
 
             model.set 'a.b.c.0.age', 29
 
+        describe 'in response to local mutations that remove the underlying document originally in a filter of a filter', ->
+          it 'should return a scoped model whose results update automatically, without console.warning', ->
+            model =  new Model
+
+            model.set 'collection.a', docA = {id: 'a', age: 30}
+            model.set 'collection.b', docB = {id: 'b', age: 31}
+
+            warn = console.warn
+            console.warn = warnSpy = sinon.spy()
+
+            computation = model.filter('collection').where('age').gte(20).sort(['age', 'asc'])
+            $results = model.ref '_results', computation
+            expect($results.get()).to.eql [docA, docB]
+            $compoundResults = model.ref '_compoundResults', $results.filter().where('age').gte(29).sort(['age', 'asc'])
+            model.del 'collection.b'
+            expect($compoundResults.get()).to.specEql [docA]
+
+            console.warn = warn
+
+            expect(warnSpy).to.have.callCount(0)
+
+
         describe 'in response to local mutations that re-order the results', ->
           it 'should return a scoped model whose results update automatically', ->
             model =  new Model
@@ -430,6 +452,18 @@ describe 'In browser filters', ->
               done()
 
             model.set 'a.b.c.0.age', 32
+
+        describe 'in response to mutations on the filter results updating results', ->
+          it 'should update the results', ->
+            model = new Model
+            model.set 'a.b.c', [
+              docA = {id: 'A', age: 30}
+            , docB = {id: 'B', age: 31}
+            ]
+            computation = model.filter('a.b.c').where('age').gte(30).sort(['age', 'asc'])
+            $results = model.ref '_results', computation
+            $results.incr '0.age', -1
+            expect($results.get()).to.eql [docB]
 
     describe 'among another filter results', ->
       it 'should return a scoped model with access to results', ->
@@ -791,6 +825,37 @@ describe 'In browser filters', ->
             done()
 
           model.set 'a.b.c.1.age', 30
+
+        it 'should not include a new doc that does not match if a filter().one()', ->
+          model = new Model
+          model.set 'collection.a', docA = {id: 'a', age: 30}
+          model.set 'collection.b', {id: 'b', age: 31}
+          $results = model.ref '_result', model.filter('collection').where('age').gte(40).sort(['age', 'asc'])
+          expect($results.get()).to.eql([])
+          $compoundResult = model.ref '_compoundResult', $results.filter().where('age').gte(50).sort(['age', 'asc']).one()
+          expect($compoundResult.get()).to.eql(undefined)
+          model.set 'collection.a.age', 40
+          expect($compoundResult.get()).to.eql undefined
+
+        it 'should react to the domain being set, without console.warning', ->
+          model = new Model
+          $result = model.ref '_result', model.filter('a.b.c').where('age').gte(40).sort(['age', 'asc']).one()
+          expect($result.get()).to.eql(undefined)
+          warn = console.warn
+          console.warn = warnSpy = sinon.spy()
+          model.set 'a.b.c', []
+          console.warn = warn
+          expect(warnSpy).to.have.callCount(0)
+
+        it 'should emit events on the ref when the object pointed to updates an attribute', ->
+          model = new Model
+          $result = model.ref '_result', model.filter('a.b.c').where('age').gte(40).sort(['age', 'asc']).one()
+          model.set 'a.b.c', [{id: 'a', age: 40}]
+          spy = sinon.spy()
+          $result.on 'set', 'age', spy
+          model.incr 'a.b.c.0.age', 1
+          expect(spy).to.have.callCount(1)
+          expect(spy).to.be.calledWith(41, 40)
 
     describe 'among search results', ->
       it 'should return a scoped model with access to result', ->

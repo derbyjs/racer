@@ -13,7 +13,7 @@ testRegExps = (reList, sources, matches, nonMatches) ->
     for obj in matches[i]
       for match, captures of obj
         expect(re.exec(match).slice 1).to.eql captures
-    expect(re.test nonMatch).to.be.false for nonMatch in nonMatches[i]
+    expect(re.test nonMatch).to.not.be.ok() for nonMatch in nonMatches[i]
 
 describe 'path', ->
 
