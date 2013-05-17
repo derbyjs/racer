@@ -15,10 +15,7 @@ function setup(model) {
   }
 
   model.on('change', function(value) {
-    function transformCursor(cursor) {
-      return 0;
-    }
-    replaceText(pad, value || '', transformCursor);
+    pad.value = value || '';
   });
 
   model.on('stringInsert', function(index, text, isLocal) {
@@ -58,7 +55,7 @@ function setup(model) {
 function replaceText(pad, newText, transformCursor) {
   var start = pad.selectionStart;
   var end = pad.selectionEnd;
-  scrollTop = pad.scrollTop;
+  var scrollTop = pad.scrollTop;
   pad.value = newText;
   if (pad.scrollTop !== scrollTop) {
     pad.scrollTop = scrollTop;
