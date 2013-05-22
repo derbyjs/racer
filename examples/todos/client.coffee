@@ -32,9 +32,9 @@ racer.ready (model) -> $ ->
   listModel.on 'remove', (index, removed) ->
     list.children().slice(index, index + removed.length).remove()
 
-  listModel.on 'move', (from, to, howMany, isLocal, pass) ->
+  listModel.on 'move', (from, to, howMany, passed) ->
     # If caused by sortable, it will have already moved the element
-    return if pass == 'sortable'
+    return if passed.sortable
     moved = list.children().slice from, from + howMany
     index = if from > to then to else to + howMany
     target = list.children().eq index
@@ -90,4 +90,4 @@ racer.ready (model) -> $ ->
       # model.pass() will pass an extra argument along to events resulting from
       # mutations. It is often used to ignore events when something has already
       # been updated and to avoid infinite loops
-      listModel.pass('sortable').move from, to
+      listModel.pass(sortable: true).move from, to

@@ -18,8 +18,8 @@ function setup(model) {
     pad.value = value || '';
   });
 
-  model.on('stringInsert', function(index, text, isLocal) {
-    if (isLocal) return;
+  model.on('stringInsert', function(index, text, passed) {
+    if (passed.local) return;
     function transformCursor(cursor) {
       return (index <= cursor) ? cursor + text.length : cursor;
     }
@@ -29,8 +29,8 @@ function setup(model) {
     if (pad.value !== model.get()) debugger;
   });
 
-  model.on('stringRemove', function(index, howMany, isLocal) {
-    if (isLocal) return;
+  model.on('stringRemove', function(index, howMany, passed) {
+    if (passed.local) return;
     function transformCursor(cursor) {
       return (index < cursor) ? Math.max(index, cursor - howMany) : cursor;
     }
@@ -91,10 +91,10 @@ function applyChange(model, previous, value) {
 
   if (previous.length !== start + end) {
     var howMany = previous.length - start - end;
-    model.stringRemove(start, howMany);
+    model.pass({local: true}).stringRemove(start, howMany);
   }
   if (value.length !== start + end) {
     var inserted = value.slice(start, value.length - end);
-    model.stringInsert(start, inserted);
+    model.pass({local: true}).stringInsert(start, inserted);
   }
 }
