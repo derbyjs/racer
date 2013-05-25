@@ -15,7 +15,7 @@
     "browserify": "~2.14.2",
     "uglify-js": "2.x",
     "node-uuid": "1.x",
-    "share": "git://github.com/josephg/ShareJS.git#rewrite",
+    "share": "0.7.x",
     "deep-is": "~0.1.1",
     "arraydiff": "~0.1.1"
   },
