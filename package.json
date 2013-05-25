@@ -17,7 +17,7 @@
     "node-uuid": "1.x",
     "share": "git://github.com/josephg/ShareJS.git#rewrite",
     "deep-is": "~0.1.1",
-    "arraydiff": "~0.1.0"
+    "arraydiff": "~0.1.1"
   },
   "devDependencies": {
     "grunt": "~0.4.1",
