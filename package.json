@@ -23,6 +23,7 @@
     "debug": ">=0.7.0",
     "ansi-color": ">=0.2.1",
     "cookie": "0.0.4",
+    "crypto-browserify": "0.2.1",
     "racer-util": "0.0.2"
   },
   "devDependencies": {
