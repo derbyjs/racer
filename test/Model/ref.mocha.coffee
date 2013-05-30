@@ -54,11 +54,11 @@ describe 'ref', ->
       expectEvents '_favorites**', model, done, [
         (capture, method, value, previous) ->
           expect(method).to.equal 'change'
-          expect(capture).to.equal 'your'
+          expect(capture).to.equal 'my'
           expect(value).to.equal '#0f1'
       , (capture, method, value, previous) ->
           expect(method).to.equal 'change'
-          expect(capture).to.equal 'my'
+          expect(capture).to.equal 'your'
           expect(value).to.equal '#0f1'
       ]
       model.set '_colors.green', '#0f1'
