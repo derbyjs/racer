@@ -197,6 +197,24 @@ describe 'ref', ->
         done()
       model.move 'ids', 0, 2, 2
 
+  describe 'emits events involving multiple refLists', ->
+    it 'removes data from a refList pointing to data in another refList', ->
+      model = (new Model).at '_page'
+      tagId = model.add 'tags', { text: 'hi' }
+      tagIds = [tagId]
+
+      #profiles collection
+      id = model.add 'profiles', { tagIds: tagIds }
+      model.push 'profileIds', id
+      model.refList 'profilesList', 'profiles', 'profileIds'
+      
+      #ref a single item from collection
+      model.ref 'profile', 'profilesList.0'
+      
+      #remove from nested refList
+      model.refList 'tagsList', 'tags', 'profile.tagIds'
+      model.remove('tagsList', 0)
+      
   describe 'updates on `to` mutations', ->
 
     it 'updates the value when `to` is set', ->
@@ -406,6 +424,14 @@ describe 'ref', ->
         {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
       ]
       expect(model.get 'ids').to.eql ['blue', 'yellow', 'red']
+      expect(model.get 'colors').to.eql
+        green: {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        blue: {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        yellow: {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
+        
+      model.at('list.0').remove()
+      expect(model.get 'ids').to.eql ['yellow', 'red']
       expect(model.get 'colors').to.eql
         green: {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
         red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
