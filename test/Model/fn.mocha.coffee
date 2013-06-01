@@ -94,7 +94,7 @@ describe 'fn', ->
       model = new Model
       model.stop '_nums.sum'
 
-    it 'stops updating after calling stop', ->
+    it 'stops updating and deletes after calling stop', ->
       model = new Model
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
@@ -104,7 +104,7 @@ describe 'fn', ->
       expect(model.get '_nums.sum').to.equal 5
       model.stop '_nums.sum'
       model.set '_nums.a', 3
-      expect(model.get '_nums.sum').to.equal 5
+      expect(model.get '_nums.sum').to.equal undefined
 
   describe 'setter', ->
 
