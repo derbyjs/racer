@@ -21,7 +21,7 @@ function setup(model) {
   model.on('stringInsert', function(index, text, passed) {
     if (passed.local) return;
     function transformCursor(cursor) {
-      return (index <= cursor) ? cursor + text.length : cursor;
+      return (index < cursor) ? cursor + text.length : cursor;
     }
     var previous = getValue();
     var newText = previous.slice(0, index) + text + previous.slice(index);
