@@ -69,7 +69,7 @@ app.get('/:roomId', function(req, res, next) {
   model.subscribe(roomPath, function(err) {
     if (err) return next(err);
 
-    model.ref('_room', roomPath);
+    model.ref('_page.room', roomPath);
     model.bundle(function(err, bundle) {
       if (err) return next(err);
       var html = indexPage({

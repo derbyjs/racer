@@ -3,7 +3,7 @@ require('racer').ready(function(model) {
   // need to do this normally
   window.model = model;
   // model.at() scopes all model operations underneath a particular path
-  setup(model.at('_room'));
+  setup(model.at('_page.room'));
 });
 
 function setup(model) {
