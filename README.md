@@ -63,7 +63,7 @@ Racer requires [Node v0.10](http://nodejs.org/). You will also need to have a [M
 The new branch of Racer is not yet published on npm. For testing, clone from GitHub or install via:
 
 ```
-$ npm install git://github.com/codeparty/racer.git#0.5
+$ npm install git://github.com/codeparty/racer.git
 ```
 
 The examples can then be run by:
@@ -88,14 +88,15 @@ $ coffee server.coffee
 Run the tests with
 
 ```
-$ npm test
+$ npm install -g grunt-cli
+$ grunt test
 ```
 
 ## Usage
 
 Racer can be used independently as shown in the examples, but Racer and Derby are designed to work especially well together. Racer can also be used along with other MVC frameworks, such as Angular.
 
-The previous version of Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/#models). The new version is similar, but lots of API specifics have changed slightly. New documentation is coming soon.
+For now, Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/#models).
 
 ### MIT License
 Copyright (c) 2011 by Brian Noguchi and Nate Smith
