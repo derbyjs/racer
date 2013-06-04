@@ -49,6 +49,49 @@ describe 'filter', ->
             first: 'Jeremy'
             last: 'Lin'
         expect(oneEqualsFilter(doc)).to.be.ok()
+  describe 'like', ->
+    it 'should be case-insensitive', ->
+        doc = 
+          name: 'ABC'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: 'abc' }
+        expect(filter doc).to.be.ok()
+    it 'should work with regex specials', ->
+        doc = 
+          name: 'a\\b$c'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: 'a\\b$c' }
+        expect(filter doc).to.be.ok()
+    it 'should not use dot as wildcard', ->
+        doc = 
+          name: 'abc'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: 'a.c' }
+        expect(filter doc).to.not.be.ok()
+    it 'should not use substring by default', ->
+        doc = 
+          name: 'abc'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: 'ab' }
+        expect(filter doc).to.not.be.ok()
+    it 'should work with prefix %', ->
+        doc = 
+          name: 'AAABC'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: '%bc' }
+        expect(filter doc).to.be.ok()
+    it 'should work with dual %', ->
+        doc = 
+          name: 'AAABCDDDD'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            like: { name: '%b%' }
+        expect(filter doc).to.be.ok()
 
   describe 'multiple equals', ->
     multiEqualsFilter = filterFnFromQuery
