@@ -6,3 +6,6 @@ test-output.tmp
 node_modules/
 examples/*/*.js
 scratch/
+lib-cov/
+coverage.html
+report/

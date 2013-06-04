@@ -34,7 +34,8 @@
     "racer-pubsub-redis": "*",
     "racer-db-mongo": "*",
     "coffee-script": "1.4.x",
-    "async": "*"
+    "async": "*",
+    "plato": "0.4.x"
   },
   "engines": {
     "node": ">=0.4.0"
