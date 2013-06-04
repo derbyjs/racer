@@ -176,6 +176,15 @@ describe 'Model.fn', ->
     model.set 'items.1.active', false
     model.pop 'items'
 
+  it 'updates when a dependency\'s parent is set xxx', () ->
+    model = new Model
+    model.set '_arg1', {}
+    model.fn '_out', '_arg1.value', (arg1Value) -> arg1Value
+    expect(model.get '_out').to.equal undefined
+
+    model.set '_arg1', {value:'foobar'}
+    expect(model.get '_out').to.equal 'foobar'
+
   # TODO: Investigate this later
   # it 'emits array diff events instead of sets', (done) ->
   #   model = new Model
