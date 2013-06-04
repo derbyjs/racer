@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.5.0alpha3",
+  "version": "0.5.0",
   "main": "./lib/index.js",
   "scripts": {
     "test": "grunt test"
