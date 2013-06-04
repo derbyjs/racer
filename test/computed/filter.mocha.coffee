@@ -49,6 +49,29 @@ describe 'filter', ->
             first: 'Jeremy'
             last: 'Lin'
         expect(oneEqualsFilter(doc)).to.be.ok()
+  describe 'regexp', ->
+    it 'should work with regex literals', ->
+        doc = 
+          name: 'ABC'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            regexp: { name: /abc/i }
+        expect(filter doc).to.be.ok()
+    it 'should work with strings', ->
+        doc = 
+          name: 'ABC'
+        filter = filterFnFromQuery
+            from: 'stuff'
+            regexp: { name: "B" }
+        expect(filter doc).to.be.ok()
+    it 'should work when created twice from the same source object', ->
+        doc = 
+          name: 'ABC'
+        filter = 
+            from: 'stuff'
+            regexp: { name: /abc/i }
+        expect((filterFnFromQuery filter) doc).to.be.ok()
+        expect((filterFnFromQuery filter) doc).to.be.ok()
 
   describe 'multiple equals', ->
     multiEqualsFilter = filterFnFromQuery
