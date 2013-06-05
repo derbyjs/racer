@@ -6,7 +6,9 @@
   "dependencies": {
     "express": "~3.2.3",
     "handlebars": "~1.0.10",
-    "racer-browserchannel": "git://github.com/codeparty/racer-browserchannel"
+    "racer-browserchannel": "~0.1.0",
+    "livedb-mongo": "~0.1.2",
+    "redis": "~0.8.3"
   },
   "private": true
 }
