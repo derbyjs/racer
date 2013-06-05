@@ -2,23 +2,23 @@ var fs = require('fs');
 var http = require('http');
 var express = require('express');
 var handlebars = require('handlebars');
+var liveDbMongo = require('livedb-mongo');
+var redis = require('redis').createClient();
+var racerBrowserChannel = require('racer-browserchannel');
 var racer = require('../../../racer');
 
-var app = express();
-var server = http.createServer(app);
+redis.select(14);
 var store = racer.createStore({
-  server: server
-, db: racer.db.mongo('localhost:27017/test?auto_reconnect', {safe: true})
+  db: liveDbMongo('localhost:27017/racer-pad?auto_reconnect', {safe: true})
+, redis: redis
 });
 
-store
-  .use(require('racer-browserchannel'))
-
+app = express();
 app
   .use(express.favicon())
-  .use(store.socketMiddleware())
-  .use(store.modelMiddleware())
   .use(express.compress())
+  .use(racerBrowserChannel(store))
+  .use(store.modelMiddleware())
   .use(app.router)
 
 app.use(function(err, req, res, next) {
@@ -89,6 +89,6 @@ app.get('/', function(req, res) {
 });
 
 var port = process.env.PORT || 3000;
-server.listen(port, function() {
+http.createServer(app).listen(port, function() {
   console.log('Go to http://localhost:' + port);
 });
