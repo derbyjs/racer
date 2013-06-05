@@ -2,23 +2,23 @@ fs = require 'fs'
 http = require 'http'
 coffeeify = require 'coffeeify'
 express = require 'express'
+liveDbMongo = require 'livedb-mongo'
+redis = require('redis').createClient()
+racerBrowserChannel = require 'racer-browserchannel'
 racer = require '../../../racer'
 templates = require './templates'
 
-app = express()
-server = http.createServer app
+redis.select 13
 store = racer.createStore
-  server: server
-  db: racer.db.mongo 'localhost:27017/test?auto_reconnect', safe: true
+  db: liveDbMongo('localhost:27017/racer-todos?auto_reconnect', safe: true)
+  redis: redis
 
-store
-  .use(require('racer-browserchannel'))
-
+app = express()
 app
   .use(express.favicon())
   .use(express.compress())
   .use(express.static __dirname + '/public')
-  .use(store.socketMiddleware())
+  .use(racerBrowserChannel store)
   .use(store.modelMiddleware())
   .use(app.router)
 
@@ -85,10 +85,12 @@ app.get '/:groupName', (req, res, next) ->
       list = model.refList '_page.list', 'todos', todoIds
       # model.bundle waits for any pending model operations to complete and then
       # returns the JSON data for initialization on the client
+      context = {list: list.get(), groupName}
       model.bundle (err, bundle) ->
         return next err if err
-        res.send templates.page({list: list.get(), bundle, groupName})
+        context.bundle = bundle
+        res.send templates.page(context)
 
 port = process.env.PORT || 3000;
-server.listen port, ->
+http.createServer(app).listen port, ->
   console.log 'Go to http://localhost:' + port
