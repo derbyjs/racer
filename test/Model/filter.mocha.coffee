@@ -1,7 +1,7 @@
 {expect} = require '../util'
 Model = require '../../lib/Model'
 
-describe.only 'filter', ->
+describe 'filter', ->
 
   describe 'getting', ->
 
