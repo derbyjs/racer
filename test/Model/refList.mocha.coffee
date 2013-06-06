@@ -477,3 +477,28 @@ describe 'ref', ->
       model = setup()
       expectToEvents model, done, []
       model.set 'list', []
+
+  describe.only 'fullPath option', ->
+
+    it 'sets the initial result', ->
+      model = (new Model).at '_page'
+      model.set 'colors',
+        green:
+          id: 'green'
+          rgb: [0, 255, 0]
+          hex: '#0f0'
+        red:
+          id: 'red'
+          rgb: [255, 0, 0]
+          hex: '#f00'
+      model.set 'ids', [
+        '_page.colors.red'
+        '_page.colors.green'
+        '_page.colors.red'
+      ]
+      scoped = model.refList 'list', 'colors', 'ids', {type: 'fullPath'}
+      expect(scoped.get()).to.eql [
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        {id: 'green', rgb: [0, 255, 0], hex: '#0f0'}
+        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+      ]
