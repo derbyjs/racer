@@ -502,7 +502,7 @@ describe 'ref', ->
 
       expect(model.get 'arrayIds').to.have.length(1)
 
-  describe.only 'fullPath option', ->
+  describe 'fullPath option', ->
 
     it 'sets the initial result', ->
       model = (new Model).at '_page'
