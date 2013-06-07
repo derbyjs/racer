@@ -477,3 +477,24 @@ describe 'ref', ->
       model = setup()
       expectToEvents model, done, []
       model.set 'list', []
+
+    it 'creates a document in `to` on an insert', ->
+      model = setup()
+      model.insert 'list', 0, {id: 'yellow'}
+      expect(model.get('colors.yellow')).to.eql {id: 'yellow'}
+
+    it 'creates a document in `to` on an insert of a doc with no id', ->
+      model = setup()
+      model.insert 'list', 0, {rgb: [1, 1, 1]}
+      newId = model.get('list.0').id
+      expect(model.get("colors.#{newId}")).to.eql {id: newId, rgb: [1, 1, 1]}
+
+  describe 'dereferencing', ->
+    it.only 'should be able to resolve a non-existent nested property as undefined, inside an event listener on refA (where refA -> refList) before refA or refList are declared', (done) ->
+      model = setup()
+      model.on 'insert', 'arrayAlias', ->
+        expect(model.get 'array.0.names.0').to.eql undefined
+        done()
+      model.refList 'array', 'colors', 'arrayIds'
+      model.ref 'arrayAlias', 'array'
+      model.insert 'array', 0, {rgb: [1, 1, 1]}
