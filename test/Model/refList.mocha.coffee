@@ -489,12 +489,14 @@ describe 'ref', ->
       newId = model.get('list.0').id
       expect(model.get("colors.#{newId}")).to.eql {id: newId, rgb: [1, 1, 1]}
 
-  describe 'dereferencing', ->
-    it.only 'should be able to resolve a non-existent nested property as undefined, inside an event listener on refA (where refA -> refList) before refA or refList are declared', (done) ->
+  describe 'event ordering', ->
+    it 'should be able to resolve a non-existent nested property as undefined, inside an event listener on refA (where refA -> refList)', (done) ->
       model = setup()
+      model.refList 'array', 'colors', 'arrayIds'
+      model.ref 'arrayAlias', 'array'
       model.on 'insert', 'arrayAlias', ->
         expect(model.get 'array.0.names.0').to.eql undefined
         done()
-      model.refList 'array', 'colors', 'arrayIds'
-      model.ref 'arrayAlias', 'array'
-      model.insert 'array', 0, {rgb: [1, 1, 1]}
+      model.insert 'arrayAlias', 0, {rgb: [1, 1, 1]}
+
+      expect(model.get 'arrayIds').to.have.length(1)
