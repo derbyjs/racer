@@ -36,6 +36,15 @@ describe 'ref', ->
         done()
       model.set '_page.colors.green.hex', '#0f0'
 
+    it 're-emits when a parent is changed', (done) ->
+      model = new Model
+      model.ref '_page.color', '_page.colors.green'
+      model.on 'change', '_page.color', (value) ->
+        expect(value).to.equal '#0e0'
+        done()
+      model.set '_page.colors',
+        green: '#0e0'
+
     it 're-emits on a ref to a ref', (done) ->
       model = new Model
       model.ref '_page.myFavorite', '_page.color'
