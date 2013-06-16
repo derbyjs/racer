@@ -27,5 +27,6 @@
     "grunt-simple-mocha": "~0.4.0",
     "grunt-contrib-jshint": "~0.4.3"
   },
-  "optionalDependencies": {}
+  "optionalDependencies": {},
+  "engines": { "node" : ">=0.10.0" }
 }
