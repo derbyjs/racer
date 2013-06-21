@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.5.4",
+  "version": "0.5.5",
   "main": "./lib/index.js",
   "scripts": {
     "test": "grunt test"
@@ -28,5 +28,7 @@
     "grunt-contrib-jshint": "~0.4.3"
   },
   "optionalDependencies": {},
-  "engines": { "node" : ">=0.10.0" }
+  "engines": {
+    "node": ">=0.10.0"
+  }
 }
