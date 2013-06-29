@@ -3,21 +3,21 @@ Model = require '../../lib/Model'
 
 describe 'ref', ->
 
-  setup = ->
-      model = (new Model).at '_page'
-      model.set 'colors',
-        green:
-          id: 'green'
-          rgb: [0, 255, 0]
-          hex: '#0f0'
-        red:
-          id: 'red'
-          rgb: [255, 0, 0]
-          hex: '#f00'
-      model.set 'ids', ['red', 'green', 'red']
-      model.refList 'list', 'colors', 'ids'
-      return model
-  
+  setup = (options) ->
+    model = (new Model).at '_page'
+    model.set 'colors',
+      green:
+        id: 'green'
+        rgb: [0, 255, 0]
+        hex: '#0f0'
+      red:
+        id: 'red'
+        rgb: [255, 0, 0]
+        hex: '#f00'
+    model.set 'ids', ['red', 'green', 'red']
+    model.refList 'list', 'colors', 'ids', options
+    return model
+
   expectEvents = (pattern, model, done, events) ->
     model.on 'all', pattern, ->
       events.shift() arguments...
@@ -501,3 +501,22 @@ describe 'ref', ->
       model.insert 'arrayAlias', 0, {rgb: [1, 1, 1]}
 
       expect(model.get 'arrayIds').to.have.length(1)
+
+  describe 'deleteRemoved', ->
+    it 'deletes the underlying object when an item is removed', ->
+      model = setup {deleteRemoved: true}
+      expect(model.get 'colors').to.eql
+        green:
+          id: 'green'
+          rgb: [0, 255, 0]
+          hex: '#0f0'
+        red:
+          id: 'red'
+          rgb: [255, 0, 0]
+          hex: '#f00'
+      model.remove 'list', 0
+      expect(model.get 'colors').to.eql
+        green:
+          id: 'green'
+          rgb: [0, 255, 0]
+          hex: '#0f0'
