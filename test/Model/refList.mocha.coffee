@@ -1,7 +1,7 @@
 {expect} = require '../util'
 Model = require '../../lib/Model'
 
-describe 'ref', ->
+describe 'refList', ->
 
   setup = (options) ->
     model = (new Model).at '_page'
