@@ -16,6 +16,7 @@ module.exports = function(grunt) {
       , shadow: true
       , expr: true
       , node: true
+      , boss: true
       }
     , all: ['Gruntfile.js', 'lib/**/*.js']
     }
