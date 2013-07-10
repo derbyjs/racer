@@ -60,10 +60,8 @@ Classic todo list demonstrating the use of Racer's model methods.
 
 Racer requires [Node v0.10](http://nodejs.org/). You will also need to have a [MongoDB](http://docs.mongodb.org/manual/installation/) and a [Redis](http://redis.io/download) server running on your machine. The examples will connect via the default configurations.
 
-The new branch of Racer is not yet published on npm. For testing, clone from GitHub or install via:
-
 ```
-$ npm install git://github.com/codeparty/racer.git
+$ npm install racer
 ```
 
 The examples can then be run by:
