@@ -171,7 +171,7 @@ describe('filter', function() {
     });
   });
 
-  return describe('ref updates as items are modified', function() {
+  describe('ref updates as items are modified', function() {
     it('supports filter of array', function() {
       var filter, model;
       model = (new Model).at('_page');
@@ -244,6 +244,21 @@ describe('filter', function() {
           id: yellowId
         }
       ]);
+    });
+  });
+
+  return describe('possibility to pass along a context (ctx) object', function() {
+    it('supports filter of array using ctx', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('numbers', function(number, i, numbers, ctx) {
+        return (number % ctx.val) === 0;
+      });
+      filter = model.filter('numbers', 'numbers', {
+        val: 2
+      });
+      return expect(filter.get()).to.eql([0, 4, 2, 0]);
     });
   });
 });
