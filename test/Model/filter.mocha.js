@@ -260,5 +260,33 @@ describe('filter', function() {
       });
       return expect(filter.get()).to.eql([0, 4, 2, 0]);
     });
+
+    return it('supports sort of array using ctx', function() {
+      var filter, model;  
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('numbers', function(a, b, ctx) {
+        var fn
+            ;
+
+        if(ctx.reverse) {
+          fn = model._namedFns['desc']
+        } else {
+          fn = model._namedFns['asc']
+        }
+
+        return fn(a, b);
+      });
+      filter = model.sort('numbers', 'numbers');
+      expect(filter.get).to.throwError();
+      filter = model.sort('numbers', 'numbers', {
+        reverse: false
+      });
+      expect(filter.get()).to.eql([0, 0, 1, 2, 3, 3, 4]);
+      filter = model.sort('numbers', 'numbers', {
+        reverse: true
+      });
+      return expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
+    });
   });
 });
