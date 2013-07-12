@@ -84,6 +84,7 @@ describe('filter', function() {
       return expect(filter.get()).to.eql([0, 0, 2, 4]);
     });
   });
+
   describe('initial value set by ref', function() {
     it('supports filter of array', function() {
       var filter, model;
