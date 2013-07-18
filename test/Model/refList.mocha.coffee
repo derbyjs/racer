@@ -454,7 +454,7 @@ describe 'refList', ->
       ]
       model.set 'list', [
         {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
-        {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
+        model.get('colors.red')
         {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
       ]
 
