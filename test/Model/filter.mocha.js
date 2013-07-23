@@ -185,6 +185,10 @@ describe('filter', function() {
       expect(model.get('out')).to.eql([0, 4, 2, 0, 6]);
       model.set('numbers.2', 1);
       expect(model.get('out')).to.eql([0, 2, 0, 6]);
+      model.remove('numbers', 1);
+      expect(model.get('out')).to.eql([0, 2, 0, 6]);
+      model.insert('numbers', 1, 1);
+      expect(model.get('out')).to.eql([0, 2, 0, 6]);
       model.del('numbers');
       expect(model.get('out')).to.eql([]);
       model.set('numbers', [1, 2, 0]);
