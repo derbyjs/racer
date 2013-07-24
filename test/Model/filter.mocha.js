@@ -175,23 +175,27 @@ describe('filter', function() {
     it('supports filter of array', function() {
       var filter, model;
       model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.set('numbers', [8, 3, 4, 1, 2, 3, 8]);
       filter = model.filter('numbers', function(number) {
         return (number % 2) === 0;
       });
       filter.ref('_page.out');
-      expect(model.get('out')).to.eql([0, 4, 2, 0]);
-      model.push('numbers', 6);
-      expect(model.get('out')).to.eql([0, 4, 2, 0, 6]);
-      model.set('numbers.2', 1);
-      expect(model.get('out')).to.eql([0, 2, 0, 6]);
-      model.remove('numbers', 1);
-      expect(model.get('out')).to.eql([0, 2, 0, 6]);
-      model.insert('numbers', 1, 1);
-      expect(model.get('out')).to.eql([0, 2, 0, 6]);
-      model.del('numbers');
+      expect(model.get('out')).to.eql([8, 4, 2, 8]);
+      model.push('numbers', 6); // [8, 3, 4, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 4, 2, 8, 6]);
+      model.set('numbers.2', 1); // [8, 3, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 2, 8, 6]);
+      model.remove('numbers', 1); // [8, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 2, 8, 6]);
+      model.insert('numbers', 1, 1); // [8, 1, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 2, 8, 6]);
+      model.remove('numbers', 2, 3); // [8, 1, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 8, 6]);
+      model.insert('numbers', 2, [1, 1, 2]); // [8, 1, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([8, 2, 8, 6]);
+      model.del('numbers'); // []
       expect(model.get('out')).to.eql([]);
-      model.set('numbers', [1, 2, 0]);
+      model.set('numbers', [1, 2, 0]); // [1, 2, 0]
       return expect(model.get('out')).to.eql([2, 0]);
     });
 
