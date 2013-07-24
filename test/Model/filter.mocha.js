@@ -199,6 +199,34 @@ describe('filter', function() {
       return expect(model.get('out')).to.eql([2, 0]);
     });
 
+    it('supports filter and sort of array simultaneously', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [8, 3, 4, 1, 2, 3, 8]);
+      filter = model.filter('numbers', function(number) {
+        return (number % 2) === 0;
+      });
+      filter.sort();
+      filter.ref('_page.out');
+      expect(model.get('out')).to.eql([2, 4, 8, 8]); // [4, 2, 0, 6]
+      model.push('numbers', 6); // [8, 3, 4, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([2, 4, 6, 8, 8]); // [4, 2, 0, 6, 7]
+      model.set('numbers.2', 1); // [8, 3, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([2, 6, 8, 8]); // [4, 0, 6, 7]
+      model.remove('numbers', 1); // [8, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([2, 6, 8, 8]); // [4, 0, 6, 7]
+      model.insert('numbers', 1, 1); // [8, 1, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([2, 6, 8, 8]);
+      model.remove('numbers', 2, 3); // [8, 1, 3, 8, 6]
+      expect(model.get('out')).to.eql([6, 8, 8]);
+      model.insert('numbers', 2, [1, 1, 2]); // [8, 1, 1, 1, 2, 3, 8, 6]
+      expect(model.get('out')).to.eql([2, 6, 8, 8]);
+      model.del('numbers'); // []
+      expect(model.get('out')).to.eql([]);
+      model.set('numbers', [1, 2, 0]); // [1, 2, 0]
+      return expect(model.get('out')).to.eql([0, 2]);
+    });
+
     return it('supports filter of object', function() {
       var filter, greenId, model, orangeId, redId, yellowId;
       model = (new Model).at('_page');
