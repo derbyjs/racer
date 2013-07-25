@@ -196,7 +196,20 @@ describe('filter', function() {
       model.del('numbers'); // []
       expect(model.get('out')).to.eql([]);
       model.set('numbers', [1, 2, 0]); // [1, 2, 0]
-      return expect(model.get('out')).to.eql([2, 0]);
+      expect(model.get('out')).to.eql([2, 0]);
+
+      // Highlight issue with one off index-wise in patch fns
+      model.del('numbers'); // []
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);  // [0, 1, 2, 3, 4, 5, 6]
+      filter.model.removeRefList(filter.from);
+      filter.filter(function (number) {
+        return (number % 6) !== 0;
+      })
+      filter.ref(filter.from);
+      model.remove('numbers', 3); // [0, 1, 2, 4, 5, 6]
+      expect(model.get('out')).to.eql([1, 2, 4, 5]);
+      model.insert('numbers', 3, 3); // [0, 1, 2, 3, 4, 5, 6]
+      return expect(model.get('out')).to.eql([1, 2, 3, 4, 5]);
     });
 
     it('supports filter and sort of array simultaneously', function() {
