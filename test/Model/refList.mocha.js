@@ -5,24 +5,30 @@ expect = require('../util').expect;
 Model = require('../../lib/Model');
 
 describe('refList', function() {
-  var expectEvents, expectFromEvents, expectIdsEvents, expectToEvents, setup;
-  setup = function(options) {
+  var expectEvents, expectFromEvents, expectArrayFromEvents, expectIdsEvents, expectToEvents, setup;
+  setup = function(options, array) {
     var model;
     model = (new Model).at('_page');
-    model.set('colors', {
-      green: {
-        id: 'green',
-        rgb: [0, 255, 0],
-        hex: '#0f0'
-      },
-      red: {
-        id: 'red',
-        rgb: [255, 0, 0],
-        hex: '#f00'
-      }
-    });
-    model.set('ids', ['red', 'green', 'red']);
-    model.refList('list', 'colors', 'ids', options);
+    if(!array) {
+      model.set('colors', {
+        green: {
+          id: 'green',
+          rgb: [0, 255, 0],
+          hex: '#0f0'
+        },
+        red: {
+          id: 'red',
+          rgb: [255, 0, 0],
+          hex: '#f00'
+        }
+      });
+      model.set('ids', ['red', 'green', 'red']);
+      model.refList('list', 'colors', 'ids', options);
+    } else {      
+      model.set('array', ['a', 'b']);
+      model.set('arrayIds', [0, 1]);
+      model.refList('arrayList', 'array', 'arrayIds', options);
+    }
     return model;
   };
   expectEvents = function(pattern, model, done, events) {
@@ -38,6 +44,9 @@ describe('refList', function() {
   };
   expectFromEvents = function(model, done, events) {
     return expectEvents('list**', model, done, events);
+  };
+  expectArrayFromEvents = function(model, done, events) {
+    return expectEvents('arrayList**', model, done, events);
   };
   expectToEvents = function(model, done, events) {
     return expectEvents('colors**', model, done, events);
@@ -854,7 +863,7 @@ describe('refList', function() {
       return expect(model.get('arrayIds')).to.have.length(1);
     });
   });
-  return describe('deleteRemoved', function() {
+  describe('deleteRemoved', function() {
     return it('deletes the underlying object when an item is removed', function() {
       var model;
       model = setup({
@@ -880,6 +889,19 @@ describe('refList', function() {
           hex: '#0f0'
         }
       });
+    });
+  });
+  return describe('arrays', function() {
+    return it('update on set', function(done) {
+      var model = setup({}, true);
+      expectArrayFromEvents(model, done, [
+        function(capture, method, value, previous) {
+          expect(method).to.equal('change');
+          expect(value).to.equal('c');
+          return expect(previous).to.equal('a');
+        }
+      ]);
+      return model.set('array.0', 'c');
     });
   });
 });
