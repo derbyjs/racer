@@ -200,12 +200,12 @@ describe('filter', function() {
 
       // Highlight issue with one off index-wise in patch fns
       model.del('numbers'); // []
+      expect(model.get('out')).to.eql([]);
       model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);  // [0, 1, 2, 3, 4, 5, 6]
-      filter.model.removeRefList(filter.from);
       filter.filter(function (number) {
         return (number % 6) !== 0;
-      })
-      filter.ref(filter.from);
+      }).update();
+      expect(model.get('out')).to.eql([1, 2, 3, 4, 5]);
       model.remove('numbers', 3); // [0, 1, 2, 4, 5, 6]
       expect(model.get('out')).to.eql([1, 2, 4, 5]);
       model.insert('numbers', 3, 3); // [0, 1, 2, 3, 4, 5, 6]
