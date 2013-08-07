@@ -6,7 +6,7 @@ Model = require('../../lib/Model');
 
 describe('path', function() {
   describe('ats', function() {
-    return it('sets the initial value to empty array if no inputs', function() {
+    return it('gets each at at the proper path', function() {
       var model;
       var ats;
       model = (new Model).at('_page');
