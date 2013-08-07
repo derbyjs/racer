@@ -326,6 +326,23 @@ describe('filter', function() {
       return expect(filter.get()).to.eql([0, 3, 4, 1, 2]); // Second time, if ctx is not cloned, it will not be the same
     });
 
+    it('ctx can be updated through .context fn', function() {
+      var filter, model;  
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('theXfirst', function(item, key, item, ctx) {
+        if(ctx.i > 5) return false;
+
+        ctx.i++;
+
+        return true;
+      });
+      filter = model.filter('numbers', 'theXfirst', {i: 1});
+      expect(filter.get()).to.eql([0, 3, 4, 1, 2]);
+      filter.context({i: 3});
+      return expect(filter.get()).to.eql([0, 3, 4]);
+    });
+
     return it('supports sort of array using ctx', function() {
       var filter, model;  
       model = (new Model).at('_page');
