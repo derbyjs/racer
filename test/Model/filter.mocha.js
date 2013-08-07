@@ -310,6 +310,22 @@ describe('filter', function() {
       return expect(filter.get()).to.eql([0, 4, 2, 0]);
     });
 
+    it('ctx is cloned (i.e. not copied by reference) when updating', function() {
+      var filter, model;  
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('the5first', function(item, key, item, ctx) {
+        if(ctx.i > 5) return false;
+
+        ctx.i++;
+
+        return true;
+      });
+      filter = model.filter('numbers', 'the5first', {i: 1});
+      expect(filter.get()).to.eql([0, 3, 4, 1, 2]); // First time will always be right
+      return expect(filter.get()).to.eql([0, 3, 4, 1, 2]); // Second time, if ctx is not cloned, it will not be the same
+    });
+
     return it('supports sort of array using ctx', function() {
       var filter, model;  
       model = (new Model).at('_page');
