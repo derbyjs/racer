@@ -296,7 +296,7 @@ describe('filter', function() {
     });
   });
 
-  return describe('possibility to pass along a context (ctx) object', function() {
+  describe('possibility to pass along a context (ctx) object', function() {
     it('supports filter of array using ctx', function() {
       var filter, model;
       model = (new Model).at('_page');
@@ -369,6 +369,35 @@ describe('filter', function() {
         reverse: true
       });
       return expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
+    });
+  });
+
+  return describe('ats', function() {
+    it("get a list of at straight from a non-ref'd filter", function() {
+      var filter, model, ats;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('numbers', function(number, i, numbers, ctx) {
+        return (number % 2) === 0;
+      });
+      filter = model.filter('numbers', 'numbers');
+      ats = filter.ats();
+      expect(ats.length).to.eql(4);
+      return expect(ats[0].path()).to.eql('_page.numbers.0');
+    });
+
+    it("get a list of at straight from a ref'd filter", function() {
+      var filter, model, ats;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('numbers', function(number, i, numbers, ctx) {
+        return (number % 2) === 0;
+      });
+      filter = model.filter('numbers', 'numbers');
+      filter.ref('_page.out')
+      ats = filter.ats();
+      expect(ats.length).to.eql(4);
+      return expect(ats[0].path()).to.eql('_page.out.0');
     });
   });
 });
