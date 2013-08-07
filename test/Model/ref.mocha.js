@@ -120,6 +120,60 @@ describe('ref', function() {
       return expect(model.get('_page.myFavorite')).to.equal('#0f0');
     });
   });
+  describe('dereference', function() {
+    it('normal dereference', function() {
+      var model;
+      model = new Model;
+      model.set('_page.colors.green', '#0f0');
+      expect(model.get('_page.color')).to.equal(void 0);
+      var ref = model.ref('_page.color', '_page.colors.green');
+      return expect(ref.dereference()).to.equal('_page.colors.green');
+    });
+    it('dereference with forArrayMutator using internal call', function() {
+      var model;
+      model = new Model;
+      model.setEach('_page.colors', {
+          green: {color: '#0f0', id: 'green'}
+        , blue: {color: '#f00', id: 'blue'}
+        , red: {color: '#00f', id: 'red'}
+        , lilac: {color: '#ff0', id: 'lilac'}
+        , purple: {color: '#0ff', id: 'purple'}
+        , marine: {color: '#f0f', id: 'marine'}
+        , white: {color: '#fff', id: 'white'}
+        , black: {color: '#000', id: 'black'}
+      });
+      model.set('_page.ids', ['green', 'lilac', 'marine']);
+      model.refList('_page.filteredColors', '_page.colors', '_page.ids');
+      expect(model.get('_page.filteredColors')[0]).to.equal(model.get('_page.colors')['green']);
+      expect(model.get('_page.filteredColors')[1]).to.equal(model.get('_page.colors')['lilac']);
+      expect(model.get('_page.filteredColors')[2]).to.equal(model.get('_page.colors')['marine']);
+      expect(model._dereference('_page.filteredColors.0'.split('.'), true).join('.')).to.equal('_page.colors.green');
+      expect(model._dereference('_page.filteredColors.1'.split('.'), true).join('.')).to.equal('_page.colors.lilac');
+      expect(model._dereference('_page.filteredColors.2'.split('.'), true).join('.')).to.equal('_page.colors.marine');
+    });
+    return it('dereference with forArrayMutator using external call', function() {
+      var model;
+      model = new Model;
+      model.setEach('_page.colors', {
+          green: {color: '#0f0', id: 'green'}
+        , blue: {color: '#f00', id: 'blue'}
+        , red: {color: '#00f', id: 'red'}
+        , lilac: {color: '#ff0', id: 'lilac'}
+        , purple: {color: '#0ff', id: 'purple'}
+        , marine: {color: '#f0f', id: 'marine'}
+        , white: {color: '#fff', id: 'white'}
+        , black: {color: '#000', id: 'black'}
+      });
+      model.set('_page.ids', ['green', 'lilac', 'marine']);
+      model.refList('_page.filteredColors', '_page.colors', '_page.ids');
+      expect(model.get('_page.filteredColors')[0]).to.equal(model.get('_page.colors')['green']);
+      expect(model.get('_page.filteredColors')[1]).to.equal(model.get('_page.colors')['lilac']);
+      expect(model.get('_page.filteredColors')[2]).to.equal(model.get('_page.colors')['marine']);
+      expect(model.dereference('_page.filteredColors.0', true)).to.equal('_page.colors.green');
+      expect(model.dereference('_page.filteredColors.1', true)).to.equal('_page.colors.lilac');
+      expect(model.dereference('_page.filteredColors.2', true)).to.equal('_page.colors.marine');
+    });
+  });
   return describe('updateIndices option', function() {
     it('updates a ref when an array insert happens at the `to` path', function() {
       var model;
