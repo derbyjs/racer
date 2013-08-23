@@ -296,6 +296,55 @@ describe('filter', function() {
     });
   });
 
+  describe('changes and events are performed/emitted in the proper order', function() {
+    // Since behavior differs between node's built in version of the event
+    // emitter and the browser shim provided by browser-builtins (used by 
+    // browserify), we cannot test the event order issue. However, there's
+    // an issue server-side that arises (due to the difference in behavior)
+    // that causes the ids to not update. This test checks this. When
+    // there's a structure for testing functionality in the browser, a test 
+    // should be written that tests that events emitted on the from path
+    // and their corresponding callbacks (e.g. on removal, blur events from
+    // input fields) gets called before the filter triggers an update.
+    it("filter order fixes doesn't break update of ids", function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.setEach('numbers', {
+          'a': {
+              nr: 1
+            , id: 'a'
+          }
+        , 'b': {
+              nr: 2
+            , id: 'b'
+          }
+        , 'c': {
+              nr: 3
+            , id: 'c'
+          }
+        , 'd': {
+              nr: 4
+            , id: 'd'
+          }
+        , 'e': {
+              nr: 5
+            , id: 'e'
+          }
+        , 'f': {
+              nr: 6
+            , id: 'f'
+          }
+      });
+      model.fn('numbers', function(number, i, numbers, ctx) {
+        return number && number.nr > 0;
+      });
+      filter = model.filter('numbers', 'numbers');
+      filter.ref('_page.output');
+      model.del('numbers.a');
+      return expect(model.parent().get(filter.idsSegments.join('.'))).to.eql(['b', 'c', 'd', 'e', 'f']);
+    });
+  });
+
   return describe('possibility to pass along a context (ctx) object', function() {
     it('supports filter of array using ctx', function() {
       var filter, model;
