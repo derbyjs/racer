@@ -296,6 +296,69 @@ describe('filter', function() {
     });
   });
 
+  describe('skip and limit', function() {
+    it('supports skipping', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      });
+      filter.skip(2);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3, 4, 5, 6]);
+    });
+
+    it('supports limiting', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      });
+      filter.limit(2);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([0, 1]);
+    });
+
+    it('supports skipping and limiting', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      });
+      filter.skip(2);
+      filter.limit(2);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3]);
+    });
+
+    it('supports skipping and limiting in skip fn simultaneously', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      });
+      filter.skip(2, 3);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3, 4]);
+    });
+
+    it('supports skipping and limiting in limit fn simultaneously', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      });
+      filter.limit(3, 2);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3, 4]);
+    });
+  });
+
   return describe('possibility to pass along a context (ctx) object', function() {
     it('supports filter of array using ctx', function() {
       var filter, model;
