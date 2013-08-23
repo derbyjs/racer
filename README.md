@@ -19,13 +19,13 @@ There are currently two demos, which are included under the examples directory. 
 
 <!-- http://pad.racerjs.com/home -->
 
-A very simple collaborative text editor.
+A very simple collaborative [text editor](https://github.com/codeparty/racer/tree/master/examples/pad).
 
 ### Todos
 
 <!-- http://todos.racerjs.com/home -->
 
-Classic todo list demonstrating the use of Racer's model methods.
+Classic [todo list](https://github.com/codeparty/racer/tree/master/examples/todos) demonstrating the use of Racer's model methods.
 
 
 ## Features
