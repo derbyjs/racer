@@ -346,6 +346,28 @@ describe('filter', function() {
       return expect(model.get('out')).to.eql([2, 3, 4]);
     });
 
+    it('supports passing skip and limit along when creating filter', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.filter('numbers', function(number) {
+        return true;
+      }, {}, 2, 3);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3, 4]);
+    });
+
+    it('supports passing skip and limit along when creating sort', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 1, 2, 3, 4, 5, 6]);
+      filter = model.sort('numbers', function(a, b) {
+        return -1;
+      }, {}, 2, 3);
+      filter.ref('_page.out');
+      return expect(model.get('out')).to.eql([2, 3, 4]);
+    });
+
     it('supports skipping and limiting in limit fn simultaneously', function() {
       var filter, model;
       model = (new Model).at('_page');
