@@ -25,7 +25,7 @@ module.exports = function(grunt) {
         reporter: 'spec'
       }
     , all: {
-        src: 'test/**/*.mocha.coffee'
+        src: 'test/**/*.mocha.js'
       }
     }
   });
