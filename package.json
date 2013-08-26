@@ -15,7 +15,7 @@
     "browserify": "~2.14.2",
     "uglify-js": "2.x",
     "node-uuid": "1.x",
-    "share": "0.7.x",
+    "share": "0.7.0alpha7",
     "deep-is": "~0.1.1",
     "arraydiff": "~0.1.1"
   },
