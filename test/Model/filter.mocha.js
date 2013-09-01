@@ -343,6 +343,17 @@ describe('filter', function() {
       return expect(filter.get()).to.eql([0, 3, 4]);
     });
 
+    it('supports ctx being null', function() {
+      var filter, model;
+      model = (new Model).at('_page');
+      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
+      model.fn('numbers', function(number, i, numbers, ctx) {
+        return (number % 2) === 0;
+      });
+      filter = model.filter('numbers', 'numbers', null);
+      return expect(filter.get()).to.eql([0, 4, 2, 0]);
+    });
+
     return it('supports sort of array using ctx', function() {
       var filter, model;  
       model = (new Model).at('_page');
