@@ -2,9 +2,13 @@
 RemoteDoc = require '../../lib/Model/RemoteDoc'
 docs = require './docs'
 
+modelMock =
+  data:
+    colors: {}
+
 describe 'RemoteDoc', ->
 
-  createDoc = -> new RemoteDoc 'colors', 'green'
+  createDoc = -> new RemoteDoc modelMock, 'colors', 'green'
 
   # docs createDoc
   describe 'create', ->
