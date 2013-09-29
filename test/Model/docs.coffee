@@ -96,12 +96,12 @@ module.exports = (createDoc) ->
       doc.set ['rgb', '1'], 255, ->
       doc.set ['rgb', '0'], 127, ->
       expect(doc.get()).eql {rgb: [127, 255, 0]}
-      
-    it.skip 'creates an implied object on an array', (done) ->
+
+    it 'creates an implied object on an array', ->
       doc = createDoc()
-      doc.set 'colors', []
-      doc.set 'colors.0.value', 'green'
-      expect(doc.get()).eql [{'value':'green'}]
+      doc.set ['colors'], [], ->
+      doc.set ['colors', '0', 'value'], 'green', ->
+      expect(doc.get()).eql {colors: [{value: 'green'}]}
 
   describe 'del', ->
 
