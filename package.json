@@ -16,7 +16,7 @@
     "share": "0.7.x",
     "deep-is": "~0.1.1",
     "arraydiff": "~0.1.1",
-    "browserify": "~2.36.0",
+    "browserify": "~3.4.0",
     "uglify-js": "~2.4.6",
     "convert-source-map": "~0.3.1"
   },
