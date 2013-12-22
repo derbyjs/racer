@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "node-uuid": "1.x",
-    "share": "0.7.x",
+    "share": "git://github.com/vmakhaev/ShareJS#master",
     "deep-is": "~0.1.1",
     "arraydiff": "~0.1.1",
     "browserify": "~3.4.0",
