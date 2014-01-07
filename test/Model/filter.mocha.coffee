@@ -15,8 +15,6 @@ describe 'filter', ->
     it 'supports sort of array', ->
       model = (new Model).at '_page'
       model.set 'numbers', [0, 3, 4, 1, 2, 3, 0]
-      filter = model.sort 'numbers'
-      expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'desc'
@@ -42,8 +40,6 @@ describe 'filter', ->
       model = (new Model).at '_page'
       for number in [0, 3, 4, 1, 2, 3, 0]
         model.set 'numbers.' + model.id(), number
-      filter = model.sort 'numbers'
-      expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'desc'
@@ -71,8 +67,6 @@ describe 'filter', ->
     it 'supports sort of array', ->
       model = (new Model).at '_page'
       model.set 'numbers', [0, 3, 4, 1, 2, 3, 0]
-      filter = model.sort 'numbers'
-      expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'desc'
@@ -101,8 +95,6 @@ describe 'filter', ->
       model = (new Model).at '_page'
       for number in [0, 3, 4, 1, 2, 3, 0]
         model.set 'numbers.' + model.id(), number
-      filter = model.sort 'numbers'
-      expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
       filter = model.sort 'numbers', 'desc'
