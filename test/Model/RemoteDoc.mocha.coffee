@@ -117,9 +117,10 @@ describe 'RemoteDoc', ->
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
       events = 0
+      # the single howMany > 1 move is split into lots of howMany==1 moves
       remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
         expect(from).to.equal 1
-        expect(to).to.equal 3 + events
+        expect(to).to.equal 4
         if ++events == 2
           done()
 
