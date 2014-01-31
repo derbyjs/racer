@@ -29,12 +29,13 @@ describe 'RemoteDoc', ->
 
   remote = null
   createDoc = ->
-    local = new RemoteDoc createModel(), 'colors', 'green'
-    remote = new RemoteDoc createModel(), 'colors', 'green'
+    localDoc = new RemoteDoc createModel(), 'colors', 'green'
+    remoteDoc = new RemoteDoc createModel(), 'colors', 'green'
     # Link the two models explicitly, so we can test event content
-    local.shareDoc.on 'op', (op, isLocal) ->
-      remote._onOp(op)
-    local
+    localDoc.shareDoc.on 'op', (op, isLocal) ->
+      remoteDoc._onOp(op)
+    remote = remoteDoc.model.at('colors.green')
+    localDoc
 
   describe 'create', ->
     it 'should set the collectionName and id properties', ->
@@ -50,7 +51,7 @@ describe 'RemoteDoc', ->
       doc = createDoc()
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
         expect(from).to.equal 4
         expect(to).to.equal 0
         done()
@@ -63,7 +64,7 @@ describe 'RemoteDoc', ->
       doc = createDoc()
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
         expect(from).to.equal 1
         expect(to).to.equal 0
         done()
@@ -76,7 +77,7 @@ describe 'RemoteDoc', ->
       doc = createDoc()
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
         expect(from).to.equal 0
         expect(to).to.equal 4
         done()
@@ -90,7 +91,7 @@ describe 'RemoteDoc', ->
       doc = createDoc()
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures, from, to, howMany, passed) ->
         expect(from).to.equal 0
         expect(to).to.equal -1
         done()
@@ -103,7 +104,7 @@ describe 'RemoteDoc', ->
       doc = createDoc()
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
         expect(from).to.equal -1
         expect(to).to.equal 2
         done()
@@ -118,14 +119,26 @@ describe 'RemoteDoc', ->
 
       events = 0
       # the single howMany > 1 move is split into lots of howMany==1 moves
-      remote.model.on 'move', (captures, [from, to, howMany, passed]) ->
+      remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
         expect(from).to.equal 1
         expect(to).to.equal 4
-        if ++events == 2
-          done()
+        done() if ++events == 2
 
       # note that destination is index after removal of items
       moved = doc.move ['array'], 1, 3, 2, ->
       expect(moved).eql [1, 2]
       expect(doc.get()).eql {array: [0, 3, 4, 1, 2]}
+
+    it 'can raise events registered on array indices', (done) ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      remote.on 'change', 'array.0', (value, previous) ->
+        expect(value).to.equal 1 
+        expect(previous).to.equal 0
+        done()
+
+      previous = doc.set ['array', '0'], 1
+      expect(previous).equal 0
+      expect(doc.get()).eql {array: [1, 1, 2, 3, 4]}
 
