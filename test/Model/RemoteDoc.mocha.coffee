@@ -93,7 +93,7 @@ describe 'RemoteDoc', ->
 
       remote.on 'move', '**', (captures, from, to, howMany, passed) ->
         expect(from).to.equal 0
-        expect(to).to.equal -1
+        expect(to).to.equal 3
         done()
 
       moved = doc.move ['array'], 0, -1, 1, ->
@@ -105,7 +105,7 @@ describe 'RemoteDoc', ->
       doc.set ['array'], [0, 1, 2, 3, 4], ->
 
       remote.on 'move', '**', (captures..., from, to, howMany, passed) ->
-        expect(from).to.equal -1
+        expect(from).to.equal 3
         expect(to).to.equal 2
         done()
 
