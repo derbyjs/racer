@@ -11,6 +11,7 @@ redis.select(14);
 var store = racer.createStore({
   db: liveDbMongo('localhost:27017/racer-pad?auto_reconnect', {safe: true})
 , redis: redis
+, bulkSubscribe:true
 });
 
 app = express();
