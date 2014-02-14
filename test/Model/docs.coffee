@@ -155,3 +155,55 @@ module.exports = (createDoc) ->
       doc.push ['friends'], ['x'], (err) ->
         expect(err).a TypeError
         done()
+
+  describe 'move', ->
+
+    it 'can move an item from the end to the beginning of the array', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      moved = doc.move ['array'], 4, 0, 1, ->
+      expect(moved).eql [4]
+      expect(doc.get()).eql {array: [4, 0, 1, 2, 3]}
+
+    it 'can swap the first two items in the array', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      moved = doc.move ['array'], 1, 0, 1, ->
+      expect(moved).eql [1]
+      expect(doc.get()).eql {array: [1, 0, 2, 3, 4]}
+
+    it 'can move an item from the begnning to the end of the array', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      # note that destination is index after removal of item
+      moved = doc.move ['array'], 0, 4, 1, ->
+      expect(moved).eql [0]
+      expect(doc.get()).eql {array: [1, 2, 3, 4, 0]}
+
+    it 'supports a negative destination index of -1 (for last)', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      moved = doc.move ['array'], 0, -1, 1, ->
+      expect(moved).eql [0]
+      expect(doc.get()).eql {array: [1, 2, 3, 4, 0]}
+
+    it 'supports a negative source index of -1 (for last)', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      moved = doc.move ['array'], -1, 2, 1, ->
+      expect(moved).eql [4]
+      expect(doc.get()).eql {array: [0, 1, 4, 2, 3]}
+
+    it 'can move several items mid-array, with an event for each', ->
+      doc = createDoc()
+      doc.set ['array'], [0, 1, 2, 3, 4], ->
+
+      # note that destination is index after removal of items
+      moved = doc.move ['array'], 1, 3, 2, ->
+      expect(moved).eql [1, 2]
+      expect(doc.get()).eql {array: [0, 3, 4, 1, 2]}
