@@ -2,13 +2,13 @@
 LocalDoc = require '../../lib/Model/LocalDoc'
 docs = require './docs'
 
-modelMock =
-  data:
-    _colors: {}
-
 describe 'LocalDoc', ->
 
-  createDoc = -> new LocalDoc modelMock, '_colors', 'green'
+  createDoc = ->
+    modelMock =
+      data:
+        _colors: {}
+    new LocalDoc modelMock, '_colors', 'green'
 
   describe 'create', ->
     it 'should set the collectionName and id properties', ->
