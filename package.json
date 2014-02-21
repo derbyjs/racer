@@ -26,7 +26,8 @@
     "expect.js": "~0.2.0",
     "coffee-script": "~1.6.2",
     "grunt-simple-mocha": "~0.4.0",
-    "grunt-contrib-jshint": "~0.4.3"
+    "grunt-contrib-jshint": "~0.8",
+    "jshint": "~2.4"
   },
   "optionalDependencies": {},
   "engines": {

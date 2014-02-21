@@ -1,0 +1,4 @@
+node_modules/**
+examples/**
+package.json
+
