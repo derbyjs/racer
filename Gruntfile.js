@@ -1,31 +1,21 @@
 module.exports = function(grunt) {
 
-  grunt.initConfig({
-    jshint: {
-      options: {
-        laxcomma: true
-      , eqnull: true
-      , eqeqeq: true
-      , indent: 2
-      , newcap: true
-      , quotmark: 'single'
-      , undef: true
-      , trailing: true
-      , supernew: true
-      , funcscope: true
-      , shadow: true
-      , expr: true
-      , node: true
-      , boss: true
+  grunt.initConfig(
+  { jshint:
+    { src:
+      [ 'Gruntfile.js'
+      , 'lib/**/*.js'
+      ]
+    , options:
+      { jshintrc: '.jshintrc'
       }
-    , all: ['Gruntfile.js', 'lib/**/*.js']
     }
-  , simplemocha: {
-      options: {
-        reporter: 'spec'
+  , simplemocha:
+    { options:
+      { reporter: 'spec'
       }
-    , all: {
-        src: 'test/**/*.mocha.coffee'
+    , all:
+      { src: 'test/**/*.mocha.coffee'
       }
     }
   });
