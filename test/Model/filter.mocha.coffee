@@ -131,13 +131,13 @@ describe 'filter', ->
 
     it 'supports filter of object', ->
       model = (new Model).at '_page'
-      greenId = model.add 'colors'
+      greenId = model.add 'colors',
         name: 'green'
         primary: true
-      orangeId = model.add 'colors'
+      orangeId = model.add 'colors',
         name: 'orange'
         primary: false
-      redId = model.add 'colors'
+      redId = model.add 'colors',
         name: 'red'
         primary: true
       filter = model.filter 'colors', (color) -> color.primary
@@ -150,7 +150,7 @@ describe 'filter', ->
       expect(model.get 'out').to.eql [
         {name: 'red', primary: true, id: redId}
       ]
-      yellowId = model.add 'colors'
+      yellowId = model.add 'colors',
         name: 'yellow'
         primary: true
       expect(model.get 'out').to.eql [

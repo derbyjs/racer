@@ -1,7 +1,3 @@
+.DS_Store
 *.swp
-*.un~
-*.gz
-*.rdb
-test-output.tmp
-node_modules/
-scratch/
+node_modules

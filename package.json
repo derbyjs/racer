@@ -9,26 +9,19 @@
   "version": "0.5.14",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "./node_modules/.bin/grunt test"
+    "test": "./node_modules/.bin/mocha test/**/*.mocha.coffee && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
   },
   "dependencies": {
-    "node-uuid": "1.x",
-    "share": "0.7.x",
-    "deep-is": "~0.1.1",
     "arraydiff": "~0.1.1",
-    "browserify": "~3.19.0",
-    "uglify-js": "~2.4.6",
-    "convert-source-map": "~0.3.1"
+    "deep-is": "~0.1.1",
+    "node-uuid": "~1.4.1",
+    "share": "0.7.x"
   },
   "devDependencies": {
-    "grunt": "~0.4.1",
-    "mocha": "~1.9.0",
-    "expect.js": "~0.2.0",
-    "coffee-script": "~1.6.2",
-    "grunt-cli": "^0.1.13",
-    "grunt-simple-mocha": "~0.4.0",
-    "grunt-contrib-jshint": "~0.8",
-    "jshint": "~2.4"
+    "coffee-script": "~1.7.1",
+    "expect.js": "~0.3.1",
+    "jshint": "~2.4.4",
+    "mocha": "~1.17.1"
   },
   "optionalDependencies": {},
   "engines": {
