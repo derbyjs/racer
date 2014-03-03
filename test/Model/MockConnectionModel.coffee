@@ -5,7 +5,7 @@ Model = require '../../lib/Model'
 module.exports = MockConnectionModel = ->
   Model.apply this, arguments
 MockConnectionModel:: = Object.create Model::
-MockConnectionModel::_createConnection = ->
+MockConnectionModel::createConnection = ->
   socketMock =
     send: (message) ->
     close: ->

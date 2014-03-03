@@ -7,7 +7,7 @@ describe 'RemoteDoc', ->
 
   createDoc = ->
     model = new Model
-    model._createConnection()
+    model.createConnection()
     model.data.colors = {}
     return new RemoteDoc model, 'colors', 'green'
 

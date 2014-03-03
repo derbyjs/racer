@@ -119,9 +119,9 @@ describe 'Model events', ->
   describe 'remote events', ->
     createModels = ->
       localModel = new Model()
-      localModel._createConnection()
+      localModel.createConnection()
       remoteModel = new Model()
-      remoteModel._createConnection()
+      remoteModel.createConnection()
 
       # Link the two models explicitly, so we can test event content
       localDoc = localModel.getOrCreateDoc 'colors', 'green'
