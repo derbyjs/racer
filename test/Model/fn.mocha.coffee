@@ -10,7 +10,7 @@ describe 'fn', ->
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
-      result = model.evaluate 'sum', '_nums.a', '_nums.b'
+      result = model.evaluate '_nums.a', '_nums.b', 'sum'
       expect(result).to.equal 6
 
     it 'supports fn with an object', ->
@@ -19,7 +19,7 @@ describe 'fn', ->
         get: (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
-      result = model.evaluate 'sum', '_nums.a', '_nums.b'
+      result = model.evaluate '_nums.a', '_nums.b', 'sum'
       expect(result).to.equal 6
 
     it 'supports fn with variable arguments', ->
@@ -31,7 +31,7 @@ describe 'fn', ->
       model.set '_nums.a', 2
       model.set '_nums.b', 4
       model.set '_nums.c', 7
-      result = model.evaluate 'sum', '_nums.a', '_nums.b', '_nums.c'
+      result = model.evaluate '_nums.a', '_nums.b', '_nums.c', 'sum'
       expect(result).to.equal 13
 
     it 'supports scoped model paths', ->
@@ -40,9 +40,9 @@ describe 'fn', ->
       $nums = model.at '_nums'
       $nums.set 'a', 2
       $nums.set 'b', 4
-      result = model.evaluate 'sum', '_nums.a', '_nums.b'
+      result = model.evaluate '_nums.a', '_nums.b', 'sum'
       expect(result).to.equal 6
-      result = $nums.evaluate 'sum', 'a', 'b'
+      result = $nums.evaluate 'a', 'b', 'sum'
       expect(result).to.equal 6
 
   describe 'start and stop with getter', ->
@@ -52,7 +52,7 @@ describe 'fn', ->
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
-      value = model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
+      value = model.start '_nums.sum', '_nums.a', '_nums.b', 'sum'
       expect(value).to.equal 6
       expect(model.get '_nums.sum').to.equal 6
 
@@ -61,7 +61,7 @@ describe 'fn', ->
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
-      model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
+      model.start '_nums.sum', '_nums.a', '_nums.b', 'sum'
       expect(model.get '_nums.sum').to.equal 6
       model.set '_nums.a', 5
       expect(model.get '_nums.sum').to.equal 9
@@ -70,7 +70,7 @@ describe 'fn', ->
       model = new Model
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.in', {a: 2,  b: 4}
-      model.start 'sum', '_nums.sum', '_nums.in.a', '_nums.in.b'
+      model.start '_nums.sum', '_nums.in.a', '_nums.in.b', 'sum'
       expect(model.get '_nums.sum').to.equal 6
       model.set '_nums.in', {a: 5, b: 7}
       expect(model.get '_nums.sum').to.equal 12
@@ -80,7 +80,7 @@ describe 'fn', ->
       count = 0
       model.fn 'sum', (a, b) -> count++; a + b
       model.set '_nums.in', {a: 2,  b: 4}
-      model.start 'sum', '_nums.sum', '_nums.in.a', '_nums.in.b'
+      model.start '_nums.sum', '_nums.in.a', '_nums.in.b', 'sum'
       expect(model.get '_nums.sum').to.equal 6
       expect(count).to.equal 1
       model.set '_nums.in.a', 3
@@ -99,7 +99,7 @@ describe 'fn', ->
       model.fn 'sum', (a, b) -> a + b
       model.set '_nums.a', 2
       model.set '_nums.b', 4
-      model.start 'sum', '_nums.sum', '_nums.a', '_nums.b'
+      model.start '_nums.sum', '_nums.a', '_nums.b', 'sum'
       model.set '_nums.a', 1
       expect(model.get '_nums.sum').to.equal 5
       model.stop '_nums.sum'
@@ -116,7 +116,7 @@ describe 'fn', ->
       model.set '_user.name',
         first: 'John'
         last: 'Smith'
-      model.at('_user.name').start 'fullName', 'full', 'first', 'last'
+      model.at('_user.name').start 'full', 'first', 'last', 'fullName'
       expect(model.get '_user.name').to.eql
         first: 'John'
         last: 'Smith'
@@ -139,7 +139,7 @@ describe 'fn', ->
           {x: 1, y: 2}
           {x: 2, y: 0}
         ]
-      model.start 'unity', '_test.out', '_test.in'
+      model.start '_test.out', '_test.in', 'unity'
       model.on 'all', '_test.out**', (path, event) ->
         expect(event).to.equal 'move'
         expect(path).to.equal 'a'
@@ -157,7 +157,7 @@ describe 'fn', ->
           {x: 1, y: 2}
           {x: 2, y: 0}
         ]
-      model.start 'unity', '_test.out', '_test.in'
+      model.start '_test.out', '_test.in', 'unity'
       model.on 'all', '_test.in**', (path, event) ->
         expect(event).to.equal 'move'
         expect(path).to.equal 'a'
@@ -175,7 +175,7 @@ describe 'fn', ->
           {x: 1, y: 2}
           {x: 2, y: 0}
         ]
-      model.start 'unity', '_test.out', '_test.in'
+      model.start '_test.out', '_test.in', 'unity'
       model.on 'all', '_test.out**', (path, event) ->
         expect(event).to.equal 'change'
         expect(path).to.equal 'a.0.x'
@@ -193,7 +193,7 @@ describe 'fn', ->
           {x: 1, y: 2}
           {x: 2, y: 0}
         ]
-      model.start 'unity', '_test.out', '_test.in'
+      model.start '_test.out', '_test.in', 'unity'
       model.on 'all', '_test.in**', (path, event) ->
         expect(event).to.equal 'change'
         expect(path).to.equal 'a.0.x'
