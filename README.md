@@ -86,8 +86,7 @@ $ coffee server.coffee
 Run the tests with
 
 ```
-$ npm install -g grunt-cli
-$ grunt test
+$ npm test
 ```
 
 ## Usage
