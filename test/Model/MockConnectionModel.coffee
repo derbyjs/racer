@@ -15,6 +15,3 @@ MockConnectionModel::createConnection = ->
     onopen: ->
     onconnecting: ->
   @root.shareConnection = new share.client.Connection(socketMock)
-# Invoke the callback immediately, for bundling
-MockConnectionModel::whenNothingPending = (cb) ->
-  cb()
