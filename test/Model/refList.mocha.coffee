@@ -1,5 +1,5 @@
 {expect} = require '../util'
-Model = require '../../lib/Model'
+Model = require './MockConnectionModel' # '../../lib/Model'
 
 describe 'refList', ->
 
@@ -520,3 +520,60 @@ describe 'refList', ->
           id: 'green'
           rgb: [0, 255, 0]
           hex: '#0f0'
+
+    it 'correctly dereferences nested lists when items are removed', (done) ->
+      serverModel = new Model()
+      serverModel.createConnection()
+      serverModel.getOrCreateDoc 'test', 'one'
+
+      model = serverModel.ref '_page.test', 'test.one'
+      model.set 'colors',
+        green:
+          id: 'green'
+          rgb: [0, 255, 0]
+          hex: '#0f0'
+        red:
+          id: 'red'
+          rgb: [255, 0, 0]
+          hex: '#f00'
+        blue:
+          id: 'blue'
+          rgb: [0, 0, 255]
+          hex: '#00f'
+        white:
+          id: 'white'
+          rgb: [255, 255, 255]
+          hex: '#fff'
+      model.set 'palettes',
+        nature:
+          id: 'nature'
+          colors: ['green', 'blue', 'white']
+        flag:
+          id: 'flag'
+          colors: ['red', 'white', 'blue']
+      model.set 'schemes', ['nature', 'flag']
+
+      choices = serverModel.refList '_page.choices', model.path('palettes'), model.path('schemes'), {deleteRemoved: true}
+      choice = serverModel.ref '_page.choice', choices.path(0), {updateIndices: true}
+      paint = serverModel.refList '_page.paint', model.path('colors'), choice.path('colors'), {deleteRemoved: true}
+
+      model.bundle (err, bundle) ->
+        # Fake a version number for the non-_page collection
+        bundle.collections.test.one.v = 1
+
+        clientModel = new Model()
+        clientModel.createConnection()
+        clientModel.unbundle(bundle)
+
+        #events = 0
+        list = clientModel.scope '_page.paint'
+        list.on 'remove', '', (index, removed) ->
+          expect(index).to.equal 1
+          #console.log removed[0].id
+          expect(removed).to.eql [
+            {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+          ]
+          done() #if ++events == 2
+
+        list.remove 1
+
