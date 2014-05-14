@@ -1,5 +1,5 @@
 {expect} = require '../util'
-Model = require './MockConnectionModel' # '../../lib/Model'
+Model = require '../../lib/Model'
 
 describe 'refList', ->
 
