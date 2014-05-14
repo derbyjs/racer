@@ -521,29 +521,16 @@ describe 'refList', ->
           rgb: [0, 255, 0]
           hex: '#0f0'
 
-    it 'correctly dereferences nested lists when items are removed', (done) ->
-      serverModel = new Model()
-      serverModel.createConnection()
-      serverModel.getOrCreateDoc 'test', 'one'
-
-      model = serverModel.ref '_page.test', 'test.one'
-      model.set 'colors',
-        green:
-          id: 'green'
-          rgb: [0, 255, 0]
-          hex: '#0f0'
-        red:
-          id: 'red'
-          rgb: [255, 0, 0]
-          hex: '#f00'
-        blue:
-          id: 'blue'
-          rgb: [0, 0, 255]
-          hex: '#00f'
-        white:
-          id: 'white'
-          rgb: [255, 255, 255]
-          hex: '#fff'
+    it 'correctly dereferences chained lists/refs when items are removed', (done) ->
+      model = setup()
+      model.add 'colors',
+        id: 'blue'
+        rgb: [0, 0, 255]
+        hex: '#00f'
+      model.add 'colors',
+        id: 'white'
+        rgb: [255, 255, 255]
+        hex: '#fff'
       model.set 'palettes',
         nature:
           id: 'nature'
@@ -553,16 +540,12 @@ describe 'refList', ->
           colors: ['red', 'white', 'blue']
       model.set 'schemes', ['nature', 'flag']
 
-      choices = serverModel.refList '_page.choices', model.path('palettes'), model.path('schemes'), {deleteRemoved: true}
-      choice = serverModel.ref '_page.choice', choices.path(0), {updateIndices: true}
-      paint = serverModel.refList '_page.paint', model.path('colors'), choice.path('colors'), {deleteRemoved: true}
+      choices = model.refList 'choices', 'palettes', 'schemes', {deleteRemoved: true}
+      choice = model.ref 'choice', 'choices.0', {updateIndices: true}
+      paint = model.refList 'paint', 'colors', 'choice.colors', {deleteRemoved: true}
 
       model.bundle (err, bundle) ->
-        # Fake a version number for the non-_page collection
-        bundle.collections.test.one.v = 1
-
         clientModel = new Model()
-        clientModel.createConnection()
         clientModel.unbundle(bundle)
 
         #events = 0
