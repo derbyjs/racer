@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.6.0-alpha12",
+  "version": "0.6.0-alpha13",
   "main": "./lib/index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha test/**/*.mocha.coffee && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
