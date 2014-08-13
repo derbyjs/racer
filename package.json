@@ -15,7 +15,7 @@
     "arraydiff": "~0.1.1",
     "deep-is": "~0.1.1",
     "node-uuid": "~1.4.1",
-    "share": "0.7.0"
+    "share": "~0.7.1"
   },
   "devDependencies": {
     "coffee-script": "~1.7.1",
