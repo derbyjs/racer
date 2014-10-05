@@ -12,10 +12,10 @@
     "test": "./node_modules/.bin/mocha test/**/*.mocha.coffee && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
   },
   "dependencies": {
-    "arraydiff": "~0.1.1",
-    "deep-is": "~0.1.1",
-    "node-uuid": "~1.4.1",
-    "share": "~0.7.1"
+    "arraydiff": "^0.1.1",
+    "deep-is": "^0.1.3",
+    "uuid": "^2.0.1",
+    "share": "^0.7.3"
   },
   "devDependencies": {
     "coffee-script": "~1.7.1",
