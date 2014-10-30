@@ -9,7 +9,7 @@
   "version": "0.6.0-alpha22",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha test/**/*.mocha.coffee && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
+    "test": "./node_modules/.bin/mocha test/**/*.mocha.js && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
   },
   "dependencies": {
     "arraydiff": "^0.1.1",
@@ -18,7 +18,6 @@
     "share": "^0.7.3"
   },
   "devDependencies": {
-    "coffee-script": "~1.7.1",
     "expect.js": "~0.3.1",
     "jshint": "~2.4.4",
     "mocha": "~1.17.1"

@@ -30,7 +30,8 @@ describe 'filter', ->
 
     it 'supports filter of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       filter = model.filter 'numbers', (number, id, numbers) ->
         return (number % 2) == 0
@@ -38,7 +39,8 @@ describe 'filter', ->
 
     it 'supports sort of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
@@ -47,7 +49,8 @@ describe 'filter', ->
 
     it 'supports filter and sort of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       model.fn 'even', (number) ->
         return (number % 2) == 0
@@ -84,7 +87,8 @@ describe 'filter', ->
 
     it 'supports filter of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       filter = model.filter 'numbers', (number) ->
         return (number % 2) == 0
@@ -93,7 +97,8 @@ describe 'filter', ->
 
     it 'supports sort of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       filter = model.sort 'numbers', 'asc'
       expect(filter.get()).to.eql [0, 0, 1, 2, 3, 3, 4]
@@ -103,7 +108,8 @@ describe 'filter', ->
 
     it 'supports filter and sort of object', ->
       model = (new Model).at '_page'
-      for number in [0, 3, 4, 1, 2, 3, 0]
+      numbers = [0, 3, 4, 1, 2, 3, 0]
+      for number in numbers
         model.set 'numbers.' + model.id(), number
       model.fn 'even', (number) ->
         return (number % 2) == 0
