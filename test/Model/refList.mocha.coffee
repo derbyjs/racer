@@ -136,7 +136,7 @@ describe 'refList', ->
       ]
 
     it 'emits on `from` when `ids` are inserted', (done) ->
-      model = setup()   
+      model = setup()
       model.on 'all', 'list**', (capture, method, index, inserted) ->
         expect(capture).to.equal ''
         expect(method).to.equal 'insert'
@@ -207,14 +207,14 @@ describe 'refList', ->
       id = model.add 'profiles', { tagIds: tagIds }
       model.push 'profileIds', id
       model.refList 'profilesList', 'profiles', 'profileIds'
-      
+
       #ref a single item from collection
       model.ref 'profile', 'profilesList.0'
-      
+
       #remove from nested refList
       model.refList 'tagsList', 'tags', 'profile.tagIds'
       model.remove('tagsList', 0)
-      
+
   describe 'updates on `to` mutations', ->
 
     it 'updates the value when `to` is set', ->
@@ -429,7 +429,7 @@ describe 'refList', ->
         red: {id: 'red', rgb: [255, 0, 0], hex: '#f00'}
         blue: {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
         yellow: {id: 'yellow', rgb: [255, 255, 0], hex: '#ff0'}
-        
+
       model.at('list.0').remove()
       expect(model.get 'ids').to.eql ['yellow', 'red']
       expect(model.get 'colors').to.eql
@@ -521,21 +521,17 @@ describe 'refList', ->
           colors: ['red', 'white', 'blue']
       model.set 'schemes', ['nature', 'flag']
 
-      choices = model.refList 'choices', 'palettes', 'schemes'
-      choice = model.ref 'choice', 'choices.0'
+      model.refList 'choices', 'palettes', 'schemes'
+      model.ref 'choice', 'choices.0'
       paint = model.refList 'paint', 'colors', 'choice.colors'
 
-      #events = 0
-      list = model.scope '_page.paint'
-      list.on 'remove', '', (index, removed) ->
+      paint.on 'remove', (index, removed) ->
         expect(index).to.equal 1
-        #console.log removed[0].id
         expect(removed).to.eql [
           {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
         ]
-        done() #if ++events == 2
-
-      list.remove 1
+        done()
+      paint.remove 1
 
   describe 'deleteRemoved', ->
 
