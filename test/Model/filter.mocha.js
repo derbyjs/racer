@@ -3,30 +3,15 @@ var Model = require('../../lib/Model');
 
 describe('filter', function() {
   describe('getting', function() {
-    it('supports filter of array', function() {
+    it('does not support array', function() {
       var model = (new Model).at('_page');
       model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
       var filter = model.filter('numbers', function(number, i, numbers) {
         return (number % 2) === 0;
       });
-      expect(filter.get()).to.eql([0, 4, 2, 0]);
-    });
-    it('supports sort of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      filter = model.sort('numbers', 'asc');
-      expect(filter.get()).to.eql([0, 0, 1, 2, 3, 3, 4]);
-      filter = model.sort('numbers', 'desc');
-      expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
-    });
-    it('supports filter and sort of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      model.fn('even', function(number) {
-        return (number % 2) === 0;
-      });
-      var filter = model.filter('numbers', 'even').sort();
-      expect(filter.get()).to.eql([0, 0, 2, 4]);
+      expect(function() {
+        filter.get();
+      }).to.throwException();
     });
     it('supports filter of object', function() {
       var model = (new Model).at('_page');
@@ -64,34 +49,6 @@ describe('filter', function() {
     });
   });
   describe('initial value set by ref', function() {
-    it('supports filter of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      var filter = model.filter('numbers', function(number) {
-        return (number % 2) === 0;
-      });
-      filter.ref('_page.out');
-      expect(model.get('out')).to.eql([0, 4, 2, 0]);
-    });
-    it('supports sort of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      filter = model.sort('numbers', 'asc');
-      expect(filter.get()).to.eql([0, 0, 1, 2, 3, 3, 4]);
-      filter = model.sort('numbers', 'desc');
-      filter.ref('_page.out');
-      expect(model.get('out')).to.eql([4, 3, 3, 2, 1, 0, 0]);
-    });
-    it('supports filter and sort of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      model.fn('even', function(number) {
-        return (number % 2) === 0;
-      });
-      var filter = model.filter('numbers', 'even').sort();
-      filter.ref('_page.out');
-      expect(model.get('out')).to.eql([0, 0, 2, 4]);
-    });
     it('supports filter of object', function() {
       var model = (new Model).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -131,23 +88,6 @@ describe('filter', function() {
     });
   });
   describe('ref updates as items are modified', function() {
-    it('supports filter of array', function() {
-      var model = (new Model).at('_page');
-      model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      var filter = model.filter('numbers', function(number) {
-        return (number % 2) === 0;
-      });
-      filter.ref('_page.out');
-      expect(model.get('out')).to.eql([0, 4, 2, 0]);
-      model.push('numbers', 6);
-      expect(model.get('out')).to.eql([0, 4, 2, 0, 6]);
-      model.set('numbers.2', 1);
-      expect(model.get('out')).to.eql([0, 2, 0, 6]);
-      model.del('numbers');
-      expect(model.get('out')).to.eql([]);
-      model.set('numbers', [1, 2, 0]);
-      expect(model.get('out')).to.eql([2, 0]);
-    });
     it('supports filter of object', function() {
       var model = (new Model).at('_page');
       var greenId = model.add('colors', {
