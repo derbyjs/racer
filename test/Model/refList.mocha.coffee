@@ -502,7 +502,43 @@ describe 'refList', ->
 
       expect(model.get 'arrayIds').to.have.length(1)
 
+    it 'correctly dereferences chained lists/refs when items are removed', (done) ->
+      model = setup()
+      model.add 'colors',
+        id: 'blue'
+        rgb: [0, 0, 255]
+        hex: '#00f'
+      model.add 'colors',
+        id: 'white'
+        rgb: [255, 255, 255]
+        hex: '#fff'
+      model.set 'palettes',
+        nature:
+          id: 'nature'
+          colors: ['green', 'blue', 'white']
+        flag:
+          id: 'flag'
+          colors: ['red', 'white', 'blue']
+      model.set 'schemes', ['nature', 'flag']
+
+      choices = model.refList 'choices', 'palettes', 'schemes'
+      choice = model.ref 'choice', 'choices.0'
+      paint = model.refList 'paint', 'colors', 'choice.colors'
+
+      #events = 0
+      list = model.scope '_page.paint'
+      list.on 'remove', '', (index, removed) ->
+        expect(index).to.equal 1
+        #console.log removed[0].id
+        expect(removed).to.eql [
+          {id: 'blue', rgb: [0, 0, 255], hex: '#00f'}
+        ]
+        done() #if ++events == 2
+
+      list.remove 1
+
   describe 'deleteRemoved', ->
+
     it 'deletes the underlying object when an item is removed', ->
       model = setup {deleteRemoved: true}
       expect(model.get 'colors').to.eql
@@ -520,3 +556,4 @@ describe 'refList', ->
           id: 'green'
           rgb: [0, 255, 0]
           hex: '#0f0'
+
