@@ -64,9 +64,10 @@ Racer requires [Node v0.10](http://nodejs.org/). You will also need to have a [M
 $ npm install racer
 ```
 
-The examples can then be run by:
+The examples (<= v0.5.14) can then be run by:
 
 ```
+$ npm install racer@0.5.14
 $ cd node_modules/racer/examples/pad
 $ npm install
 $ node server.js
