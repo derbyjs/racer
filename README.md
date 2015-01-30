@@ -13,20 +13,10 @@ If you are interested in contributing, please reach out to [Nate](https://github
 
 ## Demos
 
-There are currently two demos, which are included under the examples directory. See [Installation](#installation) below.
+There are currently two demos, which are included in the [racer-examples](https://github.com/derbyjs/racer-examples) repo.
 
-### Pad
-
-<!-- http://pad.racerjs.com/home -->
-
-A very simple collaborative [text editor](https://github.com/codeparty/racer-examples/tree/master/pad).
-
-### Todos
-
-<!-- http://todos.racerjs.com/home -->
-
-Classic [todo list](https://github.com/codeparty/racer-examples/tree/master/todos) demonstrating the use of Racer's model methods.
-
+  * [Pad](https://github.com/derbyjs/racer-examples/tree/master/pad) &ndash; A very simple collaborative text editor.
+  * [Todos](https://github.com/derbyjs/racer-examples/tree/master/todos) &ndash; Classic todo list demonstrating the use of Racer's model methods.
 
 ## Features
 
@@ -62,24 +52,6 @@ Racer requires [Node v0.10](http://nodejs.org/). You will also need to have a [M
 
 ```
 $ npm install racer
-```
-
-The examples (<= v0.5.14) can then be run by:
-
-```
-$ npm install racer@0.5.14
-$ cd node_modules/racer/examples/pad
-$ npm install
-$ node server.js
-```
-
-and
-
-```
-$ cd node_modules/racer/examples/todos
-$ npm install
-$ npm install -g coffee-script
-$ coffee server.coffee
 ```
 
 ## Tests
