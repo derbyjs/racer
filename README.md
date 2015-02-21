@@ -65,7 +65,7 @@ $ npm test
 
 Racer can be used independently as shown in the examples, but Racer and Derby are designed to work especially well together. Racer can also be used along with other MVC frameworks, such as Angular.
 
-For now, Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/#models).
+For now, Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/docs/derby-0.6/models).
 
 ### MIT License
 Copyright (c) 2011 by Brian Noguchi and Nate Smith
