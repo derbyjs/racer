@@ -30,7 +30,7 @@ describe('filter', function() {
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
       }
-      filter = model.sort('numbers', 'asc');
+      var filter = model.sort('numbers', 'asc');
       expect(filter.get()).to.eql([0, 0, 1, 2, 3, 3, 4]);
       filter = model.sort('numbers', 'desc');
       expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
@@ -67,7 +67,7 @@ describe('filter', function() {
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
       }
-      filter = model.sort('numbers', 'asc');
+      var filter = model.sort('numbers', 'asc');
       expect(filter.get()).to.eql([0, 0, 1, 2, 3, 3, 4]);
       filter = model.sort('numbers', 'desc');
       filter.ref('_page.out');
