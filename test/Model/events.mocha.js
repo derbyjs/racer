@@ -125,6 +125,7 @@ describe('Model events', function() {
       var remoteModel = new Model();
       remoteModel.createConnection();
       var localDoc = localModel.getOrCreateDoc('colors', 'green');
+      localDoc.create();
       var remoteDoc = remoteModel.getOrCreateDoc('colors', 'green');
       localDoc.shareDoc.on('op', function(op, isLocal) {
         remoteDoc._onOp(op);

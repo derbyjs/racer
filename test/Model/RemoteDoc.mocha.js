@@ -8,7 +8,9 @@ describe('RemoteDoc', function() {
     var model = new Model;
     model.createConnection();
     model.data.colors = {};
-    return new RemoteDoc(model, 'colors', 'green');
+    var doc = new RemoteDoc(model, 'colors', 'green');
+    doc.create();
+    return doc;
   };
   describe('create', function() {
     it('should set the collectionName and id properties', function() {
