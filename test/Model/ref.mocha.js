@@ -103,6 +103,33 @@ describe('ref', function() {
       expect(model.get('_page.myFavorite')).to.equal('#0f0');
     });
   });
+  describe('event/add ordering', function() {
+    it('ref results are propogated when set in reponse to an event', function() {
+      var model = new Model;
+      model.on('change', '_page.start', function() {
+        model.ref('_page.myColor', '_page.color');
+        model.ref('_page.yourColor', '_page.color');
+        model.set('_page.yourColor', 'green');
+      });
+      model.set('_page.start', true);
+      expect(model.get('_page.color')).to.equal('green');
+      expect(model.get('_page.myColor')).to.equal('green');
+    });
+    it('can create refList in event callback', function() {
+      var model = new Model;
+      model.on('change', '_page.start', function() {
+        model.set('_page.colors', {
+          red: '#f00',
+          green: '#0f0',
+          blue: '#00f'
+        });
+        model.set('_page.ids', ['blue', 'green']);
+        model.refList('_page.list', '_page.colors', '_page.ids');
+      });
+      model.set('_page.start', true);
+      expect(model.get('_page.list')).to.eql(['#00f', '#0f0']);
+    });
+  });
   describe('updateIndices option', function() {
     it('updates a ref when an array insert happens at the `to` path', function() {
       var model = new Model;
