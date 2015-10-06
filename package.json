@@ -15,12 +15,12 @@
     "arraydiff": "^0.1.1",
     "deep-is": "^0.1.3",
     "uuid": "^2.0.1",
-    "share": "^0.7.32"
+    "sharedb": "^0.8.0"
   },
   "devDependencies": {
-    "expect.js": "~0.3.1",
-    "jshint": "~2.4.4",
-    "mocha": "~1.17.1"
+    "expect.js": "^0.3.1",
+    "jshint": "^2.8.0",
+    "mocha": "^2.3.3"
   },
   "optionalDependencies": {},
   "engines": {

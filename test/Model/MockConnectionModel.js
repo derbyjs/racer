@@ -1,4 +1,4 @@
-var share = require('share');
+var ShareConnection = require('sharedb/lib/client').Connection;
 var Model = require('../../lib/Model');
 
 module.exports = MockConnectionModel;
@@ -18,5 +18,5 @@ MockConnectionModel.prototype.createConnection = function() {
     onopen: function() {},
     onconnecting: function() {}
   };
-  this.root.shareConnection = new share.client.Connection(socketMock);
+  this.root.shareConnection = new ShareConnection(socketMock);
 };

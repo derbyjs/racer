@@ -1,6 +1,6 @@
 # Racer
 
-Racer is a realtime model synchronization engine for Node.js. By leveraging [ShareJS](http://sharejs.org/), multiple users can interact with the same data in realtime via Operational Transformation, a sophisticated conflict resolution algorithm that works in realtime and with offline clients. ShareJS also supports PubSub across multiple servers for horizontal scaling. Clients can express data subscriptions and fetches in terms of queries and specific documents, so different clients can be subscribed to different overlapping sets of data. On top of this sophisticated backend, Racer provides a simple model and event interface for writing application logic.
+Racer is a realtime model synchronization engine for Node.js. By leveraging [ShareDB](https://github.com/share/sharedb), multiple users can interact with the same data in realtime via Operational Transformation, a sophisticated conflict resolution algorithm that works in realtime and with offline clients. ShareDB also supports PubSub across multiple servers for horizontal scaling. Clients can express data subscriptions and fetches in terms of queries and specific documents, so different clients can be subscribed to different overlapping sets of data. On top of this sophisticated backend, Racer provides a simple model and event interface for writing application logic.
 
 [![Build Status](https://travis-ci.org/derbyjs/racer.svg)](https://travis-ci.org/derbyjs/racer)
 
@@ -23,7 +23,7 @@ There are currently two demos, which are included in the [racer-examples](https:
 
   * **Realtime query subscriptions** &ndash; Clients may subscribe to a limited set of information relevant to the current session. Both document and realtime query subscriptions are supported. Currently, arbitrary Mongo queries are supported.
 
-  * **Conflict resolution** &ndash; Leveraging ShareJS's JSON Operational Transformation algorithm, Racer will emit events that bring conflicting client states into eventual consistency. In addition to their synchronous API, model methods have callbacks for handling the resolved state after a server response.
+  * **Conflict resolution** &ndash; Leveraging ShareDB's JSON Operational Transformation algorithm, Racer will emit events that bring conflicting client states into eventual consistency. In addition to their synchronous API, model methods have callbacks for handling the resolved state after a server response.
 
   * **Immediate interaction** &ndash; Model methods appear to take effect immediately. Meanwhile, Racer sends updates to the server and checks for conflicts. If the updates are successful, they are stored and broadcast to other clients.
 
@@ -31,7 +31,7 @@ There are currently two demos, which are included in the [racer-examples](https:
 
   * **Unified server and client interface** &ndash; The same model interface can be used on the server for initial page rendering and on the client for user interaction. Racer supports bundling models created on the server and reinitializing them in the same state in the browser.
 
-  * **Persistent storage** &ndash; Racer/ShareJS use [LiveDB](https://github.com/josephg/livedb) to keep a journal of all data operations, publish operations to multiple frontend servers, and automatically persist documents. It currently supports MongoDB, and it can be easily adapted to support other document stores.
+  * **Persistent storage** &ndash; Racer uses [ShareDB](https://github.com/share/sharedb) to keep a journal of all data operations, publish operations to multiple frontend servers, and automatically persist documents. It currently supports MongoDB, and it can be easily adapted to support other document stores.
 
   * **Access control** &ndash; (Under development) Racer will have hooks for access control to protect documents from malicious reads and writes.
 
