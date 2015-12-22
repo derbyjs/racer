@@ -18,5 +18,5 @@ MockConnectionModel.prototype.createConnection = function() {
     onopen: function() {},
     onconnecting: function() {}
   };
-  this.root.shareConnection = new ShareConnection(socketMock);
+  this.root.connection = new ShareConnection(socketMock);
 };
