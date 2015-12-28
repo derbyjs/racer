@@ -19,7 +19,7 @@ There are currently two demos, which are included in the [racer-examples](https:
 
 ## Features
 
-  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [racer-browserchannel](https://github.com/codeparty/racer-browserchannel) adapter is recommended for connecting browsers in realtime.
+  * **Realtime updates** &ndash; Model methods automatically propagate changes among browser clients and Node servers in realtime. The [racer-browserchannel](https://github.com/derbyjs/racer-browserchannel) adapter is recommended for connecting browsers in realtime.
 
   * **Realtime query subscriptions** &ndash; Clients may subscribe to a limited set of information relevant to the current session. Both document and realtime query subscriptions are supported. Currently, arbitrary Mongo queries are supported.
 
