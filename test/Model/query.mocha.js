@@ -1,7 +1,7 @@
 var expect = require('../util').expect;
 var Model = require('../../lib/Model');
 
-describe.only('query', function() {
+describe('query', function() {
   describe('sanitizeQuery', function() {
     it('replaces undefined with null in object query expressions', function() {
       var model = new Model();
