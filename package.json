@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/codeparty/racer.git"
   },
-  "version": "0.7.0",
+  "version": "0.8.4",
   "main": "./lib/index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha test/**/*.mocha.js && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
@@ -15,7 +15,7 @@
     "arraydiff": "^0.1.1",
     "deep-is": "^0.1.3",
     "uuid": "^2.0.1",
-    "sharedb": "^0.8.0"
+    "sharedb": "^0.11.0"
   },
   "devDependencies": {
     "expect.js": "^0.3.1",
