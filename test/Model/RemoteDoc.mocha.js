@@ -1,14 +1,13 @@
 var expect = require('../util').expect;
-var Model = require('./MockConnectionModel');
+var racer = require('../../lib/index');
 var RemoteDoc = require('../../lib/Model/RemoteDoc');
 var docs = require('./docs');
 
 describe('RemoteDoc', function() {
   function createDoc() {
-    var model = new Model;
-    model.createConnection();
-    model.data.colors = {};
-    var doc = new RemoteDoc(model, 'colors', 'green');
+    var backend = racer.createBackend();
+    var model = backend.createModel();
+    var doc = model.getOrCreateDoc('colors', 'green');
     doc.create();
     return doc;
   };
