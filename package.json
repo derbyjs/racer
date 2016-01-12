@@ -9,7 +9,7 @@
   "version": "0.8.7",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha test/**/*.mocha.js && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
+    "test": "mocha test/**/*.mocha.js && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
   },
   "dependencies": {
     "arraydiff": "^0.1.1",
@@ -25,5 +25,13 @@
   "optionalDependencies": {},
   "engines": {
     "node": ">=0.10.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/derbyjs/racer/issues"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "author": "Nate Smith",
+  "license": "MIT"
 }
