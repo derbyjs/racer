@@ -4,7 +4,7 @@
   "homepage": "http://racerjs.com/",
   "repository": {
     "type": "git",
-    "url": "git://github.com/codeparty/racer.git"
+    "url": "git://github.com/derbyjs/racer.git"
   },
   "version": "0.8.7",
   "main": "./lib/index.js",
