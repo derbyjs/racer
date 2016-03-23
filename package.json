@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/derbyjs/racer.git"
   },
-  "version": "0.8.10",
+  "version": "0.8.11",
   "main": "./lib/index.js",
   "scripts": {
     "test": "mocha test/**/*.mocha.js && ./node_modules/.bin/jshint lib/*.js lib/**/*.js"
