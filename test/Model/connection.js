@@ -2,9 +2,7 @@ var expect = require('../util').expect;
 var racer = require('../../lib/index');
 
 describe('connection', function() {
-
   describe('getAgent', function() {
-
     it('returns a reference to the ShareDB agent on the server', function() {
       var backend = racer.createBackend();
       var model = backend.createModel();
@@ -21,6 +19,5 @@ describe('connection', function() {
         done();
       });
     });
-
   });
 });

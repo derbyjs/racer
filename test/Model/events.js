@@ -2,10 +2,9 @@ var expect = require('../util').expect;
 var racer = require('../../lib/index');
 
 describe('Model events', function() {
-
   describe('mutator events', function() {
     it('calls earlier listeners in the order of mutations', function(done) {
-      var model = (new racer.Model).at('_page');
+      var model = (new racer.Model()).at('_page');
       var expectedPaths = ['a', 'b', 'c'];
       model.on('change', '**', function(path) {
         expect(path).to.equal(expectedPaths.shift());
@@ -22,7 +21,7 @@ describe('Model events', function() {
       model.set('a', 1);
     });
     it('calls later listeners in the order of mutations', function(done) {
-      var model = (new racer.Model).at('_page');
+      var model = (new racer.Model()).at('_page');
       model.on('change', 'a', function() {
         model.set('b', 2);
       });
@@ -66,7 +65,7 @@ describe('Model events', function() {
     describe('move', function() {
       it('can move an item from the end to the beginning of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4]);
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(4);
           expect(to).to.equal(0);
           done();
@@ -75,7 +74,7 @@ describe('Model events', function() {
       });
       it('can swap the first two items in the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(1);
           expect(to).to.equal(0);
           done();
@@ -84,7 +83,7 @@ describe('Model events', function() {
       });
       it('can move an item from the begnning to the end of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(0);
           expect(to).to.equal(4);
           done();
@@ -93,7 +92,7 @@ describe('Model events', function() {
       });
       it('supports a negative destination index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(0);
           expect(to).to.equal(4);
           done();
@@ -102,7 +101,7 @@ describe('Model events', function() {
       });
       it('supports a negative source index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(4);
           expect(to).to.equal(2);
           done();
@@ -112,7 +111,7 @@ describe('Model events', function() {
       it('can move several items mid-array, with an event for each', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         var events = 0;
-        this.remote.on('move', '**', function(captures, from, to, howMany, passed) {
+        this.remote.on('move', '**', function(captures, from, to) {
           expect(from).to.equal(1);
           expect(to).to.equal(4);
           if (++events === 2) {

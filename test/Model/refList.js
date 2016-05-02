@@ -3,7 +3,7 @@ var Model = require('../../lib/Model');
 
 describe('refList', function() {
   function setup(options) {
-    var model = (new Model).at('_page');
+    var model = (new Model()).at('_page');
     model.set('colors', {
       green: {
         id: 'green',
@@ -38,7 +38,7 @@ describe('refList', function() {
   }
   describe('sets output on initial call', function() {
     it('sets the initial value to empty array if no inputs', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.refList('empty', 'colors', 'noIds');
       expect(model.get('empty')).to.eql([]);
     });
@@ -63,7 +63,7 @@ describe('refList', function() {
   });
   describe('updates on `ids` mutations', function() {
     it('updates the value when `ids` is set', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('colors', {
         green: {
           id: 'green',
@@ -96,7 +96,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `ids` is set', function(done) {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('colors', {
         green: {
           id: 'green',
@@ -161,7 +161,7 @@ describe('refList', function() {
           id: 'green',
           rgb: [0, 255, 0],
           hex: '#0f0'
-        }, void 0
+        }, undefined
       ]);
     });
     it('emits on `from` when `ids` children are set', function(done) {
@@ -211,7 +211,7 @@ describe('refList', function() {
           id: 'red',
           rgb: [255, 0, 0],
           hex: '#f00'
-        }, void 0, {
+        }, undefined, {
           id: 'red',
           rgb: [255, 0, 0],
           hex: '#f00'
@@ -237,7 +237,7 @@ describe('refList', function() {
         expect(method).to.equal('insert');
         expect(index).to.equal(1);
         expect(inserted).to.eql([
-          void 0, {
+          undefined, {
             id: 'red',
             rgb: [255, 0, 0],
             hex: '#f00'
@@ -335,7 +335,7 @@ describe('refList', function() {
   });
   describe('emits events involving multiple refLists', function() {
     it('removes data from a refList pointing to data in another refList', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var tagId = model.add('tags', {
         text: 'hi'
       });
@@ -352,10 +352,10 @@ describe('refList', function() {
   });
   describe('updates on `to` mutations', function() {
     it('updates the value when `to` is set', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
-      expect(model.get('list')).to.eql([void 0, void 0, void 0]);
+      expect(model.get('list')).to.eql([undefined, undefined, undefined]);
       model.set('colors', {
         green: {
           id: 'green',
@@ -385,7 +385,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `to` is set', function(done) {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       expectFromEvents(model, done, [
@@ -393,7 +393,7 @@ describe('refList', function() {
           expect(capture).to.equal('');
           expect(method).to.equal('remove');
           expect(index).to.equal(0);
-          expect(removed).to.eql([void 0, void 0, void 0]);
+          expect(removed).to.eql([undefined, undefined, undefined]);
         }, function(capture, method, index, inserted) {
           expect(capture).to.equal('');
           expect(method).to.equal('insert');
@@ -429,7 +429,7 @@ describe('refList', function() {
       });
     });
     it('updates the value when `to` children are set', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       model.set('colors.green', {
@@ -438,11 +438,11 @@ describe('refList', function() {
         hex: '#0f0'
       });
       expect(model.get('list')).to.eql([
-        void 0, {
+        undefined, {
           id: 'green',
           rgb: [0, 255, 0],
           hex: '#0f0'
-        }, void 0
+        }, undefined
       ]);
       model.set('colors.red', {
         id: 'red',
@@ -470,7 +470,7 @@ describe('refList', function() {
           id: 'red',
           rgb: [255, 0, 0],
           hex: '#f00'
-        }, void 0, {
+        }, undefined, {
           id: 'red',
           rgb: [255, 0, 0],
           hex: '#f00'
@@ -478,7 +478,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `to` children are set', function(done) {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       expectFromEvents(model, done, [
@@ -490,7 +490,7 @@ describe('refList', function() {
             rgb: [255, 0, 0],
             hex: '#f00'
           });
-          expect(previous).to.equal(void 0);
+          expect(previous).to.equal(undefined);
         }, function(capture, method, value, previous) {
           expect(capture).to.equal('2');
           expect(method).to.equal('change');
@@ -499,7 +499,7 @@ describe('refList', function() {
             rgb: [255, 0, 0],
             hex: '#f00'
           });
-          expect(previous).to.equal(void 0);
+          expect(previous).to.equal(undefined);
         }
       ]);
       model.set('colors.red', {
@@ -572,7 +572,7 @@ describe('refList', function() {
       model.set('colors.red.rgb.0', 238);
     });
     it('updates the value when inserting on `to` children', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('nums', {
         even: [2, 4, 6],
         odd: [1, 3]
@@ -584,7 +584,7 @@ describe('refList', function() {
       expect(model.get('list')).to.eql([[2, 4, 6, 8], [1, 3], [2, 4, 6, 8]]);
     });
     it('emits on `from` when inserting on `to` children', function(done) {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('nums', {
         even: [2, 4, 6],
         odd: [1, 3]
@@ -722,7 +722,7 @@ describe('refList', function() {
             rgb: [0, 0, 255],
             hex: '#00f'
           });
-          expect(previous).to.eql(void 0);
+          expect(previous).to.eql(undefined);
         }, function(capture, method, value, previous) {
           expect(capture).to.equal('yellow');
           expect(method).to.equal('change');
@@ -731,7 +731,7 @@ describe('refList', function() {
             rgb: [255, 255, 0],
             hex: '#ff0'
           });
-          expect(previous).to.eql(void 0);
+          expect(previous).to.eql(undefined);
         }
       ]);
       model.set('list', [
@@ -792,7 +792,7 @@ describe('refList', function() {
         rgb: [1, 1, 1]
       });
       var newId = model.get('list.0').id;
-      expect(model.get("colors." + newId)).to.eql({
+      expect(model.get('colors.' + newId)).to.eql({
         id: newId,
         rgb: [1, 1, 1]
       });
@@ -804,7 +804,7 @@ describe('refList', function() {
       model.refList('array', 'colors', 'arrayIds');
       model.ref('arrayAlias', 'array');
       model.on('insert', 'arrayAlias', function() {
-        expect(model.get('array.0.names.0')).to.eql(void 0);
+        expect(model.get('array.0.names.0')).to.eql(undefined);
         done();
       });
       model.insert('arrayAlias', 0, {

@@ -4,9 +4,9 @@ var Model = require('../../lib/Model');
 describe('filter', function() {
   describe('getting', function() {
     it('does not support array', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
-      var filter = model.filter('numbers', function(number, i, numbers) {
+      var filter = model.filter('numbers', function(number) {
         return (number % 2) === 0;
       });
       expect(function() {
@@ -14,18 +14,18 @@ describe('filter', function() {
       }).to.throwException();
     });
     it('supports filter of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
       }
-      var filter = model.filter('numbers', function(number, id, numbers) {
+      var filter = model.filter('numbers', function(number) {
         return (number % 2) === 0;
       });
       expect(filter.get()).to.eql([0, 4, 2, 0]);
     });
     it('supports sort of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
@@ -36,7 +36,7 @@ describe('filter', function() {
       expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
     });
     it('supports filter and sort of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
@@ -50,7 +50,7 @@ describe('filter', function() {
   });
   describe('initial value set by ref', function() {
     it('supports filter of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
@@ -62,7 +62,7 @@ describe('filter', function() {
       expect(model.get('out')).to.eql([0, 4, 2, 0]);
     });
     it('supports sort of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
@@ -74,7 +74,7 @@ describe('filter', function() {
       expect(model.get('out')).to.eql([4, 3, 3, 2, 1, 0, 0]);
     });
     it('supports filter and sort of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
@@ -89,12 +89,12 @@ describe('filter', function() {
   });
   describe('ref updates as items are modified', function() {
     it('supports filter of object', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var greenId = model.add('colors', {
         name: 'green',
         primary: true
       });
-      var orangeId = model.add('colors', {
+      model.add('colors', {
         name: 'orange',
         primary: false
       });
@@ -142,7 +142,7 @@ describe('filter', function() {
       ]);
     });
     it('supports additional dynamic inputs', function() {
-      var model = (new Model).at('_page');
+      var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
         model.set('numbers.' + model.id(), numbers[i]);
