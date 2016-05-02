@@ -1,4 +1,4 @@
 --reporter spec
 --timeout 1200
---bail
 --check-leaks
+--recursive
