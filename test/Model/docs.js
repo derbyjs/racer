@@ -4,7 +4,7 @@ module.exports = function(createDoc) {
   describe('get', function() {
     it('creates an undefined doc', function() {
       var doc = createDoc();
-      expect(doc.get()).eql(void 0);
+      expect(doc.get()).eql(undefined);
     });
     it('gets a defined doc', function() {
       var doc = createDoc();
@@ -17,17 +17,17 @@ module.exports = function(createDoc) {
     });
     it('gets a property on an undefined document', function() {
       var doc = createDoc();
-      expect(doc.get(['x'])).eql(void 0);
+      expect(doc.get(['x'])).eql(undefined);
     });
     it('gets an undefined property', function() {
       var doc = createDoc();
       doc.set([], {}, function() {});
-      expect(doc.get(['x'])).eql(void 0);
+      expect(doc.get(['x'])).eql(undefined);
     });
     it('gets a defined property', function() {
       var doc = createDoc();
       doc.set([], {
-        'id': 'green'
+        id: 'green'
       }, function() {});
       expect(doc.get(['id'])).eql('green');
     });
@@ -71,13 +71,13 @@ module.exports = function(createDoc) {
     it('sets a property', function() {
       var doc = createDoc();
       var previous = doc.set(['shown'], false, function() {});
-      expect(previous).equal(void 0);
+      expect(previous).equal(undefined);
       expect(doc.get(['shown'])).eql(false);
     });
     it('sets a multi-nested property', function() {
       var doc = createDoc();
       var previous = doc.set(['rgb', 'green', 'float'], 1, function() {});
-      expect(previous).equal(void 0);
+      expect(previous).equal(undefined);
       expect(doc.get(['rgb'])).eql({
         green: {
           float: 1
@@ -89,12 +89,12 @@ module.exports = function(createDoc) {
       var previous = doc.set([], {
         id: 'green'
       }, function() {});
-      expect(previous).equal(void 0);
+      expect(previous).equal(undefined);
       expect(doc.get()).eql({
         id: 'green'
       });
       previous = doc.set(['shown'], false, function() {});
-      expect(previous).equal(void 0);
+      expect(previous).equal(undefined);
       expect(doc.get()).eql({
         id: 'green',
         shown: false
@@ -103,7 +103,7 @@ module.exports = function(createDoc) {
     it('returns the previous value on set', function() {
       var doc = createDoc();
       var previous = doc.set(['shown'], false, function() {});
-      expect(previous).equal(void 0);
+      expect(previous).equal(undefined);
       expect(doc.get(['shown'])).eql(false);
       previous = doc.set(['shown'], true, function() {});
       expect(previous).equal(false);
@@ -131,8 +131,8 @@ module.exports = function(createDoc) {
     it('can del on an undefined path without effect', function() {
       var doc = createDoc();
       var previous = doc.del(['rgb', '2'], function() {});
-      expect(previous).equal(void 0);
-      expect(doc.get()).eql(void 0);
+      expect(previous).equal(undefined);
+      expect(doc.get()).eql(undefined);
     });
     it('can del on a document', function() {
       var doc = createDoc();
@@ -143,7 +143,7 @@ module.exports = function(createDoc) {
       expect(previous).eql({
         id: 'green'
       });
-      expect(doc.get()).eql(void 0);
+      expect(doc.get()).eql(undefined);
     });
     it('can del on a nested property', function() {
       var doc = createDoc();
