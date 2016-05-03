@@ -33,7 +33,7 @@ There are currently two demos, which are included in the [racer-examples](https:
 
   * **Persistent storage** &ndash; Racer uses [ShareDB](https://github.com/share/sharedb) to keep a journal of all data operations, publish operations to multiple frontend servers, and automatically persist documents. It currently supports MongoDB, and it can be easily adapted to support other document stores.
 
-  * **Access control** &ndash; (Under development) Racer will have hooks for access control to protect documents from malicious reads and writes.
+  * **Access control** &ndash; Racer itself does not have hooks for access control to protect documents from malicious reads and writes. For adding this functionality, use [share-access](https://github.com/dmapper/share-access).
 
   * **Solr queries** &ndash; (Under development) A Solr adapter will support updating Solr indices as data change and queries for realtime updated search results.
 
