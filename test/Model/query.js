@@ -27,14 +27,14 @@ describe('query', function() {
       query.shareQuery.emit('insert', [
         {id: 'a'},
         {id: 'b'},
-        {id: 'c'},
+        {id: 'c'}
       ], 0);
       // Add and immediately remove a duplicate id.
       query.shareQuery.emit('insert', [
-        {id: 'a'},
+        {id: 'a'}
       ], 3);
       query.shareQuery.emit('remove', [
-        {id: 'a'},
+        {id: 'a'}
       ], 3);
       // 'a' is still present once in the results, should still be in the map.
       expect(query.idMap).to.only.have.keys(['a', 'b', 'c']);
