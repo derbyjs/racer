@@ -166,6 +166,29 @@ describe('fn', function() {
         done();
       });
     });
+    it('debouncing gets reset', function(done) {
+      var model = new Model();
+      model.fn('sum', function(a, b) {
+        return a + b;
+      });
+      model.set('_nums.a', 2);
+      model.set('_nums.b', 4);
+      model.start('_nums.sum', '_nums.a', '_nums.b', {async: true}, 'sum');
+      expect(model.get('_nums.sum')).to.equal(6);
+      model.set('_nums.a', 5);
+      // Synchronously, there should be no change
+      expect(model.get('_nums.sum')).to.equal(6);
+      // Async, the value should be updated
+      process.nextTick(function() {
+        expect(model.get('_nums.sum')).to.equal(9);
+        model.set('_nums.b', 0);
+        expect(model.get('_nums.sum')).to.equal(9);
+        process.nextTick(function() {
+          expect(model.get('_nums.sum')).to.equal(5);
+          done();
+        });
+      });
+    });
     it('no async sets the output multiple times when an input changes multiple times', function() {
       var model = new Model();
       var calls = 0;
