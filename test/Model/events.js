@@ -129,12 +129,12 @@ describe('Model events with {useEventObjects: true}', function() {
     it('calls earlier listeners in the order of mutations', function(done) {
       var model = (new racer.Model()).at('_page');
       var expectedPaths = ['a', 'b', 'c'];
-      model.on('change', '**', function(_event, captures) {
+      model.on('change', '**', {useEventObjects: true}, function(_event, captures) {
         expect(captures).to.eql([expectedPaths.shift()]);
         if (!expectedPaths.length) {
           done();
         }
-      }, {useEventObjects: true});
+      });
       model.on('change', 'a', function() {
         model.set('b', 2);
       });
@@ -152,12 +152,12 @@ describe('Model events with {useEventObjects: true}', function() {
         model.set('c', 3);
       });
       var expectedPaths = ['a', 'b', 'c'];
-      model.on('change', '**', function(_event, captures) {
+      model.on('change', '**', {useEventObjects: true}, function(_event, captures) {
         expect(captures).to.eql([expectedPaths.shift()]);
         if (!expectedPaths.length) {
           done();
         }
-      }, {useEventObjects: true});
+      });
       model.set('a', 1);
     });
   });
@@ -176,11 +176,11 @@ describe('Model events with {useEventObjects: true}', function() {
     describe('set', function() {
       it('can raise events registered on array indices', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('change', 'array.0', function(event) {
+        this.remote.on('change', 'array.0', {useEventObjects: true}, function(event) {
           expect(event.value).to.equal(1);
           expect(event.previous).to.equal(0);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.set('array.0', 1);
       });
     });
@@ -188,59 +188,59 @@ describe('Model events with {useEventObjects: true}', function() {
     describe('move', function() {
       it('can move an item from the end to the beginning of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4]);
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(0);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.move('array', 4, 0, 1);
       });
       it('can swap the first two items in the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(0);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.move('array', 1, 0, 1, function() {});
       });
       it('can move an item from the begnning to the end of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.move('array', 0, 4, 1, function() {});
       });
       it('supports a negative destination index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.move('array', 0, -1, 1, function() {});
       });
       it('supports a negative source index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(2);
           done();
-        }, {useEventObjects: true});
+        });
         this.local.move('array', -1, 2, 1, function() {});
       });
       it('can move several items mid-array, with an event for each', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         var events = 0;
-        this.remote.on('move', '**', function(event) {
+        this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(4);
           if (++events === 2) {
             done();
           }
-        }, {useEventObjects: true});
+        });
         this.local.move('array', 1, 3, 2, function() {});
       });
     });
