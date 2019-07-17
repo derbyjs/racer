@@ -2,13 +2,11 @@
 
 Racer is a realtime model synchronization engine for Node.js. By leveraging [ShareDB](https://github.com/share/sharedb), multiple users can interact with the same data in realtime via Operational Transformation, a sophisticated conflict resolution algorithm that works in realtime and with offline clients. ShareDB also supports PubSub across multiple servers for horizontal scaling. Clients can express data subscriptions and fetches in terms of queries and specific documents, so different clients can be subscribed to different overlapping sets of data. On top of this sophisticated backend, Racer provides a simple model and event interface for writing application logic.
 
-[![Build Status](https://travis-ci.org/derbyjs/racer.svg)](https://travis-ci.org/derbyjs/racer)
+[![Build Status](https://travis-ci.org/derbyjs/racer.svg?branch=master)](https://travis-ci.org/derbyjs/racer.svg?branch=master)
 
 ## Disclaimer
 
-Racer is alpha software. We are now on the road to a production ready version, but we are currently cleaning up the code, finishing loose ends, and testing.
-
-If you are interested in contributing, please reach out to [Nate](https://github.com/nateps), [Joseph](https://github.com/josephg), and [Brian](https://github.com/bnoguchi).
+Racer is alpha software. If you are interested in contributing, please reach out to [Nate](https://github.com/nateps).
 
 ## Demos
 
