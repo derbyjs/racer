@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
     "test": "node_modules/.bin/mocha && npm run lint",
-    "test-cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha && npm run lint"
+    "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha && npm run lint"
   },
   "dependencies": {
     "arraydiff": "^0.1.1",
@@ -20,12 +20,12 @@
     "uuid": "^2.0.1"
   },
   "devDependencies": {
-    "coveralls": "^2.11.8",
+    "coveralls": "^3.0.5",
     "eslint": "^2.9.0",
     "eslint-config-xo": "^0.14.1",
     "expect.js": "^0.3.1",
-    "istanbul": "^0.4.2",
-    "mocha": "^2.3.3"
+    "mocha": "^6.1.4",
+    "nyc": "^14.1.1"
   },
   "bugs": {
     "url": "https://github.com/derbyjs/racer/issues"
