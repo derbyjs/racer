@@ -66,6 +66,26 @@ describe('EventListenerTree', function() {
         tree.removeListener(['colors', 'green'], listener);
         expect(tree.children).eql(null);
       });
+      it('does not remove listener if not found with one listener', function() {
+        var tree = new EventListenerTree();
+        var listener1 = 'listener1';
+        var listener2 = 'listener2';
+        tree.addListener(['colors', 'green'], listener1);
+        expect(tree.children.colors.children.green.listeners).eql([listener1]);
+        tree.removeListener(['colors', 'green'], listener2);
+        expect(tree.children.colors.children.green.listeners).eql([listener1]);
+      });
+      it('does not remove listener if not found with multiple listeners', function() {
+        var tree = new EventListenerTree();
+        var listener1 = 'listener1';
+        var listener2 = 'listener2';
+        var listener3 = 'listener3';
+        tree.addListener(['colors', 'green'], listener1);
+        tree.addListener(['colors', 'green'], listener2);
+        expect(tree.children.colors.children.green.listeners).eql([listener1, listener2]);
+        tree.removeListener(['colors', 'green'], listener3);
+        expect(tree.children.colors.children.green.listeners).eql([listener1, listener2]);
+      });
       it('removes listener with remaining peers', function() {
         var tree = new EventListenerTree();
         var listener1 = 'listener1';
