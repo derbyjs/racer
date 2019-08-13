@@ -129,6 +129,30 @@ describe('ref', function() {
       model.set('_page.start', true);
       expect(model.get('_page.list')).to.eql(['#00f', '#0f0']);
     });
+    it('removing ref on same toPath in event callback is ok', function() {
+      // The effects of listeners are synchronous, so while fanning out the refs
+      // for a given toPath - "_page.color" in this case - it's possible for one
+      // of the refs to be removed. Modifying during iteration can cause issues
+      // if not handled correctly.
+      var model = new Model();
+      model.ref('_page.ref1', '_page.color');
+      model.ref('_page.ref2', '_page.color');
+      model.set('_page.color', 'red');
+      model.once('change', '_page.ref1', function() {
+        model.removeRef('_page.ref2');
+      });
+
+      model.set('_page.color', 'green');
+      expect(model.get('_page.ref1')).to.eql('green');
+      // ref2 was removed while processing ref, but it should still be updated
+      // for this current change.
+      expect(model.get('_page.ref2')).to.eql('green');
+
+      // ref2 is now removed, so it should no longer be updated.
+      model.set('_page.color', 'blue');
+      expect(model.get('_page.ref1')).to.eql('blue');
+      expect(model.get('_page.ref2')).to.eql('green');
+    });
   });
   describe('updateIndices option', function() {
     it('updates a ref when an array insert happens at the `to` path', function() {
