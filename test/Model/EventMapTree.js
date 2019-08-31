@@ -190,53 +190,6 @@ describe('EventMapTree', function() {
       expect(affected).eql([listener1, listener4, listener5]);
     });
   });
-  describe('getAllListeners', function() {
-    it('returns empty array without listeners', function() {
-      var tree = new EventMapTree();
-      var affected = tree.getAllListeners([]);
-      expect(affected).eql([]);
-    });
-    it('returns empty array on path without node', function() {
-      var tree = new EventMapTree();
-      var affected = tree.getAllListeners(['colors', 'green']);
-      expect(affected).eql([]);
-    });
-    it('returns direct listener', function() {
-      var tree = new EventMapTree();
-      var listener1 = 'listener1';
-      tree.setListener([], listener1);
-      var affected = tree.getAllListeners([]);
-      expect(affected).eql([listener1]);
-    });
-    it('returns all descendant listeners', function() {
-      var tree = new EventMapTree();
-      var listener1 = 'listener1';
-      var listener2 = 'listener2';
-      var listener3 = 'listener3';
-      var listener4 = 'listener4';
-      tree.setListener(['colors', 'green'], listener1);
-      tree.setListener(['colors', 'red'], listener2);
-      tree.setListener([], listener3);
-      tree.setListener(['colors'], listener4);
-      var affected = tree.getAllListeners([]);
-      expect(affected).eql([listener3, listener4, listener1, listener2]);
-    });
-    it('does not return parent or peer listeners', function() {
-      var tree = new EventMapTree();
-      var listener1 = 'listener1';
-      var listener2 = 'listener2';
-      var listener3 = 'listener3';
-      var listener4 = 'listener4';
-      var listener5 = 'listener5';
-      tree.setListener([], listener1);
-      tree.setListener(['colors'], listener2);
-      tree.setListener(['colors', 'green'], listener3);
-      tree.setListener(['textures'], listener4);
-      tree.setListener(['textures', 'smooth'], listener5);
-      var affected = tree.getAllListeners(['textures']);
-      expect(affected).eql([listener4, listener5]);
-    });
-  });
   describe('forEach', function() {
     it('can be called on empty tree', function() {
       var tree = new EventMapTree();
