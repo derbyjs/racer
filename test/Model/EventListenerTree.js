@@ -33,6 +33,40 @@ describe('EventListenerTree', function() {
       expect(tree.getListeners(['colors'])).eql([]);
       expect(tree.getListeners(['colors', 'green'])).eql([listener]);
     });
+  describe('destroy', function() {
+    it('can be called on empty root', function() {
+      var tree = new EventListenerTree();
+      tree.destroy();
+      expect(tree.children).eql(null);
+    });
+    it('removes nodes up to root', function() {
+      var tree = new EventListenerTree();
+      var node = tree.addListener(['colors', 'green'], 'listener1');
+      node.destroy();
+      expect(tree.children).eql(null);
+    });
+    it('can be called on child node repeatedly', function() {
+      var tree = new EventListenerTree();
+      var node = tree.addListener(['colors', 'green'], 'listener1');
+      node.destroy();
+      node.destroy();
+    });
+    it('does not remove parent nodes with existing listeners', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors'], 'listener1');
+      var node = tree.addListener(['colors', 'green'], 'listener2');
+      node.destroy();
+      node.destroy();
+      expect(tree.getListeners(['colors'])).eql(['listener1']);
+    });
+    it('does not remove parent nodes with other children', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors', 'red'], 'listener1');
+      var node = tree.addListener(['colors', 'green'], 'listener2');
+      node.destroy();
+      node.destroy();
+      expect(tree.getListeners(['colors', 'red'])).eql(['listener1']);
+    });
   });
   describe('removeListener', function() {
     it('can be called before addListener', function() {
