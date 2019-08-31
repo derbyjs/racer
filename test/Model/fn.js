@@ -373,7 +373,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.out**', function(path, event) {
+      model.on('all', '_test.out.**', function(path, event) {
         expect(event).to.equal('move');
         expect(path).to.equal('a');
         done();
@@ -403,7 +403,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.in**', function(path, event) {
+      model.on('all', '_test.in.**', function(path, event) {
         expect(event).to.equal('move');
         expect(path).to.equal('a');
         done();
@@ -433,7 +433,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.out**', function(path, event) {
+      model.on('all', '_test.out.**', function(path, event) {
         expect(event).to.equal('change');
         expect(path).to.equal('a.0.x');
         done();
@@ -463,7 +463,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.in**', function(path, event) {
+      model.on('all', '_test.in.**', function(path, event) {
         expect(event).to.equal('change');
         expect(path).to.equal('a.0.x');
         done();
