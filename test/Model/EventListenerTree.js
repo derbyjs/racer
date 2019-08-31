@@ -296,4 +296,110 @@ describe('EventListenerTree', function() {
       expect(affected).eql(['listener5']);
     });
   });
+  describe('getWildcardListeners', function() {
+    it('returns empty array without listeners', function() {
+      var tree = new EventListenerTree();
+      var affected = tree.getWildcardListeners([]);
+      expect(affected).eql([]);
+    });
+    it('returns exact match on root', function() {
+      var tree = new EventListenerTree();
+      tree.addListener([], 'listener1');
+      var affected = tree.getWildcardListeners([]);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns exact match on subpath', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors', 'green'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener1']);
+    });
+    it('does not match parent, descendant, or peer listeners', function() {
+      var tree = new EventListenerTree();
+      tree.addListener([], 'listener1');
+      tree.addListener(['colors'], 'listener2');
+      tree.addListener(['colors', 'green'], 'listener3');
+      tree.addListener(['colors', 'green', 'hex'], 'listener4');
+      tree.addListener(['colors', 'red'], 'listener5');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener3']);
+    });
+    it('returns * match on first segment', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['*'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors']);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns * match at subpath', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors', '*'], 'listener1');
+      tree.addListener(['textures', '*'], 'listener2');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns * match at parent', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['*', 'green'], 'listener1');
+      tree.addListener(['*', 'red'], 'listener2');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns multiple * match', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['*', '*'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener1']);
+    });
+    it('does not * match parent, descendant, or peer listeners', function() {
+      var tree = new EventListenerTree();
+      tree.addListener([], 'listener1');
+      tree.addListener(['*'], 'listener2');
+      tree.addListener(['*', '*'], 'listener3');
+      tree.addListener(['*', '*', '*'], 'listener4');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener3']);
+    });
+    it('returns multiple * matches together', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors', 'green'], 'listener1');
+      tree.addListener(['*', 'green'], 'listener2');
+      tree.addListener(['colors', '*'], 'listener3');
+      tree.addListener(['colors', '*'], 'listener4');
+      var affected = tree.getWildcardListeners(['colors', 'green']).sort();
+      expect(affected).eql(['listener1', 'listener2', 'listener3', 'listener4']);
+    });
+    it('returns ** match on root', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['**'], 'listener1');
+      var affected = tree.getWildcardListeners([]);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns ** match on first segment', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['**'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors']);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns ** match on descendant', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['**'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors', 'green']);
+      expect(affected).eql(['listener1']);
+    });
+    it('returns exact match followed by **', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['colors', '**'], 'listener1');
+      var affected = tree.getWildcardListeners(['colors']);
+      expect(affected).eql(['listener1']);
+    });
+    it('does not ** match peer or descendant listeners', function() {
+      var tree = new EventListenerTree();
+      tree.addListener(['**'], 'listener1');
+      tree.addListener(['colors', '**'], 'listener2');
+      tree.addListener(['colors', 'green', '**'], 'listener3');
+      tree.addListener(['textures', '**'], 'listener4');
+      var affected = tree.getWildcardListeners(['colors']);
+      expect(affected).eql(['listener1', 'listener2']);
+    });
+  });
 });
