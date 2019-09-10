@@ -40,4 +40,68 @@ describe('query', function() {
       expect(query.idMap).to.only.have.keys(['a', 'b', 'c']);
     });
   });
+
+  describe('instantiation', function() {
+    it('returns same instance when params are equivalent', function() {
+      var model = new Model();
+      var query1 = model.query('foo', {value: 1}, {db: 'other'});
+      var query2 = model.query('foo', {value: 1}, {db: 'other'});
+      expect(query1).equal(query2);
+    });
+    it('returns same instance when context and params are equivalent', function() {
+      var model = new Model();
+      var query1 = model.context('box').query('foo', {});
+      var query2 = model.context('box').query('foo', {});
+      expect(query1).equal(query2);
+    });
+    it('creates a unique query instance per collection name', function() {
+      var model = new Model();
+      var query1 = model.query('foo', {});
+      var query2 = model.query('bar', {});
+      expect(query1).not.equal(query2);
+    });
+    it('creates a unique query instance per expression', function() {
+      var model = new Model();
+      var query1 = model.query('foo', {value: 1});
+      var query2 = model.query('foo', {value: 2});
+      expect(query1).not.equal(query2);
+    });
+    it('creates a unique query instance per options', function() {
+      var model = new Model();
+      var query1 = model.query('foo', {}, {db: 'default'});
+      var query2 = model.query('foo', {}, {db: 'other'});
+      expect(query1).not.equal(query2);
+    });
+    it('creates a unique query instance per context', function() {
+      var model = new Model();
+      var query1 = model.query('foo', {});
+      var query2 = model.context('box').query('foo', {});
+      expect(query1).not.equal(query2);
+    });
+  });
+
+  describe('reference counting', function() {
+    it('fetch uses the root model context', function(done) {
+      var backend = racer.createBackend();
+      var model = backend.createModel();
+      var query = model.query('foo', {});
+      query.fetch(function(err) {
+        if (err) return done(err);
+        expect(model._contexts.root.fetchedQueries[query.hash]).equal(1);
+        done();
+      });
+    });
+    it('fetch of same query in different context uses the specified model context', function(done) {
+      var backend = racer.createBackend();
+      var model = backend.createModel();
+      model.query('foo', {});
+      // Same query params in different context:
+      var query = model.context('box').query('foo', {});
+      query.fetch(function(err) {
+        if (err) return done(err);
+        expect(model._contexts.box.fetchedQueries[query.hash]).equal(1);
+        done();
+      });
+    });
+  });
 });
