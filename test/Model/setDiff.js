@@ -60,14 +60,11 @@ var Model = require('../../lib/Model');
 
     it('emits an event when changing value', function(done) {
       var model = new Model();
-      model.on('all', function(segments, eventArgs) {
-        var type = eventArgs[0];
-        var value = eventArgs[1];
-        var previous = eventArgs[2];
+      model.on('all', function(segments, event) {
         expect(segments).eql(['_page', 'color']);
-        expect(type).equal('change');
-        expect(value).equal('green');
-        expect(previous).equal(undefined);
+        expect(event.type).equal('change');
+        expect(event.value).equal('green');
+        expect(event.previous).equal(undefined);
         done();
       });
       model[method]('_page.color', 'green');
@@ -89,14 +86,11 @@ describe('setDiff', function() {
   it('emits an event when an object is set to an equivalent object', function(done) {
     var model = new Model();
     model.set('_page.color', {name: 'green'});
-    model.on('all', function(segments, eventArgs) {
-      var type = eventArgs[0];
-      var value = eventArgs[1];
-      var previous = eventArgs[2];
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'color']);
-      expect(type).equal('change');
-      expect(value).eql({name: 'green'});
-      expect(previous).eql({name: 'green'});
+      expect(event.type).equal('change');
+      expect(event.value).eql({name: 'green'});
+      expect(event.previous).eql({name: 'green'});
       done();
     });
     model.setDiff('_page.color', {name: 'green'});
@@ -105,14 +99,11 @@ describe('setDiff', function() {
   it('emits an event when an array is set to an equivalent array', function(done) {
     var model = new Model();
     model.set('_page.list', [2, 3, 4]);
-    model.on('all', function(segments, eventArgs) {
-      var type = eventArgs[0];
-      var value = eventArgs[1];
-      var previous = eventArgs[2];
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'list']);
-      expect(type).equal('change');
-      expect(value).eql([2, 3, 4]);
-      expect(previous).eql([2, 3, 4]);
+      expect(event.type).equal('change');
+      expect(event.value).eql([2, 3, 4]);
+      expect(event.previous).eql([2, 3, 4]);
       done();
     });
     model.setDiff('_page.list', [2, 3, 4]);
@@ -163,14 +154,11 @@ describe('setDiffDeep', function() {
   it('adds items to an array', function(done) {
     var model = new Model();
     model.set('_page.items', [4]);
-    model.on('all', function(segments, eventArgs) {
-      var type = eventArgs[0];
-      var index = eventArgs[1];
-      var values = eventArgs[2];
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'items']);
-      expect(type).equal('insert');
-      expect(values).eql([2, 3]);
-      expect(index).eql(0);
+      expect(event.type).equal('insert');
+      expect(event.values).eql([2, 3]);
+      expect(event.index).eql(0);
       done();
     });
     model.setDiffDeep('_page.items', [2, 3, 4]);
@@ -179,14 +167,11 @@ describe('setDiffDeep', function() {
   it('adds items to an array in an object', function(done) {
     var model = new Model();
     model.set('_page.lists', {a: [4]});
-    model.on('all', function(segments, eventArgs) {
-      var type = eventArgs[0];
-      var index = eventArgs[1];
-      var values = eventArgs[2];
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'lists', 'a']);
-      expect(type).equal('insert');
-      expect(values).eql([2, 3]);
-      expect(index).eql(0);
+      expect(event.type).equal('insert');
+      expect(event.values).eql([2, 3]);
+      expect(event.index).eql(0);
       done();
     });
     model.setDiffDeep('_page.lists', {a: [2, 3, 4]});
@@ -195,14 +180,11 @@ describe('setDiffDeep', function() {
   it('emits a delete event when a key is removed from an object', function(done) {
     var model = new Model();
     model.set('_page.color', {hex: '#0f0', name: 'green'});
-    model.on('all', function(segments, eventArgs) {
-      var type = eventArgs[0];
-      var value = eventArgs[1];
-      var previous = eventArgs[2];
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'color', 'hex']);
-      expect(type).equal('change');
-      expect(value).equal(undefined);
-      expect(previous).equal('#0f0');
+      expect(event.type).equal('change');
+      expect(event.value).equal(undefined);
+      expect(event.previous).equal('#0f0');
       done();
     });
     model.setDiffDeep('_page.color', {name: 'green'});
@@ -225,15 +207,12 @@ describe('setArrayDiff', function() {
     var model = new Model();
     model.set('_page.list', [{a: 2}, {c: 3}, {b: 4}]);
     var expectedEvents = ['remove', 'insert'];
-    model.on('all', function(segments, eventArgs) {
+    model.on('all', function(segments, event) {
       expect(segments).eql(['_page', 'list']);
-      var type = eventArgs[0];
-      var index = eventArgs[1];
-      var values = eventArgs[2];
       var expected = expectedEvents.shift();
-      expect(type).equal(expected);
-      expect(values).eql([{a: 2}, {c: 3}, {b: 4}]);
-      expect(index).eql(0);
+      expect(event.type).equal(expected);
+      expect(event.values).eql([{a: 2}, {c: 3}, {b: 4}]);
+      expect(event.index).eql(0);
       if (expectedEvents.length === 0) done();
     });
     model.setArrayDiff('_page.list', [{a: 2}, {c: 3}, {b: 4}]);
