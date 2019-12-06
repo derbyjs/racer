@@ -2,7 +2,7 @@ var expect = require('../util').expect;
 var racer = require('../../lib/index');
 
 describe('bundle', function() {
-  it('does not serialize Share docs with null versions', function(done) {
+  it('does not serialize Share docs with null versions and null type', function(done) {
     var backend = racer.createBackend();
     var setupModel = backend.createModel();
     setupModel.add('dogs', {id: 'coco', name: 'Coco'});
