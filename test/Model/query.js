@@ -16,6 +16,23 @@ describe('query', function() {
     });
   });
 
+  describe('Queries', function() {
+    beforeEach('create in-memory backend and model', function() {
+      this.backend = racer.createBackend();
+      this.model = this.backend.createModel();
+    });
+    it("creates new query if expression doesn't match saved expression", function() {
+      var query = this.model.query('myCollection', {arrayKey: []});
+      query.fetch();
+      // push value directly to query expression
+      query.expression.arrayKey.push('foo')
+      // Ensure query with same hash as original query uses expected expression
+      var newQuery = this.model.query('myCollection', {arrayKey: []});
+      newQuery.fetch();
+      expect(newQuery.expression.arrayKey).to.have.length(0);
+    })
+  });
+
   describe('idMap', function() {
     beforeEach('create in-memory backend and model', function() {
       this.backend = racer.createBackend();
