@@ -21,13 +21,13 @@ describe('query', function() {
       this.backend = racer.createBackend();
       this.model = this.backend.createModel();
     });
-    it("Uses deep copy of query expression in Query constructor", function() {
+    it('Uses deep copy of query expression in Query constructor', function() {
       var expression = {arrayKey: []};
       var query = this.model.query('myCollection', expression);
       query.fetch();
-      expression.arrayKey.push('foo')
+      expression.arrayKey.push('foo');
       expect(query.expression.arrayKey).to.have.length(0);
-    })
+    });
   });
 
   describe('idMap', function() {
