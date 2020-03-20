@@ -47,7 +47,7 @@ describe('loading', function() {
   });
 
   describe('unfetch', function() {
-    it('unloads doc after Share doc has nothing pending', function() {
+    it('unloads doc after Share doc has nothing pending', function(done) {
       var setupModel = this.backend.createModel();
       var model = this.model;
       setupModel.add('colors', {id: 'green', hex: '00ff00'}, function(err) {
@@ -66,6 +66,7 @@ describe('loading', function() {
             expect(model.get('colors.green')).to.equal(undefined);
             // Share doc should be unloaded too.
             expect(model.connection.getExisting('colors', 'green')).to.equal(undefined);
+            done();
           });
         });
       });
