@@ -47,6 +47,46 @@ describe('filter', function() {
       var filter = model.filter('numbers', 'even').sort();
       expect(filter.get()).to.eql([0, 0, 2, 4]);
     });
+    it('supports additional input paths as var-args', function() {
+      var model = (new Model()).at('_page');
+      var numbers = [0, 3, 4, 1, 2, 3, 0];
+      for (var i = 0; i < numbers.length; i++) {
+        model.set('numbers.' + model.id(), numbers[i]);
+      }
+      model.set('mod', 3);
+      model.set('offset', 0);
+      var filter = model.filter('numbers', 'mod', 'offset', function(number, id, numbers, mod, offset) {
+        return (number % mod) === offset;
+      });
+      expect(filter.get()).to.eql([0, 3, 3, 0]);
+    });
+    it('supports additional input paths as array', function() {
+      var model = (new Model()).at('_page');
+      var numbers = [0, 3, 4, 1, 2, 3, 0];
+      for (var i = 0; i < numbers.length; i++) {
+        model.set('numbers.' + model.id(), numbers[i]);
+      }
+      model.set('mod', 3);
+      model.set('offset', 0);
+      var filter = model.filter('numbers', ['mod', 'offset'], function(number, id, numbers, mod, offset) {
+        return (number % mod) === offset;
+      });
+      expect(filter.get()).to.eql([0, 3, 3, 0]);
+    });
+    it('supports a skip option', function() {
+      var model = (new Model()).at('_page');
+      var numbers = [0, 3, 4, 1, 2, 3, 0];
+      var options = {skip: 2};
+      for (var i = 0; i < numbers.length; i++) {
+        model.set('numbers.' + model.id(), numbers[i]);
+      }
+      model.set('mod', 3);
+      model.set('offset', 0);
+      var filter = model.filter('numbers', ['mod', 'offset'], options, function(number, id, numbers, mod, offset) {
+        return (number % mod) === offset;
+      });
+      expect(filter.get()).to.eql([3, 0]);
+    });
   });
   describe('initial value set by ref', function() {
     it('supports filter of object', function() {
@@ -141,7 +181,7 @@ describe('filter', function() {
         }
       ]);
     });
-    it('supports additional dynamic inputs', function() {
+    it('supports additional dynamic inputs as var-args', function() {
       var model = (new Model()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
       for (var i = 0; i < numbers.length; i++) {
@@ -150,6 +190,23 @@ describe('filter', function() {
       model.set('mod', 3);
       model.set('offset', 0);
       var filter = model.filter('numbers', 'mod', 'offset', function(number, id, numbers, mod, offset) {
+        return (number % mod) === offset;
+      });
+      expect(filter.get()).to.eql([0, 3, 3, 0]);
+      model.set('offset', 1);
+      expect(filter.get()).to.eql([4, 1]);
+      model.set('mod', 2);
+      expect(filter.get()).to.eql([3, 1, 3]);
+    });
+    it('supports additional dynamic inputs as array', function() {
+      var model = (new Model()).at('_page');
+      var numbers = [0, 3, 4, 1, 2, 3, 0];
+      for (var i = 0; i < numbers.length; i++) {
+        model.set('numbers.' + model.id(), numbers[i]);
+      }
+      model.set('mod', 3);
+      model.set('offset', 0);
+      var filter = model.filter('numbers', ['mod', 'offset'], function(number, id, numbers, mod, offset) {
         return (number % mod) === offset;
       });
       expect(filter.get()).to.eql([0, 3, 3, 0]);
