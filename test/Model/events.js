@@ -1,7 +1,7 @@
 var expect = require('../util').expect;
 var racer = require('../../lib/index');
 
-describe('Model events', function() {
+describe('Model events without useEventObjects', function() {
   describe('mutator events', function() {
     it('calls earlier listeners in the order of mutations', function(done) {
       var model = (new racer.Model()).at('_page');
@@ -20,6 +20,7 @@ describe('Model events', function() {
       });
       model.set('a', 1);
     });
+
     it('calls later listeners in the order of mutations', function(done) {
       var model = (new racer.Model()).at('_page');
       model.on('change', 'a', function() {
@@ -34,6 +35,17 @@ describe('Model events', function() {
         if (!expectedPaths.length) {
           done();
         }
+      });
+      model.set('a', 1);
+    });
+
+    it('can omit the path argument', function(done) {
+      var model = (new racer.Model()).at('_page');
+
+      model.at('a').on('change', function(value, prev) {
+        expect(value).to.equal(1);
+        expect(prev).to.be.empty;
+        done();
       });
       model.set('a', 1);
     });
@@ -143,6 +155,7 @@ describe('Model events with {useEventObjects: true}', function() {
       });
       model.set('a', 1);
     });
+
     it('calls later listeners in the order of mutations', function(done) {
       var model = (new racer.Model()).at('_page');
       model.on('change', 'a', function() {
@@ -157,6 +170,17 @@ describe('Model events with {useEventObjects: true}', function() {
         if (!expectedPaths.length) {
           done();
         }
+      });
+      model.set('a', 1);
+    });
+
+    it('can omit the path argument when useEventObjects is true', function(done) {
+      var model = (new racer.Model()).at('_page');
+
+      model.at('a').on('change', {useEventObjects: true}, function(_event, captures) {
+        expect(_event.value).to.equal(1);
+        expect(captures).to.have.length(0);
+        done();
       });
       model.set('a', 1);
     });
