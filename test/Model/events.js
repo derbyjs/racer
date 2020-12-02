@@ -286,52 +286,63 @@ describe('Model events with {useEventObjects: true}', function() {
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(0);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 4, 0, 1);
       });
+
       it('can swap the first two items in the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(0);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 1, 0, 1, function() {});
       });
+
       it('can move an item from the begnning to the end of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 0, 4, 1, function() {});
       });
+
       it('supports a negative destination index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 0, -1, 1, function() {});
       });
+
       it('supports a negative source index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(2);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', -1, 2, 1, function() {});
       });
+
       it('can move several items mid-array, with an event for each', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         var events = 0;
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           if (++events === 2) {
             done();
           }
