@@ -184,6 +184,22 @@ describe('Model events with {useEventObjects: true}', function() {
       });
       model.set('a', 1);
     });
+
+    describe('remove', function() {
+      it('has removed property', function(done) {
+        var model = (new racer.Model()).at('_page');
+        model.set('a', [1, 2, 3]);
+        model.on('remove', '**', {useEventObjects: true}, function(_event, captures) {
+          expect(_event.type).to.equal('remove');
+          expect(_event.index).to.equal(2);
+          expect(_event.removed).to.eql([3]);
+          expect(_event.values).to.eql([3]);
+          expect(captures).to.eql(['a']);
+          done();
+        });
+        model.pop('a');
+      });
+    });
   });
 
   describe('remote events', function() {
