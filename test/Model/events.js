@@ -184,21 +184,75 @@ describe('Model events with {useEventObjects: true}', function() {
       });
       model.set('a', 1);
     });
+  });
 
-    describe('remove', function() {
-      it('has removed property', function(done) {
-        var model = (new racer.Model()).at('_page');
-        model.set('a', [1, 2, 3]);
-        model.on('remove', '**', {useEventObjects: true}, function(_event, captures) {
-          expect(_event.type).to.equal('remove');
-          expect(_event.index).to.equal(2);
-          expect(_event.removed).to.eql([3]);
-          expect(_event.values).to.eql([3]);
-          expect(captures).to.eql(['a']);
-          done();
-        });
-        model.pop('a');
+  describe('insert and remove', function() {
+    var model;
+    before('set up', function() {
+      model = (new racer.Model()).at('_page');
+    });
+
+    it('insert has expected properties', function(done) {
+      model.on('insert', '**', {useEventObjects: true}, function(_event, captures) {
+        expect(_event.type).to.equal('insert');
+        expect(_event.index).to.equal(2);
+        expect(_event.values).to.eql([3]);
+        expect(_event.passed).to.eql({});
+        expect(captures).to.eql(['a']);
+        done();
       });
+      model.set('a', [1, 2]);
+      model.insert('a', 2, [3]);
+    });
+
+    it('remove has expected properties', function(done) {
+      model.on('remove', '**', {useEventObjects: true}, function(_event, captures) {
+        expect(_event.type).to.equal('remove');
+        expect(_event.index).to.equal(2);
+        expect(_event.removed).to.eql([3]);
+        expect(_event.values).to.eql([3]);
+        expect(_event.passed).to.eql({});
+        expect(captures).to.eql(['a']);
+        done();
+      });
+      model.pop('a');
+    });
+  });
+
+  describe('load and unload', function() {
+    var local, remote;
+
+    before('set up', function() {
+      var backend = racer.createBackend();
+      local = backend.createModel().scope('colors.green');
+      remote = backend.createModel().scope('colors.green');
+    });
+
+    it('load has expected properties', function(done) {
+      remote.on('load', '**', {useEventObjects: true}, function(event, captures) {
+        expect(event.type).to.equal('load');
+        expect(event.value).to.eql({id: 'green'});
+        expect(event.document).to.eql({id: 'green'});
+        expect(event.passed).to.eql({'$remote': true});
+        expect(captures).to.eql(['']);
+        done();
+      });
+
+      local.create(function() {
+        remote.subscribe();
+      });
+    });
+
+    it('unload has expected properties', function(done) {
+      remote.on('unload', '**', {useEventObjects: true}, function(event, captures) {
+        expect(event.type).to.equal('unload');
+        expect(event.previous).to.eql({id: 'green'});
+        expect(event.previousDocument).to.eql({id: 'green'});
+        expect(event.passed).to.eql({});
+        expect(captures).to.eql(['']);
+        done();
+      });
+      remote.unsubscribe();
     });
   });
 
@@ -207,6 +261,7 @@ describe('Model events with {useEventObjects: true}', function() {
       var backend = racer.createBackend();
       var local = this.local = backend.createModel().scope('colors.green');
       var remote = this.remote = backend.createModel().scope('colors.green');
+
       local.create(function(err) {
         if (err) return done(err);
         remote.subscribe(done);
