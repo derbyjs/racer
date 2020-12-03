@@ -186,11 +186,82 @@ describe('Model events with {useEventObjects: true}', function() {
     });
   });
 
+  describe('insert and remove', function() {
+    var model;
+    before('set up', function() {
+      model = (new racer.Model()).at('_page');
+    });
+
+    it('insert has expected properties', function(done) {
+      model.on('insert', '**', {useEventObjects: true}, function(_event, captures) {
+        expect(_event.type).to.equal('insert');
+        expect(_event.index).to.equal(2);
+        expect(_event.values).to.eql([3]);
+        expect(_event.passed).to.eql({});
+        expect(captures).to.eql(['a']);
+        done();
+      });
+      model.set('a', [1, 2]);
+      model.insert('a', 2, [3]);
+    });
+
+    it('remove has expected properties', function(done) {
+      model.on('remove', '**', {useEventObjects: true}, function(_event, captures) {
+        expect(_event.type).to.equal('remove');
+        expect(_event.index).to.equal(2);
+        expect(_event.removed).to.eql([3]);
+        expect(_event.values).to.eql([3]);
+        expect(_event.passed).to.eql({});
+        expect(captures).to.eql(['a']);
+        done();
+      });
+      model.pop('a');
+    });
+  });
+
+  describe('load and unload', function() {
+    var local, remote;
+
+    before('set up', function() {
+      var backend = racer.createBackend();
+      local = backend.createModel().scope('colors.green');
+      remote = backend.createModel().scope('colors.green');
+    });
+
+    it('load has expected properties', function(done) {
+      remote.on('load', '**', {useEventObjects: true}, function(event, captures) {
+        expect(event.type).to.equal('load');
+        expect(event.value).to.eql({id: 'green'});
+        expect(event.document).to.eql({id: 'green'});
+        expect(event.passed).to.eql({'$remote': true});
+        expect(captures).to.eql(['']);
+        done();
+      });
+
+      local.create(function() {
+        remote.subscribe();
+      });
+    });
+
+    it('unload has expected properties', function(done) {
+      remote.on('unload', '**', {useEventObjects: true}, function(event, captures) {
+        expect(event.type).to.equal('unload');
+        expect(event.previous).to.eql({id: 'green'});
+        expect(event.previousDocument).to.eql({id: 'green'});
+        expect(event.passed).to.eql({});
+        expect(captures).to.eql(['']);
+        done();
+      });
+      remote.unsubscribe();
+    });
+  });
+
   describe('remote events', function() {
     beforeEach(function(done) {
       var backend = racer.createBackend();
       var local = this.local = backend.createModel().scope('colors.green');
       var remote = this.remote = backend.createModel().scope('colors.green');
+
       local.create(function(err) {
         if (err) return done(err);
         remote.subscribe(done);
@@ -215,52 +286,63 @@ describe('Model events with {useEventObjects: true}', function() {
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(0);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 4, 0, 1);
       });
+
       it('can swap the first two items in the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(0);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 1, 0, 1, function() {});
       });
+
       it('can move an item from the begnning to the end of the array', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 0, 4, 1, function() {});
       });
+
       it('supports a negative destination index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(0);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', 0, -1, 1, function() {});
       });
+
       it('supports a negative source index of -1 (for last)', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(4);
           expect(event.to).to.equal(2);
+          expect(event.howMany).to.equal(1);
           done();
         });
         this.local.move('array', -1, 2, 1, function() {});
       });
+
       it('can move several items mid-array, with an event for each', function(done) {
         this.local.set('array', [0, 1, 2, 3, 4], function() {});
         var events = 0;
         this.remote.on('move', '**', {useEventObjects: true}, function(event) {
           expect(event.from).to.equal(1);
           expect(event.to).to.equal(4);
+          expect(event.howMany).to.equal(1);
           if (++events === 2) {
             done();
           }
