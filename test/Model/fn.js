@@ -147,6 +147,7 @@ describe('fn', function() {
       expect(count).to.equal(1);
     });
   });
+
   describe('stop', function() {
     it('can call stop without start', function() {
       var model = new Model();
@@ -156,6 +157,22 @@ describe('fn', function() {
       var model = new Model();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
+      model.set('_nums.a', 1);
+      expect(model.get('_nums.sum')).to.equal(5);
+      model.stop('_nums.sum');
+      model.set('_nums.a', 3);
+      expect(model.get('_nums.sum')).to.equal(5);
+    });
+    it('stops updating when start was called twice', function() {
+      var model = new Model();
+      model.set('_nums.a', 2);
+      model.set('_nums.b', 4);
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
       model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
         return a + b;
       });
