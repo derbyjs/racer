@@ -55,8 +55,18 @@ describe('fn', function() {
       expect(result).to.equal(6);
     });
   });
-  describe('start and stop with getter', function() {
+  describe('start', function() {
     it('sets the output immediately on start', function() {
+      var model = new Model();
+      model.set('_nums.a', 2);
+      model.set('_nums.b', 4);
+      var value = model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
+      expect(value).to.equal(6);
+      expect(model.get('_nums.sum')).to.equal(6);
+    });
+    it('supports function name argument', function() {
       var model = new Model();
       model.fn('sum', function(a, b) {
         return a + b;
@@ -69,26 +79,24 @@ describe('fn', function() {
     });
     it('sets the output when an input changes', function() {
       var model = new Model();
-      model.fn('sum', function(a, b) {
-        return a + b;
-      });
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
-      model.start('_nums.sum', '_nums.a', '_nums.b', 'sum');
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
       expect(model.get('_nums.sum')).to.equal(6);
       model.set('_nums.a', 5);
       expect(model.get('_nums.sum')).to.equal(9);
     });
     it('sets the output when a parent of the input changes', function() {
       var model = new Model();
-      model.fn('sum', function(a, b) {
-        return a + b;
-      });
       model.set('_nums.in', {
         a: 2,
         b: 4
       });
-      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', 'sum');
+      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', function(a, b) {
+        return a + b;
+      });
       expect(model.get('_nums.sum')).to.equal(6);
       model.set('_nums.in', {
         a: 5,
@@ -98,16 +106,15 @@ describe('fn', function() {
     });
     it('does not set the output when a sibling of the input changes', function() {
       var model = new Model();
-      var count = 0;
-      model.fn('sum', function(a, b) {
-        count++;
-        return a + b;
-      });
       model.set('_nums.in', {
         a: 2,
         b: 4
       });
-      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', 'sum');
+      var count = 0;
+      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', function(a, b) {
+        count++;
+        return a + b;
+      });
       expect(model.get('_nums.sum')).to.equal(6);
       expect(count).to.equal(1);
       model.set('_nums.in.a', 3);
@@ -117,18 +124,58 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(7);
       expect(count).to.equal(2);
     });
+    it('calling twice cleans up listeners for former function', function() {
+      var model = new Model();
+      model.set('_nums.in', {
+        a: 2,
+        b: 4
+      });
+      var count = 0;
+      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', function(a, b) {
+        count++;
+        return a + b;
+      });
+      expect(model.get('_nums.sum')).to.equal(6);
+      expect(count).to.equal(1);
+      model.start('_nums.sum', '_nums.in.a', '_nums.in.b', function(a, b) {
+        return a + b;
+      });
+      expect(model.get('_nums.sum')).to.equal(6);
+      expect(count).to.equal(1);
+      model.set('_nums.in.a', 3);
+      expect(model.get('_nums.sum')).to.equal(7);
+      expect(count).to.equal(1);
+    });
+  });
+
+  describe('stop', function() {
     it('can call stop without start', function() {
       var model = new Model();
       model.stop('_nums.sum');
     });
     it('stops updating after calling stop', function() {
       var model = new Model();
-      model.fn('sum', function(a, b) {
-        return a + b;
-      });
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
-      model.start('_nums.sum', '_nums.a', '_nums.b', 'sum');
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
+      model.set('_nums.a', 1);
+      expect(model.get('_nums.sum')).to.equal(5);
+      model.stop('_nums.sum');
+      model.set('_nums.a', 3);
+      expect(model.get('_nums.sum')).to.equal(5);
+    });
+    it('stops updating when start was called twice', function() {
+      var model = new Model();
+      model.set('_nums.a', 2);
+      model.set('_nums.b', 4);
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
+      model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
+        return a + b;
+      });
       model.set('_nums.a', 1);
       expect(model.get('_nums.sum')).to.equal(5);
       model.stop('_nums.sum');
@@ -136,8 +183,37 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(5);
     });
   });
-  describe('start (array inputs) and stop with getter', function() {
-    it('sets the output immediately on start', function() {
+  describe('stopAll', function() {
+    it('can call without start', function() {
+      var model = new Model();
+      model.stopAll('_nums.sum');
+    });
+    it('stops updating functions at matching paths', function() {
+      var model = new Model();
+      model.fn('sum', function(a, b) {
+        return a + b;
+      });
+      model.set('_nums.a', 2);
+      model.set('_nums.b', 4);
+      model.set('_nums.c', 3);
+      model.set('_nums.d', 7);
+      model.start('_continue.x', '_nums.a', '_nums.b', 'sum');
+      model.start('_continue.y', '_nums.c', '_nums.d', 'sum');
+      model.start('_halt.x', '_nums.a', '_nums.b', 'sum');
+      model.start('_halt.y', '_nums.c', '_nums.d', 'sum');
+      model.set('_nums.a', 1);
+      model.set('_nums.c', 10);
+      expect(model.get('_continue')).eql({x: 5, y: 17});
+      expect(model.get('_halt')).eql({x: 5, y: 17});
+      model.stopAll('_halt');
+      model.set('_nums.a', 0);
+      model.set('_nums.c', 0);
+      expect(model.get('_continue')).eql({x: 4, y: 7});
+      expect(model.get('_halt')).eql({x: 5, y: 17});
+    });
+  });
+  describe('start with array inputs', function() {
+    it('array inputs and function name', function() {
       var model = new Model();
       model.fn('sum', function(a, b) {
         return a + b;
@@ -148,73 +224,15 @@ describe('fn', function() {
       expect(value).to.equal(6);
       expect(model.get('_nums.sum')).to.equal(6);
     });
-    it('sets the output when an input changes', function() {
+    it('array inputs and function argument', function() {
       var model = new Model();
-      model.fn('sum', function(a, b) {
-        return a + b;
-      });
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
-      model.start('_nums.sum', ['_nums.a', '_nums.b'], 'sum');
-      expect(model.get('_nums.sum')).to.equal(6);
-      model.set('_nums.a', 5);
-      expect(model.get('_nums.sum')).to.equal(9);
-    });
-    it('sets the output when a parent of the input changes', function() {
-      var model = new Model();
-      model.fn('sum', function(a, b) {
+      var value = model.start('_nums.sum', ['_nums.a', '_nums.b'], function(a, b) {
         return a + b;
       });
-      model.set('_nums.in', {
-        a: 2,
-        b: 4
-      });
-      model.start('_nums.sum', ['_nums.in.a', '_nums.in.b'], 'sum');
+      expect(value).to.equal(6);
       expect(model.get('_nums.sum')).to.equal(6);
-      model.set('_nums.in', {
-        a: 5,
-        b: 7
-      });
-      expect(model.get('_nums.sum')).to.equal(12);
-    });
-    it('does not set the output when a sibling of the input changes', function() {
-      var model = new Model();
-      var count = 0;
-      model.fn('sum', function(a, b) {
-        count++;
-        return a + b;
-      });
-      model.set('_nums.in', {
-        a: 2,
-        b: 4
-      });
-      model.start('_nums.sum', ['_nums.in.a', '_nums.in.b'], 'sum');
-      expect(model.get('_nums.sum')).to.equal(6);
-      expect(count).to.equal(1);
-      model.set('_nums.in.a', 3);
-      expect(model.get('_nums.sum')).to.equal(7);
-      expect(count).to.equal(2);
-      model.set('_nums.in.c', -1);
-      expect(model.get('_nums.sum')).to.equal(7);
-      expect(count).to.equal(2);
-    });
-    it('can call stop without start', function() {
-      var model = new Model();
-      model.stop('_nums.sum');
-    });
-    it('stops updating after calling stop', function() {
-      var model = new Model();
-      model.fn('sum', function(a, b) {
-        return a + b;
-      });
-      model.set('_nums.a', 2);
-      model.set('_nums.b', 4);
-      model.start('_nums.sum', ['_nums.a', '_nums.b'], 'sum');
-      model.set('_nums.a', 1);
-      expect(model.get('_nums.sum')).to.equal(5);
-      model.stop('_nums.sum');
-      model.set('_nums.a', 3);
-      expect(model.get('_nums.sum')).to.equal(5);
     });
   });
   describe('start with async option', function() {
@@ -372,7 +390,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.out**', function(path, event) {
+      model.on('all', '_test.out.**', function(path, event) {
         expect(event).to.equal('move');
         expect(path).to.equal('a');
         done();
@@ -402,7 +420,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.in**', function(path, event) {
+      model.on('all', '_test.in.**', function(path, event) {
         expect(event).to.equal('move');
         expect(path).to.equal('a');
         done();
@@ -432,7 +450,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.out**', function(path, event) {
+      model.on('all', '_test.out.**', function(path, event) {
         expect(event).to.equal('change');
         expect(path).to.equal('a.0.x');
         done();
@@ -462,7 +480,7 @@ describe('fn', function() {
         ]
       });
       model.start('_test.out', '_test.in', 'unity');
-      model.on('all', '_test.in**', function(path, event) {
+      model.on('all', '_test.in.**', function(path, event) {
         expect(event).to.equal('change');
         expect(path).to.equal('a.0.x');
         done();
