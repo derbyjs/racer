@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git://github.com/derbyjs/racer.git"
   },
-  "version": "0.9.16",
+  "version": "1.0.0",
   "main": "./lib/index.js",
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
