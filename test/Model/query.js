@@ -51,7 +51,7 @@ describe('query', function() {
         {id: 'a'}
       ], 3);
       // 'a' is still present once in the results, should still be in the map.
-      expect(query.idMap).to.only.have.keys(['a', 'b', 'c']);
+      expect(query.idMap).to.have.all.keys(['a', 'b', 'c']);
     });
   });
 

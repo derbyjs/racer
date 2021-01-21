@@ -5,7 +5,7 @@ describe('CollectionCounter', function() {
   describe('increment', function() {
     it('increments count for a document', function() {
       var counter = new CollectionCounter();
-      expect(counter.get('colors', 'green')).to.be(0);
+      expect(counter.get('colors', 'green')).to.equal(0);
       expect(counter.increment('colors', 'green')).to.equal(1);
       expect(counter.increment('colors', 'green')).to.equal(2);
       expect(counter.get('colors', 'green')).to.equal(2);
@@ -27,29 +27,29 @@ describe('CollectionCounter', function() {
       expect(counter.increment('colors', 'green'));
       expect(counter.decrement('colors', 'green')).to.equal(1);
       expect(counter.decrement('colors', 'green')).to.equal(0);
-      expect(counter.get('colors', 'green')).to.be(0);
+      expect(counter.get('colors', 'green')).to.equal(0);
     });
     it('does not affect peer document', function() {
       var counter = new CollectionCounter();
       expect(counter.increment('colors', 'green'));
       expect(counter.increment('colors', 'red'));
       expect(counter.decrement('colors', 'green'));
-      expect(counter.get('colors', 'green')).to.be(0);
-      expect(counter.get('colors', 'red')).to.be(1);
+      expect(counter.get('colors', 'green')).to.equal(0);
+      expect(counter.get('colors', 'red')).to.equal(1);
     });
     it('does not affect peer collection', function() {
       var counter = new CollectionCounter();
       expect(counter.increment('colors', 'green'));
       expect(counter.increment('textures', 'smooth'));
       expect(counter.decrement('colors', 'green'));
-      expect(counter.get('colors', 'green')).to.be(0);
-      expect(counter.get('textures', 'smooth')).to.be(1);
+      expect(counter.get('colors', 'green')).to.equal(0);
+      expect(counter.get('textures', 'smooth')).to.equal(1);
     });
   });
   describe('toJSON', function() {
     it('returns undefined if there are no counts', function() {
       var counter = new CollectionCounter();
-      expect(counter.toJSON()).to.be(undefined);
+      expect(counter.toJSON()).to.equal(undefined);
     });
     it('returns a nested map representing counts', function() {
       var counter = new CollectionCounter();
@@ -71,7 +71,7 @@ describe('CollectionCounter', function() {
       var counter = new CollectionCounter();
       counter.increment('colors', 'green');
       counter.decrement('colors', 'green');
-      expect(counter.toJSON()).to.be(undefined);
+      expect(counter.toJSON()).to.equal(undefined);
     });
     it('decrementing id from collection with other keys removes key', function() {
       var counter = new CollectionCounter();

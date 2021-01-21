@@ -1,5 +1,5 @@
 var util = require('util');
-var expect = require('expect.js');
+var expect = require('chai').expect;
 
 exports.expect = expect;
 
@@ -18,18 +18,4 @@ exports.inspect = function(value, depth, showHidden) {
   if (depth == null) depth = null;
   if (showHidden == null) showHidden = true;
   console.log(util.inspect(value, {depth: depth, showHidden: showHidden}));
-};
-
-expect.Assertion.prototype.NaN = function() {
-  this.assert(this.obj !== this.obj,
-    'expected ' + util.inspect(this.obj) + ' to be NaN',
-    'expected ' + util.inspect(this.obj) + ' to not be NaN'
-  );
-};
-
-expect.Assertion.prototype.null = function() {
-  this.assert(this.obj == null,
-    'expected ' + util.inspect(this.obj) + ' to be null or undefined',
-    'expected ' + util.inspect(this.obj) + ' to not be null or undefined'
-  );
 };

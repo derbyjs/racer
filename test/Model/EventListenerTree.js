@@ -37,7 +37,7 @@ describe('EventListenerTree', function() {
       var tree = new EventListenerTree();
       var listener = {};
       var node = tree.addListener(['colors', 'green'], listener);
-      expect(node).a(EventListenerTree);
+      expect(node).instanceOf(EventListenerTree);
       expect(node.parent.parent).equal(tree);
     });
   });
