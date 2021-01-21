@@ -67,7 +67,7 @@ Racer can be used independently as shown in the examples, but Racer and Derby ar
 For now, Racer is mostly documented along with Derby. See the Derby [model docs](http://derbyjs.com/docs/derby-0.6/models).
 
 ### MIT License
-Copyright (c) 2011 by Brian Noguchi and Nate Smith
+Copyright (c) 2021 by Brian Noguchi and Nate Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
