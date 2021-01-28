@@ -11,7 +11,7 @@ describe('filter', function() {
       });
       expect(function() {
         filter.get();
-      }).to.throwException();
+      }).to.throw(Error);
     });
     it('supports filter of object', function() {
       var model = (new Model()).at('_page');

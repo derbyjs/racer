@@ -7,7 +7,7 @@ describe('connection', function() {
       var backend = racer.createBackend();
       var model = backend.createModel();
       var agent = model.getAgent();
-      expect(agent).ok();
+      expect(agent).to.be.ok;
     });
 
     it('returns null once the model is disconnected', function(done) {

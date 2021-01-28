@@ -44,7 +44,7 @@ describe('Model events without useEventObjects', function() {
 
       model.at('a').on('change', function(value, prev) {
         expect(value).to.equal(1);
-        expect(prev).to.be.empty;
+        expect(prev).not.to.exist;
         done();
       });
       model.set('a', 1);

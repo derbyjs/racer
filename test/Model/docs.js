@@ -193,7 +193,7 @@ module.exports = function(createDoc) {
       var doc = createDoc();
       doc.set(['friends'], {}, function() {});
       doc.push(['friends'], ['x'], function(err) {
-        expect(err).a(TypeError);
+        expect(err).instanceOf(TypeError);
         done();
       });
     });
