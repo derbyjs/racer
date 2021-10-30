@@ -10,8 +10,9 @@
   "main": "./lib/index.js",
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
-    "test": "node_modules/.bin/mocha && npm run lint",
-    "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha && npm run lint"
+    "test": "node_modules/.bin/mocha",
+    "posttest": "npm run lint",
+    "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha"
   },
   "dependencies": {
     "arraydiff": "^0.1.1",
