@@ -6,10 +6,10 @@ name: Test
 on:
   push:
     branches:
-    - $default-branch
+    - master
   pull_request:
     branches:
-    - $default-branch
+    - master
 
 jobs:
   test:
