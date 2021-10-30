@@ -30,6 +30,7 @@ jobs:
         node-version: ${{ matrix.node }}
     - run: npm install
     - run: npm run lint
+      if: ${{ matrix.node >= 12 }}
     - run: npm run test-cover
     # https://github.com/marketplace/actions/coveralls-github-action#complete-parallel-job-example
     - name: Coveralls
