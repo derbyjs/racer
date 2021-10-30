@@ -1,0 +1,51 @@
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs-or-python
+
+
+name: Test
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  test:
+    name: Node.js ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+        - 10
+        - 12
+        - 14
+        - 16
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node }}
+    - run: npm install
+    - run: npm run lint
+      if: ${{ matrix.node >= 12 }}  # eslint@8 only supports Node >= 12
+    - run: npm run test-cover
+    # https://github.com/marketplace/actions/coveralls-github-action#complete-parallel-job-example
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        flag-name: node-${{ matrix.node }}
+        parallel: true
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit coverage
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true

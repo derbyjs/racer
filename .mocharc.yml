@@ -1,0 +1,4 @@
+reporter: spec
+timeout: 1200
+check-leaks: true
+recursive: true
