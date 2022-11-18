@@ -33,5 +33,28 @@ describe('bundle', function() {
       });
     });
   });
-});
 
+  it('does not serialize ref outputs', function(done) {
+    var backend = racer.createBackend();
+    var model = backend.createModel();
+    model.add('dogs', {id: 'coco', name: 'Coco'});
+    model.ref('_page.myDog', 'dogs.coco');
+    model.bundle(function(err, bundleData) {
+      if (err) return done(err);
+      // Simulate serialization of bundle data between server and client
+      bundleData = JSON.parse(JSON.stringify(bundleData));
+
+      // Bundle should not have data duplicated on the ref output path
+      expect(bundleData.collections).to.not.have.property('_page');
+
+      // After unbundling, the ref should be re-created
+      var clientModel = backend.createModel();
+      clientModel.unbundle(bundleData);
+      expect(clientModel.get('_page')).to.deep.equal({myDog: {id: 'coco', name: 'Coco'}});
+      // Test that operation on ref output path is applied to the backing doc
+      clientModel.set('_page.myDog.breed', 'poodle');
+      expect(clientModel.get('dogs.coco')).to.deep.equal({id: 'coco', name: 'Coco', breed: 'poodle'});
+      done();
+    });
+  });
+});
