@@ -100,4 +100,69 @@ describe('loading', function() {
       });
     });
   });
+
+  describe('when using model.unload()', function() {
+    beforeEach(function(done) {
+      this.setupModel = this.backend.createModel();
+      this.setupModel.add('colors', {id: 'green', hex: '00ff00'});
+      this.setupModel.add('colors', {id: 'blue', hex: '0000ff'});
+      this.setupModel.whenNothingPending(done);
+    });
+
+    it('unloads all documents after model has nothing pending', function(done) {
+      var model = this.model;
+      model.fetch('colors.green', 'colors.blue', function(err) {
+        if (err) return done(err);
+        expect(model.get('colors.green.hex')).to.equal('00ff00');
+        expect(model.get('colors.blue.hex')).to.equal('0000ff');
+        // Queue up a pending op.
+        model.set('colors.green.hex', '00ee00');
+        // Unfetch. This triggers the delayed _maybeUnloadDoc.
+        // The pending op causes the doc unload to be delayed.
+        model.unload();
+        // Once there's nothing pending on the model/doc...
+        model.whenNothingPending(function() {
+          // Racer doc should be unloaded.
+          expect(model.get('colors.green')).to.equal(undefined);
+          expect(model.get('colors.blue')).to.equal(undefined);
+          // Share doc should be unloaded too.
+          expect(model.connection.getExisting('colors', 'green')).to.equal(undefined);
+          expect(model.connection.getExisting('colors', 'blue')).to.equal(undefined);
+          done();
+        });
+      });
+    });
+
+    it('only unloads documents without a pending operation or subscription', function(done) {
+      var model = this.model;
+      // Racer keeps its own reference counts of doc fetches/subscribes - see `_hasDocReferences`.
+      model.fetch('colors.green', 'colors.blue', function(err) {
+        if (err) return done(err);
+        expect(model.get('colors.green.hex')).to.equal('00ff00');
+        expect(model.get('colors.blue.hex')).to.equal('0000ff');
+        // Queue up a pending op.
+        model.set('colors.green.hex', '00ee00');
+        // Unfetch. This triggers the delayed _maybeUnloadDoc.
+        // The pending op causes the doc unload to be delayed.
+        model.unload();
+        // Immediately subscribe to the same doc.
+        // This causes the doc to be kept in memory, even after the unfetch completes.
+        model.subscribe('colors.green');
+        // Once there's nothing pending on the model/doc...
+        model.whenNothingPending(function() {
+          // Racer doc should still be present due to the subscription.
+          expect(model.get('colors.green')).to.eql({id: 'green', hex: '00ee00'});
+          // Share doc should be present too.
+          var shareDoc = model.connection.getExisting('colors', 'green');
+          expect(shareDoc).to.have.property('data');
+          expect(shareDoc.data).to.eql({id: 'green', hex: '00ee00'});
+          // Racer doc for blue should be unloaded
+          expect(model.get('colors.blue')).to.equal(undefined);
+          // Share doc for blue should be unloaded too
+          expect(model.connection.getExisting('colors', 'blue')).to.equal(undefined);
+          done();
+        });
+      });
+    });
+  });
 });
