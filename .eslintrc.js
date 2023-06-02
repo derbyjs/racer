@@ -33,5 +33,13 @@ module.exports = {
     {},
     DISABLED_ES6_OPTIONS,
     CUSTOM_RULES
-  )
+  ),
+  overrides: [
+    {
+      files: ['test/**/*.js'],
+      parserOptions: {
+        ecmaVersion: 2017
+      }
+    }
+  ]
 };

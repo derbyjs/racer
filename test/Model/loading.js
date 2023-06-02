@@ -14,6 +14,39 @@ describe('loading', function() {
     this.model.connection.on('connected', done);
   });
 
+  describe('fetch', function() {
+    beforeEach(function(done) {
+      this.setupModel = this.backend.createModel();
+      this.setupModel.add('foo', {id: '1', name: 'foo-1'}, done);
+    });
+
+    it('calls callback after fetch completes', function(done) {
+      var model = this.model;
+      model.fetch('foo.1', function(err) {
+        if (err) done(err);
+        var doc = model.get('foo.1');
+        expect(doc).to.have.property('id', '1');
+        expect(doc).to.have.property('name', 'foo-1');
+        done();
+      });
+    });
+  });
+
+  describe('fetchPromised', function() {
+    beforeEach(function(done) {
+      this.setupModel = this.backend.createModel();
+      this.setupModel.add('foo', {id: '2', name: 'foo-2'}, done);
+    });
+
+    it('resolves promise when fetch completes', async function() {
+      var model = this.model;
+      await model.fetchPromised('foo.2');
+      var doc = model.get('foo.2');
+      expect(doc).to.have.property('id', '2');
+      expect(doc).to.have.property('name', 'foo-2');
+    });
+  });
+
   describe('subscribe', function() {
     it('calls back simultaneous subscribes to the same document', function(done) {
       var doc = this.model.connection.get('colors', 'green');
@@ -43,6 +76,16 @@ describe('loading', function() {
         expect(doc.subscribed).equal(true);
         model.subscribe('colors.green', done);
       });
+    });
+  });
+
+  describe('subscribePromised', function() {
+    it('resolves promise when subscribe complete', async function() {
+      var model = this.model;
+      var doc = model.connection.get('colors', 'green');
+      expect(doc.subscribed).equal(false);
+      await model.subscribePromised('colors.green');
+      expect(doc.subscribed).equal(true);
     });
   });
 
