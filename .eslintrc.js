@@ -26,6 +26,7 @@ var CUSTOM_RULES = {
 
 module.exports = {
   extends: 'google',
+  ignorePatterns: ['.gitignore'],
   parserOptions: {
     ecmaVersion: 5
   },

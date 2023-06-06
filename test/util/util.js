@@ -55,6 +55,7 @@ describe('util', function() {
       var promisedFn = util.promisify(targetFn);
       try {
         await promisedFn(3);
+        fail('Expected promisedFn to reject, but it successfully resolved');
       } catch (error) {
         expect(error).to.have.property('message', 'Error 3');
       }
@@ -66,8 +67,8 @@ describe('util', function() {
       };
       var promisedFn = util.promisify(targetFn);
       try {
-        console.log('pre-await');
         await promisedFn(3);
+        fail('Expected promisedFn to reject, but it successfully resolved');
       } catch (error) {
         expect(error).to.have.property('message', 'Error 3');
       }

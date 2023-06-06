@@ -9,7 +9,8 @@
   "version": "1.0.6",
   "main": "./lib/index.js",
   "scripts": {
-    "lint": "eslint --ignore-path .gitignore .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "test": "node_modules/.bin/mocha",
     "checks": "npm run lint && npm test",
     "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha"
