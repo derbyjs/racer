@@ -83,5 +83,30 @@ describe('RemoteDoc', function() {
       });
     });
   });
+
+  describe('promised operations', function() {
+    beforeEach(function() {
+      this.backend = racer.createBackend();
+      this.model = this.backend.createModel();
+    });
+
+    it('composes sequential operations', async function() {
+      var model = this.model;
+      await model.addPromised('notes', {id: 'my-note', score: 1});
+      var $note = model.at('notes.my-note');
+      var shareDoc = model.connection.get('notes', 'my-note');
+      expect(shareDoc).to.have.property('version', 1);
+      await Promise.all([
+        $note.pushPromised('labels', 'Label A'),
+        $note.incrementPromised('score', 2),
+        $note.pushPromised('labels', 'Label B')
+      ]);
+      // Writes initiated in the same event loop should be composed into a single op
+      expect(shareDoc).to.have.property('version', 2);
+      expect($note.get('labels')).to.eql(['Label A', 'Label B']);
+      expect($note.get('score')).to.equal(3);
+    });
+  });
+
   docs(createDoc);
 });

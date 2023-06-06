@@ -57,4 +57,16 @@ describe('bundle', function() {
       done();
     });
   });
+
+  describe('bundlePromised', function() {
+    it('awaits bundle completion', async function() {
+      var backend = racer.createBackend();
+      var model = backend.createModel();
+      model.add('dogs', {id: 'coco', name: 'Coco'});
+      var bundled = await model.bundlePromised();
+      var model2 = backend.createModel();
+      model2.unbundle(bundled);
+      expect(model2.get('dogs.coco')).to.deep.equal(model.get('dogs.coco'));
+    });
+  });
 });
