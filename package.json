@@ -8,11 +8,15 @@
   },
   "version": "1.1.0",
   "main": "./lib/index.js",
+  "files": ["lib/**/*.js"],
   "scripts": {
+    "build": "npx tsc",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "pretest": "npm run build",
     "test": "node_modules/.bin/mocha",
     "checks": "npm run lint && npm test",
+    "prepare": "npm build",
     "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha"
   },
   "dependencies": {
@@ -23,6 +27,8 @@
     "uuid": "^2.0.1"
   },
   "devDependencies": {
+    "@types/events": "^3.0.0",
+    "@types/node": "^20.3.1",
     "chai": "^4.2.0",
     "coveralls": "^3.0.5",
     "eslint": "^8.1.0",
