@@ -12,7 +12,7 @@
     "lib/**/*.js"
   ],
   "scripts": {
-    "build": "npx tsc",
+    "build": "node_modules/.bin/tsc",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "pretest": "npm run build",
