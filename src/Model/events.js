@@ -186,8 +186,8 @@ Model.prototype.removeAllListeners = function(type, subpath) {
 Model.prototype._removeAllListeners = function(type, segments) {
   var mutationListeners = this.root._mutationListeners;
   if (type == null) {
-    for (var type in mutationListeners) {
-      var tree = mutationListeners[type];
+    for (var key in mutationListeners) {
+      var tree = mutationListeners[key];
       tree.removeAllListeners(segments);
     }
     return;
@@ -307,8 +307,8 @@ Model.prototype._addMutationListener = function(type, arg1, arg2, arg3) {
  */
 
 /**
- * @param {Model} model
- * @param {string} type
+ * @param model
+ * @param type
  */
 function getMutationListener(model, type, arg1, arg2, arg3) {
   var pattern, options, cb;
