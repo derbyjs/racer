@@ -18,7 +18,7 @@
     "pretest": "npm run build",
     "test": "node_modules/.bin/mocha",
     "checks": "npm run lint && npm test",
-    "prepare": "npm build",
+    "prepare": "npm run build",
     "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha"
   },
   "dependencies": {
