@@ -22,7 +22,7 @@ exports.Passed = Passed;
 
 Model.INITS.push(function(model) {
   var root = model.root;
-  EventEmitter.call(root);
+  // EventEmitter.call(root);
 
   // Set max listeners to unlimited
   model.setMaxListeners(0);
@@ -51,7 +51,7 @@ Model.INITS.push(function(model) {
   root._eventContext = null;
 });
 
-mergeInto(Model.prototype, EventEmitter.prototype);
+// mergeInto(Model.prototype, EventEmitter.prototype);
 
 Model.prototype.wrapCallback = function(cb) {
   if (!cb) return this.root._defaultCallback;
