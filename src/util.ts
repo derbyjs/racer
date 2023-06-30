@@ -86,7 +86,7 @@ export function deepCopy(value) {
   if (typeof value === 'object') {
     if (value === null) return null;
     if (Array.isArray(value)) {
-      var array = [];
+      var array: any[] = [];
       for (var i = value.length; i--;) {
         array[i] = deepCopy(value[i]);
       }
