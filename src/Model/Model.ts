@@ -12,7 +12,7 @@ interface ModelOptions {
 
 type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
 
-class Model extends EventEmitter {
+export class Model extends EventEmitter {
   static INITS: ModelInitFunction[] = [];
 
   ChildModel = ChildModel;
@@ -48,7 +48,7 @@ class Model extends EventEmitter {
   };
 }
 
-class ChildModel extends Model {
+export class ChildModel extends Model {
   constructor(model: Model) {
     super();
     // Shared properties should be accessed via the root. This makes inheritance
@@ -69,5 +69,3 @@ class ChildModel extends Model {
     this._preventCompose = model._preventCompose;
   }
 }
-
-module.exports = Model;

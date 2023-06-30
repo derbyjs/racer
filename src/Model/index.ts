@@ -1,5 +1,5 @@
-module.exports = require('./Model');
-var util = require('../util');
+import { serverRequire } from '../util';
+export { Model } from './Model';
 
 // Extend model on both server and client //
 require('./unbundle');
@@ -20,5 +20,5 @@ require('./refList');
 require('./ref');
 
 // Extend model for server //
-util.serverRequire(module, './bundle');
-util.serverRequire(module, './connection.server');
+serverRequire(module, './bundle');
+serverRequire(module, './connection.server');
