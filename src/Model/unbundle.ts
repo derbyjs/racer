@@ -1,4 +1,10 @@
-var Model = require('./Model');
+import { Model } from './Model';
+
+declare module './Model' {
+  interface Model {
+    unbundle: (data: any) => void;
+  }
+}
 
 Model.prototype.unbundle = function(data) {
   if (this.connection) this.connection.startBulk();
