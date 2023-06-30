@@ -1,64 +1,49 @@
-var deepEqual = require('fast-deep-equal');
-var isServer = process.title !== 'browser';
-exports.isServer = isServer;
+export const deepEqual = require('fast-deep-equal');
+export const isServer = process.title !== 'browser';
 
-exports.asyncGroup = asyncGroup;
-exports.castSegments = castSegments;
-exports.contains = contains;
-exports.copy = copy;
-exports.copyObject = copyObject;
-exports.deepCopy = deepCopy;
-exports.deepEqual = deepEqual;
-exports.equal = equal;
-exports.equalsNaN = equalsNaN;
-exports.isArrayIndex = isArrayIndex;
-exports.lookup = lookup;
-exports.mayImpact = mayImpact;
-exports.mayImpactAny = mayImpactAny;
-exports.mergeInto = mergeInto;
-exports.promisify = promisify;
-exports.serverRequire = serverRequire;
-exports.serverUse = serverUse;
-exports.use = use;
-
-function asyncGroup(cb) {
+export function asyncGroup(cb) {
   var group = new AsyncGroup(cb);
   return function asyncGroupAdd() {
     return group.add();
   };
 }
 
-/**
- * @constructor
- * @param {Function} cb(err)
- */
-function AsyncGroup(cb) {
-  this.cb = cb;
-  this.isDone = false;
-  this.count = 0;
-}
-AsyncGroup.prototype.add = function() {
-  this.count++;
-  var self = this;
-  return function(err) {
-    self.count--;
-    if (self.isDone) return;
-    if (err) {
+type ErrorCallback = (err?: Error) => void;
+
+class AsyncGroup {
+  cb: ErrorCallback;
+  isDone: boolean;
+  count: number;
+
+  constructor(cb: ErrorCallback) {
+    this.cb = cb;
+    this.isDone = false;
+    this.count = 0;
+  }
+
+  add() {
+    this.count++;
+    const self = this;
+    return function(err) {
+      self.count--;
+      if (self.isDone) return;
+      if (err) {
+        self.isDone = true;
+        self.cb(err);
+        return;
+      }
+      if (self.count > 0) return;
       self.isDone = true;
-      self.cb(err);
-      return;
-    }
-    if (self.count > 0) return;
-    self.isDone = true;
-    self.cb();
-  };
-};
+      self.cb();
+    };
+  }
+}
 
 /**
  * @param {Array<string | number>} segments
  * @return {Array<string | number>}
  */
-function castSegments(segments) {
+export function castSegments(segments) {
   // Cast number path segments from strings to numbers
   for (var i = segments.length; i--;) {
     var segment = segments[i];
@@ -69,14 +54,14 @@ function castSegments(segments) {
   return segments;
 }
 
-function contains(segments, testSegments) {
+export function contains(segments, testSegments) {
   for (var i = 0; i < segments.length; i++) {
     if (segments[i] !== testSegments[i]) return false;
   }
   return true;
 }
 
-function copy(value) {
+export function copy(value) {
   if (value instanceof Date) return new Date(value);
   if (typeof value === 'object') {
     if (value === null) return null;
@@ -86,7 +71,7 @@ function copy(value) {
   return value;
 }
 
-function copyObject(object) {
+export function copyObject(object) {
   var out = new object.constructor();
   for (var key in object) {
     if (object.hasOwnProperty(key)) {
@@ -96,7 +81,7 @@ function copyObject(object) {
   return out;
 }
 
-function deepCopy(value) {
+export function deepCopy(value) {
   if (value instanceof Date) return new Date(value);
   if (typeof value === 'object') {
     if (value === null) return null;
@@ -118,20 +103,20 @@ function deepCopy(value) {
   return value;
 }
 
-function equal(a, b) {
+export function equal(a, b) {
   return (a === b) || (equalsNaN(a) && equalsNaN(b));
 }
 
-function equalsNaN(x) {
+export function equalsNaN(x) {
   // eslint-disable-next-line no-self-compare
   return x !== x;
 }
 
-function isArrayIndex(segment) {
+export function isArrayIndex(segment) {
   return (/^[0-9]+$/).test(segment);
 }
 
-function lookup(segments, value) {
+export function lookup(segments, value) {
   if (!segments) return value;
 
   for (var i = 0, len = segments.length; i < len; i++) {
@@ -141,14 +126,14 @@ function lookup(segments, value) {
   return value;
 }
 
-function mayImpactAny(segmentsList, testSegments) {
+export function mayImpactAny(segmentsList, testSegments) {
   for (var i = 0, len = segmentsList.length; i < len; i++) {
     if (mayImpact(segmentsList[i], testSegments)) return true;
   }
   return false;
 }
 
-function mayImpact(segments, testSegments) {
+export function mayImpact(segments, testSegments) {
   var len = Math.min(segments.length, testSegments.length);
   for (var i = 0; i < len; i++) {
     if (segments[i] !== testSegments[i]) return false;
@@ -156,14 +141,14 @@ function mayImpact(segments, testSegments) {
   return true;
 }
 
-function mergeInto(to, from) {
+export function mergeInto(to, from) {
   for (var key in from) {
     to[key] = from[key];
   }
   return to;
 }
 
-function promisify(original) {
+export function promisify(original) {
   if (typeof original !== 'function') {
     throw new TypeError('The "original" argument must be of type Function');
   }
@@ -196,18 +181,18 @@ function promisify(original) {
   return fn;
 }
 
-function serverRequire(module, id) {
+export function serverRequire(module, id) {
   if (!isServer) return;
   return module.require(id);
 }
 
-function serverUse(module, id, options) {
+export function serverUse(module, id, options) {
   if (!isServer) return this;
   var plugin = module.require(id);
   return this.use(plugin, options);
 }
 
-function use(plugin, options) {
+export function use(plugin, options) {
   // Don't include a plugin more than once
   var plugins = this._plugins || (this._plugins = []);
   if (plugins.indexOf(plugin) === -1) {
