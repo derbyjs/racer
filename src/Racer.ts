@@ -3,7 +3,7 @@ var Model = require('./Model');
 var util = require('./util');
 
 
-class Racer extends EventEmitter {
+export class Racer extends EventEmitter {
   Model: typeof Model = Model;
   util = util;
   use = util.use;
@@ -22,8 +22,5 @@ class Racer extends EventEmitter {
     return model;
   }
 }
-
-// exports before serverRequire as Racer.server has circular require
-module.exports = Racer;
 
 util.serverRequire(module, './Racer.server');
