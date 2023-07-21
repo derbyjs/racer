@@ -23,7 +23,7 @@ declare module './Model' {
     __once: typeof EventEmitter.prototype.once;
     once(event: string, listener: any, arg2?: any, arg3?: any): any;
     __removeListener: typeof EventEmitter.prototype.removeListener;
-    removeListener(type: string, listener: any): void;
+    removeListener(type: string, listener: any): this;
     __removeAllListeners: typeof EventEmitter.prototype.removeAllListeners;
     removeAllListeners(type: string, subpath: string): void;
     _removeAllListeners(type: string, segments: Segments): void;
