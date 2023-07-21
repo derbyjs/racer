@@ -1,5 +1,5 @@
 var util = require('../util');
-var Model = require('./Model');
+import { Model } from './Model';
 var arrayDiff = require('arraydiff');
 var mutationEvents = require('./events').mutationEvents;
 var ChangeEvent = mutationEvents.ChangeEvent;
@@ -7,6 +7,32 @@ var InsertEvent = mutationEvents.InsertEvent;
 var RemoveEvent = mutationEvents.RemoveEvent;
 var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
+
+declare module './Model' {
+  interface Model {
+    setDiff(value: any);
+    setDiff(subpath: string, value: any, cb?: (err: Error) => void): void;
+    setDiffPromised(value: any): Promise<void>;
+    setDiffPromised(subpath: string, value: any): Promise<void>;
+    _setDiff(segments: Segments, value: any, cb: (err: Error) => void): void;
+    setDiffDeep(value: any): void;
+    setDiffDeep(subpath: string, value: any, cb?: (err: Error) => void): void;
+    setDiffDeepPromised(value: any): Promise<void>;
+    setDiffDeepPromised(subpathj: string, valiue: any): Promise<void>;
+    _setDiffDeep(segments: Segments, value: any, cb?: (err: Error) => void): void;
+    setArrayDiff(value: any): void;
+    setArrayDiff(subpath: string, value: any, cb?: (err: Error) => void): void;
+    setArrayDiffPromised(value: any): Promise<void>;
+    setArrayDiffPromised(subpath: string, value: any): Promise<void>;
+    setArrayDiffDeep(value: any): void;
+    setArrayDiffDeep(subpath: string, value: any, cb?: (err: Error) => void): void;
+    setArrayDiffDeepPromised(value: any): Promise<void>;
+    setArrayDiffDeepPromised(subpath: string, value: any): Promise<void>;
+    _setArrayDiffDeep(segments: Segments, value: any, cb?: (err: Error) => void): void;
+    _setArrayDiff(segments: Segments, value: any, cb?: (err: Error) => void, equalFn?: any): void;
+    _applyArrayDiff(segments: Segments, diff: any, cb?: (err: Error) => void): void;
+  }
+}
 
 Model.prototype.setDiff = function() {
   var subpath, value, cb;

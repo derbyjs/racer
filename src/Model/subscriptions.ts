@@ -1,10 +1,39 @@
 var util = require('../util');
-var Model = require('./Model');
+import { CollectionName } from 'sharedb/lib/sharedb';
+import { Model } from './Model';
 var Query = require('./Query');
 var CollectionCounter = require('./CollectionCounter');
 var mutationEvents = require('./events').mutationEvents;
 var UnloadEvent = mutationEvents.UnloadEvent;
 var promisify = util.promisify;
+
+declare module './Model' {
+  interface Model {
+    fetch(): Model;
+    fetchPromised(): Promise<void>;
+    unfetch(): Model;
+    unfetchPromised(): Promise<void>;
+    subscribe(): void;
+    subscribePromised(): Promise<void>;
+    unsubscribe(): Model;
+    unsubscribePromised(): Promise<void>;
+    _forSubscribable(argumentsObject: any, method: any): void; 
+    fetchDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
+    fetchDocPromised(collecitonName: string, id: string): Promise<void>;
+    subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
+    subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
+    unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
+    unfetchDocPromised(collecitonName: string, id: string): Promise<void>;
+    unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
+    unsubscribeDocPromised(collecitonName: string, id: string): Promise<void>;
+    _maybeUnloadDoc(collecitonName: string, id: string): void;
+    _hasDocReferences(collecitonName: string, id: string): boolean;
+    fetchOnly: boolean;
+    unloadDelay: number;
+    _fetchedDocs: typeof CollectionCounter;
+    _subscribedDocs: typeof CollectionCounter;
+  }
+}
 
 Model.INITS.push(function(model, options) {
   model.root.fetchOnly = options.fetchOnly;
@@ -171,7 +200,7 @@ Model.prototype.unsubscribeDoc = function(collectionName, id, cb) {
       shareDoc.unsubscribe(unsubscribeDocCallback);
     }
   }
-  function unsubscribeDocCallback(err) {
+  function unsubscribeDocCallback(err?: Error) {
     model._maybeUnloadDoc(collectionName, id);
     if (err) return cb(err);
     cb(null, 0);

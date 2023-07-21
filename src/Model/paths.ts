@@ -1,6 +1,18 @@
-var Model = require('./Model');
+import { Model } from './Model';
 
 exports.mixin = {};
+
+declare module './Model' {
+  interface Model {
+    _splitPath(subpath: string): string[];
+    path(subpath: string): Model;
+    isPath(subpath: string): boolean;
+    scope(subpath: string): Model;
+    at(subpath: string): Model;
+    parent(levels?: number): Model;
+    leaf(path: string): string;
+  }
+}
 
 Model.prototype._splitPath = function(subpath) {
   var path = this.path(subpath);
@@ -20,6 +32,7 @@ Model.prototype.path = function(subpath) {
   if (typeof subpath === 'string' || typeof subpath === 'number') {
     return (this._at) ? this._at + '.' + subpath : '' + subpath;
   }
+  // @ts-ignore
   if (typeof subpath.path === 'function') return subpath.path();
 };
 

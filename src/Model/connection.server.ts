@@ -1,4 +1,12 @@
-var Model = require('./Model');
+import { Model } from './Model';
+
+declare module './Model' {
+  interface Model {
+    createConnection(backend: any, req: any): void;
+    connect(): void;
+    connection: any;
+  }
+}
 
 Model.prototype.createConnection = function(backend, req) {
   this.root.backend = backend;

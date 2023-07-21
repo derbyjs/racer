@@ -1,6 +1,27 @@
-var Model = require('./Model');
-var EventMapTree = require('./EventMapTree');
-var EventListenerTree = require('./EventListenerTree');
+import { EventListenerTree } from './EventListenerTree';
+import { EventMapTree } from './EventMapTree';
+import { Model } from './Model';
+
+declare module './Model' {
+  type Segments = any;
+
+  interface Model {
+    _refs: any;
+    _refLists: any;
+    canRefTo(value: any): boolean;
+    _canRefTo(from: Segments, to: Segments, options: any): boolean;
+    ref(to: Segments): void;
+    ref(from: Segments, to: Segments, options?: any): void;
+    _ref(from: Segments, to: Segments, options: any): any;
+    removeRef(subpath: string): void;
+    _removeRef(segments: Segments): void;
+    removeAllRefs(subpath: string): void;
+    _removeAllRefs(segments: Segments): void;
+    dereference(subpath: string): Segments;
+    _dereference(segments: Segments, forArrayMutator: any, ignore: boolean): Segments;
+  }
+}
+
 
 Model.INITS.push(function(model) {
   var root = model.root;
@@ -257,44 +278,56 @@ function noopDereference(segments) {
   return segments;
 }
 
-function Ref(fromSegments, toSegments, options) {
-  this.fromSegments = fromSegments;
-  this.toSegments = toSegments;
-  this.updateIndices = options && options.updateIndices;
+export class Ref {
+  fromSegments: string[];
+  toSegments: string[];
+  updateIndices: boolean;
+
+  constructor(fromSegments, toSegments, options) {
+    this.fromSegments = fromSegments;
+    this.toSegments = toSegments;
+    this.updateIndices = options && options.updateIndices;
+  }
 }
 
-function Refs() {
-  this.fromMap = new EventMapTree();
-  var toListeners = this.toListeners = new EventListenerTree();
-  this._removeInputListeners = function(ref) {
-    toListeners.removeListener(ref.toSegments, ref);
+export class Refs {
+  fromMap: EventMapTree;
+  toListeners: EventListenerTree;
+
+  constructor() {
+    this.fromMap = new EventMapTree();
+    this.toListeners = new EventListenerTree();
+  }
+
+  _removeInputListeners(ref: Ref) {
+    this.toListeners.removeListener(ref.toSegments, ref);
+  };
+  
+  add(ref) {
+    this.fromMap.setListener(ref.fromSegments, ref);
+    this.toListeners.addListener(ref.toSegments, ref);
+  };
+  
+  remove(segments) {
+    var ref = this.fromMap.deleteListener(segments);
+    if (!ref) return;
+    this.toListeners.removeListener(ref.toSegments, ref);
+  };
+  
+  removeAll(segments) {
+    var node = this.fromMap.deleteAllListeners(segments);
+    if (node) {
+      node.forEach(this._removeInputListeners);
+    }
+  };
+  
+  toJSON() {
+    var out = [];
+    this.fromMap.forEach(function(ref) {
+      var from = ref.fromSegments.join('.');
+      var to = ref.toSegments.join('.');
+      out.push([from, to]);
+    });
+    return out;
   };
 }
-
-Refs.prototype.add = function(ref) {
-  this.fromMap.setListener(ref.fromSegments, ref);
-  this.toListeners.addListener(ref.toSegments, ref);
-};
-
-Refs.prototype.remove = function(segments) {
-  var ref = this.fromMap.deleteListener(segments);
-  if (!ref) return;
-  this.toListeners.removeListener(ref.toSegments, ref);
-};
-
-Refs.prototype.removeAll = function(segments) {
-  var node = this.fromMap.deleteAllListeners(segments);
-  if (node) {
-    node.forEach(this._removeInputListeners);
-  }
-};
-
-Refs.prototype.toJSON = function() {
-  var out = [];
-  this.fromMap.forEach(function(ref) {
-    var from = ref.fromSegments.join('.');
-    var to = ref.toSegments.join('.');
-    out.push([from, to]);
-  });
-  return out;
-};

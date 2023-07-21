@@ -1,18 +1,29 @@
-module.exports = Doc;
+import { type Model, type Segments } from './Model';
+import { Collection } from './collections';
 
-function Doc(model, collectionName, id) {
-  this.collectionName = collectionName;
-  this.id = id;
-  this.collectionData = model && model.data[collectionName];
+export class Doc {
+  collectionName: string;
+  id: string;
+  collectionData: Model;
+  data: any;
+  model: Model;
+
+  constructor(model: Model, collectionName: string, id: string, data: any, _collection?: Collection) {
+    this.collectionName = collectionName;
+    this.id = id;
+    this.data = data;
+    this.model = model;
+    this.collectionData = model && model.data[collectionName];
+  }
+
+  path(segments?: string[]) {
+    var path = this.collectionName + '.' + this.id;
+    if (segments && segments.length) path += '.' + segments.join('.');
+    return path;
+  };
+  
+  _errorMessage(description: string, segments: Segments, value: any) {
+    return description + ' at ' + this.path(segments) + ': ' +
+      JSON.stringify(value, null, 2);
+  };
 }
-
-Doc.prototype.path = function(segments) {
-  var path = this.collectionName + '.' + this.id;
-  if (segments && segments.length) path += '.' + segments.join('.');
-  return path;
-};
-
-Doc.prototype._errorMessage = function(description, segments, value) {
-  return description + ' at ' + this.path(segments) + ': ' +
-    JSON.stringify(value, null, 2);
-};

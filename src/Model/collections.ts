@@ -1,11 +1,34 @@
-var Model = require('./Model');
+import { Doc } from './Doc';
+import { Model } from './Model';
 var LocalDoc = require('./LocalDoc');
 var util = require('../util');
 
-function ModelCollections() {}
-function ModelData() {}
-function DocMap() {}
-function CollectionData() {}
+export class ModelCollections {
+  docs: Record<string, any>;
+}
+export class ModelData {}
+export class DocMap {}
+export class CollectionData {}
+
+declare module './Model' {
+  interface Model {
+    collections: ModelCollections;
+    data: ModelData;
+
+    getCollection(collecitonName: string): ModelCollections;
+    getDoc(collecitonName: string, id: string): any | undefined;
+    get(subpath: string): any;
+    _get(segments: Segments): any;
+    getCopy(subpath: string): any;
+    _getCopy(segments: Segments): any;
+    getDeepCopy(subpath: string): any;
+    _getDeepCopy(segments: Segments): any;
+    getOrCreateCollection(name: string): Collection;
+    _getDocConstructor(): DocConstructor;
+    getOrCreateDoc(collectionName: string, id: string, data: any);
+    destroy(subpath: string): void;
+  }
+}
 
 Model.INITS.push(function(model) {
   model.root.collections = new ModelCollections();
@@ -15,33 +38,41 @@ Model.INITS.push(function(model) {
 Model.prototype.getCollection = function(collectionName) {
   return this.root.collections[collectionName];
 };
+
 Model.prototype.getDoc = function(collectionName, id) {
   var collection = this.root.collections[collectionName];
   return collection && collection.docs[id];
 };
+
 Model.prototype.get = function(subpath) {
   var segments = this._splitPath(subpath);
   return this._get(segments);
 };
+
 Model.prototype._get = function(segments) {
   return util.lookup(segments, this.root.data);
 };
+
 Model.prototype.getCopy = function(subpath) {
   var segments = this._splitPath(subpath);
   return this._getCopy(segments);
 };
+
 Model.prototype._getCopy = function(segments) {
   var value = this._get(segments);
   return util.copy(value);
 };
+
 Model.prototype.getDeepCopy = function(subpath) {
   var segments = this._splitPath(subpath);
   return this._getDeepCopy(segments);
 };
+
 Model.prototype._getDeepCopy = function(segments) {
   var value = this._get(segments);
   return util.deepCopy(value);
 };
+
 Model.prototype.getOrCreateCollection = function(name) {
   var collection = this.root.collections[name];
   if (collection) return collection;
@@ -50,6 +81,7 @@ Model.prototype.getOrCreateCollection = function(name) {
   this.root.collections[name] = collection;
   return collection;
 };
+
 Model.prototype._getDocConstructor = function() {
   // Only create local documents. This is overriden in ./connection.js, so that
   // the RemoteDoc behavior can be selectively included
@@ -100,51 +132,62 @@ Model.prototype.destroy = function(subpath) {
   }
 };
 
-function Collection(model, name, Doc) {
-  this.model = model;
-  this.name = name;
-  this.Doc = Doc;
-  this.size = 0;
-  this.docs = new DocMap();
-  this.data = model.data[name] = new CollectionData();
-}
+export class Collection {
+  model: Model;
+  name: string;
+  size: number;
+  docs: DocMap;
+  data: CollectionData;
+  Doc: typeof Doc;
 
-/**
- * Adds a document with `id` and `data` to `this` Collection.
- * @param {String} id
- * @param {Object} data
- * @return {LocalDoc|RemoteDoc} doc
- */
-Collection.prototype.add = function(id, data) {
-  var doc = new this.Doc(this.model, this.name, id, data, this);
-  this.docs[id] = doc;
-  return doc;
-};
-Collection.prototype.destroy = function() {
-  delete this.model.collections[this.name];
-  delete this.model.data[this.name];
-};
-Collection.prototype.getOrCreateDoc = function(id, data) {
-  var doc = this.docs[id];
-  if (doc) return doc;
-  this.size++;
-  return this.add(id, data);
-};
+  constructor(model: Model, name: string, docClass: typeof Doc) {
+    this.model = model;
+    this.name = name;
+    this.Doc = docClass;
+    this.size = 0;
+    this.docs = new DocMap();
+    this.data = model.data[name] = new CollectionData();
+  }
 
-/**
- * Removes the document with `id` from `this` Collection. If there are no more
- * documents in the Collection after the given document is removed, then this
- * destroys the Collection.
- *
- * @param {String} id
- */
-Collection.prototype.remove = function(id) {
-  if (!this.docs[id]) return;
-  this.size--;
-  if (this.size > 0) {
-    delete this.docs[id];
-    delete this.data[id];
-  } else {
-    this.destroy();
+  /**
+   * Adds a document with `id` and `data` to `this` Collection.
+   * @param {String} id
+   * @param {Object} data
+   * @return {LocalDoc|RemoteDoc} doc
+   */
+  add(id, data) {
+    var doc = new this.Doc(this.model, this.name, id, data, this);
+    this.docs[id] = doc;
+    return doc;
+  };
+  
+  destroy() {
+    delete this.model.collections[this.name];
+    delete this.model.data[this.name];
+  };
+  
+  getOrCreateDoc(id, data) {
+    var doc = this.docs[id];
+    if (doc) return doc;
+    this.size++;
+    return this.add(id, data);
+  };
+
+  /**
+   * Removes the document with `id` from `this` Collection. If there are no more
+   * documents in the Collection after the given document is removed, then this
+   * destroys the Collection.
+   *
+   * @param {String} id
+   */
+  remove(id: string) {
+    if (!this.docs[id]) return;
+    this.size--;
+    if (this.size > 0) {
+      delete this.docs[id];
+      delete this.data[id];
+    } else {
+      this.destroy();
+    }
   }
 };

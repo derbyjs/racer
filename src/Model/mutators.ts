@@ -1,11 +1,134 @@
 var util = require('../util');
-var Model = require('./Model');
+import { Model } from './Model';
 var mutationEvents = require('./events').mutationEvents;
 var ChangeEvent = mutationEvents.ChangeEvent;
 var InsertEvent = mutationEvents.InsertEvent;
 var RemoveEvent = mutationEvents.RemoveEvent;
 var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
+
+declare module './Model' {
+  interface Model {
+    _mutate(segments, fn, cb): void;
+    set(value: any): void;
+    set(subpath: string, value: any, cb?: ErrorCallback): void;
+    setPromised(value: any): Promise<void>;
+    setPromised(subpath: string, value: any): Promise<void>;
+    _set(segments: Segments, value: any, cb?: ErrorCallback): void;
+    setNull(value: any): void;
+    setNull(subpath: string, value: any, cb?: ErrorCallback): void;
+    setNullPromised(value: any): Promise<void>;
+    setNullPromised(subpath: string, value: any): Promise<void>;
+    _setNull(segments: Segments, value: any, cb?: ErrorCallback): void;
+    setEach(value: any): void;
+    setEach(subpath: string, value: any, cb?: ErrorCallback): void;
+    setEachPromised(value: any): Promise<void>;
+    setEachPromised(subpath: string, value: any): Promise<void>;
+    _setEach(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    create(value: any): void;
+    create(subpath: string, value: any, cb?: ErrorCallback): void;
+    createPromised(value: any): Promise<void>;
+    createPromised(subpath: string, value: any): Promise<void>;
+    _create(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    createNull(value: any): void;
+    createNull(subpath: string, value: any, cb?: ErrorCallback): void;
+    createNullPromised(value: any): Promise<void>;
+    createNullPromised(subpath: string, value: any): Promise<void>;
+    _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    add(value: any): void;
+    add(subpath: string, value: any, cb?: ErrorCallback): void;
+    addPromised(value: any): Promise<void>;
+    addPromised(subpath: string, value: any): Promise<void>;
+    _add(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    del(value: any): void;
+    del(subpath: string, value: any, cb?: ErrorCallback): void;
+    delPromised(value: any): Promise<void>;
+    delPromised(subpath: string, value: any): Promise<void>;
+    _del(segments: Segments, value?: any, cb?: ErrorCallback): void;
+
+    _delNoDereference(segments: Segments, cb?: ErrorCallback): void;
+
+    increment(value: any): void;
+    increment(subpath: string, value: any, cb?: ErrorCallback): void;
+    incrementPromised(value: any): Promise<void>;
+    incrementPromised(subpath: string, value: any): Promise<void>;
+    _increment(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    push(value: any): void;
+    push(subpath: string, value: any, cb?: ErrorCallback): void;
+    pushPromised(value: any): Promise<void>;
+    pushPromised(subpath: string, value: any): Promise<void>;
+    _push(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    unshift(value: any): void;
+    unshift(subpath: string, value: any, cb?: ErrorCallback): void;
+    unshiftPromised(value: any): Promise<void>;
+    unshiftPromised(subpath: string, value: any): Promise<void>;
+    _unshift(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    insert(value: any, index: number): void;
+    insert(subpath: string, index: number, value: any, cb?: ErrorCallback): void;
+    insertPromised(value: any, index: number): Promise<void>;
+    insertPromised(subpath: string, index: number, value: any): Promise<void>;
+    _insert(segments: Segments, index: number, value: any, cb?: ErrorCallback): void;
+
+    pop(value: any): void;
+    pop(subpath: string, value: any, cb?: ErrorCallback): void;
+    popPromised(value: any): Promise<void>;
+    popPromised(subpath: string, value: any): Promise<void>;
+    _pop(segments: Segments, value: any, cb?: ErrorCallback): void;
+
+    shift(subpath: string, cb?: ErrorCallback): void;
+    shiftPromised(subpath?: string): Promise<void>;
+    _shift(segments: Segments, cb?: ErrorCallback): void;
+
+    remove(index: number, cb?: ErrorCallback): void;
+    remove(subpath: string, cb?: ErrorCallback): void;
+    remove(index: number, howMany: number, cb?: ErrorCallback): void;
+    remove(subpath: string, index: number, cb?: ErrorCallback): void;
+    remove(subpath: string, index: number, howMany: number, cb?: ErrorCallback): void;
+    removePromised(index: number): Promise<void>;
+    removePromised(subpath: string): Promise<void>;
+    removePromised(index: number, howMany: number): Promise<void>;
+    removePromised(subpath: string, index: number): Promise<void>;
+    removePromised(subpath: string, index: number, howMany: number): void;
+    _remove(segments: Segments, index: number, howMany: number, cb?: ErrorCallback): void;
+
+    move(from: number, to: number, cb?: ErrorCallback): void;
+    move(from: number, to: number, howMany: number, cb?: ErrorCallback): void;
+    move(subpath: string, from: number, to: number, cb?: ErrorCallback): void;
+    move(subpath: string, from: number, to: number, howmany: number, cb?: ErrorCallback): void;
+    movePromised(from: number, to: number): Promise<void>;
+    movePromised(from: number, to: number, howMany: number): Promise<void>;
+    movePromised(subpath: string, from: number, to: number): Promise<void>;
+    movePromised(subpath: string, from: number, to: number, howmany: number): Promise<void>;
+    _move(segments: Segments, from: number, to: number, owMany: number, cb?: ErrorCallback): void;
+
+    stringInsert(index: number, text: string, cb?: ErrorCallback): void;
+    stringInsert(subpath: string, index: number, text: string, cb?: ErrorCallback): void;
+    stringInsertPromised(index: number, text: string): Promise<void>;
+    stringInsertPromised(subpath: string, index: number, text: string): Promise<void>;
+    _stringInsert(segments: Segments, index: number,text: string, cb?: ErrorCallback): void;
+
+    stringRemove(index: number, howMany: number, cb?: ErrorCallback): void;
+    stringRemove(subpath: string, index: number, cb?: ErrorCallback): void;
+    stringRemove(subpath: string, index: number, howMany: number, cb?: ErrorCallback): void;
+    stringRemovePromised(index: number, howMany: number): Promise<void>;
+    stringRemovePromised(subpath: string, index: number): Promise<void>;
+    stringRemovePromised(subpath: string, index: number, howMany: number): Promise<void>;
+    _stringRemove(segments: Segments, index: number, howMany: number, cb?: ErrorCallback): void;
+
+    subtypeSubmit(subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
+    subtypeSubmit(subpath: string, subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
+    subtypeSubmitPromised(subtype: any, subtypeOp: any): Promise<void>;
+    subtypeSubmitPromised(subpath: string, subtype: any, subtypeOp: any): Promise<void>;
+    _subtypeSubmit(segments: Segments, subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
+  }
+}
 
 Model.prototype._mutate = function(segments, fn, cb) {
   cb = this.wrapCallback(cb);

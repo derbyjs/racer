@@ -1,18 +1,24 @@
-module.exports = FastMap;
 
-function FastMap() {
-  this.values = {};
-  this.size = 0;
+export class FastMap<T>{
+  values: Record<string, T>;
+  size: number;
+
+  constructor() {
+    this.values = {};
+    this.size = 0;
+  }
+
+  set(key: string, value: T) {
+    if (!(key in this.values)) {
+      this.size++;
+    }
+    return this.values[key] = value;
+  };
+
+  del(key: string) {
+    if (key in this.values) {
+      this.size--;
+    }
+    delete this.values[key];
+  };
 }
-FastMap.prototype.set = function(key, value) {
-  if (!(key in this.values)) {
-    this.size++;
-  }
-  return this.values[key] = value;
-};
-FastMap.prototype.del = function(key) {
-  if (key in this.values) {
-    this.size--;
-  }
-  delete this.values[key];
-};

@@ -1,6 +1,13 @@
-var Model = require('./Model');
-var EventMapTree = require('./EventMapTree');
-var EventListenerTree = require('./EventListenerTree');
+import { EventListenerTree } from './EventListenerTree';
+import { EventMapTree } from './EventMapTree';
+import { Model } from './Model';
+
+declare module './Model' {
+  interface Model {
+    refList(to: any, ids: any, options?: any): RefList;
+    refList(from: any, to: any, ids: any, options?: any): RefList;
+  }
+}
 
 Model.INITS.push(function(model) {
   var root = model.root;
@@ -57,14 +64,14 @@ function patchFromEvent(segments, event, refList) {
   // Mutation on the `from` output itself
   if (segmentsLength === fromLength) {
     if (type === 'insert') {
-      var ids = setNewToValues(model, refList, event.values);
+      const ids = setNewToValues(model, refList, event.values);
       model._insert(refList.idsSegments, event.index, ids);
       return;
     }
 
     if (type === 'remove') {
-      var howMany = event.values.length;
-      var ids = model._remove(refList.idsSegments, event.index, howMany);
+      const howMany = event.values.length;
+      const ids = model._remove(refList.idsSegments, event.index, howMany);
       // Delete the appropriate items underneath `to` if the `deleteRemoved`
       // option was set true
       if (refList.deleteRemoved) {
@@ -182,7 +189,7 @@ function patchToEvent(segments, event, refList) {
     }
 
     if (type === 'remove') {
-      var removeIndex = event.index;
+      var removeIndex = event.index as number;
       var values = event.values;
       var howMany = values.length;
       for (var i = removeIndex, len = removeIndex + howMany; i < len; i++) {
@@ -370,118 +377,143 @@ Model.prototype.refList = function() {
   return this.scope(fromPath);
 };
 
-function RefList(model, from, to, ids, options) {
-  this.model = model && model.pass({$refList: this});
-  this.from = from;
-  this.to = to;
-  this.ids = ids;
-  this.fromSegments = from && from.split('.');
-  this.toSegments = to && to.split('.');
-  this.idsSegments = ids && ids.split('.');
-  this.options = options;
-  this.deleteRemoved = options && options.deleteRemoved;
-}
+export class RefList{
+  model: Model;
+  from: any;
+  to: any;
+  ids: string[];
+  fromSegments: any;
+  toSegments: any;
+  idsSegments: any;
+  options: any;
+  deleteRemoved: boolean;
 
-// The default implementation assumes that the ids array is a flat list of
-// keys on the to object. Ideally, this mapping could be customized via
-// inheriting from RefList and overriding these methods without having to
-// modify the above event handling code.
-//
-// In the default refList implementation, `key` and `id` are equal.
-//
-// Terms in the below methods:
-//   `item`  - Object on the `to` path, which gets mirrored on the `from` path
-//   `key`   - The property under `to` at which an item is located
-//   `id`    - String or object in the array at the `ids` path
-//   `index` - The index of an id, which corresponds to an index on `from`
-RefList.prototype.get = function() {
-  var ids = this.model._get(this.idsSegments);
-  if (!ids) return [];
-  var items = this.model._get(this.toSegments);
-  var out = [];
-  for (var i = 0; i < ids.length; i++) {
-    var key = ids[i];
-    out.push(items && items[key]);
+  constructor(model: Model, from, to, ids, options) {
+    this.model = model && model.pass({$refList: this});
+    this.from = from;
+    this.to = to;
+    this.ids = ids;
+    this.fromSegments = from && from.split('.');
+    this.toSegments = to && to.split('.');
+    this.idsSegments = ids && ids.split('.');
+    this.options = options;
+    this.deleteRemoved = options && options.deleteRemoved;
   }
-  return out;
-};
-RefList.prototype.dereference = function(segments, i) {
-  var remaining = segments.slice(i + 1);
-  var key = this.idByIndex(remaining[0]);
-  if (key == null) return [];
-  remaining[0] = key;
-  return this.toSegments.concat(remaining);
-};
-RefList.prototype.toSegmentsByItem = function(item) {
-  var key = this.idByItem(item);
-  if (key === undefined) return;
-  return this.toSegments.concat(key);
-};
-RefList.prototype.idByItem = function(item) {
-  if (item && item.id) return item.id;
-  var items = this.model._get(this.toSegments);
-  for (var key in items) {
-    if (item === items[key]) return key;
-  }
-};
-RefList.prototype.indicesByItem = function(item) {
-  var id = this.idByItem(item);
-  var ids = this.model._get(this.idsSegments);
-  if (!ids) return;
-  var indices;
-  var index = -1;
-  for (;;) {
-    index = ids.indexOf(id, index + 1);
-    if (index === -1) break;
-    if (indices) {
-      indices.push(index);
-    } else {
-      indices = [index];
+
+  // The default implementation assumes that the ids array is a flat list of
+  // keys on the to object. Ideally, this mapping could be customized via
+  // inheriting from RefList and overriding these methods without having to
+  // modify the above event handling code.
+  //
+  // In the default refList implementation, `key` and `id` are equal.
+  //
+  // Terms in the below methods:
+  //   `item`  - Object on the `to` path, which gets mirrored on the `from` path
+  //   `key`   - The property under `to` at which an item is located
+  //   `id`    - String or object in the array at the `ids` path
+  //   `index` - The index of an id, which corresponds to an index on `from`
+  get() {
+    var ids = this.model._get(this.idsSegments);
+    if (!ids) return [];
+    var items = this.model._get(this.toSegments);
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      var key = ids[i];
+      out.push(items && items[key]);
     }
-  }
-  return indices;
-};
-RefList.prototype.itemById = function(id) {
-  return this.model._get(this.toSegments.concat(id));
-};
-RefList.prototype.idByIndex = function(index) {
-  return this.model._get(this.idsSegments.concat(index));
-};
+    return out;
+  };
 
-function RefLists() {
-  this.fromMap = new EventMapTree();
-  var toListeners = this.toListeners = new EventListenerTree();
-  var idsListeners = this.idsListeners = new EventListenerTree();
-  this._removeInputListeners = function(refList) {
-    toListeners.removeListener(refList.toSegments, refList);
-    idsListeners.removeListener(refList.idsSegments, refList);
+  dereference(segments, i) {
+    var remaining = segments.slice(i + 1);
+    var key = this.idByIndex(remaining[0]);
+    if (key == null) return [];
+    remaining[0] = key;
+    return this.toSegments.concat(remaining);
+  };
+
+  toSegmentsByItem(item) {
+    var key = this.idByItem(item);
+    if (key === undefined) return;
+    return this.toSegments.concat(key);
+  };
+
+  idByItem(item) {
+    if (item && item.id) return item.id;
+    var items = this.model._get(this.toSegments);
+    for (var key in items) {
+      if (item === items[key]) return key;
+    }
+  };
+
+  indicesByItem(item) {
+    var id = this.idByItem(item);
+    var ids = this.model._get(this.idsSegments);
+    if (!ids) return;
+    var indices;
+    var index = -1;
+    for (;;) {
+      index = ids.indexOf(id, index + 1);
+      if (index === -1) break;
+      if (indices) {
+        indices.push(index);
+      } else {
+        indices = [index];
+      }
+    }
+    return indices;
+  };
+
+  itemById(id: string) {
+    return this.model._get(this.toSegments.concat(id));
+  };
+
+  idByIndex(index: number) {
+    return this.model._get(this.idsSegments.concat(index));
   };
 }
 
-RefLists.prototype.add = function(refList) {
-  this.fromMap.setListener(refList.fromSegments, refList);
-  this.toListeners.addListener(refList.toSegments, refList);
-  this.idsListeners.addListener(refList.idsSegments, refList);
-};
+export class RefLists{
+  fromMap: EventMapTree;
+  toListeners: EventListenerTree;
+  idsListeners: EventListenerTree;
 
-RefLists.prototype.remove = function(fromSegments) {
-  var refList = this.fromMap.deleteListener(fromSegments);
-  if (!refList) return;
-  this.toListeners.removeListener(refList.toSegments, refList);
-  this.idsListeners.removeListener(refList.idsSegments, refList);
-};
-
-RefLists.prototype.removeAll = function(segments) {
-  var node = this.fromMap.deleteAllListeners(segments);
-  if (node) {
-    node.forEach(this._removeInputListeners);
+  constructor() {
+    this.fromMap = new EventMapTree();
+    var toListeners = this.toListeners = new EventListenerTree();
+    var idsListeners = this.idsListeners = new EventListenerTree();
   }
-};
 
-RefLists.prototype.toJSON = function() {
-  var out = [];
-  this.fromMap.forEach(function(refList) {
-    out.push([refList.from, refList.to, refList.ids, refList.options]);
-  });
-  return out;
-};
+  add(refList) {
+    this.fromMap.setListener(refList.fromSegments, refList);
+    this.toListeners.addListener(refList.toSegments, refList);
+    this.idsListeners.addListener(refList.idsSegments, refList);
+  };
+  
+  remove(fromSegments) {
+    var refList = this.fromMap.deleteListener(fromSegments);
+    if (!refList) return;
+    this.toListeners.removeListener(refList.toSegments, refList);
+    this.idsListeners.removeListener(refList.idsSegments, refList);
+  };
+  
+  removeAll(segments) {
+    var node = this.fromMap.deleteAllListeners(segments);
+    if (node) {
+      node.forEach(this._removeInputListeners);
+    }
+  };
+  
+  toJSONn() {
+    var out = [];
+    this.fromMap.forEach(function(refList) {
+      out.push([refList.from, refList.to, refList.ids, refList.options]);
+    });
+    return out;
+  };
+
+  _removeInputListeners(refList) {
+    this.toListeners.removeListener(refList.toSegments, refList);
+    this.idsListeners.removeListener(refList.idsSegments, refList);
+  };
+}

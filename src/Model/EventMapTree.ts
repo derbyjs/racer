@@ -1,6 +1,5 @@
-var FastMap = require('./FastMap');
-
-module.exports = EventMapTree;
+import { type Segments } from './Model';
+import { FastMap } from './FastMap';
 
 /**
  * Construct a tree root when invoked without any arguments. Children nodes are
@@ -9,159 +8,177 @@ module.exports = EventMapTree;
  * @param {EventMapTree} [parent]
  * @param {string} [segment]
  */
-function EventMapTree(parent, segment) {
-  this.parent = parent;
-  this.segment = segment;
-  this.children = null;
-  this.listener = null;
-}
+export class EventMapTree {
+  parent?: EventMapTree;
+  segment?: string;
+  children: any;
+  listener: any;
 
-/**
- * Remove the reference to this node from its parent so that it can be garbage
- * collected. This is called internally when all listener to a node
- * are removed
- */
-EventMapTree.prototype.destroy = function() {
-  // For all non-root nodes, remove the reference to the node
-  var parent = this.parent;
-  if (parent) {
-    // Remove reference to this node from its parent
-    var children = parent.children;
-    if (children) {
-      children.del(this.segment);
-      if (children.size > 0) return;
-      parent.children = null;
-    }
-    // Destroy parent if it no longer has any dependents
-    if (parent.listener == null) {
-      parent.destroy();
-    }
-    return;
+  constructor(parent?: EventMapTree, segment?: string) {
+    this.parent = parent;
+    this.segment = segment;
+    this.children = null;
+    this.listener = null;
   }
-  // For the root node, reset any references to listener or children
-  this.children = null;
-  this.listener = null;
-};
 
-/**
- * Get a node for a path if it exists
- *
- * @param  {string[]} segments
- * @return {EventMapTree|undefined}
- */
-EventMapTree.prototype._getChild = function(segments) {
-  var node = this;
-  for (var i = 0, len = segments.length; i < len; i++) {
-    var children = node.children;
-    if (!children) return;
-    var segment = segments[i];
-    node = children.values[segment];
+  /**
+   * Remove the reference to this node from its parent so that it can be garbage
+   * collected. This is called internally when all listener to a node
+   * are removed
+   */
+  destroy() {
+    // For all non-root nodes, remove the reference to the node
+    var parent = this.parent;
+    if (parent) {
+      // Remove reference to this node from its parent
+      var children = parent.children;
+      if (children) {
+        children.del(this.segment);
+        if (children.size > 0) return;
+        parent.children = null;
+      }
+      // Destroy parent if it no longer has any dependents
+      if (parent.listener == null) {
+        parent.destroy();
+      }
+      return;
+    }
+    // For the root node, reset any references to listener or children
+    this.children = null;
+    this.listener = null;
+  };
+
+  /**
+   * Get a node for a path if it exists
+   *
+   * @param  {string[]} segments
+   * @return {EventMapTree|undefined}
+   */
+  _getChild(segments: Segments) {
+    var node = this;
+    for (var i = 0, len = segments.length; i < len; i++) {
+      var children = node.children;
+      if (!children) return;
+      var segment = segments[i];
+      node = children.values[segment];
+      if (!node) return;
+    }
+    return node;
+  };
+
+  /**
+   * If a path already has a node, return it. Otherwise, create the node and
+   * parents in a lazy manner and return the node for the path
+   *
+   * @param  {string[]} segments
+   * @return {EventMapTree}
+   */
+  _getOrCreateChild(segments: Segments) {
+    var node: EventMapTree = this;
+    for (var i = 0, len = segments.length; i < len; i++) {
+      var children = node.children;
+      if (!children) {
+        children = node.children = new FastMap();
+      }
+      var segment = segments[i];
+      var next = children.values[segment];
+      if (next) {
+        node = next;
+      } else {
+        node = new EventMapTree(node, segment);
+        children.set(segment, node);
+      }
+    }
+    return node;
+  };
+
+  /**
+   * Assign a listener to a path location. Listener may be any type of value.
+   * Return the previous listener value if any
+   *
+   * @param  {string[]} segments
+   * @param  {*} listener
+   * @return {*} previous
+   */
+  setListener(segments: Segments, listener) {
+    var node = this._getOrCreateChild(segments);
+    var previous = node.listener;
+    node.listener = listener;
+    return previous;
+  };
+
+  /**
+   * Remove the listener at a path location and return it
+   *
+   * @param  {string[]} segments
+   * @return {*} previous
+   */
+  deleteListener(segments: Segments) {
+    var node = this._getChild(segments);
     if (!node) return;
-  }
-  return node;
-};
-
-/**
- * If a path already has a node, return it. Otherwise, create the node and
- * parents in a lazy manner and return the node for the path
- *
- * @param  {string[]} segments
- * @return {EventMapTree}
- */
-EventMapTree.prototype._getOrCreateChild = function(segments) {
-  var node = this;
-  for (var i = 0, len = segments.length; i < len; i++) {
-    var children = node.children;
-    if (!children) {
-      children = node.children = new FastMap();
+    var previous = node.listener;
+    node.listener = null;
+    if (!node.children) {
+      node.destroy();
     }
-    var segment = segments[i];
-    var next = children.values[segment];
-    if (next) {
-      node = next;
-    } else {
-      node = new EventMapTree(node, segment);
-      children.set(segment, node);
+    return previous;
+  };
+
+  /**
+   * Remove all listeners and descendent listeners for a path location. Return the
+   * node for the path location if any
+   *
+   * @param  {string[]} segments
+   * @return {EventMapTree}
+   */
+  deleteAllListeners(segments: Segments) {
+    var node = this._getChild(segments);
+    if (node) {
+      node.destroy();
     }
-  }
-  return node;
-};
+    return node;
+  };
 
-/**
- * Assign a listener to a path location. Listener may be any type of value.
- * Return the previous listener value if any
- *
- * @param  {string[]} segments
- * @param  {*} listener
- * @return {*} previous
- */
-EventMapTree.prototype.setListener = function(segments, listener) {
-  var node = this._getOrCreateChild(segments);
-  var previous = node.listener;
-  node.listener = listener;
-  return previous;
-};
+  /**
+   * Return the direct listener to `segments` if any
+   *
+   * @param  {string[]} segments
+   * @return {*} listeners
+   */
+  getListener(segments: Segments) {
+    var node = this._getChild(segments);
+    return (node) ? node.listener : null;
+  };
 
-/**
- * Remove the listener at a path location and return it
- *
- * @param  {string[]} segments
- * @return {*} previous
- */
-EventMapTree.prototype.deleteListener = function(segments) {
-  var node = this._getChild(segments);
-  if (!node) return;
-  var previous = node.listener;
-  node.listener = null;
-  if (!node.children) {
-    node.destroy();
-  }
-  return previous;
-};
+  /**
+   * Return an array with each of the listeners that may be affected by a change
+   * to `segments`. These are:
+   *   1. Listeners to each node from the root to the node for `segments`
+   *   2. Listeners to all descendent nodes under `segments`
+   *
+   * @param  {string[]} segments
+   * @return {Array} listeners
+   */
+  getAffectedListeners(segments) {
+    var listeners = [];
+    var node = pushAncestorListeners(listeners, segments, this);
+    if (node) {
+      pushDescendantListeners(listeners, node);
+    }
+    return listeners;
+  };
 
-/**
- * Remove all listeners and descendent listeners for a path location. Return the
- * node for the path location if any
- *
- * @param  {string[]} segments
- * @return {EventMapTree}
- */
-EventMapTree.prototype.deleteAllListeners = function(segments) {
-  var node = this._getChild(segments);
-  if (node) {
-    node.destroy();
-  }
-  return node;
-};
-
-/**
- * Return the direct listener to `segments` if any
- *
- * @param  {string[]} segments
- * @return {*} listeners
- */
-EventMapTree.prototype.getListener = function(segments) {
-  var node = this._getChild(segments);
-  return (node) ? node.listener : null;
-};
-
-/**
- * Return an array with each of the listeners that may be affected by a change
- * to `segments`. These are:
- *   1. Listeners to each node from the root to the node for `segments`
- *   2. Listeners to all descendent nodes under `segments`
- *
- * @param  {string[]} segments
- * @return {Array} listeners
- */
-EventMapTree.prototype.getAffectedListeners = function(segments) {
-  var listeners = [];
-  var node = pushAncestorListeners(listeners, segments, this);
-  if (node) {
-    pushDescendantListeners(listeners, node);
-  }
-  return listeners;
-};
+  /**
+   * Call the callback with each listener to the node and its decendants
+   *
+   * @param {EventMapTree} node
+   * @param {Function} callback
+   */
+  forEach(callback) {
+    forListener(this, callback);
+    forDescendantListeners(this, callback);
+  };
+}
 
 /**
  * Push node's direct listener onto the passed in array if not null
@@ -213,17 +230,6 @@ function pushDescendantListeners(listeners, node) {
     pushDescendantListeners(listeners, child);
   }
 }
-
-/**
- * Call the callback with each listener to the node and its decendants
- *
- * @param {EventMapTree} node
- * @param {Function} callback
- */
-EventMapTree.prototype.forEach = function(callback) {
-  forListener(this, callback);
-  forDescendantListeners(this, callback);
-};
 
 /**
  * Call the callback with the node's direct listener if not null

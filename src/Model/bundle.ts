@@ -1,11 +1,20 @@
-var Model = require('./Model');
+import { Model } from './Model';
 var defaultType = require('sharedb/lib/client').types.defaultType;
 var promisify = require('../util').promisify;
 
-Model.BUNDLE_TIMEOUT = 10 * 1000;
+declare module './Model' {
+  interface Model {
+    bundleTimeout: number;
+
+    bundle(cb: (err?: Error, bundle?: any) => void): void;
+    bundlePromised(): Promise<void>;
+  }
+}
+
+const BUNDLE_TIMEOUT = 10 * 1000;
 
 Model.INITS.push(function(model, options) {
-  model.root.bundleTimeout = options.bundleTimeout || Model.BUNDLE_TIMEOUT;
+  model.root.bundleTimeout = options.bundleTimeout || BUNDLE_TIMEOUT;
 });
 
 Model.prototype.bundle = function(cb) {
@@ -21,13 +30,14 @@ Model.prototype.bundle = function(cb) {
   root.whenNothingPending(function finishBundle() {
     clearTimeout(timeout);
     var bundle = {
+      collections: undefined,
       queries: root._queries.toJSON(),
       contexts: root._contexts.toJSON(),
       refs: root._refs.toJSON(),
       refLists: root._refLists.toJSON(),
       fns: root._fns.toJSON(),
       filters: root._filters.toJSON(),
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
     };
     stripComputed(root);
     bundle.collections = serializeCollections(root);

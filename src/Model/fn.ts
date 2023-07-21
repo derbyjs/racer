@@ -1,12 +1,28 @@
-var util = require('../util');
-var Model = require('./Model');
+import { Model, type Segments } from './Model';
+import { EventListenerTree } from './EventListenerTree';
+import { EventMapTree } from './EventMapTree';
 var defaultFns = require('./defaultFns');
-var EventListenerTree = require('./EventListenerTree');
-var EventMapTree = require('./EventMapTree');
+var util = require('../util');
 
-function NamedFns() {}
+class NamedFns { }
 
-Model.INITS.push(function(model) {
+declare module './Model' {
+  interface Model {
+    _namedFns: NamedFns;
+    _fns: Fns;
+    fn(name: string, fns: Fns): void;
+    evaluate(): any;
+    start(): any;
+    stop(subpath: string): void;
+    _stop(segments: Segments): void;
+    stopAll(subpath: string): void;
+    _stopAll(segments: Segments): void;
+
+  }
+}
+
+
+Model.INITS.push(function (model) {
   var root = model.root;
   root._namedFns = new NamedFns();
   root._fns = new Fns(root);
@@ -33,7 +49,7 @@ function addFnListener(model) {
   });
 }
 
-Model.prototype.fn = function(name, fns) {
+Model.prototype.fn = function (name, fns) {
   this.root._namedFns[name] = fns;
 };
 
@@ -84,97 +100,105 @@ function parseStartArguments(model, args, hasPath) {
   };
 }
 
-Model.prototype.evaluate = function() {
+Model.prototype.evaluate = function () {
   var args = Array.prototype.slice.call(arguments);
   var parsed = parseStartArguments(this, args, false);
   return this.root._fns.get(parsed.name, parsed.inputPaths, parsed.fns, parsed.options);
 };
 
-Model.prototype.start = function() {
+Model.prototype.start = function () {
   var args = Array.prototype.slice.call(arguments);
   var parsed = parseStartArguments(this, args, true);
   return this.root._fns.start(parsed.name, parsed.path, parsed.inputPaths, parsed.fns, parsed.options);
 };
 
-Model.prototype.stop = function(subpath) {
+Model.prototype.stop = function (subpath) {
   var segments = this._splitPath(subpath);
   this._stop(segments);
 };
-Model.prototype._stop = function(segments) {
+Model.prototype._stop = function (segments) {
   this.root._fns.stop(segments);
 };
 
-Model.prototype.stopAll = function(subpath) {
+Model.prototype.stopAll = function (subpath) {
   var segments = this._splitPath(subpath);
   this._stopAll(segments);
 };
-Model.prototype._stopAll = function(segments) {
+Model.prototype._stopAll = function (segments) {
   this.root._fns.stopAll(segments);
 };
 
-function Fns(model) {
-  this.model = model;
-  this.nameMap = model._namedFns;
-  this.fromMap = new EventMapTree();
-  var inputListeners = this.inputListeners = new EventListenerTree();
-  this._removeInputListeners = function(fn) {
+class Fns {
+  model: Model;
+  nameMap: NamedFns;
+  fromMap: EventMapTree;
+  inputListeners: EventListenerTree;
+
+  constructor(model: Model) {
+    this.model = model;
+    this.nameMap = model._namedFns;
+    this.fromMap = new EventMapTree();
+    this.inputListeners = new EventListenerTree();
+  }
+
+  _removeInputListeners(fn) {
     for (var i = 0; i < fn.inputsSegments.length; i++) {
       var inputSegements = fn.inputsSegments[i];
-      inputListeners.removeListener(inputSegements, fn);
+      this.inputListeners.removeListener(inputSegements, fn);
     }
+  };
+
+  get(name: string, inputPaths: any, fns: any, options: any) {
+    fns || (fns = this.nameMap[name] || defaultFns[name]);
+    var fn = new Fn(this.model, name, null, inputPaths, fns, options);
+    return fn.get();
+  };
+  
+  start(name: string, path: string, inputPaths: any, fns: any, options: any) {
+    fns || (fns = this.nameMap[name] || defaultFns[name]);
+    var fn = new Fn(this.model, name, path, inputPaths, fns, options);
+    var previous = this.fromMap.setListener(fn.fromSegments, fn);
+    if (previous) {
+      this._removeInputListeners(previous);
+    }
+    for (var i = 0; i < fn.inputsSegments.length; i++) {
+      var inputSegements = fn.inputsSegments[i];
+      this.inputListeners.addListener(inputSegements, fn);
+    }
+    return fn._onInput();
+  };
+  
+  stop(segments: Segments) {
+    var previous = this.fromMap.deleteListener(segments);
+    if (previous) {
+      this._removeInputListeners(previous);
+    }
+  };
+  
+  stopAll(segments: Segments) {
+    var node = this.fromMap.deleteAllListeners(segments);
+    if (node) {
+      node.forEach(this._removeInputListeners);
+    }
+  };
+  
+  toJSON() {
+    var out = [];
+    this.fromMap.forEach(function (fn) {
+      // Don't try to bundle non-named functions that were started via
+      // model.start directly instead of by name
+      if (!fn.name) return;
+      var args = [fn.from].concat(fn.inputPaths);
+      if (fn.options) args.push(fn.options);
+      args.push(fn.name);
+      out.push(args);
+    });
+    return out;
   };
 }
 
-Fns.prototype.get = function(name, inputPaths, fns, options) {
-  fns || (fns = this.nameMap[name] || defaultFns[name]);
-  var fn = new Fn(this.model, name, null, inputPaths, fns, options);
-  return fn.get();
-};
-
-Fns.prototype.start = function(name, path, inputPaths, fns, options) {
-  fns || (fns = this.nameMap[name] || defaultFns[name]);
-  var fn = new Fn(this.model, name, path, inputPaths, fns, options);
-  var previous = this.fromMap.setListener(fn.fromSegments, fn);
-  if (previous) {
-    this._removeInputListeners(previous);
-  }
-  for (var i = 0; i < fn.inputsSegments.length; i++) {
-    var inputSegements = fn.inputsSegments[i];
-    this.inputListeners.addListener(inputSegements, fn);
-  }
-  return fn._onInput();
-};
-
-Fns.prototype.stop = function(segments) {
-  var previous = this.fromMap.deleteListener(segments);
-  if (previous) {
-    this._removeInputListeners(previous);
-  }
-};
-
-Fns.prototype.stopAll = function(segments) {
-  var node = this.fromMap.deleteAllListeners(segments);
-  if (node) {
-    node.forEach(this._removeInputListeners);
-  }
-};
-
-Fns.prototype.toJSON = function() {
-  var out = [];
-  this.fromMap.forEach(function(fn) {
-    // Don't try to bundle non-named functions that were started via
-    // model.start directly instead of by name
-    if (!fn.name) return;
-    var args = [fn.from].concat(fn.inputPaths);
-    if (fn.options) args.push(fn.options);
-    args.push(fn.name);
-    out.push(args);
-  });
-  return out;
-};
-
 function Fn(model, name, from, inputPaths, fns, options) {
-  this.model = model.pass({$fn: this});
+  this.model = model.pass({ $fn: this });
   this.name = name;
   this.from = from;
   this.inputPaths = inputPaths;
@@ -203,7 +227,7 @@ function Fn(model, name, from, inputPaths, fns, options) {
   this.eventPending = false;
 }
 
-Fn.prototype.apply = function(fn, inputs) {
+Fn.prototype.apply = function (fn, inputs) {
   for (var i = 0, len = this.inputsSegments.length; i < len; i++) {
     var input = this.model._get(this.inputsSegments[i]);
     inputs.push(this.copyInput ? util.deepCopy(input) : input);
@@ -211,11 +235,11 @@ Fn.prototype.apply = function(fn, inputs) {
   return fn.apply(this.model, inputs);
 };
 
-Fn.prototype.get = function() {
+Fn.prototype.get = function () {
   return this.apply(this.getFn, []);
 };
 
-Fn.prototype.set = function(value, pass) {
+Fn.prototype.set = function (value, pass) {
   if (!this.setFn) return;
   var out = this.apply(this.setFn, [value]);
   if (!out) return;
@@ -227,12 +251,12 @@ Fn.prototype.set = function(value, pass) {
   }
 };
 
-Fn.prototype.onInput = function(pass) {
+Fn.prototype.onInput = function (pass) {
   if (this.async) {
     if (this.eventPending) return;
     this.eventPending = true;
     var fn = this;
-    process.nextTick(function() {
+    process.nextTick(function () {
       fn._onInput(pass);
       fn.eventPending = false;
     });
@@ -241,18 +265,18 @@ Fn.prototype.onInput = function(pass) {
   return this._onInput(pass);
 };
 
-Fn.prototype._onInput = function(pass) {
+Fn.prototype._onInput = function (pass) {
   var value = (this.copyOutput) ? util.deepCopy(this.get()) : this.get();
   this._setValue(this.model.pass(pass, true), this.fromSegments, value);
   return value;
 };
 
-Fn.prototype.onOutput = function(pass) {
+Fn.prototype.onOutput = function (pass) {
   var value = this.model._get(this.fromSegments);
   return this.set(value, pass);
 };
 
-Fn.prototype._setValue = function(model, segments, value) {
+Fn.prototype._setValue = function (model, segments, value) {
   if (this.mode === 'diffDeep') {
     model._setDiffDeep(segments, value);
   } else if (this.mode === 'arrayDeep') {

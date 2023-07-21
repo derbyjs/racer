@@ -1,31 +1,38 @@
-var FastMap = require('./FastMap');
+import { FastMap } from './FastMap';
+import { Collection } from './collections';
 
-module.exports = CollectionMap;
+export class CollectionMap{
+  collections: Record<string, FastMap<Collection>>;
 
-function CollectionMap() {
-  // A map of collection names to FastMaps
-  this.collections = {};
+  constructor() {
+    // A map of collection names to FastMaps
+    this.collections = {};
+  }
+
+  getCollection(collectionName) {
+    var collection = this.collections[collectionName];
+    return (collection && collection.values);
+  };
+
+  get(collectionName, id) {
+    var collection = this.collections[collectionName];
+    return (collection && collection.values[id]);
+  };
+
+  set(collectionName, id, value) {
+    var collection = this.collections[collectionName];
+    if (!collection) {
+      collection = this.collections[collectionName] = new FastMap();
+    }
+    collection.set(id, value);
+  };
+
+  del(collectionName, id) {
+    var collection = this.collections[collectionName];
+    if (collection) {
+      collection.del(id);
+      if (collection.size > 0) return;
+      delete this.collections[collectionName];
+    }
+  };
 }
-CollectionMap.prototype.getCollection = function(collectionName) {
-  var collection = this.collections[collectionName];
-  return (collection && collection.values);
-};
-CollectionMap.prototype.get = function(collectionName, id) {
-  var collection = this.collections[collectionName];
-  return (collection && collection.values[id]);
-};
-CollectionMap.prototype.set = function(collectionName, id, value) {
-  var collection = this.collections[collectionName];
-  if (!collection) {
-    collection = this.collections[collectionName] = new FastMap();
-  }
-  collection.set(id, value);
-};
-CollectionMap.prototype.del = function(collectionName, id) {
-  var collection = this.collections[collectionName];
-  if (collection) {
-    collection.del(id);
-    if (collection.size > 0) return;
-    delete this.collections[collectionName];
-  }
-};

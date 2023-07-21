@@ -1,14 +1,24 @@
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
+import { Context } from 'vm';
 
-interface DebugOptions {
-  debugMutations?: boolean,
-  disableSubmit?: boolean,
+declare module './Model' {
+  interface DebugOptions {
+    debugMutations?: boolean,
+    disableSubmit?: boolean,
+    remoteMutations?: boolean,
+  }
+  
+  interface ModelOptions {
+    debug?: DebugOptions;
+    fetchOnly?: boolean;
+    unloadDelay?: number;
+    bundleTimeout?: number;
+  }
+
+  type ErrorCallback = (err?: Error) => void;
 }
 
-interface ModelOptions {
-  debug?: DebugOptions;
-}
 
 type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
 
@@ -20,12 +30,12 @@ export class Model extends EventEmitter {
   root: Model;
 
   _at: () => Model;
-  _context: {};
+  _context: Context;
   _eventContext: number | null;
   _events: [];
   _maxListeners: number;
-  _pass: () => void;
-  _preventCompose: () => void;
+  _pass: any;
+  _preventCompose: boolean;
   _silent: boolean;
 
   constructor(options: ModelOptions = {}) {

@@ -1,8 +1,31 @@
 var Connection = require('sharedb/lib/client').Connection;
-var Model = require('./Model');
-var LocalDoc = require('./LocalDoc');
-var RemoteDoc = require('./RemoteDoc');
+import { Model } from './Model';
+import { type Doc} from './Doc';
+import { LocalDoc} from './LocalDoc';
+import {RemoteDoc} from './RemoteDoc';
 var promisify = require('../util').promisify;
+
+declare module './Model' {
+  interface DocConstructor {
+    new (model: Model, collectionName: string, id: string, data: any): DocConstructor;
+  }
+  interface Model {
+    _finishCreateConnection(): void;
+    _getDocConstructor(name: string): DocConstructor;
+    _isLocal(name: string): boolean;
+    allowCompose(): Model;
+    close(cb: (err?: Error) => void): void;
+    closePromised: Promise<void>;
+    disconnect(): void;
+    getAgent(): any;
+    hasPending(): boolean;
+    hasWritePending(): boolean;
+    preventCompose(): Model;
+    reconnect(): void;
+    whenNothingPending(cb: () => void): void;
+    whenNothingPendingPromised(): Promise<void>;
+  }
+}
 
 Model.INITS.push(function(model) {
   model.root._preventCompose = false;
@@ -90,7 +113,7 @@ Model.prototype._isLocal = function(name) {
   return firstCharcter === '_' || firstCharcter === '$';
 };
 
-Model.prototype._getDocConstructor = function(name) {
+Model.prototype._getDocConstructor = function(name: string) {
   return (this._isLocal(name)) ? LocalDoc : RemoteDoc;
 };
 
