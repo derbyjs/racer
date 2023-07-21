@@ -22,7 +22,7 @@ declare module './Model' {
 
 type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
 
-export class Model extends EventEmitter {
+export class Model {
   static INITS: ModelInitFunction[] = [];
 
   ChildModel = ChildModel;
@@ -39,8 +39,6 @@ export class Model extends EventEmitter {
   _silent: boolean;
 
   constructor(options: ModelOptions = {}) {
-    super();
-
     this.root = this;
     var inits = Model.INITS;
     this.debug = options.debug || {};

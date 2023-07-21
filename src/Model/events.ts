@@ -23,7 +23,7 @@ declare module './Model' {
     __once: typeof EventEmitter.prototype.once;
     once(event: string, listener: any, arg2?: any, arg3?: any): any;
     __removeListener: typeof EventEmitter.prototype.removeListener;
-    removeListener(type: string, listener: any): this;
+    removeListener(type: string, listener: any): void;
     __removeAllListeners: typeof EventEmitter.prototype.removeAllListeners;
     removeAllListeners(type: string, subpath: string): void;
     _removeAllListeners(type: string, segments: Segments): void;
@@ -33,12 +33,13 @@ declare module './Model' {
     removeContextListeners(): void;
     _removeMutationListener(listener: MutationListener): void;
     _addMutationListener(type: string, arg1: any, arg2: any, arg3: any): MutationListener;
+    setMaxListeners(limit: number): void;
   }
 }
 
 Model.INITS.push(function (model: Model) {
   var root = model.root;
-  // EventEmitter.call(root);
+  EventEmitter.call(root);
 
   // Set max listeners to unlimited
   model.setMaxListeners(0);
@@ -67,7 +68,7 @@ Model.INITS.push(function (model: Model) {
   root._eventContext = null;
 });
 
-// mergeInto(Model.prototype, EventEmitter.prototype);
+mergeInto(Model.prototype, EventEmitter.prototype);
 
 Model.prototype.wrapCallback = function (cb) {
   if (!cb) return this.root._defaultCallback;
