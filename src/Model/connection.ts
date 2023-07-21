@@ -7,11 +7,11 @@ var promisify = require('../util').promisify;
 
 declare module './Model' {
   interface DocConstructor {
-    new (model: Model, collectionName: string, id: string, data: any): DocConstructor;
+    new (any: unknown[]): DocConstructor;
   }
   interface Model {
     _finishCreateConnection(): void;
-    _getDocConstructor(name: string): DocConstructor;
+    _getDocConstructor(name: string): any;
     _isLocal(name: string): boolean;
     allowCompose(): Model;
     close(cb: (err?: Error) => void): void;

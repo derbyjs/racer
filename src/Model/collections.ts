@@ -24,7 +24,6 @@ declare module './Model' {
     getDeepCopy(subpath: string): any;
     _getDeepCopy(segments: Segments): any;
     getOrCreateCollection(name: string): Collection;
-    _getDocConstructor(): DocConstructor;
     getOrCreateDoc(collectionName: string, id: string, data: any);
     destroy(subpath: string): void;
   }
@@ -82,7 +81,7 @@ Model.prototype.getOrCreateCollection = function(name) {
   return collection;
 };
 
-Model.prototype._getDocConstructor = function() {
+Model.prototype._getDocConstructor = function(name: string) {
   // Only create local documents. This is overriden in ./connection.js, so that
   // the RemoteDoc behavior can be selectively included
   return LocalDoc;
