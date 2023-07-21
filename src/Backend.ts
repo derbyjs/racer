@@ -1,7 +1,7 @@
-var path = require('path');
+import { Model } from './Model';
+import * as path from 'path';
+import * as util from './util';
 var Backend = require('sharedb').Backend;
-var Model = require('./Model');
-var util = require('./util');
 
 export class RacerBackend extends Backend {
   racer: any;
@@ -11,9 +11,9 @@ export class RacerBackend extends Backend {
     super(options);
     this.racer = racer;
     this.modelOptions = options && options.modelOptions;
-    this.on('bundle', function(browserify) {
+    this.on('bundle', function (browserify) {
       var racerPath = path.join(__dirname, 'index.js');
-      browserify.require(racerPath, {expose: 'racer'});
+      browserify.require(racerPath, { expose: 'racer' });
     });
   }
 
@@ -34,15 +34,15 @@ export class RacerBackend extends Backend {
     function modelMiddleware(req, res, next) {
       // Do not add a model to the request if one has been added already
       if (req.model) return next();
-  
+
       // Create a new model for this request
-      req.model = backend.createModel({fetchOnly: true}, req);
+      req.model = backend.createModel({ fetchOnly: true }, req);
       // DEPRECATED:
-      req.getModel = function() {
+      req.getModel = function () {
         console.warn('Warning: req.getModel() is deprecated. Please use req.model instead.');
         return req.model;
       };
-  
+
       // Close the model when this request ends
       function closeModel() {
         res.removeListener('finish', closeModel);
@@ -53,11 +53,11 @@ export class RacerBackend extends Backend {
       }
       res.on('finish', closeModel);
       res.on('close', closeModel);
-  
+
       next();
     }
     return modelMiddleware;
   };
 }
 
-function getModelUndefined() {}
+function getModelUndefined() { }

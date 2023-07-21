@@ -1,37 +1,36 @@
-var util = require('../util');
-import { CollectionName } from 'sharedb/lib/sharedb';
 import { Model } from './Model';
-var Query = require('./Query');
-var CollectionCounter = require('./CollectionCounter');
-var mutationEvents = require('./events').mutationEvents;
-var UnloadEvent = mutationEvents.UnloadEvent;
-var promisify = util.promisify;
+import { CollectionCounter } from './CollectionCounter';
+import { mutationEvents } from './events';
+import { Query } from './Query';
+import * as util from '../util';
+const UnloadEvent = mutationEvents.UnloadEvent;
+const promisify = util.promisify;
 
 declare module './Model' {
   interface Model {
     fetch(): Model;
-    fetchPromised(): Promise<void>;
+    fetchPromised(): Promise<unknown>;
     unfetch(): Model;
-    unfetchPromised(): Promise<void>;
+    unfetchPromised(): Promise<unknown>;
     subscribe(): void;
-    subscribePromised(): Promise<void>;
+    subscribePromised(): Promise<unknown>;
     unsubscribe(): Model;
-    unsubscribePromised(): Promise<void>;
-    _forSubscribable(argumentsObject: any, method: any): void; 
+    unsubscribePromised(): Promise<unknown>;
+    _forSubscribable(argumentsObject: any, method: any): void;
     fetchDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
-    fetchDocPromised(collecitonName: string, id: string): Promise<void>;
+    fetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
-    subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
+    subscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
     unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unfetchDocPromised(collecitonName: string, id: string): Promise<void>;
+    unfetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
     unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unsubscribeDocPromised(collecitonName: string, id: string): Promise<void>;
+    unsubscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
     _maybeUnloadDoc(collecitonName: string, id: string): void;
     _hasDocReferences(collecitonName: string, id: string): boolean;
     fetchOnly: boolean;
     unloadDelay: number;
-    _fetchedDocs: typeof CollectionCounter;
-    _subscribedDocs: typeof CollectionCounter;
+    _fetchedDocs: CollectionCounter;
+    _subscribedDocs: CollectionCounter;
   }
 }
 

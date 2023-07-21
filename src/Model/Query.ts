@@ -15,11 +15,11 @@ declare module './Model' {
   }
 }
 
-Model.INITS.push(function (model) {
+Model.INITS.push(function(model) {
   model.root._queries = new Queries();
 });
 
-Model.prototype.query = function (collectionName, expression, options) {
+Model.prototype.query = function(collectionName, expression, options) {
   // DEPRECATED: Passing in a string as the third argument specifies the db
   // option for backward compatibility
   if (typeof options === 'string') {
@@ -39,7 +39,7 @@ Model.prototype.query = function (collectionName, expression, options) {
  * @param {new (model: Model, collectionName: string, expression: any, options: any) => Query} QueryConstructor -
  *   constructor function for a Query, to create one if not already present on this model
  */
-Model.prototype._getOrCreateQuery = function (collectionName, expression, options, QueryConstructor) {
+Model.prototype._getOrCreateQuery = function(collectionName, expression, options, QueryConstructor) {
   expression = this.sanitizeQuery(expression);
   var contextId = this._context.id;
   var query = this.root._queries.get(contextId, collectionName, expression, options);
@@ -55,7 +55,7 @@ Model.prototype._getOrCreateQuery = function (collectionName, expression, option
 // filter and absence means that all values are accepted. We aren't checking
 // for cycles, which aren't allowed in JSON, so this could throw a max call
 // stack error
-Model.prototype.sanitizeQuery = function (expression) {
+Model.prototype.sanitizeQuery = function(expression) {
   if (expression && typeof expression === 'object') {
     for (var key in expression) {
       if (expression.hasOwnProperty(key)) {
@@ -72,7 +72,7 @@ Model.prototype.sanitizeQuery = function (expression) {
 };
 
 // Called during initialization of the bundle on page load.
-Model.prototype._initQueries = function (items) {
+Model.prototype._initQueries = function(items) {
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
     var countsList = item[0];
@@ -158,7 +158,7 @@ export class Queries {
   };
 }
 
-class Query {
+export class Query {
   model: Model;
   context: Context;
   collectionName: string;
@@ -259,7 +259,7 @@ class Query {
 
     if (this.subscribeCount++) {
       var query = this;
-      process.nextTick(function () {
+      process.nextTick(function() {
         var data = query.model._get(query.segments);
         if (data) {
           cb();
@@ -320,23 +320,23 @@ class Query {
       options,
       this._subscribeCb(cb)
     );
-    this.shareQuery.on('insert', function (shareDocs, index) {
+    this.shareQuery.on('insert', function(shareDocs, index) {
       var ids = resultsIds(shareDocs);
       query._addMapIds(ids);
       query.model._insert(query.idsSegments, index, ids);
     });
-    this.shareQuery.on('remove', function (shareDocs, index) {
+    this.shareQuery.on('remove', function(shareDocs, index) {
       var ids = resultsIds(shareDocs);
       query._removeMapIds(ids);
       query.model._remove(query.idsSegments, index, shareDocs.length);
     });
-    this.shareQuery.on('move', function (shareDocs, from, to) {
+    this.shareQuery.on('move', function(shareDocs, from, to) {
       query.model._move(query.idsSegments, from, to, shareDocs.length);
     });
-    this.shareQuery.on('extra', function (extra) {
+    this.shareQuery.on('extra', function(extra) {
       query.model._setDiffDeep(query.extraSegments, extra);
     });
-    this.shareQuery.on('error', function (err) {
+    this.shareQuery.on('error', function(err) {
       query.model._emitError(err, query.hash);
     });
   };
@@ -357,7 +357,7 @@ class Query {
     // work to avoid thrashing subscribe/unsubscribe in expected cases
     if (this.model.root.unloadDelay) {
       var query = this;
-      setTimeout(function () {
+      setTimeout(function() {
         query._maybeUnloadDocs(ids);
       }, this.model.root.unloadDelay);
       return;

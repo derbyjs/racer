@@ -2,7 +2,7 @@ import { Model } from './Model';
 
 declare module './Model' {
   interface Model {
-    createConnection(backend: any, req: any): void;
+    createConnection(backend: any, req?: any): void;
     connect(): void;
     connection: any;
   }

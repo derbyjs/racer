@@ -10,7 +10,7 @@ declare module './Model' {
   interface Model {
     _defaultCallback(err?: Error): void;
     _emitError(err: Error, context?: any): void;
-    wrapCallback(cb: ErrorCallback);
+    wrapCallback(cb: ErrorCallback): ErrorCallback;
     _mutationListeners: Record<string, EventListenerTree>;
     _emittingMutation: boolean;
     _mutationEventQueue: null;
@@ -37,7 +37,7 @@ declare module './Model' {
   }
 }
 
-Model.INITS.push(function (model: Model) {
+Model.INITS.push(function(model: Model) {
   var root = model.root;
   EventEmitter.call(root);
 
@@ -70,7 +70,7 @@ Model.INITS.push(function (model: Model) {
 
 mergeInto(Model.prototype, EventEmitter.prototype);
 
-Model.prototype.wrapCallback = function (cb) {
+Model.prototype.wrapCallback = function(cb) {
   if (!cb) return this.root._defaultCallback;
   var model = this;
   return function wrappedCallback() {
@@ -82,7 +82,7 @@ Model.prototype.wrapCallback = function (cb) {
   };
 };
 
-Model.prototype._emitError = function (err, context) {
+Model.prototype._emitError = function(err, context) {
   var message = (err.message) ? err.message :
     (typeof err === 'string') ? err :
       'Unknown model error';
@@ -104,7 +104,7 @@ Model.prototype._emitError = function (err, context) {
   this.emit('error', err);
 };
 
-Model.prototype._emitMutation = function (segments, event) {
+Model.prototype._emitMutation = function(segments, event) {
   if (this._silent) return;
   var root = this.root;
   this._callMutationListeners(event._immediateType, segments, event);
@@ -141,7 +141,7 @@ Model.prototype._emitMutation = function (segments, event) {
   root._emittingMutation = false;
 };
 
-Model.prototype._callMutationListeners = function (type, segments, event) {
+Model.prototype._callMutationListeners = function(type, segments, event) {
   var tree = this.root._mutationListeners[type];
   var listeners = tree.getWildcardListeners(segments);
   for (var i = 0, len = listeners.length; i < len; i++) {
@@ -157,7 +157,7 @@ Model.prototype._callMutationListeners = function (type, segments, event) {
 
 Model.prototype.__on = EventEmitter.prototype.on;
 Model.prototype.addListener =
-  Model.prototype.on = function (type, arg1, arg2, arg3) {
+  Model.prototype.on = function(type, arg1, arg2, arg3) {
     var listener = this._addMutationListener(type, arg1, arg2, arg3);
     if (listener) {
       return listener;
@@ -168,7 +168,7 @@ Model.prototype.addListener =
   };
 
 Model.prototype.__once = EventEmitter.prototype.once;
-Model.prototype.once = function (type, arg1, arg2, arg3) {
+Model.prototype.once = function(type, arg1, arg2, arg3) {
   var listener = this._addMutationListener(type, arg1, arg2, arg3);
   if (listener) {
     onceWrapListener(this, listener);
@@ -188,7 +188,7 @@ function onceWrapListener(model, listener) {
 }
 
 Model.prototype.__removeListener = EventEmitter.prototype.removeListener;
-Model.prototype.removeListener = function (type, listener) {
+Model.prototype.removeListener = function(type, listener) {
   if (this.root._mutationListeners[type]) {
     this._removeMutationListener(listener);
     return;
@@ -198,11 +198,11 @@ Model.prototype.removeListener = function (type, listener) {
 };
 
 Model.prototype.__removeAllListeners = EventEmitter.prototype.removeAllListeners;
-Model.prototype.removeAllListeners = function (type, subpath) {
+Model.prototype.removeAllListeners = function(type, subpath) {
   var segments = this._splitPath(subpath);
   this._removeAllListeners(type, segments);
 };
-Model.prototype._removeAllListeners = function (type, segments) {
+Model.prototype._removeAllListeners = function(type, segments) {
   var mutationListeners = this.root._mutationListeners;
   if (type == null) {
     for (var key in mutationListeners) {
@@ -223,14 +223,14 @@ Model.prototype._removeAllListeners = function (type, segments) {
 export class Passed { }
 
 Model.prototype.pass = (Object.assign) ?
-  function (object, invert) {
+  function(object, invert) {
     var model = this._child();
     model._pass = (invert) ?
       Object.assign(new Passed(), object, this._pass) :
       Object.assign(new Passed(), this._pass, object);
     return model;
   } :
-  function (object, invert) {
+  function(object, invert) {
     var model = this._child();
     var pass = new Passed();
     if (invert) {
@@ -250,19 +250,19 @@ Model.prototype.pass = (Object.assign) ?
  * @param {Boolean|Null} value defaults to true
  * @return {Model}
  */
-Model.prototype.silent = function (value) {
+Model.prototype.silent = function(value) {
   var model = this._child();
   model._silent = (value == null) ? true : !!value;
   return model;
 };
 
-Model.prototype.eventContext = function (id) {
+Model.prototype.eventContext = function(id) {
   var model = this._child();
   model._eventContext = id;
   return model;
 };
 
-Model.prototype.removeContextListeners = function () {
+Model.prototype.removeContextListeners = function() {
   var id = this._eventContext;
   if (id == null) return;
   var map = this.root._eventContextListeners;
@@ -275,7 +275,7 @@ Model.prototype.removeContextListeners = function () {
   }
 };
 
-Model.prototype._removeMutationListener = function (listener) {
+Model.prototype._removeMutationListener = function(listener) {
   listener.node.removeOwnListener(listener);
   var id = this._eventContext;
   if (id == null) return;
@@ -292,7 +292,7 @@ Model.prototype._removeMutationListener = function (listener) {
   }
 };
 
-Model.prototype._addMutationListener = function (type, arg1, arg2, arg3) {
+Model.prototype._addMutationListener = function(type, arg1, arg2, arg3) {
   var tree = this.root._mutationListeners[type];
   if (!tree) return;
   // Create double-linked listener and tree node for later removal
@@ -404,7 +404,7 @@ function createMutationListener(pattern, eventContext, cb) {
   var patternSegments = pattern.split('.');
   var fn;
   if (patternSegments.length === 1 && patternSegments[0] === '**') {
-    fn = function (segments, event) {
+    fn = function(segments, event) {
       var captures = [segments.join('.')];
       cb(event, captures);
     };
@@ -426,12 +426,12 @@ function createMutationListener(pattern, eventContext, cb) {
       }
     }
     if (captureIndicies || remainingIndex != null) {
-      fn = function (segments, event) {
+      fn = function(segments, event) {
         var captures = createCaptures(captureIndicies, remainingIndex, segments);
         cb(event, captures);
       };
     } else {
-      fn = function (segments, event) {
+      fn = function(segments, event) {
         cb(event, []);
       };
     }
@@ -441,11 +441,11 @@ function createMutationListener(pattern, eventContext, cb) {
 
 function createMutationListenerLegacy(type, pattern, eventContext, cb) {
   var mutationListenerAdapter = (type === 'all') ?
-    function (event, captures) {
+    function(event, captures) {
       var args = captures.concat(event.type, event._getArgs());
       cb.apply(null, args);
     } :
-    function (event, captures) {
+    function(event, captures) {
       var args = captures.concat(event._getArgs());
       cb.apply(null, args);
     };

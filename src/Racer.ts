@@ -1,10 +1,9 @@
-var EventEmitter = require('events').EventEmitter;
-var Model = require('./Model');
-var util = require('./util');
-
+import { EventEmitter } from 'events';
+import { Model } from './Model';
+import * as util from './util';
 
 export class Racer extends EventEmitter {
-  Model: typeof Model = Model;
+  Model = Model;
   util = util;
   use = util.use;
   serverUse = util.serverUse;

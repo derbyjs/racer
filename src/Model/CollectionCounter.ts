@@ -1,6 +1,7 @@
 export class CollectionCounter {
   collections: Record<string, CounterMap>;
   size: number;
+
   constructor() {
     this.reset();
   }
