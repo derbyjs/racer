@@ -504,7 +504,7 @@ export class RefLists{
     }
   };
   
-  toJSONn() {
+  toJSON() {
     var out = [];
     this.fromMap.forEach(function(refList) {
       out.push([refList.from, refList.to, refList.ids, refList.options]);
