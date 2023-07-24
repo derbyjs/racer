@@ -1,7 +1,7 @@
 import { Model, type Segments } from './Model';
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
-var defaultFns = require('./defaultFns');
+import * as defaultFns from './defaultFns';
 var util = require('../util');
 
 class NamedFns { }
@@ -20,7 +20,6 @@ declare module './Model' {
 
   }
 }
-
 
 Model.INITS.push(function (model) {
   var root = model.root;

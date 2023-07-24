@@ -1,6 +1,6 @@
 var util = require('../util');
 import { Model, type Segments } from './Model';
-var defaultFns = require('./defaultFns');
+import * as defaultFns from './defaultFns';
 
 declare module './Model' {
   interface Model {
