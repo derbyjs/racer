@@ -3,7 +3,7 @@
  */
 
 import { Model } from './Model';
-import { CollectionCounter} from './CollectionCounter';
+import { CollectionCounter } from './CollectionCounter';
 
 declare module './Model' {
   interface Model {
@@ -64,10 +64,10 @@ export class Contexts {
   };
 }
 
-class FetchedQueries {}
-class SubscribedQueries {}
+class FetchedQueries { }
+class SubscribedQueries { }
 
-export class Context{
+export class Context {
   model: Model;
   id: string;
   fetchedDocs: CollectionCounter;
@@ -97,7 +97,7 @@ export class Context{
       createdDocs: createdDocs
     };
   };
-  
+
   fetchDoc(collectionName, id) {
     this.fetchedDocs.increment(collectionName, id);
   };
@@ -125,7 +125,7 @@ export class Context{
   unsubscribeQuery(query) {
     mapDecrement(this.subscribedQueries, query.hash);
   };
-  
+
   unload() {
     var model = this.model;
     for (var hash in this.fetchedQueries) {
