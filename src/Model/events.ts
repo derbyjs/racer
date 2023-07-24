@@ -54,8 +54,8 @@ Model.INITS.push(function(model: Model) {
   var mutationListeners = {
     all: new EventListenerTree()
   };
-  for (var name in exports.mutationEvents) {
-    var eventPrototype = exports.mutationEvents[name].prototype;
+  for (var name in mutationEvents) {
+    var eventPrototype = mutationEvents[name].prototype;
     mutationListeners[eventPrototype.type] = new EventListenerTree();
     mutationListeners[eventPrototype._immediateType] = new EventListenerTree();
   }
@@ -142,7 +142,7 @@ Model.prototype._emitMutation = function(segments, event) {
 };
 
 Model.prototype._callMutationListeners = function(type, segments, event) {
-  var tree = this.root._mutationListeners[type];
+   var tree = this.root._mutationListeners[type];
   var listeners = tree.getWildcardListeners(segments);
   for (var i = 0, len = listeners.length; i < len; i++) {
     var fn = listeners[i].fn;
@@ -453,8 +453,8 @@ function createMutationListenerLegacy(type, pattern, eventContext, cb) {
 }
 
 class ChangeEvent {
-  type = 'change';
-  _immediateType = 'changeImmediate';
+  declare type: string;
+  declare _immediateType: string;
   value: any;
   previous: any;
   passed: any;
@@ -473,10 +473,12 @@ class ChangeEvent {
     return [this.value, this.previous, this.passed];
   };
 }
+ChangeEvent.prototype.type = 'change';
+ChangeEvent.prototype._immediateType = 'changeImmediate';
 
 class LoadEvent {
-  type = 'load';
-  _immediateType = 'loadImmediate';
+  declare type: string;
+  declare _immediateType: string;
   value: any;
   document: any;
   passed: any;
@@ -500,10 +502,12 @@ class LoadEvent {
     return [this.value, this.passed];
   };
 }
+LoadEvent.prototype.type = 'load';
+LoadEvent.prototype._immediateType = 'load';
 
 class UnloadEvent {
-  type = 'unload';
-  _immediateType = 'unloadImmediate';
+  declare type: string;
+  declare _immediateType: string;
   previous: any;
   previousDocument: any;
   passed: any;
@@ -527,10 +531,12 @@ class UnloadEvent {
     return [this.previous, this.passed];
   };
 }
+UnloadEvent.prototype.type = 'unload';
+UnloadEvent.prototype._immediateType = 'unloadImmediate';
 
 class InsertEvent {
-  type = 'insert';
-  _immediateType = 'insertImmediate';
+  declare type: string;
+  declare _immediateType: string;
   index: number;
   values: any;
   passed: any;
@@ -549,13 +555,15 @@ class InsertEvent {
     return [this.index, this.values, this.passed];
   };
 }
+InsertEvent.prototype.type = 'insert';
+InsertEvent.prototype._immediateType = 'insertImmediate';
 
 class RemoveEvent {
-  _immediateType = 'removeImmediate';
+  declare type: string;
+  declare _immediateType: string;
   index: number;
   passed: any;
   removed: any;
-  type = 'remove';
   values: any;
 
   constructor(index, values, passed) {
@@ -578,14 +586,16 @@ class RemoveEvent {
     return [this.index, this.values, this.passed];
   };
 }
+RemoveEvent.prototype.type = 'remove';
+RemoveEvent.prototype._immediateType = 'removeImmediate';
 
 class MoveEvent {
-  _immediateType = 'moveImmediate';
+  declare type: string;
+  declare _immediateType: string;
   from: any;
   howMany: number;
   passed: any;
   to: any;
-  type = 'move';
 
   constructor(from, to, howMany, passed) {
     this.from = from;
@@ -602,6 +612,8 @@ class MoveEvent {
     return [this.from, this.to, this.howMany, this.passed];
   };
 }
+MoveEvent.prototype.type = 'move';
+MoveEvent.prototype._immediateType = 'moveImmediate';
 
 // DEPRECATED: Normalize pattern ending in '**' to '.**', since these are
 // treated equivalently. The '.**' form is preferred, and it should be enforced
@@ -626,5 +638,5 @@ export const mutationEvents = {
   UnloadEvent,
   InsertEvent,
   RemoveEvent,
-  MoveEvent
+  MoveEvent,
 };
