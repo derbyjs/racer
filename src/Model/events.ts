@@ -503,7 +503,7 @@ class LoadEvent {
   };
 }
 LoadEvent.prototype.type = 'load';
-LoadEvent.prototype._immediateType = 'load';
+LoadEvent.prototype._immediateType = 'loadImmediate';
 
 class UnloadEvent {
   declare type: string;
