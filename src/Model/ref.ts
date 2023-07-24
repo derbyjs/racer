@@ -317,7 +317,7 @@ export class Refs {
   removeAll(segments) {
     var node = this.fromMap.deleteAllListeners(segments);
     if (node) {
-      node.forEach(this._removeInputListeners);
+      node.forEach(node => this._removeInputListeners(node));
     }
   };
   

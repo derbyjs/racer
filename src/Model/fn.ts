@@ -17,7 +17,6 @@ declare module './Model' {
     _stop(segments: Segments): void;
     stopAll(subpath: string): void;
     _stopAll(segments: Segments): void;
-
   }
 }
 
@@ -177,7 +176,7 @@ class Fns {
   stopAll(segments: Segments) {
     var node = this.fromMap.deleteAllListeners(segments);
     if (node) {
-      node.forEach(this._removeInputListeners);
+      node.forEach(node => this._removeInputListeners(node));
     }
   };
   
