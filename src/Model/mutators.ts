@@ -40,9 +40,9 @@ declare module './Model' {
 
     add(value: any): void;
     add(subpath: string, value: any, cb?: ErrorCallback): void;
-    addPromised(value: any): Promise<void>;
-    addPromised(subpath: string, value: any): Promise<void>;
-    _add(segments: Segments, value: any, cb?: ErrorCallback): void;
+    addPromised(value: any): Promise<string>;
+    addPromised(subpath: string, value: any): Promise<string>;
+    _add(segments: Segments, value: any, cb?: (err?: Error, id?: string) => void): void;
 
     del(value: any): void;
     del(subpath: string, value: any, cb?: ErrorCallback): void;
@@ -381,7 +381,7 @@ Model.prototype._add = function(segments, value, cb) {
     var event = new ChangeEvent(value, previous, model._pass);
     model._emitMutation(segments, event);
   }
-  this._mutate(segments, add, cb);
+  this._mutate(segments, add, (err) => { cb(err, id) });
   return id;
 };
 
