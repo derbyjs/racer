@@ -1,5 +1,5 @@
 var expect = require('../util').expect;
-var EventListenerTree = require('../../lib/Model/EventListenerTree');
+var {EventListenerTree} = require('../../lib/Model/EventListenerTree');
 
 describe('EventListenerTree', function() {
   describe('addListener', function() {

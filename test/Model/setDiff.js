@@ -1,5 +1,5 @@
 var expect = require('../util').expect;
-var Model = require('../../lib/Model');
+var Model = require('../../lib/Model').Model;
 
 ['setDiff', 'setDiffDeep', 'setArrayDiff', 'setArrayDiffDeep'].forEach(function(method) {
   describe(method + ' common diff functionality', function() {

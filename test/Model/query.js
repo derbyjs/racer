@@ -1,6 +1,6 @@
 var expect = require('../util').expect;
 var racer = require('../../lib');
-var Model = require('../../lib/Model');
+var Model = require('../../lib/Model').Model;
 
 describe('query', function() {
   describe('sanitizeQuery', function() {
