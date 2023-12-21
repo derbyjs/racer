@@ -1,6 +1,8 @@
 import { type Context } from './contexts';
-import { ErrorCallback, Model, type Segments } from './Model';
+import { type Segments } from './types';
+import { Model } from './Model';
 import { CollectionMap } from './CollectionMap';
+
 var defaultType = require('sharedb/lib/client').types.defaultType;
 var util = require('../util');
 var promisify = util.promisify;

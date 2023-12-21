@@ -1,17 +1,20 @@
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import { Model } from './Model';
+import { type Segments } from './types';
+import { type Filter } from './filter';
+import { type Query } from './Query';
+
+type Refable = string | number | Model | Query | Filter;
 
 declare module './Model' {
-  type Segments = any;
-
   interface Model {
     _refs: any;
     _refLists: any;
-    canRefTo(value: any): boolean;
-    _canRefTo(from: Segments, to: Segments, options: any): boolean;
-    ref(to: Segments): void;
-    ref(from: Segments, to: Segments, options?: any): void;
+    _canRefTo(value: Refable): boolean;
+    // _canRefTo(from: Segments, to: Segments, options: any): boolean;
+    ref(to: Refable): void;
+    ref(from: string | number, to: Refable, options?: any): void;
     _ref(from: Segments, to: Segments, options: any): any;
     removeRef(subpath: string): void;
     _removeRef(segments: Segments): void;
@@ -170,11 +173,12 @@ function addListener(model, type, fn) {
 }
 
 Model.prototype._canRefTo = function(value) {
-  return this.isPath(value) || (value && typeof value.ref === 'function');
+  return this.isPath(value) || (value && typeof (value as any).ref === 'function');
 };
 
 Model.prototype.ref = function() {
   var from, to, options;
+  // to could be pathlike, model, query, or filter 
   if (arguments.length === 1) {
     to = arguments[0];
   } else if (arguments.length === 2) {
@@ -245,7 +249,8 @@ Model.prototype._dereference = function(segments, forArrayMutator, ignore) {
     var refListsNode = this.root._refLists.fromMap;
     doAgain = false;
     for (var i = 0, len = segments.length; i < len; i++) {
-      var segment = segments[i];
+      // @TODO: resolve type for Segments
+      var segment = segments[i] as string;
 
       refsNode = refsNode && refsNode.children && refsNode.children.values[segment];
       var ref = refsNode && refsNode.listener;

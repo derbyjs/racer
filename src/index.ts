@@ -3,11 +3,13 @@ import { Model } from './Model';
 import * as util from './util';
 import { RacerBackend } from './Backend';
 import { Query } from './Model/Query';
+import { ModelData } from './Model'
 
 // module.exports = new Racer();
 const { use, serverUse } = util;
 
 export { Model };
+export { type ModelData }
 export { Query };
 export { Racer };
 export { RacerBackend };

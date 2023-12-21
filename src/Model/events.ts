@@ -2,9 +2,10 @@
 
 import { EventEmitter } from 'events';
 import { EventListenerTree } from './EventListenerTree';
-var mergeInto = require('../util').mergeInto;
-/** @type any */
+import { type Segments } from './types';
 import { Model } from './Model';
+
+var mergeInto = require('../util').mergeInto;
 
 declare module './Model' {
   interface Model {

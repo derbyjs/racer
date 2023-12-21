@@ -1,3 +1,4 @@
+import { type Segments } from './types';
 import { Doc } from './Doc';
 import { Model } from './Model';
 var LocalDoc = require('./LocalDoc');

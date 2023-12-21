@@ -1,4 +1,5 @@
-import { Model, type Segments } from './Model';
+import { type Segments } from './types';
+import { Model } from './Model';
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import * as defaultFns from './defaultFns';

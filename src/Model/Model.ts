@@ -18,7 +18,6 @@ declare module './Model' {
   type ErrorCallback = (err?: Error) => void;
 }
 
-
 type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
 
 export class Model {

@@ -1,5 +1,6 @@
 var util = require('../util');
-import { Model, type Segments } from './Model';
+import { Model } from './Model';
+import { type Segments } from './types';
 import * as defaultFns from './defaultFns';
 
 declare module './Model' {
@@ -126,16 +127,16 @@ class Filters{
   };
 }
 
-class Filter {
+export class Filter {
   bundle: boolean;
   filterFn: any;
   filterName: string;
   filters: any;
   from: string;
   fromSegments: string[]
-  idsSegments: string[];
+  idsSegments: Segments;
   inputPaths: any;
-  inputsSegments: string[];
+  inputsSegments: Segments[];
   limit: number;
   model: Model;
   options: any;

@@ -1,5 +1,6 @@
 var util = require('../util');
 import { Model } from './Model';
+import { type Segments } from './types';
 var arrayDiff = require('arraydiff');
 var mutationEvents = require('./events').mutationEvents;
 var ChangeEvent = mutationEvents.ChangeEvent;

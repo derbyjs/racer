@@ -1,4 +1,4 @@
-import { type Segments } from './Model';
+import { type Segments } from './types';
 import { FastMap } from './FastMap';
 
 /**

@@ -1,6 +1,9 @@
 var util = require('../util');
 import { Model } from './Model';
+import { type Segments } from './types';
+
 var mutationEvents = require('./events').mutationEvents;
+
 var ChangeEvent = mutationEvents.ChangeEvent;
 var InsertEvent = mutationEvents.InsertEvent;
 var RemoveEvent = mutationEvents.RemoveEvent;

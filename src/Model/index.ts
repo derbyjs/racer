@@ -1,5 +1,6 @@
 import { serverRequire } from '../util';
 export { Model } from './Model';
+export { ModelData } from './collections';
 
 // Extend model on both server and client //
 require('./unbundle');

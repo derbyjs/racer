@@ -5,7 +5,7 @@ exports.mixin = {};
 declare module './Model' {
   interface Model {
     _splitPath(subpath: string): string[];
-    path(subpath: string): Model;
+    path(subpath: string | number | Model): string;
     isPath(subpath: string): boolean;
     scope(subpath: string): Model;
     at(subpath: string): Model;

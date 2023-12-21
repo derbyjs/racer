@@ -1,4 +1,5 @@
-import { type Model, type Segments } from './Model';
+import { type Model } from './Model';
+import { type Segments } from './types';
 import { Collection } from './collections';
 
 export class Doc {
@@ -16,7 +17,7 @@ export class Doc {
     this.collectionData = model && model.data[collectionName];
   }
 
-  path(segments?: string[]) {
+  path(segments?: Segments) {
     var path = this.collectionName + '.' + this.id;
     if (segments && segments.length) path += '.' + segments.join('.');
     return path;
