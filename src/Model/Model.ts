@@ -27,7 +27,7 @@ export class Model {
   debug: DebugOptions;
   root: Model;
 
-  _at: () => Model;
+  _at: string;
   _context: Context;
   _eventContext: number | null;
   _events: [];

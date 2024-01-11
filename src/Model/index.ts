@@ -1,24 +1,27 @@
+/// <reference path="./bundle.ts" />
+/// <reference path="./connection.server.ts" />
+
 import { serverRequire } from '../util';
 export { Model } from './Model';
 export { ModelData } from './collections';
 
 // Extend model on both server and client //
-require('./unbundle');
-require('./events');
-require('./paths');
-require('./collections');
-require('./mutators');
-require('./setDiff');
+import './unbundle';
+import './events';
+import './paths';
+import './collections';
+import './mutators';
+import './setDiff';
 
-require('./connection');
-require('./subscriptions');
-require('./Query');
-require('./contexts');
+import './connection';
+import './subscriptions';
+import './Query';
+import './contexts';
 
-require('./fn');
-require('./filter');
-require('./refList');
-require('./ref');
+import './fn';
+import './filter';
+import './refList';
+import './ref';
 
 // Extend model for server //
 serverRequire(module, './bundle');

@@ -26,7 +26,7 @@ declare module './Model' {
     _getDeepCopy(segments: Segments): any;
     getOrCreateCollection(name: string): Collection;
     getOrCreateDoc(collectionName: string, id: string, data: any);
-    destroy(subpath: string): void;
+    destroy(subpath?: string): void;
   }
 }
 

@@ -1,20 +1,23 @@
 import { Racer } from './Racer';
-import { Model } from './Model';
+import { Model, ModelData } from './Model';
 import * as util from './util';
-import { RacerBackend } from './Backend';
-import { Query } from './Model/Query';
-import { ModelData } from './Model'
 
-// module.exports = new Racer();
+import { RacerBackend } from './Backend';
+export { Query } from './Model/Query';
+export { ChildModel } from './Model/Model';
+
 const { use, serverUse } = util;
 
-export { Model };
-export { type ModelData }
-export { Query };
-export { Racer };
-export { RacerBackend };
-export { use, serverUse };
-export { util };
+export {
+  Model,
+  ModelData,
+  Racer,
+  RacerBackend,
+  use,
+  serverUse,
+  util,
+};
+
 export const racer = new Racer();
 
 export function createModel(data) {

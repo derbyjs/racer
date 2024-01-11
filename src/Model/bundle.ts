@@ -5,7 +5,6 @@ var promisify = require('../util').promisify;
 declare module './Model' {
   interface Model {
     bundleTimeout: number;
-
     bundle(cb: (err?: Error, bundle?: any) => void): void;
     bundlePromised(): Promise<void>;
   }

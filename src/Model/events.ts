@@ -158,15 +158,15 @@ Model.prototype._callMutationListeners = function(type, segments, event) {
 
 Model.prototype.__on = EventEmitter.prototype.on;
 Model.prototype.addListener =
-  Model.prototype.on = function(type, arg1, arg2, arg3) {
-    var listener = this._addMutationListener(type, arg1, arg2, arg3);
-    if (listener) {
-      return listener;
-    }
-    // Normal event
-    this.__on(type, arg1);
-    return arg1;
-  };
+Model.prototype.on = function(type, arg1, arg2, arg3) {
+  var listener = this._addMutationListener(type, arg1, arg2, arg3);
+  if (listener) {
+    return listener;
+  }
+  // Normal event
+  this.__on(type, arg1);
+  return arg1;
+};
 
 Model.prototype.__once = EventEmitter.prototype.once;
 Model.prototype.once = function(type, arg1, arg2, arg3) {
