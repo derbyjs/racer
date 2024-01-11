@@ -1,5 +1,5 @@
 {
-  "name": "@derbyjs/racer",
+  "name": "racer",
   "description": "Realtime model synchronization engine for Node.js",
   "homepage": "https://github.com/derbyjs/racer",
   "repository": {
@@ -9,7 +9,7 @@
   "version": "1.1.0",
   "main": "./lib/index.js",
   "files": [
-    "lib/"
+    "lib/*"
   ],
   "scripts": {
     "build": "node_modules/.bin/tsc",
@@ -21,6 +21,7 @@
     "prepare": "npm run build",
     "test-cover": "node_modules/nyc/bin/nyc.js --temp-dir=coverage -r text -r lcov node_modules/mocha/bin/_mocha"
   },
+  "types": "./lib/index.d.ts",
   "dependencies": {
     "arraydiff": "^0.1.1",
     "fast-deep-equal": "^2.0.1",
