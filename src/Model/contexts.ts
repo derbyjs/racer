@@ -45,19 +45,21 @@ Model.prototype.unload = function(id) {
 Model.prototype.unloadAll = function() {
   var contexts = this.root._contexts;
   for (var key in contexts) {
+    const currentContext = contexts[key];
     if (contexts.hasOwnProperty(key)) {
-      contexts[key].unload();
+      currentContext.unload();
     }
   }
 };
 
 export class Contexts {
-  toJSON = function() {
-    var out = {};
+  toJSON() {
+    var out: Record<string, any> = {};
     var contexts = this;
     for (var key in contexts) {
-      if (contexts[key] instanceof Context) {
-        out[key] = contexts[key].toJSON();
+      const currentContext = contexts[key];
+      if (currentContext instanceof Context) {
+        out[key] = currentContext.toJSON();
       }
     }
     return out;
