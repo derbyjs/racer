@@ -6,6 +6,9 @@
     "type": "git",
     "url": "git://github.com/derbyjs/racer.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "2.0.0-beta.1",
   "main": "./lib/index.js",
   "files": [
