@@ -1,5 +1,5 @@
 {
-  "name": "@derbyjs/racer",
+  "name": "racer",
   "description": "Realtime model synchronization engine for Node.js",
   "homepage": "https://github.com/derbyjs/racer",
   "repository": {
