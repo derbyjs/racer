@@ -1,6 +1,6 @@
 import { type Segments } from './types';
 import { Doc } from './Doc';
-import { Model } from './Model';
+import { Model, RootModel } from './Model';
 var LocalDoc = require('./LocalDoc');
 var util = require('../util');
 
@@ -12,10 +12,11 @@ export class DocMap {}
 export class CollectionData {}
 
 declare module './Model' {
-  interface Model {
+  interface RootModel {
     collections: ModelCollections;
     data: ModelData;
-
+  }
+  interface Model {
     getCollection(collecitonName: string): ModelCollections;
     getDoc(collecitonName: string, id: string): any | undefined;
     get(subpath: string): any;
@@ -133,14 +134,14 @@ Model.prototype.destroy = function(subpath) {
 };
 
 export class Collection {
-  model: Model;
+  model: RootModel;
   name: string;
   size: number;
   docs: DocMap;
   data: CollectionData;
   Doc: typeof Doc;
 
-  constructor(model: Model, name: string, docClass: typeof Doc) {
+  constructor(model: RootModel, name: string, docClass: typeof Doc) {
     this.model = model;
     this.name = name;
     this.Doc = docClass;

@@ -1,16 +1,16 @@
 var expect = require('../util').expect;
 var racer = require('../../lib');
-var Model = require('../../lib/Model').Model;
+var RootModel = require('../../lib/Model').RootModel;
 
 describe('query', function() {
   describe('sanitizeQuery', function() {
     it('replaces undefined with null in object query expressions', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query = model.query('foo', {x: undefined, y: 'foo'});
       expect(query.expression).eql({x: null, y: 'foo'});
     });
     it('replaces undefined with null in nested object query expressions', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query = model.query('foo', [{x: undefined}, {x: {y: undefined, z: 0}}]);
       expect(query.expression).eql([{x: null}, {x: {y: null, z: 0}}]);
     });
@@ -57,37 +57,37 @@ describe('query', function() {
 
   describe('instantiation', function() {
     it('returns same instance when params are equivalent', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.query('foo', {value: 1}, {db: 'other'});
       var query2 = model.query('foo', {value: 1}, {db: 'other'});
       expect(query1).equal(query2);
     });
     it('returns same instance when context and params are equivalent', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.context('box').query('foo', {});
       var query2 = model.context('box').query('foo', {});
       expect(query1).equal(query2);
     });
     it('creates a unique query instance per collection name', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.query('foo', {});
       var query2 = model.query('bar', {});
       expect(query1).not.equal(query2);
     });
     it('creates a unique query instance per expression', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.query('foo', {value: 1});
       var query2 = model.query('foo', {value: 2});
       expect(query1).not.equal(query2);
     });
     it('creates a unique query instance per options', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.query('foo', {}, {db: 'default'});
       var query2 = model.query('foo', {}, {db: 'other'});
       expect(query1).not.equal(query2);
     });
     it('creates a unique query instance per context', function() {
-      var model = new Model();
+      var model = new RootModel();
       var query1 = model.query('foo', {});
       var query2 = model.context('box').query('foo', {});
       expect(query1).not.equal(query2);

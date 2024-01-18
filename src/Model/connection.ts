@@ -1,9 +1,11 @@
-var Connection = require('sharedb/lib/client').Connection;
+import { Connection } from 'sharedb/lib/client';
 import { Model } from './Model';
 import { type Doc} from './Doc';
 import { LocalDoc} from './LocalDoc';
 import {RemoteDoc} from './RemoteDoc';
 var promisify = require('../util').promisify;
+
+export { type Connection };
 
 declare module './Model' {
   interface DocConstructor {

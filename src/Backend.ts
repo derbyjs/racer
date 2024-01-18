@@ -1,6 +1,7 @@
 import { Model } from './Model';
 import * as path from 'path';
 import * as util from './util';
+import { RootModel } from './Model/Model';
 var Backend = require('sharedb').Backend;
 
 export class RacerBackend extends Backend {
@@ -23,7 +24,7 @@ export class RacerBackend extends Backend {
         util.mergeInto(options, this.modelOptions) :
         this.modelOptions;
     }
-    var model = new Model(options);
+    var model = new RootModel(options);
     this.emit('model', model);
     model.createConnection(this, req);
     return model;

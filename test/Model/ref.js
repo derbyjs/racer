@@ -1,5 +1,5 @@
 var expect = require('../util').expect;
-var Model = require('../../lib/Model').Model;
+var RootModel = require('../../lib/Model').RootModel;
 
 describe('ref', function() {
   function expectEvents(pattern, model, done, events) {
@@ -11,7 +11,7 @@ describe('ref', function() {
   }
   describe('event emission', function() {
     it('re-emits on a reffed path', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.color', '_page.colors.green');
       model.on('change', '_page.color', function(value) {
         expect(value).to.equal('#0f0');
@@ -20,7 +20,7 @@ describe('ref', function() {
       model.set('_page.colors.green', '#0f0');
     });
     it('also emits on the original path', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.color', '_page.colors.green');
       model.on('change', '_page.colors.green', function(value) {
         expect(value).to.equal('#0f0');
@@ -29,7 +29,7 @@ describe('ref', function() {
       model.set('_page.colors.green', '#0f0');
     });
     it('re-emits on a child of a reffed path', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.color', '_page.colors.green');
       model.on('change', '_page.color.*', function(capture, value) {
         expect(capture).to.equal('hex');
@@ -39,7 +39,7 @@ describe('ref', function() {
       model.set('_page.colors.green.hex', '#0f0');
     });
     it('re-emits when a parent is changed', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.color', '_page.colors.green');
       model.on('change', '_page.color', function(value) {
         expect(value).to.equal('#0e0');
@@ -50,7 +50,7 @@ describe('ref', function() {
       });
     });
     it('re-emits on a ref to a ref', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.myFavorite', '_page.color');
       model.ref('_page.color', '_page.colors.green');
       model.on('change', '_page.myFavorite', function(value) {
@@ -60,7 +60,7 @@ describe('ref', function() {
       model.set('_page.colors.green', '#0f0');
     });
     it('re-emits on multiple reffed paths', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors.green', '#0f0');
       model.ref('_page.favorites.my', '_page.colors.green');
       model.ref('_page.favorites.your', '_page.colors.green');
@@ -80,14 +80,14 @@ describe('ref', function() {
   });
   describe('get', function() {
     it('gets from a reffed path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors.green', '#0f0');
       expect(model.get('_page.color')).to.equal(undefined);
       model.ref('_page.color', '_page.colors.green');
       expect(model.get('_page.color')).to.equal('#0f0');
     });
     it('gets from a child of a reffed path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors.green.hex', '#0f0');
       model.ref('_page.color', '_page.colors.green');
       expect(model.get('_page.color')).to.eql({
@@ -96,7 +96,7 @@ describe('ref', function() {
       expect(model.get('_page.color.hex')).to.equal('#0f0');
     });
     it('gets from a ref to a ref', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.myFavorite', '_page.color');
       model.ref('_page.color', '_page.colors.green');
       model.set('_page.colors.green', '#0f0');
@@ -105,7 +105,7 @@ describe('ref', function() {
   });
   describe('event/add ordering', function() {
     it('ref results are propogated when set in reponse to an event', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.on('change', '_page.start', function() {
         model.ref('_page.myColor', '_page.color');
         model.ref('_page.yourColor', '_page.color');
@@ -116,7 +116,7 @@ describe('ref', function() {
       expect(model.get('_page.myColor')).to.equal('green');
     });
     it('can create refList in event callback', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.on('change', '_page.start', function() {
         model.set('_page.colors', {
           red: '#f00',
@@ -134,7 +134,7 @@ describe('ref', function() {
       // for a given toPath - "_page.color" in this case - it's possible for one
       // of the refs to be removed. Modifying during iteration can cause issues
       // if not handled correctly.
-      var model = new Model();
+      var model = new RootModel();
       model.ref('_page.ref1', '_page.color');
       model.ref('_page.ref2', '_page.color');
       model.set('_page.color', 'red');
@@ -156,7 +156,7 @@ describe('ref', function() {
   });
   describe('updateIndices option', function() {
     it('updates a ref when an array insert happens at the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', ['red', 'green', 'blue']);
       model.ref('_page.color', '_page.colors.1', {updateIndices: true});
       expect(model.get('_page.color')).to.equal('green');
@@ -168,7 +168,7 @@ describe('ref', function() {
       expect(model.get('_page.color')).to.equal('green');
     });
     it('updates a ref when an array remove happens at the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', ['red', 'blue', 'purple', 'cyan', 'green', 'yellow']);
       model.ref('_page.color', '_page.colors.4', {updateIndices: true});
       expect(model.get('_page.color')).to.equal('green');
@@ -180,7 +180,7 @@ describe('ref', function() {
       expect(model.get('_page.color')).to.equal('green');
     });
     it('updates a ref when an array move happens at the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', ['red', 'blue', 'purple', 'green', 'cyan', 'yellow']);
       model.ref('_page.color', '_page.colors.3', {updateIndices: true});
       expect(model.get('_page.color')).to.equal('green');
@@ -200,7 +200,7 @@ describe('ref', function() {
       expect(model.get('_page.color')).to.equal('green');
     });
     it('updates a ref when an array insert happens within the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', [
         {name: 'red'},
         {name: 'green'},
@@ -216,7 +216,7 @@ describe('ref', function() {
       expect(model.get('_page.color')).to.equal('green');
     });
     it('updates a ref when an array remove happens within the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', [
         {name: 'red'},
         {name: 'blue'},
@@ -235,7 +235,7 @@ describe('ref', function() {
       expect(model.get('_page.color')).to.equal('green');
     });
     it('updates a ref when an array move happens within the `to` path', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_page.colors', [
         {name: 'red'},
         {name: 'blue'},

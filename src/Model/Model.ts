@@ -1,5 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Context } from 'vm';
+import { RacerBackend } from '../Backend';
+import { type Connection } from './connection';
+import { type ModelData } from './collections';
 
 declare module './Model' {
   interface DebugOptions {
@@ -25,7 +28,8 @@ export class Model {
 
   ChildModel = ChildModel;
   debug: DebugOptions;
-  root: Model;
+  root: RootModel;
+  data: ModelData;
 
   _at: string;
   _context: Context;
@@ -36,14 +40,6 @@ export class Model {
   _preventCompose: boolean;
   _silent: boolean;
 
-  constructor(options: ModelOptions = {}) {
-    this.root = this;
-    var inits = Model.INITS;
-    this.debug = options.debug || {};
-    for (var i = 0; i < inits.length; i++) {
-      inits[i](this, options);
-    }
-  }
 
   id() {
     return uuidv4();
@@ -52,6 +48,21 @@ export class Model {
   _child() {
     return new ChildModel(this);
   };
+}
+
+export class RootModel extends Model {
+  backend: RacerBackend;
+  connection: Connection;
+
+  constructor(options: ModelOptions = {}) {
+    super();
+    this.root = this;
+    var inits = Model.INITS;
+    this.debug = options.debug || {};
+    for (var i = 0; i < inits.length; i++) {
+      inits[i](this, options);
+    }
+  }
 }
 
 export class ChildModel extends Model {

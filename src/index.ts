@@ -4,7 +4,7 @@ import * as util from './util';
 
 import { RacerBackend } from './Backend';
 export { Query } from './Model/Query';
-export { ChildModel } from './Model/Model';
+export { ChildModel, RootModel } from './Model';
 
 const { use, serverUse } = util;
 

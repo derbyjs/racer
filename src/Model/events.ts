@@ -55,6 +55,7 @@ Model.INITS.push(function(model: Model) {
   var mutationListeners = {
     all: new EventListenerTree()
   };
+
   for (var name in mutationEvents) {
     var eventPrototype = mutationEvents[name].prototype;
     mutationListeners[eventPrototype.type] = new EventListenerTree();

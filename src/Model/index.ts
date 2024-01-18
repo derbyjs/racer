@@ -2,7 +2,7 @@
 /// <reference path="./connection.server.ts" />
 
 import { serverRequire } from '../util';
-export { Model } from './Model';
+export { Model, ChildModel, RootModel } from './Model';
 export { ModelData } from './collections';
 
 // Extend model on both server and client //
