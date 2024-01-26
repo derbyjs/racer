@@ -6,30 +6,40 @@ import * as util from '../util';
 const UnloadEvent = mutationEvents.UnloadEvent;
 const promisify = util.promisify;
 
+/**
+ * A path string, a `Model`, or a `Query`.
+ */
+export type Subscribable = string | Model<unknown> | Query;
+
 declare module './Model' {
   interface Model {
-    fetch(): Model;
+    fetch(callback?: ErrorCallback): Model;
     fetchPromised(): Promise<unknown>;
-    unfetch(): Model;
-    unfetchPromised(): Promise<unknown>;
-    subscribe(): void;
-    subscribePromised(): Promise<unknown>;
-    unsubscribe(): Model;
-    unsubscribePromised(): Promise<unknown>;
-    _forSubscribable(argumentsObject: any, method: any): void;
     fetchDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
     fetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    fetchOnly: boolean;
+
+    subscribe(callback?: ErrorCallback): void;
+    subscribe(subscribable: Subscribable, callback?: ErrorCallback): void;
+    subscribePromised(): Promise<unknown>;
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
     subscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
+
+    unfetch(): Model;
+    unfetchPromised(): Promise<unknown>;
     unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
     unfetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    unloadDelay: number;
+
+    unsubscribe(): Model;
+    unsubscribePromised(): Promise<unknown>;
     unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
     unsubscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
-    _maybeUnloadDoc(collecitonName: string, id: string): void;
-    _hasDocReferences(collecitonName: string, id: string): boolean;
-    fetchOnly: boolean;
-    unloadDelay: number;
+
     _fetchedDocs: CollectionCounter;
+    _forSubscribable(argumentsObject: any, method: any): void;
+    _hasDocReferences(collecitonName: string, id: string): boolean;
+    _maybeUnloadDoc(collecitonName: string, id: string): void;
     _subscribedDocs: CollectionCounter;
   }
 }

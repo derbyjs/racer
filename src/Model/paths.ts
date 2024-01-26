@@ -3,12 +3,13 @@ import { Model } from './Model';
 exports.mixin = {};
 
 declare module './Model' {
-  interface Model {
+  interface Model<T> {
     _splitPath(subpath: string): string[];
     path(subpath: string | number | Model): string;
     isPath(subpath: string): boolean;
-    scope(subpath: string): Model;
-    at(subpath: string): Model;
+    scope<U = {}>(subpath: string): ChildModel<U>;
+    scope(): ChildModel<T>;
+    at<U = {}>(subpath: string): ChildModel<U>;
     parent(levels?: number): Model;
     leaf(path: string): string;
   }
@@ -40,7 +41,7 @@ Model.prototype.isPath = function(subpath) {
   return this.path(subpath) != null;
 };
 
-Model.prototype.scope = function(path) {
+Model.prototype.scope = function(path?) {
   if (arguments.length > 1) {
     for (var i = 1; i < arguments.length; i++) {
       path = path + '.' + arguments[i];

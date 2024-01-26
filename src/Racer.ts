@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Model } from './Model';
+import { Model, RootModel } from './Model';
 import * as util from './util';
 
 export class Racer extends EventEmitter {
@@ -13,7 +13,7 @@ export class Racer extends EventEmitter {
   }
 
   createModel(data) {
-    var model = new Model();
+    var model = new RootModel();
     if (data) {
       model.createConnection(data);
       model.unbundle(data);

@@ -4,37 +4,55 @@ import { EventEmitter } from 'events';
 import { EventListenerTree } from './EventListenerTree';
 import { type Segments } from './types';
 import { Model } from './Model';
+import { mergeInto } from '../util';
 
-var mergeInto = require('../util').mergeInto;
+export type ModelEvent =
+  | ChangeEvent
+  | InsertEvent
+  | RemoveEvent
+  | MoveEvent
+  | LoadEvent
+  | UnloadEvent;
+
+export interface ModelOnEventMap {
+  change: ChangeEvent;
+  insert: InsertEvent;
+  remove: RemoveEvent;
+  move: MoveEvent;
+  load: LoadEvent;
+  unload: UnloadEvent;
+  all: ModelEvent;
+}
 
 declare module './Model' {
   interface Model {
+    addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
+    eventContext(id: string): Model;
+    on(event: string, listener: any, arg2?: any, arg3?: any): any;
+    once(event: string, listener: any, arg2?: any, arg3?: any): any;
+    pass(object: any, invert?: boolean): Model;
+    removeAllListeners(type: string, subpath: string): void;
+    removeContextListeners(): void;
+    removeListener(type: string, listener: any): void;
+    setMaxListeners(limit: number): void;
+    silent(value?: boolean): Model;
+    wrapCallback(cb: ErrorCallback): ErrorCallback;
+
+    __on: typeof EventEmitter.prototype.on;
+    __once: typeof EventEmitter.prototype.once;
+    __removeAllListeners: typeof EventEmitter.prototype.removeAllListeners;
+    __removeListener: typeof EventEmitter.prototype.removeListener;
+    _addMutationListener(type: string, arg1: any, arg2: any, arg3: any): MutationListener;
+    _callMutationListeners(type: string, segments: Segments, event: any): void;
     _defaultCallback(err?: Error): void;
     _emitError(err: Error, context?: any): void;
-    wrapCallback(cb: ErrorCallback): ErrorCallback;
-    _mutationListeners: Record<string, EventListenerTree>;
-    _emittingMutation: boolean;
-    _mutationEventQueue: null;
-    _eventContextListeners: Record<string, any>;
     _emitMutation(segments: Segments, event: any): void;
-    _callMutationListeners(type: string, segments: Segments, event: any): void;
-    __on: typeof EventEmitter.prototype.on;
-    addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
-    on(event: string, listener: any, arg2?: any, arg3?: any): any;
-    __once: typeof EventEmitter.prototype.once;
-    once(event: string, listener: any, arg2?: any, arg3?: any): any;
-    __removeListener: typeof EventEmitter.prototype.removeListener;
-    removeListener(type: string, listener: any): void;
-    __removeAllListeners: typeof EventEmitter.prototype.removeAllListeners;
-    removeAllListeners(type: string, subpath: string): void;
+    _emittingMutation: boolean;
+    _eventContextListeners: Record<string, any>;
+    _mutationEventQueue: null;
+    _mutationListeners: Record<string, EventListenerTree>;
     _removeAllListeners(type: string, segments: Segments): void;
-    pass(object: any, invert?: boolean): Model;
-    silent(value?: boolean): Model;
-    eventContext(id: string): Model;
-    removeContextListeners(): void;
     _removeMutationListener(listener: MutationListener): void;
-    _addMutationListener(type: string, arg1: any, arg2: any, arg3: any): MutationListener;
-    setMaxListeners(limit: number): void;
   }
 }
 
@@ -156,7 +174,6 @@ Model.prototype._callMutationListeners = function(type, segments, event) {
 // EventEmitter.prototype.once return `this`. The Model equivalents return
 // the listener instead, since it is made internally for method subscriptions
 // and may need to be passed to removeListener.
-
 Model.prototype.__on = EventEmitter.prototype.on;
 Model.prototype.addListener =
 Model.prototype.on = function(type, arg1, arg2, arg3) {

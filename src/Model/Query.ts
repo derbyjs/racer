@@ -1,19 +1,28 @@
 import { type Context } from './contexts';
 import { type Segments } from './types';
-import { Model } from './Model';
+import { ChildModel, ErrorCallback, Model } from './Model';
 import { CollectionMap } from './CollectionMap';
+import { ModelData } from '.';
+import { Doc } from 'sharedb';
 
 var defaultType = require('sharedb/lib/client').types.defaultType;
 var util = require('../util');
 var promisify = util.promisify;
 
+export type QueryOptions = string | { db: any };
+
+interface QueryCtor {
+  new (model: Model, collectionName: string, expression: any, options: QueryOptions): Query;
+}
+
 declare module './Model' {
   interface Model {
-    _queries: Queries;
-    query(collectionName, expression, options): Query;
-    _getOrCreateQuery(collectionName, expression, options, QueryConstructor): Query;
+    query<T = {}>(collectionName: string, expression, options?: QueryOptions): Query;
     sanitizeQuery(expression): Query;
-    _initQueries(items): void;
+
+    _getOrCreateQuery(collectionName: string, expression, options: QueryOptions, QueryConstructor: QueryCtor): Query;
+    _initQueries(items: any[]): void;
+    _queries: Queries;
   }
 }
 
@@ -21,7 +30,7 @@ Model.INITS.push(function(model) {
   model.root._queries = new Queries();
 });
 
-Model.prototype.query = function(collectionName, expression, options) {
+Model.prototype.query = function(collectionName: string, expression, options?: QueryOptions) {
   // DEPRECATED: Passing in a string as the third argument specifies the db
   // option for backward compatibility
   if (typeof options === 'string') {
@@ -74,20 +83,22 @@ Model.prototype.sanitizeQuery = function(expression) {
 };
 
 // Called during initialization of the bundle on page load.
-Model.prototype._initQueries = function(items) {
+Model.prototype._initQueries = function(items: any[][]) {
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
-    var countsList = item[0];
-    var collectionName = item[1];
-    var expression = item[2];
-    var results = item[3] || [];
-    var options = item[4];
-    var extra = item[5];
-
-    var counts = countsList[0];
-    var subscribed = counts[0] || 0;
-    var fetched = counts[1] || 0;
-    var contextId = counts[2];
+    const [countsList, collectionName, expression, results=[], options, extra] = item;
+    // var countsList = item[0];
+    // var collectionName = item[1];
+    // var expression = item[2];
+    // var results = item[3] || [];
+    // var options = item[4];
+    // var extra = item[5];
+    const [counts] = countsList;
+    // var counts = countsList[0];
+    var [subscribed = 0, fetched = 0, contextId] = counts;
+    // var subscribed = counts[0] || 0;
+    // var fetched = counts[1] || 0;
+    // var contextId = counts[2];
 
     var model = (contextId) ? this.context(contextId) : this;
     var query = model._getOrCreateQuery(collectionName, expression, options, Query);
@@ -160,24 +171,25 @@ export class Queries {
   };
 }
 
-export class Query {
-  model: Model;
-  context: Context;
+export class Query<T = {}> {
   collectionName: string;
-  expression: any;
-  options: any;
-  hash: string;
-  segments: Segments;
-  idsSegments: string[];
-  extraSegments: string[];
-  _pendingSubscribeCallbacks: any[];
-  subscribeCount: number;
-  fetchCount: number;
+  context: Context;
   created: boolean;
-  shareQuery: any | null;
+  expression: any;
+  extraSegments: string[];
+  fetchCount: number;
+  hash: string;
   idMap: Record<string, any>;
+  idsSegments: string[];
+  model: Model<ModelData>;
+  options: any;
+  segments: Segments;
+  shareQuery: any | null;
+  subscribeCount: number;
 
-  constructor(model, collectionName, expression, options) {
+  _pendingSubscribeCallbacks: any[];
+
+  constructor(model: ChildModel<unknown>, collectionName: string, expression: any, options?: any) {
     // Note that a new childModel based on the root scope is created. Only the
     // context from the passed in model has an effect
     this.model = model.root.pass({ $query: this });
@@ -229,7 +241,7 @@ export class Query {
     this._maybeUnloadDocs(ids);
   };
 
-  fetch(cb) {
+  fetch(cb: ErrorCallback) {
     cb = this.model.wrapCallback(cb);
     this.context.fetchQuery(this);
 
@@ -238,11 +250,11 @@ export class Query {
     if (!this.created) this.create();
 
     var query = this;
-    function fetchCb(err, results, extra) {
+    function fetchCb(err: Error, results: any[], extra?: string[]) {
       if (err) return cb(err);
       query._setExtra(extra);
       query._setResults(results);
-      cb();
+      cb();   
     }
     this.model.root.connection.createFetchQuery(
       this.collectionName,
@@ -293,7 +305,7 @@ export class Query {
 
   _subscribeCb(cb) {
     var query = this;
-    return function subscribeCb(err, results, extra) {
+    return function subscribeCb(err: Error, results: Doc[], extra?: any) {
       if (err) return query._flushSubscribeCallbacks(err, cb);
       query._setExtra(extra);
       query._setResults(results);
@@ -303,10 +315,10 @@ export class Query {
 
   _shareFetchedSubscribe(options, cb) {
     this.model.root.connection.createFetchQuery(
-      this.collectionName,
+      this.collectionName,  
       this.expression,
       options,
-      this._subscribeCb(cb)
+      this._subscribeCb(cb),
     );
   };
 
@@ -320,7 +332,7 @@ export class Query {
       this.collectionName,
       this.expression,
       options,
-      this._subscribeCb(cb)
+      this._subscribeCb(cb),
     );
     this.shareQuery.on('insert', function(shareDocs, index) {
       var ids = resultsIds(shareDocs);
@@ -372,7 +384,7 @@ export class Query {
       this.idMap[id] = (this.idMap[id] || 0) + 1;
     }
   };
-  _diffMapIds(ids) {
+  _diffMapIds(ids: string[]) {
     var addedIds = [];
     var removedIds = [];
     var newMap = {};
@@ -389,7 +401,7 @@ export class Query {
     if (addedIds.length) this._addMapIds(addedIds);
     if (removedIds.length) this._removeMapIds(removedIds);
   };
-  _setExtra(extra) {
+  _setExtra(extra: string[]) {
     if (extra === undefined) return;
     this.model._setDiffDeep(this.extraSegments, extra);
   };
@@ -397,7 +409,7 @@ export class Query {
     var ids = resultsIds(results);
     this._setResultIds(ids);
   };
-  _setResultIds(ids) {
+  _setResultIds(ids: string[]) {
     this._diffMapIds(ids);
     this.model._setArrayDiff(this.idsSegments, ids);
   };

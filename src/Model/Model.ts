@@ -1,8 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Context } from 'vm';
+import { type Context } from './contexts';
 import { RacerBackend } from '../Backend';
 import { type Connection } from './connection';
 import { type ModelData } from './collections';
+
+export type UUID = string;
 
 declare module './Model' {
   interface DebugOptions {
@@ -23,13 +25,13 @@ declare module './Model' {
 
 type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
 
-export class Model {
+export class Model<T = {}> {
   static INITS: ModelInitFunction[] = [];
 
   ChildModel = ChildModel;
   debug: DebugOptions;
   root: RootModel;
-  data: ModelData;
+  data: T;
 
   _at: string;
   _context: Context;
@@ -41,7 +43,7 @@ export class Model {
   _silent: boolean;
 
 
-  id() {
+  id(): UUID {
     return uuidv4();
   }
 
@@ -50,7 +52,7 @@ export class Model {
   };
 }
 
-export class RootModel extends Model {
+export class RootModel extends Model<ModelData> {
   backend: RacerBackend;
   connection: Connection;
 
@@ -65,7 +67,7 @@ export class RootModel extends Model {
   }
 }
 
-export class ChildModel extends Model {
+export class ChildModel<T = {}> extends Model<T> {
   constructor(model: Model) {
     super();
     // Shared properties should be accessed via the root. This makes inheritance

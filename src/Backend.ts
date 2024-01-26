@@ -1,14 +1,14 @@
 import { Model } from './Model';
 import * as path from 'path';
 import * as util from './util';
-import { RootModel } from './Model/Model';
+import { ModelOptions, RootModel } from './Model/Model';
 var Backend = require('sharedb').Backend;
 
 export class RacerBackend extends Backend {
   racer: any;
   modelOptions: any;
 
-  constructor(racer: any, options: any) {
+  constructor(racer: any, options?: { modelOptions?: ModelOptions }) {
     super(options);
     this.racer = racer;
     this.modelOptions = options && options.modelOptions;
@@ -18,7 +18,7 @@ export class RacerBackend extends Backend {
     });
   }
 
-  createModel(options: any, req: any) {
+  createModel(options?: ModelOptions, req?: any) {
     if (this.modelOptions) {
       options = (options) ?
         util.mergeInto(options, this.modelOptions) :

@@ -1,18 +1,24 @@
 import { Racer } from './Racer';
 import { Model, ModelData } from './Model';
 import * as util from './util';
+import type { ShareDBOptions } from 'sharedb';
 
 import { RacerBackend } from './Backend';
+import { ModelOptions, RootModel } from './Model';
 export { Query } from './Model/Query';
-export { ChildModel, RootModel } from './Model';
+export { ChildModel, type UUID } from './Model';
 
 const { use, serverUse } = util;
+
+type BackendOptions = { modelOptions?: ModelOptions } & ShareDBOptions;
 
 export {
   Model,
   ModelData,
+  ModelOptions,
   Racer,
   RacerBackend,
+  RootModel,
   use,
   serverUse,
   util,
@@ -21,7 +27,7 @@ export {
 export const racer = new Racer();
 
 export function createModel(data) {
-  var model = new Model();
+  var model = new RootModel();
   if (data) {
     model.createConnection(data);
     model.unbundle(data);
@@ -29,6 +35,6 @@ export function createModel(data) {
   return model;
 }
 
-export function createBackend(options) {
+export function createBackend(options?: BackendOptions) {
   return new RacerBackend(racer, options);
-};
+}

@@ -17,17 +17,19 @@ declare module './Model' {
     data: ModelData;
   }
   interface Model {
+    destroy(subpath?: string): void;
+    get(subpath?: string): any;
+    get<T>(subpath?: string): T;
     getCollection(collecitonName: string): ModelCollections;
-    getDoc(collecitonName: string, id: string): any | undefined;
-    get(subpath: string): any;
-    _get(segments: Segments): any;
     getCopy(subpath: string): any;
-    _getCopy(segments: Segments): any;
     getDeepCopy(subpath: string): any;
-    _getDeepCopy(segments: Segments): any;
+    getDoc(collecitonName: string, id: string): any | undefined;
     getOrCreateCollection(name: string): Collection;
     getOrCreateDoc(collectionName: string, id: string, data: any);
-    destroy(subpath?: string): void;
+
+    _get(segments: Segments): any;
+    _getCopy(segments: Segments): any;
+    _getDeepCopy(segments: Segments): any;
   }
 }
 
