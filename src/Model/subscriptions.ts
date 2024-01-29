@@ -13,6 +13,14 @@ export type Subscribable = string | Model<unknown> | Query;
 
 declare module './Model' {
   interface Model<T> {
+    /**
+     * Retrieve data from the server, loading it into the model.
+     *
+     * @param items
+     * @param cb
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     */
     fetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
     fetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
     fetch(cb?: ErrorCallback): Model<T>;
@@ -25,19 +33,61 @@ declare module './Model' {
     fetchDocPromised(collecitonName: string, id: string): Promise<void>;
     fetchOnly: boolean;
 
-    subscribe(callback?: ErrorCallback): void;
-    subscribe(subscribable: Subscribable, callback?: ErrorCallback): void;
+    /**
+     * Retrieve data from the server, loading it into the model. In addition,
+     * subscribe to the items, such that updates from any other client will
+     * automatically get reflected in this client's model.
+     *
+     * Any item that's already subscribed will not result in a network call.
+     *
+     * @param items
+     * @param cb
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     */
+    subscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    subscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    subscribe(cb?: ErrorCallback): Model<T>;
+
     subscribePromised(): Promise<void>;
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
     subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
 
-    unfetch(): Model;
+    /**
+     * The reverse of `#fetch`, marking the items as no longer needed in the
+     * model.
+     *
+     * @param items
+     * @param cb
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     */
+    unfetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    unfetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    unfetch(cb?: ErrorCallback): Model<T>;
+
+    unfetchPromised(items: Subscribable[]): Promise<void>;
+    unfetchPromised(item: Subscribable): Promise<void>;
     unfetchPromised(): Promise<void>;
+    
     unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
     unfetchDocPromised(collecitonName: string, id: string): Promise<void>;
     unloadDelay: number;
 
-    unsubscribe(): Model;
+
+    /**
+     * The reverse of `#subscribe`, marking the items as no longer needed in the
+     * model.
+     *
+     * @param items
+     * @param cb
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     */
+    unsubscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    unsubscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    unsubscribe(cb?: ErrorCallback): Model<T>;
+
     unsubscribePromised(): Promise<void>;
     unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
     unsubscribeDocPromised(collecitonName: string, id: string): Promise<void>;
