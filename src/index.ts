@@ -6,7 +6,7 @@ import type { ShareDBOptions } from 'sharedb';
 import { RacerBackend } from './Backend';
 import { ModelOptions, RootModel } from './Model';
 export { Query } from './Model/Query';
-export { ChildModel, type UUID } from './Model';
+export { ChildModel, type UUID, type Subscribable } from './Model';
 
 const { use, serverUse } = util;
 

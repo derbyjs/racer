@@ -4,6 +4,7 @@
 import { serverRequire } from '../util';
 export { Model, ChildModel, RootModel, ModelOptions, type UUID } from './Model';
 export { ModelData } from './collections';
+export { type Subscribable } from './subscriptions';
 
 // Extend model on both server and client //
 import './unbundle';
