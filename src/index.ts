@@ -7,6 +7,7 @@ import { RacerBackend } from './Backend';
 import { ModelOptions, RootModel } from './Model';
 export { Query } from './Model/Query';
 export { ChildModel, type UUID, type Subscribable } from './Model';
+export type { ReadonlyDeep } from './types';
 
 const { use, serverUse } = util;
 
