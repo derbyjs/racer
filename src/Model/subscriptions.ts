@@ -12,29 +12,35 @@ const promisify = util.promisify;
 export type Subscribable = string | Model<unknown> | Query;
 
 declare module './Model' {
-  interface Model {
-    fetch(callback?: ErrorCallback): Model;
-    fetchPromised(): Promise<unknown>;
+  interface Model<T> {
+    fetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    fetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    fetch(cb?: ErrorCallback): Model<T>;
+    
+    fetchPromised(items: Subscribable[]): Promise<void>;
+    fetchPromised(item: Subscribable): Promise<void>;
+    fetchPromised(): Promise<void>;
+
     fetchDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
-    fetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    fetchDocPromised(collecitonName: string, id: string): Promise<void>;
     fetchOnly: boolean;
 
     subscribe(callback?: ErrorCallback): void;
     subscribe(subscribable: Subscribable, callback?: ErrorCallback): void;
-    subscribePromised(): Promise<unknown>;
+    subscribePromised(): Promise<void>;
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
-    subscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
 
     unfetch(): Model;
-    unfetchPromised(): Promise<unknown>;
+    unfetchPromised(): Promise<void>;
     unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unfetchDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    unfetchDocPromised(collecitonName: string, id: string): Promise<void>;
     unloadDelay: number;
 
     unsubscribe(): Model;
-    unsubscribePromised(): Promise<unknown>;
+    unsubscribePromised(): Promise<void>;
     unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unsubscribeDocPromised(collecitonName: string, id: string): Promise<unknown>;
+    unsubscribeDocPromised(collecitonName: string, id: string): Promise<void>;
 
     _fetchedDocs: CollectionCounter;
     _forSubscribable(argumentsObject: any, method: any): void;

@@ -155,7 +155,7 @@ export function promisify(original) {
 
   function fn() {
     var promiseResolve, promiseReject;
-    var promise = new Promise(function(resolve, reject) {
+    var promise = new Promise<void>(function(resolve, reject) {
       promiseResolve = resolve;
       promiseReject = reject;
     });
