@@ -49,7 +49,10 @@ declare module './Model' {
     subscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
     subscribe(cb?: ErrorCallback): Model<T>;
 
+    subscribePromised(items: Subscribable[]): Promise<void>;
+    subscribePromised(item: Subscribable): Promise<void>;
     subscribePromised(): Promise<void>;
+
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
     subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
 
