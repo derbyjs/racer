@@ -1,21 +1,19 @@
 import { Racer } from './Racer';
-import { Model, ModelData } from './Model';
 import * as util from './util';
 import type { ShareDBOptions } from 'sharedb';
 
 import { RacerBackend } from './Backend';
 import { ModelOptions, RootModel } from './Model';
+
 export { Query } from './Model/Query';
-export { ChildModel, type UUID, type Subscribable } from './Model';
+export { Model, ChildModel, ModelData, type UUID, type Subscribable } from './Model';
 export type { ReadonlyDeep, Path, PathLike, PathSegment } from './types';
 
 const { use, serverUse } = util;
 
-type BackendOptions = { modelOptions?: ModelOptions } & ShareDBOptions;
+export type BackendOptions = { modelOptions?: ModelOptions } & ShareDBOptions;
 
 export {
-  Model,
-  ModelData,
   ModelOptions,
   Racer,
   RacerBackend,
