@@ -3,7 +3,9 @@ import { type Segments } from './types';
 import { ChildModel, ErrorCallback, Model } from './Model';
 import { CollectionMap } from './CollectionMap';
 import { ModelData } from '.';
-import { Doc } from 'sharedb';
+import type { Doc } from './Doc';
+import type { Doc as ShareDBDoc } from 'sharedb';
+import type { RemoteDoc } from './RemoteDoc';
 
 var defaultType = require('sharedb/lib/client').types.defaultType;
 var util = require('../util');
@@ -267,7 +269,7 @@ export class Query<T = {}> {
 
   fetchPromised = promisify(Query.prototype.fetch);
 
-  subscribe(cb) {
+  subscribe(cb: ErrorCallback) {
     cb = this.model.wrapCallback(cb);
     this.context.subscribeQuery(this);
 
@@ -303,9 +305,9 @@ export class Query<T = {}> {
 
   subscribePromised = promisify(Query.prototype.subscribe);
 
-  _subscribeCb(cb) {
+  _subscribeCb(cb: ErrorCallback) {
     var query = this;
-    return function subscribeCb(err: Error, results: Doc[], extra?: any) {
+    return function subscribeCb(err: Error, results: ShareDBDoc[], extra?: any) {
       if (err) return query._flushSubscribeCallbacks(err, cb);
       query._setExtra(extra);
       query._setResults(results);
@@ -405,7 +407,7 @@ export class Query<T = {}> {
     if (extra === undefined) return;
     this.model._setDiffDeep(this.extraSegments, extra);
   };
-  _setResults(results) {
+  _setResults(results: ShareDBDoc[]) {
     var ids = resultsIds(results);
     this._setResultIds(ids);
   };
@@ -507,7 +509,7 @@ export class Query<T = {}> {
     var results = [];
     for (var i = 0; i < ids.length; i++) {
       var id = ids[i];
-      var doc = collection.docs[id];
+      var doc = collection.docs[id] as RemoteDoc;
       results.push(doc && doc.shareDoc);
     }
     return results;
@@ -526,7 +528,7 @@ export class Query<T = {}> {
     var collection = this.model.getCollection(this.collectionName);
     for (var i = 0, l = ids.length; i < l; i++) {
       var id = ids[i];
-      var doc = collection && collection.docs[id];
+      var doc = (collection && collection.docs[id]) as RemoteDoc;
       results.push(doc && doc.get());
     }
     return results;
@@ -564,7 +566,7 @@ export class Query<T = {}> {
       results = [];
       for (var i = 0; i < ids.length; i++) {
         var id = ids[i];
-        var doc = collection.docs[id];
+        var doc = collection.docs[id] as RemoteDoc;
         if (doc) {
           delete collection.docs[id];
           var data = doc.shareDoc.data;
@@ -610,7 +612,7 @@ function queryHash(contextId, collectionName, expression, options) {
   return JSON.stringify(args).replace(/\./g, '|');
 }
 
-function resultsIds(results) {
+function resultsIds(results: { id: string }[]): string[] {
   var ids = [];
   for (var i = 0; i < results.length; i++) {
     var shareDoc = results[i];

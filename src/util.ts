@@ -112,11 +112,11 @@ export function equalsNaN(x) {
   return x !== x;
 }
 
-export function isArrayIndex(segment) {
+export function isArrayIndex(segment: string): boolean {
   return (/^[0-9]+$/).test(segment);
 }
 
-export function lookup(segments, value) {
+export function lookup(segments: string[], value: unknown): unknown {
   if (!segments) return value;
 
   for (var i = 0, len = segments.length; i < len; i++) {
@@ -126,14 +126,14 @@ export function lookup(segments, value) {
   return value;
 }
 
-export function mayImpactAny(segmentsList, testSegments) {
+export function mayImpactAny(segmentsList: string[][], testSegments: string[]) {
   for (var i = 0, len = segmentsList.length; i < len; i++) {
     if (mayImpact(segmentsList[i], testSegments)) return true;
   }
   return false;
 }
 
-export function mayImpact(segments, testSegments) {
+export function mayImpact(segments: string[], testSegments: string[]): boolean {
   var len = Math.min(segments.length, testSegments.length);
   for (var i = 0; i < len; i++) {
     if (segments[i] !== testSegments[i]) return false;
@@ -186,13 +186,13 @@ export function serverRequire(module, id) {
   return module.require(id);
 }
 
-export function serverUse(module, id, options) {
+export function serverUse(module, id: string, options?: unknown) {
   if (!isServer) return this;
   var plugin = module.require(id);
   return this.use(plugin, options);
 }
 
-export function use(plugin, options) {
+export function use(plugin, options?: unknown) {
   // Don't include a plugin more than once
   var plugins = this._plugins || (this._plugins = []);
   if (plugins.indexOf(plugin) === -1) {

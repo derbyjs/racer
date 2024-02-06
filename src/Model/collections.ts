@@ -1,28 +1,78 @@
 import { type Segments } from './types';
 import { Doc } from './Doc';
 import { Model, RootModel } from './Model';
+import { JSONObject } from 'sharedb/lib/sharedb';
+import { VerifyJsonWebKeyInput } from 'crypto';
+import { Path, ReadonlyDeep, ShallowCopiedValue } from '../types';
 var LocalDoc = require('./LocalDoc');
 var util = require('../util');
 
 export class ModelCollections {
   docs: Record<string, any>;
 }
-export class ModelData {}
-export class DocMap {}
-export class CollectionData {}
+
+/** Root model data */
+export class ModelData {
+  [collectionName: string]: CollectionData<JSONObject>;
+}
+
+class DocMap {
+  [id: string]: Doc;
+}
+
+/** Dictionary of document id to document data */
+export class CollectionData<T extends JSONObject> {
+  [id: string]: T;
+}
 
 declare module './Model' {
   interface RootModel {
     collections: ModelCollections;
     data: ModelData;
   }
-  interface Model {
+  interface Model<T> {
     destroy(subpath?: string): void;
-    get(subpath?: string): any;
-    get<T>(subpath?: string): T;
-    getCollection(collecitonName: string): ModelCollections;
-    getCopy(subpath: string): any;
-    getDeepCopy(subpath: string): any;
+
+    /**
+     * Gets the value located at this model's path or a relative subpath.
+     *
+     * If no value exists at the path, this returns `undefined`.
+     *
+     * _Note:_ The value is returned by reference, and object values should not
+     * be directly modified - use the Model mutator methods instead. The
+     * TypeScript compiler will enforce no direct modifications, but there are
+     * no runtime guards, which means JavaScript source code could still
+     * improperly make direct modifications.
+     *
+     * @param subpath
+     */
+    get<S>(subpath: Path): ReadonlyDeep<S> | undefined;
+    get(): ReadonlyDeep<T> | undefined;
+    
+    getCollection(collectionName: string): Collection<JSONObject>;
+    
+    /**
+     * Gets a shallow copy of the value located at this model's path or a relative
+     * subpath.
+     *
+     * If no value exists at the path, this returns `undefined`.
+     *
+     * @param subpath
+     */
+    getCopy<S>(subpath: Path): ShallowCopiedValue<S> | undefined;
+    getCopy(): ShallowCopiedValue<T> | undefined;
+
+    /**
+     * Gets a deep copy of the value located at this model's path or a relative
+     * subpath.
+     *
+     * If no value exists at the path, this returns `undefined`.
+     *
+     * @param subpath
+     */
+    getDeepCopy<S>(subpath: Path): S | undefined;
+    getDeepCopy(): T | undefined;
+
     getDoc(collecitonName: string, id: string): any | undefined;
     getOrCreateCollection(name: string): Collection;
     getOrCreateDoc(collectionName: string, id: string, data: any);
@@ -47,18 +97,18 @@ Model.prototype.getDoc = function(collectionName, id) {
   return collection && collection.docs[id];
 };
 
-Model.prototype.get = function(subpath) {
+Model.prototype.get = function<S>(subpath?: Path) {
   var segments = this._splitPath(subpath);
-  return this._get(segments);
+  return this._get(segments) as ReadonlyDeep<S>;
 };
 
 Model.prototype._get = function(segments) {
   return util.lookup(segments, this.root.data);
 };
 
-Model.prototype.getCopy = function(subpath) {
+Model.prototype.getCopy = function<S>(subpath?: Path) {
   var segments = this._splitPath(subpath);
-  return this._getCopy(segments);
+  return this._getCopy(segments) as ReadonlyDeep<S>;
 };
 
 Model.prototype._getCopy = function(segments) {
@@ -66,9 +116,9 @@ Model.prototype._getCopy = function(segments) {
   return util.copy(value);
 };
 
-Model.prototype.getDeepCopy = function(subpath) {
+Model.prototype.getDeepCopy = function<S>(subpath?: Path) {
   var segments = this._splitPath(subpath);
-  return this._getDeepCopy(segments);
+  return this._getDeepCopy(segments) as S;
 };
 
 Model.prototype._getDeepCopy = function(segments) {
@@ -135,12 +185,12 @@ Model.prototype.destroy = function(subpath) {
   }
 };
 
-export class Collection {
+export class Collection<T extends JSONObject = {}> {
   model: RootModel;
   name: string;
   size: number;
   docs: DocMap;
-  data: CollectionData;
+  data: CollectionData<T>;
   Doc: typeof Doc;
 
   constructor(model: RootModel, name: string, docClass: typeof Doc) {
@@ -149,7 +199,7 @@ export class Collection {
     this.Doc = docClass;
     this.size = 0;
     this.docs = new DocMap();
-    this.data = model.data[name] = new CollectionData();
+    this.data = model.data[name] = new CollectionData<T>();
   }
 
   /**

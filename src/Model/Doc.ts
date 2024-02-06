@@ -3,10 +3,10 @@ import { type Segments } from './types';
 import { Collection } from './collections';
 
 export class Doc {
-  collectionName: string;
-  id: string;
   collectionData: Model;
+  collectionName: string;
   data: any;
+  id: string;
   model: Model;
 
   constructor(model: Model, collectionName: string, id: string, data: any, _collection?: Collection) {
