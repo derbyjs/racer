@@ -3,6 +3,7 @@ import { Model } from './Model';
 import { type Doc} from './Doc';
 import { LocalDoc} from './LocalDoc';
 import {RemoteDoc} from './RemoteDoc';
+import type Agent = require('sharedb/lib/agent');
 var promisify = require('../util').promisify;
 
 export { type Connection };
@@ -11,21 +12,37 @@ declare module './Model' {
   interface DocConstructor {
     new (any: unknown[]): DocConstructor;
   }
-  interface Model {
-    _finishCreateConnection(): void;
-    _getDocConstructor(name: string): any;
-    _isLocal(name: string): boolean;
-    allowCompose(): Model;
+  interface Model<T> {
+    /** Returns a child model where ShareDB operations are always composed. */
+    allowCompose(): ChildModel<T>;
     close(cb: (err?: Error) => void): void;
     closePromised: Promise<void>;
     disconnect(): void;
-    getAgent(): any;
+
+    /**
+     * Returns a reference to the ShareDB agent if it is connected directly on the
+     * server. Will return null if the ShareDB connection has been disconnected or
+     * if we are not in the same process and we do not have a reference to the
+     * server-side agent object
+     */
+    getAgent(): Agent;
+    
     hasPending(): boolean;
     hasWritePending(): boolean;
-    preventCompose(): Model;
+    /** Returns a child model where ShareDB operations are never composed. */
+    preventCompose(): ChildModel<T>;
     reconnect(): void;
+
+    /**
+     * Calls the callback once all pending operations, fetches, and subscribes
+     * have settled.
+     */
     whenNothingPending(cb: () => void): void;
     whenNothingPendingPromised(): Promise<void>;
+
+    _finishCreateConnection(): void;
+    _getDocConstructor(name: string): any;
+    _isLocal(name: string): boolean;
   }
 }
 
