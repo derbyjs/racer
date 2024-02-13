@@ -5,7 +5,7 @@ import { type Segments } from './types';
 import { type Filter } from './filter';
 import { type Query } from './Query';
 
-type Refable = string | number | Model | Query | Filter;
+type Refable = string | number | Model | Query | Filter<unknown>;
 
 declare module './Model' {
   interface Model {

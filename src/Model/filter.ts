@@ -2,13 +2,84 @@ var util = require('../util');
 import { Model } from './Model';
 import { type Segments } from './types';
 import * as defaultFns from './defaultFns';
+import { PathLike } from '../types';
+
+interface PaginationOptions {
+  skip: number;
+  limit: number;
+}
 
 declare module './Model' {
   interface Model {
-    _filters: Filters;
-    filter: () => any;
-    sort: () => any;
+    /**
+     * Creates a live-updating list from items in an object, which results in
+     * automatically updating as the input items change.
+     *
+     * @param inputPath - Path pointing to an object or array. The path's value is
+     *   retrieved via model.get(), and each item checked against filter function
+     * @param additionalInputPaths - Other parameters can be set in the model, and
+     *   the filter function will be re-evaluated when these parameters change as well.
+     * @param options
+     *   skip - The number of first results to skip
+     *   limit - The maximum number of results. A limit of zero is equivalent to no limit.
+     * @param fn - A function or the name of a function defined via model.fn(). The function
+     *   should have the arguments function(item, key, object, additionalInputs...)
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/filters-and-sorts
+     */
+    filter<S>(
+      inputPath: PathLike,
+      additionalInputPaths: PathLike[],
+      options: PaginationOptions,
+      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+    ): Filter<S>;
+    filter<S>(
+      inputPath: PathLike,
+      additionalInputPaths: PathLike[],
+      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+    ): Filter<S>;
+    filter<S>(
+      inputPath: PathLike,
+      options: PaginationOptions,
+      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+    ): Filter<S>;
+    filter<S>(
+      inputPath: PathLike,
+      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+    ): Filter<S>;
+
     removeAllFilters: (subpath: string) => void;
+
+    /**
+     * Creates a live-updating list from items in an object, which results in
+     * automatically updating as the input items change. The results are sorted by ascending order (default) or by a provided 'fn' parameter.
+     *
+     * @param inputPath - Path pointing to an object or array. The path's value is
+     *   retrieved via model.get(), and each item checked against filter function
+     * @param additionalInputPaths - Other parameters can be set in the model, and
+     *   the filter function will be re-evaluated when these parameters change as well.
+     * @param options
+     *   skip - The number of first results to skip
+     *   limit - The maximum number of results. A limit of zero is equivalent to no limit.
+     * @param fn - A function or the name of a function defined via model.fn().
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/filters-and-sorts
+     */
+    sort<S>(
+      inputPath: PathLike,
+      additionalInputPaths: PathLike[],
+      options: PaginationOptions,
+      fn: (a: S, b: S) => number
+    ): Filter<S>;
+    sort<S>(
+      inputPath: PathLike,
+      additionalInputPaths: PathLike[],
+      fn: (a: S, b: S) => number
+    ): Filter<S>;
+    sort<S>(inputPath: PathLike, options: PaginationOptions, fn: (a: S, b: S) => number): Filter<S>;
+    sort<S>(inputPath: PathLike, fn: (a: S, b: S) => number): Filter<S>;
+
+    _filters: Filters;
     _removeAllFilters: (segments: Segments) => void;
   }
 }
@@ -127,7 +198,7 @@ class Filters{
   };
 }
 
-export class Filter {
+export class Filter<T> {
   bundle: boolean;
   filterFn: any;
   filterName: string;
@@ -138,7 +209,7 @@ export class Filter {
   inputPaths: any;
   inputsSegments: Segments[];
   limit: number;
-  model: Model;
+  model: Model<T>;
   options: any;
   path: string;
   segments: Segments;

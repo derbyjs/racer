@@ -3,20 +3,134 @@ import { Model } from './Model';
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import * as defaultFns from './defaultFns';
+import { PathLike, ReadonlyDeep } from '../types';
 var util = require('../util');
 
 class NamedFns { }
 
+type StartFnParam = string | number | boolean | null | undefined | ReadonlyDeep<unknown>;
+
+interface ModelStartOptions {
+  /**
+   * Whether to deep-copy the input/output of the reactive function.
+   *
+   * - `output` (default)
+   * - `input`
+   * - `both`
+   * - `none`
+   */
+  copy?: 'output' | 'input' | 'both' | 'none';
+  /**
+   * Comparison mode for the output of the reactive function, when determining
+   * whether and how to update the output path based on the function's return
+   * value.
+   *
+   * - `'diffDeep'` (default) - Do a recursive deep-equal comparison on old
+   *   and new output values, attempting to issue fine-grained ops on subpaths
+   *   where possible.
+   * - `'diff` - Do an identity comparison (`===`) on the output value, and do
+   *   a simple set if old and new outputs are different.
+   * - `'arrayDeep'` - Compare old and new arrays item-by-item using a
+   *   deep-equal comparison for each item, issuing top-level array insert,
+   *   remove,, and move ops as needed. Unlike `'diffDeep'`, this will _not_
+   *   issue ops inside array items.
+   * - `'array'` - Compare old and new arrays item-by-item using identity
+   *   comparison (`===`) for each item, issuing top-level array insert,
+   *   remove,, and move ops as needed.
+   */
+  mode?: 'diffDeep' | 'diff' | 'arrayDeep' | 'array';
+  /**
+   * If true, then upon input changes, defer evaluation of the function to the
+   * next tick, instead of immediately evaluating the function upon each input
+   * change.
+   *
+   * _Warning:_ Avoid using `async: true` if there's any controller code that
+   * does a `model.get()` on the output path or on any paths downstream of the
+   * output, since changes to an input path won't immediately result in the
+   * output being updated.
+   */
+  async?: boolean;
+}
+
 declare module './Model' {
   interface Model {
-    _namedFns: NamedFns;
-    _fns: Fns;
-    fn(name: string, fns: Fns): void;
-    evaluate(): any;
-    start(): any;
+    /**
+     * Call the function with the values at the input paths, returning the value
+     * on completion. Unlike `start`, this only occurs once and does not create
+     * a listener for updating based on changes.
+     *
+     * The function should be a pure function - it should always return the same
+     * result given the same inputs, and it should be side-effect free.
+     *
+     * @param inputPaths
+     * @param options
+     * @param fn
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/reactive-functions
+     */
+    evaluate<Out, Ins extends StartFnParam[]>(
+      inputPaths: PathLike[],
+      options: ModelStartOptions,
+      fn: (...inputs: Ins) => Out
+    ): Out;
+    evaluate<Out, Ins extends StartFnParam[]>(
+      inputPaths: PathLike[],
+      fn: (...inputs: Ins) => Out
+    ): Out;
+
+    /**
+     * Defines a named reactive function.
+     *
+     * It's not recommended to use this in most cases. Instead, to share reactive functions,
+     * have the components import a shared function to pass to `model.start`.
+     *
+     * @param name name of the function to define
+     * @param fn either a reactive function that accepts inputs and returns output, or
+     *   a `{ get: Function; set: Function }` object defining a two-way reactive function
+     */
+    fn<Ins extends unknown[], Out>(
+      name: string,
+      fn: (...inputs: Ins) => Out |
+        {
+          get(...inputs: Ins): Out;
+          set(output: Out, ...inputs: Ins): void
+        }
+    ): void;
+
+    /**
+     * Call the function with the values at the input paths, writing the return
+     * value to the output path. In addition, whenever any of the input values
+     * change, re-invoke the function and set the new return value to the output
+     * path.
+     *
+     * The function should be a pure function - it should always return the same
+     * result given the same inputs, and it should be side-effect free.
+     *
+     * @param outputPath
+     * @param inputPaths
+     * @param options
+     * @param fn - function or the name of function defined via model.fn()
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/reactive-functions
+     */
+    start<Out, Ins extends StartFnParam[]>(
+      outputPath: PathLike,
+      inputPaths: PathLike[],
+      options: ModelStartOptions,
+      fn: ((...inputs: Ins) => Out) | string
+    ): Out;
+    start<Out, Ins extends StartFnParam[]>(
+      outputPath: PathLike,
+      inputPaths: PathLike[],
+      fn: ((...inputs: Ins) => Out) | string
+    ): Out;
+    
     stop(subpath: string): void;
-    _stop(segments: Segments): void;
     stopAll(subpath: string): void;
+
+    _fns: Fns;
+    _namedFns: NamedFns;
+    _stop(segments: Segments): void;
     _stopAll(segments: Segments): void;
   }
 }
