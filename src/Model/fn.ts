@@ -10,6 +10,13 @@ class NamedFns { }
 
 type StartFnParam = string | number | boolean | null | undefined | ReadonlyDeep<unknown>;
 
+type ModelFn<Ins extends unknown[], Out> =
+  (...inputs: Ins) => Out |
+  {
+    get(...inputs: Ins): Out,
+    set(output: Out, ...inputs: Ins): void,
+  };
+
 interface ModelStartOptions {
   /**
    * Whether to deep-copy the input/output of the reactive function.
@@ -109,20 +116,22 @@ declare module './Model' {
      * @param outputPath
      * @param inputPaths
      * @param options
-     * @param fn - function or the name of function defined via model.fn()
-     *
+     * @param fn - a reactive function that accepts inputs and returns output;
+     *   a `{ get: Function; set: Function }` object defining a two-way reactive function;
+     *   or the name of a function defined via model.fn()
+     * 
      * @see https://derbyjs.com/docs/derby-0.10/models/reactive-functions
      */
     start<Out, Ins extends StartFnParam[]>(
       outputPath: PathLike,
       inputPaths: PathLike[],
       options: ModelStartOptions,
-      fn: ((...inputs: Ins) => Out) | string
+      fn: ModelFn<Ins, Out> | string
     ): Out;
     start<Out, Ins extends StartFnParam[]>(
       outputPath: PathLike,
       inputPaths: PathLike[],
-      fn: ((...inputs: Ins) => Out) | string
+      fn: ModelFn<Ins, Out> | string
     ): Out;
     
     stop(subpath: string): void;
