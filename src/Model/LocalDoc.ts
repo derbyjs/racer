@@ -5,7 +5,6 @@ var util = require('../util');
 export class LocalDoc extends Doc{
   constructor(model: Model, collectionName: string, id: string, data: any) {
     super(model, collectionName, id, data);
-    Doc.call(this, model, collectionName, id);
     this._updateCollectionData();
   }
   

@@ -22,14 +22,12 @@ export class RemoteDoc extends Doc {
   shareDoc: any;
 
   constructor(model: Model, collectionName: string, id: string, snapshot: any, collection: Collection) {
-    super(model, collectionName, id, collection);
+    super(model, collectionName, id);
     // This is a bit messy, but we have to immediately register this doc on the
     // collection that added it, so that when we create the shareDoc and the
     // connection emits the 'doc' event, we'll find this doc instead of
     // creating a new one
     if (collection) collection.docs[id] = this;
-
-    Doc.call(this, model, collectionName, id);
     this.model = model.pass({ $remote: true });
     this.debugMutations = model.root.debug.remoteMutations;
 

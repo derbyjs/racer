@@ -9,7 +9,7 @@ export class Doc {
   id: string;
   model: Model;
 
-  constructor(model: Model, collectionName: string, id: string, data: any, _collection?: Collection) {
+  constructor(model: Model, collectionName: string, id: string, data?: any, _collection?: Collection) {
     this.collectionName = collectionName;
     this.id = id;
     this.data = data;
