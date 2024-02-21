@@ -8,6 +8,7 @@ import { ModelOptions, RootModel } from './Model';
 export { Query } from './Model/Query';
 export { Model, ChildModel, ModelData, type UUID, type Subscribable } from './Model';
 export type { ReadonlyDeep, Path, PathLike, PathSegment } from './types';
+export * as util from './util';
 
 const { use, serverUse } = util;
 
@@ -20,7 +21,6 @@ export {
   RootModel,
   use,
   serverUse,
-  util,
 };
 
 export const racer = new Racer();

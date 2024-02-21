@@ -6,13 +6,44 @@ import { Model } from './Model';
 import { CollectionCounter } from './CollectionCounter';
 
 declare module './Model' {
-  interface Model {
-    _contexts: Contexts;
-    context(id: string): Model;
-    setContext(id: string): void;
+  interface Model<T> {
+    /**
+     * Creates a new child model with a specific named data-loading context. The
+     * child model has the same scoped path as this model.
+     *
+     * Contexts are used to track counts of fetches and subscribes, so that all
+     * data relating to a context can be unloaded all at once, without having to
+     * manually track loaded data.
+     *
+     * Contexts are in a global namespace for each root model, so calling
+     * `model.context(contextId)` from two different places will return child
+     * models that both refer to the same context.
+     *
+     * @param contextId - context id
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     */
+    context(contextId: string): ChildModel<T>;
     getOrCreateContext(id: string): Context;
-    unload(id: string): void;
+    setContext(id: string): void;
+    
+    /**
+     * Unloads data for this model's context, or for a specific named context.
+     *
+     * @param contextId - optional context to unload; defaults to this model's context
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     */
+    unload(contextId?: string): void;
+
+    /**
+     * Unloads data for all model contexts.
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     */
     unloadAll(): void;
+
+    _contexts: Contexts;
   }
 }
 
