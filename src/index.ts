@@ -7,6 +7,7 @@ import { ModelOptions, RootModel } from './Model';
 
 export { Query } from './Model/Query';
 export { Model, ChildModel, ModelData, type UUID, type Subscribable } from './Model';
+export { Context } from './Model/contexts';
 export type { ReadonlyDeep, Path, PathLike, PathSegment } from './types';
 export * as util from './util';
 

@@ -13,9 +13,9 @@ declare module './Model' {
     _refLists: any;
     _canRefTo(value: Refable): boolean;
     // _canRefTo(from: Segments, to: Segments, options: any): boolean;
-    ref(to: Refable): void;
-    ref(from: string | number, to: Refable, options?: any): void;
-    _ref(from: Segments, to: Segments, options: any): any;
+    ref<T>(to: Refable): ChildModel<T>;
+    ref<T>(from: string | number, to: Refable, options?: any): ChildModel<T>;
+    _ref<T>(from: Segments, to: Segments, options: any): void;
     removeRef(subpath: string): void;
     _removeRef(segments: Segments): void;
     removeAllRefs(subpath: string): void;
