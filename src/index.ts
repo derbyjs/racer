@@ -9,11 +9,14 @@ export { Query } from './Model/Query';
 export { Model, ChildModel, ModelData, type UUID, type Subscribable } from './Model';
 export { Context } from './Model/contexts';
 export type { ReadonlyDeep, Path, PathLike, PathSegment } from './types';
+export type { CollectionData } from './Model/collections';
 export * as util from './util';
 
 const { use, serverUse } = util;
 
 export type BackendOptions = { modelOptions?: ModelOptions } & ShareDBOptions;
+
+export type Callback = (error?: Error) => void;
 
 export {
   ModelOptions,
