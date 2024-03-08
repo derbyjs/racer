@@ -538,8 +538,8 @@ export class Query<T = {}> {
     return this.model._get(this.idsSegments) || [];
   };
 
-  getExtra() {
-    return this.model._get(this.extraSegments);
+  getExtra<T = {}>() {
+    return this.model._get(this.extraSegments) as T;
   };
 
   ref(from) {
