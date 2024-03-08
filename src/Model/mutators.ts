@@ -41,13 +41,13 @@ declare module './Model' {
     createNullPromised(subpath: string, value: any): Promise<void>;
     _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    add(value: any): void;
-    add(subpath: string, value: any, cb?: ErrorCallback): void;
+    add(value: any): string;
+    add(subpath: string, value: any, cb?: ErrorCallback): string;
     addPromised(value: any): Promise<void>;
     addPromised(subpath: string, value: any): Promise<void>;
-    _add(segments: Segments, value: any, cb?: ErrorCallback): void;
+    _add(segments: Segments, value: any, cb?: ErrorCallback): string;
 
-    del(value: any): void;
+    del(value?: any): void;
     del(subpath: string, value: any, cb?: ErrorCallback): void;
     delPromised(value: any): Promise<void>;
     delPromised(subpath: string, value: any): Promise<void>;
