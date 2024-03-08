@@ -29,12 +29,92 @@ declare module './Model' {
   interface Model {
     addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
     eventContext(id: string): Model;
-    on(event: string, listener: any, arg2?: any, arg3?: any): any;
-    once(event: string, listener: any, arg2?: any, arg3?: any): any;
-    pass(object: any, invert?: boolean): Model;
+    
+    /**
+     * Listen to Racer events matching a certain path or path pattern.
+     *
+     * `pathPattern` is a path pattern that will filter emitted events, calling
+     * the handler function only when a mutator matches the pattern.
+     *
+     * Path patterns support a single segment wildcard `'*'` anywhere in a path,
+     * and a multi-segment wildcard `'**'` at the end of the path. The
+     * multi-segment wildcard alone `'**'` matches all paths.
+     *
+     * Examples of path patterns:
+     * * `'notes.abc-123.author'` - Trigger on a direct modification to a
+     *   specific note's `author`. Will not trigger if a sub-property of the
+     *   author is modified or if the entire note is replaced.
+     * * `notes.*.author` - Trigger on a direct modification to any note's
+     *   `author`. Will not trigger if a sub-property of the author is modified
+     *    or if an entire note is replaced.
+     * * `notes.*.author.**` - Trigger on a modification to any note's `author`
+     *   or any sub-property of `author`. Will not trigger if an entire note is
+     *   replaced.
+     *
+     * @param eventType
+     * @param pathPattern
+     * @param options
+     * @param listener
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/events
+     */
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      pathPattern: PathLike,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): Function;
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): Function;
+    on(
+      eventType: 'all',
+      listener: (segments: string[], event: ModelOnEventMap[keyof ModelOnEventMap]) => void
+    ): Function;
+    on(
+      eventType: 'error',
+      listener: (error: Error) => void
+    ): Function;
+    
+
+    /**
+     * Listen to Racer events matching a certain path or path pattern, removing
+     * the listener after it gets triggered once.
+     *
+     * @param eventType
+     * @param pathPattern
+     * @param options
+     * @param listener
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/components/events
+     */
+    once<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      pathPattern: string,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): Function;
+    once<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): Function;
+
+    /**
+     * Passes data to event listeners
+     *
+     * @param object - An object whose properties will each be set on the passed argument
+     * @returns back a model scoped to the same path
+     */
+    pass(object: object, invert?: boolean): Model;
+
     removeAllListeners(type: string, subpath: string): void;
     removeContextListeners(): void;
-    removeListener(type: string, listener: any): void;
+    
+    removeListener(eventType: keyof ModelOnEventMap, listener: Function): void;
+
     setMaxListeners(limit: number): void;
     silent(value?: boolean): Model;
     wrapCallback(cb: ErrorCallback): ErrorCallback;
@@ -176,8 +256,8 @@ Model.prototype._callMutationListeners = function(type, segments, event) {
 // the listener instead, since it is made internally for method subscriptions
 // and may need to be passed to removeListener.
 Model.prototype.__on = EventEmitter.prototype.on;
-Model.prototype.addListener =
-Model.prototype.on = function(type, arg1, arg2, arg3) {
+// @ts-expect-error ignore method overload issues
+Model.prototype.addListener = Model.prototype.on = function(type, arg1, arg2, arg3) {
   var listener = this._addMutationListener(type, arg1, arg2, arg3);
   if (listener) {
     return listener;
@@ -188,6 +268,7 @@ Model.prototype.on = function(type, arg1, arg2, arg3) {
 };
 
 Model.prototype.__once = EventEmitter.prototype.once;
+// @ts-expect-error ignore method overload issues
 Model.prototype.once = function(type, arg1, arg2, arg3) {
   var listener = this._addMutationListener(type, arg1, arg2, arg3);
   if (listener) {
