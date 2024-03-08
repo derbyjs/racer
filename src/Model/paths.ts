@@ -1,15 +1,16 @@
 import { Model } from './Model';
+import type { Path, PathLike } from '../types';
 
 exports.mixin = {};
 
 declare module './Model' {
   interface Model<T> {
     _splitPath(subpath: string): string[];
-    path(subpath: string | number | Model): string;
+    path(subpath?: PathLike): string;
     isPath(subpath: string): boolean;
-    scope<U = {}>(subpath: string): ChildModel<U>;
+    scope<U = {}>(subpath: Path): ChildModel<U>;
     scope(): ChildModel<T>;
-    at<U = {}>(subpath: string): ChildModel<U>;
+    at<U = {}>(subpath: Path): ChildModel<U>;
     parent(levels?: number): Model;
     leaf(path: string): string;
   }
