@@ -21,7 +21,7 @@ class DocMap {
 }
 
 /** Dictionary of document id to document data */
-export class CollectionData<T extends JSONObject> {
+export class CollectionData<T extends {}> {
   [id: string]: T;
 }
 
