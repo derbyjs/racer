@@ -3,6 +3,7 @@ import { type Context } from './contexts';
 import { RacerBackend } from '../Backend';
 import { type Connection } from './connection';
 import { type ModelData } from './collections';
+import { ShareDBOptions } from 'sharedb';
 
 export type UUID = string;
 

@@ -2,13 +2,13 @@ import { Model } from './Model';
 import * as path from 'path';
 import * as util from './util';
 import { ModelOptions, RootModel } from './Model/Model';
-var Backend = require('sharedb').Backend;
+import Backend = require('sharedb');
 
 export class RacerBackend extends Backend {
   racer: any;
   modelOptions: any;
 
-  constructor(racer: any, options?: { modelOptions?: ModelOptions }) {
+  constructor(racer: any, options?: { modelOptions?: ModelOptions } & Backend.ShareDBOptions) {
     super(options);
     this.racer = racer;
     this.modelOptions = options && options.modelOptions;
