@@ -148,20 +148,20 @@ export function mergeInto(to, from) {
   return to;
 }
 
-export function promisify(original) {
+export function promisify<T = void>(original) {
   if (typeof original !== 'function') {
     throw new TypeError('The "original" argument must be of type Function');
   }
 
   function fn() {
     var promiseResolve, promiseReject;
-    var promise = new Promise<void>(function(resolve, reject) {
+    var promise = new Promise<T>(function(resolve, reject) {
       promiseResolve = resolve;
       promiseReject = reject;
     });
 
     var args = Array.prototype.slice.apply(arguments);
-    args.push(function(err, value) {
+    args.push(function(err: Error, value: T) {
       if (err) {
         promiseReject(err);
       } else {
