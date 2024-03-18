@@ -1,5 +1,6 @@
 import { type Model } from './Model';
 import { Doc } from './Doc';
+import { Callback, Path } from '../types';
 var util = require('../util');
 
 export class LocalDoc extends Doc{
@@ -12,7 +13,7 @@ export class LocalDoc extends Doc{
     this.collectionData[this.id] = this.data;
   };
   
-  create(value: any, cb) {
+  create(value: any, cb?: Callback) {
     if (this.data !== undefined) {
       var message = this._errorMessage('create on local document with data', null, this.data);
       var err = new Error(message);
@@ -23,7 +24,7 @@ export class LocalDoc extends Doc{
     cb();
   };
   
-  set(segments, value, cb) {
+  set(segments: Path, value: any, cb?: Callback) {
     function set(node, key) {
       var previous = node[key];
       node[key] = value;
@@ -32,7 +33,7 @@ export class LocalDoc extends Doc{
     return this._apply(segments, set, cb);
   };
   
-  del(segments, cb) {
+  del(segments: Path, cb?: Callback) {
     // Don't do anything if the value is already undefined, since
     // apply creates objects as it traverses, and the del method
     // should not create anything
@@ -48,7 +49,7 @@ export class LocalDoc extends Doc{
     return this._apply(segments, del, cb);
   };
   
-  increment(segments, byNumber, cb) {
+  increment(segments, byNumber, cb?: Callback) {
     var self = this;
     function validate(value) {
       if (typeof value === 'number' || value == null) return;
@@ -64,21 +65,21 @@ export class LocalDoc extends Doc{
     return this._validatedApply(segments, validate, increment, cb);
   };
   
-  push(segments, value, cb) {
+  push(segments: Path, value: unknown, cb?: Callback) {
     function push(arr) {
       return arr.push(value);
     }
     return this._arrayApply(segments, push, cb);
   };
   
-  unshift(segments, value, cb) {
+  unshift(segments: Path, value: unknown, cb?: Callback) {
     function unshift(arr) {
       return arr.unshift(value);
     }
     return this._arrayApply(segments, unshift, cb);
   };
   
-  insert(segments, index, values, cb) {
+  insert(segments: Path, index: number, values, cb?: Callback) {
     function insert(arr) {
       arr.splice.apply(arr, [index, 0].concat(values));
       return arr.length;
@@ -86,28 +87,28 @@ export class LocalDoc extends Doc{
     return this._arrayApply(segments, insert, cb);
   };
   
-  pop(segments, cb) {
+  pop(segments: Path, cb?: Callback) {
     function pop(arr) {
       return arr.pop();
     }
     return this._arrayApply(segments, pop, cb);
   };
   
-  shift(segments, cb) {
+  shift(segments: Path, cb?: Callback) {
     function shift(arr) {
       return arr.shift();
     }
     return this._arrayApply(segments, shift, cb);
   };
   
-  remove(segments, index, howMany, cb) {
+  remove(segments: Path, index: number, howMany: number, cb?: Callback) {
     function remove(arr) {
       return arr.splice(index, howMany);
     }
     return this._arrayApply(segments, remove, cb);
   };
   
-  move(segments, from, to, howMany, cb) {
+  move(segments, from, to, howMany, cb?: Callback) {
     function move(arr) {
       // Remove from old location
       var values = arr.splice(from, howMany);
@@ -118,7 +119,7 @@ export class LocalDoc extends Doc{
     return this._arrayApply(segments, move, cb);
   };
   
-  stringInsert(segments, index, value, cb) {
+  stringInsert(segments, index, value, cb?: Callback) {
     var self = this;
     function validate(value) {
       if (typeof value === 'string' || value == null) return;
@@ -138,7 +139,7 @@ export class LocalDoc extends Doc{
     return this._validatedApply(segments, validate, stringInsert, cb);
   };
   
-  stringRemove(segments, index, howMany, cb) {
+  stringRemove(segments: Path[], index: number, howMany: number, cb?: Callback) {
     var self = this;
     function validate(value) {
       if (typeof value === 'string' || value == null) return;
@@ -156,7 +157,7 @@ export class LocalDoc extends Doc{
     return this._validatedApply(segments, validate, stringRemove, cb);
   };
   
-  get(segments) {
+  get(segments?: Path) {
     return util.lookup(segments, this.data);
   };
   
@@ -179,14 +180,14 @@ export class LocalDoc extends Doc{
     return fn(node, key);
   };
   
-  _apply(segments, fn, cb) {
+  _apply(segments, fn, cb?: Callback) {
     var out = this._createImplied(segments, fn);
     this._updateCollectionData();
     cb();
     return out;
   };
   
-  _validatedApply(segments, validate, fn, cb) {
+  _validatedApply(segments, validate, fn, cb?: Callback) {
     var out = this._createImplied(segments, function(node, key) {
       var err = validate(node[key]);
       if (err) return cb(err);
@@ -197,7 +198,7 @@ export class LocalDoc extends Doc{
     return out;
   };
   
-  _arrayApply(segments, fn, cb) {
+  _arrayApply(segments, fn, cb?: Callback) {
     // Lookup a pointer to the property or nested property &
     // return the current value or create a new array
     var arr = this._createImplied(segments, nodeCreateArray);
