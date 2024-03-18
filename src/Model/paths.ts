@@ -1,22 +1,24 @@
-import { Model } from './Model';
+import { ChildModel, Model } from './Model';
 import type { Path, PathLike } from '../types';
 
 exports.mixin = {};
 
 declare module './Model' {
   interface Model<T> {
-    _splitPath(subpath: string): string[];
-    path(subpath?: PathLike): string;
+    at(): ChildModel<T>;
+    at<S = {}>(subpath: Path): ChildModel<S>;
     isPath(subpath: string): boolean;
-    scope<U = {}>(subpath: Path): ChildModel<U>;
-    scope(): ChildModel<T>;
-    at<U = {}>(subpath: Path): ChildModel<U>;
-    parent(levels?: number): Model;
     leaf(path: string): string;
+    parent(levels?: number): Model;
+    path(subpath?: PathLike): string;
+    scope(): ChildModel<T>;
+    scope<S = {}>(subpath: Path): ChildModel<S>;
+    
+    _splitPath(subpath: string): string[];
   }
 }
 
-Model.prototype._splitPath = function(subpath) {
+Model.prototype._splitPath = function(subpath?: Path): string[] {
   var path = this.path(subpath);
   return (path && path.split('.')) || [];
 };
@@ -29,7 +31,7 @@ Model.prototype._splitPath = function(subpath) {
  * @return {String} absolute path
  * @api public
  */
-Model.prototype.path = function(subpath) {
+Model.prototype.path = function(subpath?: Path): string {
   if (subpath == null || subpath === '') return (this._at) ? this._at : '';
   if (typeof subpath === 'string' || typeof subpath === 'number') {
     return (this._at) ? this._at + '.' + subpath : '' + subpath;
@@ -38,11 +40,11 @@ Model.prototype.path = function(subpath) {
   if (typeof subpath.path === 'function') return subpath.path();
 };
 
-Model.prototype.isPath = function(subpath) {
+Model.prototype.isPath = function(subpath?: Path): boolean {
   return this.path(subpath) != null;
 };
 
-Model.prototype.scope = function(path?) {
+Model.prototype.scope = function<S>(path?: Path): ChildModel<S> {
   if (arguments.length > 1) {
     for (var i = 1; i < arguments.length; i++) {
       path = path + '.' + arguments[i];
@@ -64,7 +66,7 @@ Model.prototype.scope = function(path?) {
  *  @return {Model} a scoped model
  *  @api public
  */
-Model.prototype.at = function(subpath) {
+Model.prototype.at = function(subpath?: Path) {
   if (arguments.length > 1) {
     for (var i = 1; i < arguments.length; i++) {
       subpath = subpath + '.' + arguments[i];
