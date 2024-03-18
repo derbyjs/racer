@@ -117,7 +117,7 @@ declare module './Model' {
 
     setMaxListeners(limit: number): void;
     silent(value?: boolean): Model;
-    wrapCallback(cb: ErrorCallback): ErrorCallback;
+    wrapCallback(cb?: ErrorCallback): ErrorCallback;
 
     __on: typeof EventEmitter.prototype.on;
     __once: typeof EventEmitter.prototype.once;
