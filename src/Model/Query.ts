@@ -269,7 +269,7 @@ export class Query<T = {}> {
 
   fetchPromised = promisify(Query.prototype.fetch);
 
-  subscribe(cb: ErrorCallback) {
+  subscribe(cb?: ErrorCallback) {
     cb = this.model.wrapCallback(cb);
     this.context.subscribeQuery(this);
 
