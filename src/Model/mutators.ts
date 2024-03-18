@@ -1,4 +1,5 @@
-var util = require('../util');
+import type { Callback, Path, ArrayItemType } from '../types';
+import * as util from '../util';
 import { Model } from './Model';
 import { type Segments } from './types';
 
@@ -11,18 +12,20 @@ var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
 
 declare module './Model' {
-  interface Model {
+  interface Model<T> {
     _mutate(segments, fn, cb): void;
-    set(value: any): void;
-    set(subpath: string, value: any, cb?: ErrorCallback): void;
-    setPromised(value: any): Promise<void>;
-    setPromised(subpath: string, value: any): Promise<void>;
-    _set(segments: Segments, value: any, cb?: ErrorCallback): void;
-    setNull(value: any): void;
-    setNull(subpath: string, value: any, cb?: ErrorCallback): void;
-    setNullPromised(value: any): Promise<void>;
-    setNullPromised(subpath: string, value: any): Promise<void>;
-    _setNull(segments: Segments, value: any, cb?: ErrorCallback): void;
+    set<S = void>(value: any): S;
+    set<S = void>(subpath: string, value: any, cb?: ErrorCallback): S;
+    setPromised<S = void>(value: any): Promise<S>;
+    setPromised<S = void>(subpath: string, value: any): Promise<S>;
+    _set<S = void>(segments: Segments, value: any, cb?: ErrorCallback): S;
+
+    setNull<S = void>(value: any): S;
+    setNull<S = void>(subpath: string, value: any, cb?: ErrorCallback): S;
+    setNullPromised<S = void>(value: any): Promise<S>;
+    setNullPromised<S = void>(subpath: string, value: any): Promise<S>;
+    _setNull<S = void>(segments: Segments, value: any, cb?: ErrorCallback): S;
+
     setEach(value: any): void;
     setEach(subpath: string, value: any, cb?: ErrorCallback): void;
     setEachPromised(value: any): Promise<void>;
@@ -43,29 +46,37 @@ declare module './Model' {
 
     add(value: any): string;
     add(subpath: string, value: any, cb?: ErrorCallback): string;
-    addPromised(value: any): Promise<void>;
-    addPromised(subpath: string, value: any): Promise<void>;
+    addPromised(value: any): Promise<string>;
+    addPromised(subpath: string, value: any): Promise<string>;
     _add(segments: Segments, value: any, cb?: ErrorCallback): string;
 
-    del(value?: any): void;
-    del(subpath: string, value: any, cb?: ErrorCallback): void;
-    delPromised(value: any): Promise<void>;
-    delPromised(subpath: string, value: any): Promise<void>;
-    _del(segments: Segments, value?: any, cb?: ErrorCallback): void;
+    /**
+     * Deletes the value at this model's path or a relative subpath.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @returns the old value at the path
+     */
+    del<S>(subpath: Path, cb?: Callback): S | undefined;
+    del<T>(cb?: Callback): T | undefined;
+    delPromised<S>(subpath: string): Promise<S>;
+    _del<S>(segments: Segments, cb?: ErrorCallback): S;
 
     _delNoDereference(segments: Segments, cb?: ErrorCallback): void;
 
-    increment(value: any): void;
-    increment(subpath: string, value: any, cb?: ErrorCallback): void;
-    incrementPromised(value: any): Promise<void>;
-    incrementPromised(subpath: string, value: any): Promise<void>;
-    _increment(segments: Segments, value: any, cb?: ErrorCallback): void;
+    increment(value?: number): number;
+    increment(subpath: string, value?: number, cb?: ErrorCallback): number;
+    incrementPromised(value?: number): Promise<number>;
+    incrementPromised(subpath: string, value?: number): Promise<number>;
+    _increment(segments: Segments, value: number, cb?: ErrorCallback): number;
 
-    push(value: any): void;
-    push(subpath: string, value: any, cb?: ErrorCallback): void;
-    pushPromised(value: any): Promise<void>;
-    pushPromised(subpath: string, value: any): Promise<void>;
-    _push(segments: Segments, value: any, cb?: ErrorCallback): void;
+    push(value: any): number;
+    push(subpath: string, value: any, cb?: ErrorCallback): number;
+    pushPromised(value: any): Promise<number>;
+    pushPromised(subpath: string, value: any): Promise<number>;
+    _push(segments: Segments, value: any, cb?: ErrorCallback): number;
 
     unshift(value: any): void;
     unshift(subpath: string, value: any, cb?: ErrorCallback): void;
@@ -73,27 +84,49 @@ declare module './Model' {
     unshiftPromised(subpath: string, value: any): Promise<void>;
     _unshift(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    insert(value: any, index: number): void;
+    insert(index: number, value: any): void;
     insert(subpath: string, index: number, value: any, cb?: ErrorCallback): void;
     insertPromised(value: any, index: number): Promise<void>;
     insertPromised(subpath: string, index: number, value: any): Promise<void>;
     _insert(segments: Segments, index: number, value: any, cb?: ErrorCallback): void;
 
-    pop(value: any): void;
-    pop(subpath: string, value: any, cb?: ErrorCallback): void;
+    /**
+     * Removes an item from the end of the array at this model's path or a
+     * relative subpath.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @returns the removed item
+     */
+    pop<V>(subpath: Path, cb?: Callback): V | undefined;
+    pop<V extends ArrayItemType<T>>(cb?: Callback): V | undefined;
     popPromised(value: any): Promise<void>;
     popPromised(subpath: string, value: any): Promise<void>;
     _pop(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    shift(subpath: string, cb?: ErrorCallback): void;
+    shift(subpath?: string, cb?: ErrorCallback): void;
     shiftPromised(subpath?: string): Promise<void>;
     _shift(segments: Segments, cb?: ErrorCallback): void;
 
-    remove(index: number, cb?: ErrorCallback): void;
-    remove(subpath: string, cb?: ErrorCallback): void;
-    remove(index: number, howMany: number, cb?: ErrorCallback): void;
-    remove(subpath: string, index: number, cb?: ErrorCallback): void;
-    remove(subpath: string, index: number, howMany: number, cb?: ErrorCallback): void;
+    /**
+     * Removes one or more items from the array at this model's path or a
+     * relative subpath.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @param index - 0-based index at which to start removing items
+     * @param howMany - Number of items to remove. Defaults to `1`.
+     * @returns array of the removed items
+     */
+    remove<V>(subpath: Path, index: number, howMany?: number, cb?: Callback): V[];
+    // Calling `remove(n)` with one argument on a model pointing to a
+    // non-array results in `N` being `never`, but it still compiles. Is
+    // there a way to disallow that?
+    remove<V extends ArrayItemType<T>>(index: number, howMany?: number, cb?: Callback): V[];
     removePromised(index: number): Promise<void>;
     removePromised(subpath: string): Promise<void>;
     removePromised(index: number, howMany: number): Promise<void>;
@@ -293,7 +326,7 @@ Model.prototype._create = function(segments, value, cb) {
     var event = new ChangeEvent(value, previous, model._pass);
     model._emitMutation(segments, event);
   }
-  this._mutate(segments, create, cb);
+  return this._mutate(segments, create, cb);
 };
 
 Model.prototype.createNull = function() {
@@ -329,7 +362,7 @@ Model.prototype._createNull = function(segments, value, cb) {
   segments = this._dereference(segments);
   var doc = this.getDoc(segments[0], segments[1]);
   if (doc && doc.get() != null) return;
-  this._create(segments, value, cb);
+  return this._create(segments, value, cb);
 };
 
 Model.prototype.add = function() {
@@ -403,12 +436,14 @@ Model.prototype.del = function() {
   var segments = this._splitPath(subpath);
   return this._del(segments, cb);
 };
+
 Model.prototype.delPromised = promisify(Model.prototype.del);
 
 Model.prototype._del = function(segments, cb) {
   segments = this._dereference(segments);
   return this._delNoDereference(segments, cb);
 };
+
 Model.prototype._delNoDereference = function(segments, cb) {
   var model = this;
   function del(doc, docSegments, fnCb) {
@@ -488,7 +523,7 @@ Model.prototype.push = function() {
   var segments = this._splitPath(subpath);
   return this._push(segments, value, cb);
 };
-Model.prototype.pushPromised = promisify(Model.prototype.push);
+Model.prototype.pushPromised = promisify<number>(Model.prototype.push);
 
 Model.prototype._push = function(segments, value, cb) {
   var forArrayMutator = true;
