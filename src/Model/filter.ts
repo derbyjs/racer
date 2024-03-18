@@ -45,7 +45,7 @@ declare module './Model' {
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
-      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+      fn?: (item: S, key: string, object: { [key: string]: S }) => boolean
     ): Filter<S>;
 
     removeAllFilters: (subpath: string) => void;
