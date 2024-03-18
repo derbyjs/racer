@@ -19,8 +19,8 @@ interface QueryCtor {
 
 declare module './Model' {
   interface Model {
-    query<T = {}>(collectionName: string, expression, options?: QueryOptions): Query;
-    sanitizeQuery(expression): Query;
+    query<T = {}>(collectionName: string, expression, options?: QueryOptions): Query<T>;
+    sanitizeQuery(expression: any): any;
 
     _getOrCreateQuery(collectionName: string, expression, options: QueryOptions, QueryConstructor: QueryCtor): Query;
     _initQueries(items: any[]): void;
@@ -552,7 +552,7 @@ export class Query<T = {}> {
     return this.model.ref(from, idsPath);
   };
 
-  refExtra(from, relPath) {
+  refExtra(from, relPath?) {
     var extraPath = this.extraSegments.join('.');
     if (relPath) extraPath += '.' + relPath;
     return this.model.ref(from, extraPath);
