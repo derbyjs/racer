@@ -1,6 +1,6 @@
 import { type Model } from './Model';
-import { type Segments } from './types';
 import { Collection } from './collections';
+import { Path } from '../types';
 
 export class Doc {
   collectionData: Model;
@@ -17,13 +17,13 @@ export class Doc {
     this.collectionData = model && model.data[collectionName];
   }
 
-  path(segments?: Segments) {
+  path(segments?: Path[]) {
     var path = this.collectionName + '.' + this.id;
     if (segments && segments.length) path += '.' + segments.join('.');
     return path;
   };
   
-  _errorMessage(description: string, segments: Segments, value: any) {
+  _errorMessage(description: string, segments: Path[], value: any) {
     return description + ' at ' + this.path(segments) + ': ' +
       JSON.stringify(value, null, 2);
   };
