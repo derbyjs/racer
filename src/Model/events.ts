@@ -553,7 +553,7 @@ function createMutationListenerLegacy(type, pattern, eventContext, cb) {
   return createMutationListener(pattern, eventContext, mutationListenerAdapter);
 }
 
-class ChangeEvent {
+export class ChangeEvent {
   declare type: string;
   declare _immediateType: string;
   value: any;
@@ -577,7 +577,7 @@ class ChangeEvent {
 ChangeEvent.prototype.type = 'change';
 ChangeEvent.prototype._immediateType = 'changeImmediate';
 
-class LoadEvent {
+export class LoadEvent {
   declare type: string;
   declare _immediateType: string;
   value: any;
@@ -606,7 +606,7 @@ class LoadEvent {
 LoadEvent.prototype.type = 'load';
 LoadEvent.prototype._immediateType = 'loadImmediate';
 
-class UnloadEvent {
+export class UnloadEvent {
   declare type: string;
   declare _immediateType: string;
   previous: any;
@@ -635,7 +635,7 @@ class UnloadEvent {
 UnloadEvent.prototype.type = 'unload';
 UnloadEvent.prototype._immediateType = 'unloadImmediate';
 
-class InsertEvent {
+export class InsertEvent {
   declare type: string;
   declare _immediateType: string;
   index: number;
@@ -659,7 +659,7 @@ class InsertEvent {
 InsertEvent.prototype.type = 'insert';
 InsertEvent.prototype._immediateType = 'insertImmediate';
 
-class RemoveEvent {
+export class RemoveEvent {
   declare type: string;
   declare _immediateType: string;
   index: number;
@@ -690,7 +690,7 @@ class RemoveEvent {
 RemoveEvent.prototype.type = 'remove';
 RemoveEvent.prototype._immediateType = 'removeImmediate';
 
-class MoveEvent {
+export class MoveEvent {
   declare type: string;
   declare _immediateType: string;
   from: any;

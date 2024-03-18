@@ -10,6 +10,11 @@ export type PathLike = Path | Model<any>;
 
 export type Primitive = boolean | number | string | null | undefined;
 
+/** If `T` is an array, produces the type of the array items. */
+export type ArrayItemType<T> = T extends Array<infer U> ? U : never;
+
+export type Callback = (error?: Error) => void;
+
 /**
  * Transforms a JSON-compatible type `T` such that it and any nested arrays
  * or basic objects are read-only.
