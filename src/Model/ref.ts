@@ -4,24 +4,73 @@ import { Model } from './Model';
 import { type Segments } from './types';
 import { type Filter } from './filter';
 import { type Query } from './Query';
+import { PathLike } from '../types';
 
-type Refable = string | number | Model | Query | Filter<unknown>;
+type Refable = string | number | Model<any> | Query | Filter<unknown>;
+
+export interface RefOptions {
+  updateIndices: boolean;
+}
 
 declare module './Model' {
   interface Model {
-    _refs: any;
-    _refLists: any;
+    /**
+     * Creates an array at `outputPath` that consists of references to all the
+     * objects at `collectionPath` that have ids matching the ids at `idsPath`.
+     * The array is automatically updated based on changes to the input paths.
+     *
+     * @param outputPath - Path at which to create the ref list. This must be
+     *   under a local collection, typically `'_page'` or a component model.
+     * @param collectionPath - Path to a Racer collection or a collection-like
+     *   object, where each id string key maps to an object value with matching
+     *   `id` property.
+     * @param idsPath - Path to an array of string ids
+     * @param options
+     * @param options.deleteRemoved - If true, then objects from the source
+     *   collection will be deleted if the corresponding item is removed from
+     *   the refList's output path
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     */
+    refList<S>(outputPath: PathLike, collectionPath: PathLike, idsPath: PathLike, options?: { deleteRemoved?: boolean }): ChildModel<S>;
+
     _canRefTo(value: Refable): boolean;
-    // _canRefTo(from: Segments, to: Segments, options: any): boolean;
-    ref<T>(to: Refable): ChildModel<T>;
-    ref<T>(from: string | number, to: Refable, options?: any): ChildModel<T>;
-    _ref<T>(from: Segments, to: Segments, options: any): void;
-    removeRef(subpath: string): void;
+    // _canRefTo(from: Segments, to: Segments, options: RefOptions): boolean;
+
+    /**
+     * Creates a reference at `path` pointing to another path `to`. Like a
+     * symlink, any reads/writes on `path` will work as if they were done on
+     * `path` directly.
+     *
+     * @param path - Location at which to create the reference. This must be
+     *   under a local collection, typically `'_page'` or a component model.
+     * @param to - Location that the reference points to
+     * @return a model scoped to `path`
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     */
+    ref<S>(to: PathLike): ChildModel<S>;
+    ref<S>(path: PathLike, to: PathLike, options?: RefOptions): ChildModel<S>;
+    _ref<T>(from: Segments, to: Segments, options?: RefOptions): void;
+
+    /**
+     * Removes a model reference.
+     *
+     * @param path - Location of the reference to remove
+     *
+     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     */
+    removeRef(path: PathLike): void;
     _removeRef(segments: Segments): void;
-    removeAllRefs(subpath: string): void;
+
+    removeAllRefs(subpath: PathLike): void;
     _removeAllRefs(segments: Segments): void;
+
     dereference(subpath: string): Segments;
     _dereference(segments: Segments, forArrayMutator: any, ignore: boolean): Segments;
+
+    _refs: any;
+    _refLists: any;
   }
 }
 
@@ -284,11 +333,11 @@ function noopDereference(segments) {
 }
 
 export class Ref {
-  fromSegments: string[];
-  toSegments: string[];
+  fromSegments: Segments;
+  toSegments: Segments;
   updateIndices: boolean;
 
-  constructor(fromSegments, toSegments, options) {
+  constructor(fromSegments: Segments, toSegments: Segments, options?: RefOptions) {
     this.fromSegments = fromSegments;
     this.toSegments = toSegments;
     this.updateIndices = options && options.updateIndices;
