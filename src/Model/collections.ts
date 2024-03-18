@@ -46,8 +46,11 @@ declare module './Model' {
      *
      * @param subpath
      */
-    get<S>(subpath: Path): ReadonlyDeep<S> | undefined;
     get(): ReadonlyDeep<T> | undefined;
+    get<S>(subpath?: Path): ReadonlyDeep<S> | undefined;
+
+    getArray(): ReadonlyArray<ReadonlyDeep<T>>;
+    getArray<S>(subPath?: Path): ReadonlyArray<ReadonlyDeep<S>>;
     
     getCollection(collectionName: string): Collection<JSONObject>;
     
@@ -101,6 +104,10 @@ Model.prototype.get = function<S>(subpath?: Path) {
   var segments = this._splitPath(subpath);
   return this._get(segments) as ReadonlyDeep<S>;
 };
+
+Model.prototype.getArray = function<S>(subpath?: Path) {
+  return this.get(subpath) || [];
+}
 
 Model.prototype._get = function(segments) {
   return util.lookup(segments, this.root.data);
