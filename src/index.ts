@@ -6,7 +6,7 @@ import { RacerBackend } from './Backend';
 import { ModelOptions, RootModel } from './Model';
 
 export { Query } from './Model/Query';
-export { Model, ChildModel, ModelData, type UUID, type Subscribable } from './Model';
+export { Model, ChildModel, ModelData, type UUID, type Subscribable, type DefualtType } from './Model';
 export { Context } from './Model/contexts';
 export { type ModelOnEventMap, type ModelEvent, ChangeEvent, InsertEvent, LoadEvent, MoveEvent, RemoveEvent, UnloadEvent } from './Model/events';
 export type { Callback, ReadonlyDeep, Path, PathLike, PathSegment, Primitive } from './types';

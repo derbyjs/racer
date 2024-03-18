@@ -3,9 +3,11 @@ import { type Context } from './contexts';
 import { RacerBackend } from '../Backend';
 import { type Connection } from './connection';
 import { type ModelData } from './collections';
-import { ShareDBOptions } from 'sharedb';
+import { Primitive } from '../types';
 
 export type UUID = string;
+
+export type DefualtType = {};
 
 declare module './Model' {
   interface DebugOptions {
@@ -24,9 +26,9 @@ declare module './Model' {
   type ErrorCallback = (err?: Error) => void;
 }
 
-type ModelInitFunction = (instance: Model, options: ModelOptions) => void;
+type ModelInitFunction = (instance: RootModel, options: ModelOptions) => void;
 
-export class Model<T = {}> {
+export class Model<T = DefualtType> {
   static INITS: ModelInitFunction[] = [];
 
   ChildModel = ChildModel;
@@ -68,8 +70,8 @@ export class RootModel extends Model<ModelData> {
   }
 }
 
-export class ChildModel<T = {}> extends Model<T> {
-  constructor(model: Model) {
+export class ChildModel<T = DefualtType> extends Model<T> {
+  constructor(model: Model<T>) {
     super();
     // Shared properties should be accessed via the root. This makes inheritance
     // cheap and easily extensible
