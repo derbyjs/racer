@@ -1,4 +1,5 @@
 var util = require('../util');
+import { Callback, Path, ReadonlyDeep } from '../types';
 import { Model } from './Model';
 import { type Segments } from './types';
 var arrayDiff = require('arraydiff');
@@ -10,28 +11,81 @@ var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
 
 declare module './Model' {
-  interface Model {
-    setDiff(value: any);
-    setDiff(subpath: string, value: any, cb?: (err: Error) => void): void;
-    setDiffPromised(value: any): Promise<void>;
-    setDiffPromised(subpath: string, value: any): Promise<void>;
-    _setDiff(segments: Segments, value: any, cb: (err: Error) => void): void;
-    setDiffDeep(value: any): void;
-    setDiffDeep(subpath: string, value: any, cb?: (err: Error) => void): void;
-    setDiffDeepPromised(value: any): Promise<void>;
-    setDiffDeepPromised(subpathj: string, valiue: any): Promise<void>;
-    _setDiffDeep(segments: Segments, value: any, cb?: (err: Error) => void): void;
-    setArrayDiff(value: any): void;
-    setArrayDiff(subpath: string, value: any, cb?: (err: Error) => void): void;
-    setArrayDiffPromised(value: any): Promise<void>;
-    setArrayDiffPromised(subpath: string, value: any): Promise<void>;
-    setArrayDiffDeep(value: any): void;
-    setArrayDiffDeep(subpath: string, value: any, cb?: (err: Error) => void): void;
-    setArrayDiffDeepPromised(value: any): Promise<void>;
-    setArrayDiffDeepPromised(subpath: string, value: any): Promise<void>;
-    _setArrayDiffDeep(segments: Segments, value: any, cb?: (err: Error) => void): void;
-    _setArrayDiff(segments: Segments, value: any, cb?: (err: Error) => void, equalFn?: any): void;
-    _applyArrayDiff(segments: Segments, diff: any, cb?: (err: Error) => void): void;
+  interface Model<T> {
+    /**
+     * Sets the value at this model's path or a relative subpath, if different
+     * from the current value based on a strict equality comparison (`===`).
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @param value
+     * @returns the value previously at the path
+     */
+    setDiff<S>(subpath: Path, value: S, cb?: Callback): ReadonlyDeep<S> | undefined;
+    setDiff(value: T): ReadonlyDeep<T> | undefined;
+    setDiffPromised<S>(subpath: string, value: S): Promise<S>;
+    _setDiff(segments: Segments, value: any, cb?: (err: Error) => void): void;
+
+    /**
+     * Sets the value at this model's path or a relative subpath, if different
+     * from the current value based on a recursive deep equal comparison.
+     *
+     * This attempts to issue fine-grained ops on subpaths if possible.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @param value
+     * @returns the value previously at the path
+     */
+    setDiffDeep<S>(subpath: Path, value: S, cb?: Callback): ReadonlyDeep<S> | undefined;
+    setDiffDeep(value: T): ReadonlyDeep<T> | undefined;
+    setDiffDeepPromised<S>(subpath: Path, value: S): Promise<void>;
+    _setDiffDeep<S>(segments: Segments, value: any, cb?: (err: Error) => void): void;
+
+    /**
+     * Sets the array value at this model's path or a relative subpath, based on
+     * a strict equality comparison (`===`) between array items.
+     *
+     * This only issues array insert, remove, and move operations.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @param value
+     * @returns the value previously at the path
+     */
+    setArrayDiff<S extends any[]>(subpath: Path, value: S, cb?: Callback): S;
+    setArrayDiff<S extends T & any[]>(value: S): S;
+    setArrayDiffPromised<S extends any[]>(subpath: Path, value: S): Promise<void>;
+    _setArrayDiff<S extends any[]>(segments: Segments, value: any, cb?: (err: Error) => void, equalFn?: any): void;
+
+    /**
+     * Sets the array value at this model's path or a relative subpath, based on
+     * a deep equality comparison between array items.
+     *
+     * This only issues array insert, remove, and move operations. Unlike
+     * `setDiffDeep`, this will never issue fine-grained ops inside of array
+     * items.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath
+     * @param value
+     * @returns the value previously at the path
+     */
+    setArrayDiffDeep<S extends any[]>(subpath: Path, value: S, cb?: Callback): S;
+    setArrayDiffDeep<S extends T & any[]>(value: S): S;
+    setArrayDiffDeepPromised<S extends any[]>(subpath: Path, value: S): Promise<void>;
+    _setArrayDiffDeep<S extends T & any[]>(segments: Segments, value: any, cb?: (err: Error) => void): void;
+
+    _setArrayDiff<S extends T & any[]>(segments: Segments, value: any, cb?: (err: Error) => void, equalFn?: any): S;
+    _applyArrayDiff<S extends T & any[]>(segments: Segments, diff: any, cb?: (err: Error) => void): S;
   }
 }
 
