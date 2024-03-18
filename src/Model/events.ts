@@ -26,9 +26,9 @@ export interface ModelOnEventMap {
 }
 
 declare module './Model' {
-  interface Model {
+  interface Model<T> {
     addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
-    eventContext(id: string): Model;
+    eventContext(id: string): ChildModel<T>;
     
     /**
      * Listen to Racer events matching a certain path or path pattern.
@@ -63,20 +63,32 @@ declare module './Model' {
       pathPattern: PathLike,
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
-    ): Function;
+    ): () => void;
     on<T extends keyof ModelOnEventMap>(
       eventType: T,
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
-    ): Function;
+    ): () => void;
+
+    // TODO review this calling w/o options if options useEventObjects should go away
+    // without any "legacy" events use case
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      pathPattern: PathLike,
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): () => void;
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+    ): () => void;
     on(
       eventType: 'all',
       listener: (segments: string[], event: ModelOnEventMap[keyof ModelOnEventMap]) => void
-    ): Function;
+    ): () => void;
     on(
       eventType: 'error',
       listener: (error: Error) => void
-    ): Function;
+    ): () => void;
     
 
     /**

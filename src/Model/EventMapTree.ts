@@ -85,7 +85,7 @@ export class EventMapTree {
       if (next) {
         node = next;
       } else {
-        node = new EventMapTree(node, segment);
+        node = new EventMapTree(node, segment.toString());
         children.set(segment, node);
       }
     }
