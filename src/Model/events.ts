@@ -25,6 +25,29 @@ export interface ModelOnEventMap {
   all: ModelEvent;
 }
 
+export interface ModelOnEventLegacyListers {
+  change: (captures: string, currentValue, prevValue, passed) => void;
+  insert: (captures: string, howMany: number, items, passed) => void;
+  remove: (captures: string, howMany: number, items, passed) => void;
+  move: (captures: string, fromIndex: number, toIndex: number, howMany: number, passed) => void;
+  load: (capture: string, item) => void;
+  unload: (captures: string, item) => void;
+  all: (captures: string, eventName: string, ...args) => void;
+}
+
+/**
+ * Racer emits captures like
+ * 'foo.bar.1'
+ * Derby emits captures like
+ * ['foo', 'bar', '1']
+ * */
+type EventCaptures = string | string[];
+/**
+ * With `useEventObjects: true` captures are emmitted as
+ * ['foo.bar.1']
+ *  */
+type EventObjectCaptures = string[];
+
 declare module './Model' {
   interface Model<T> {
     addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
@@ -62,28 +85,28 @@ declare module './Model' {
       eventType: T,
       pathPattern: PathLike,
       options: { useEventObjects: true },
-      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+      listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
     on<T extends keyof ModelOnEventMap>(
       eventType: T,
       options: { useEventObjects: true },
-      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+      listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
 
     // TODO review this calling w/o options if options useEventObjects should go away
     // without any "legacy" events use case
-    on<T extends keyof ModelOnEventMap>(
+    on<T extends keyof ModelOnEventLegacyListers>(
       eventType: T,
       pathPattern: PathLike,
-      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+      listener: ModelOnEventLegacyListers[T]
     ): () => void;
-    on<T extends keyof ModelOnEventMap>(
+    on<T extends keyof ModelOnEventLegacyListers>(
       eventType: T,
-      listener: (event: ModelOnEventMap[T], captures: Array<string | string[]>) => void
+      listener: ModelOnEventLegacyListers[T]
     ): () => void;
     on(
       eventType: 'all',
-      listener: (segments: string[], event: ModelOnEventMap[keyof ModelOnEventMap]) => void
+      listener: (captures: EventCaptures, event: ModelOnEventMap[keyof ModelOnEventMap]) => void
     ): () => void;
     on(
       eventType: 'error',
