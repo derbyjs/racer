@@ -7,7 +7,7 @@ import { Primitive } from '../types';
 
 export type UUID = string;
 
-export type DefualtType = {};
+export type DefualtType = unknown;
 
 declare module './Model' {
   interface DebugOptions {
