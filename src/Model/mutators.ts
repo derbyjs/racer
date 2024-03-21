@@ -14,17 +14,17 @@ var promisify = util.promisify;
 declare module './Model' {
   interface Model<T> {
     _mutate(segments, fn, cb): void;
-    set<S = void>(value: any): S;
-    set<S = void>(subpath: string, value: any, cb?: ErrorCallback): S;
-    setPromised<S = void>(value: any): Promise<S>;
-    setPromised<S = void>(subpath: string, value: any): Promise<S>;
-    _set<S = void>(segments: Segments, value: any, cb?: ErrorCallback): S;
+    set(value: T): T | undefined;
+    set<S>(subpath: string, value: any, cb?: ErrorCallback): S | undefined;
+    setPromised(value: T): Promise<T | undefined>;
+    setPromised<S>(subpath: string, value: any): Promise<S | undefined>;
+    _set<S>(segments: Segments, value: any, cb?: ErrorCallback): S | undefined;
 
-    setNull<S = void>(value: any): S;
-    setNull<S = void>(subpath: string, value: any, cb?: ErrorCallback): S;
-    setNullPromised<S = void>(value: any): Promise<S>;
-    setNullPromised<S = void>(subpath: string, value: any): Promise<S>;
-    _setNull<S = void>(segments: Segments, value: any, cb?: ErrorCallback): S;
+    setNull(value: T): T | undefined;
+    setNull<S>(subpath: string, value: S, cb?: ErrorCallback): S | undefined;
+    setNullPromised(value: T): Promise<T | undefined>;
+    setNullPromised<S>(subpath: string, value: S): Promise<S | undefined>;
+    _setNull<S>(segments: Segments, value: S, cb?: ErrorCallback): S | undefined;
 
     setEach(value: any): void;
     setEach(subpath: string, value: any, cb?: ErrorCallback): void;
@@ -106,9 +106,9 @@ declare module './Model' {
     popPromised(subpath: string, value: any): Promise<void>;
     _pop(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    shift(subpath?: string, cb?: ErrorCallback): void;
-    shiftPromised(subpath?: string): Promise<void>;
-    _shift(segments: Segments, cb?: ErrorCallback): void;
+    shift<S>(subpath?: string, cb?: ErrorCallback): S;
+    shiftPromised<S>(subpath?: string): Promise<S>;
+    _shift<S>(segments: Segments, cb?: ErrorCallback): S;
 
     /**
      * Removes one or more items from the array at this model's path or a

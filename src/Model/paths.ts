@@ -1,18 +1,19 @@
 import { ChildModel, Model } from './Model';
 import type { Path, PathLike } from '../types';
+import { ModelData } from './collections';
 
 exports.mixin = {};
 
 declare module './Model' {
   interface Model<T> {
     at(): ChildModel<T>;
-    at<S = {}>(subpath: Path): ChildModel<S>;
+    at<S = unknown>(subpath: Path): ChildModel<S>;
     isPath(subpath: string): boolean;
     leaf(path: string): string;
     parent(levels?: number): Model;
     path(subpath?: PathLike): string;
-    scope(): ChildModel<T>;
-    scope<S = {}>(subpath: Path): ChildModel<S>;
+    scope(): ChildModel<ModelData>;
+    scope<S = unknown>(subpath: Path): ChildModel<S>;
     
     _splitPath(subpath: string): string[];
   }
