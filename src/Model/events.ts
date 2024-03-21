@@ -143,7 +143,7 @@ declare module './Model' {
      * @param object - An object whose properties will each be set on the passed argument
      * @returns back a model scoped to the same path
      */
-    pass(object: object, invert?: boolean): Model;
+    pass(object: object, invert?: boolean): Model<T>;
 
     removeAllListeners(type: string, subpath: string): void;
     removeContextListeners(): void;
@@ -151,7 +151,7 @@ declare module './Model' {
     removeListener(eventType: keyof ModelOnEventMap, listener: Function): void;
 
     setMaxListeners(limit: number): void;
-    silent(value?: boolean): Model;
+    silent(value?: boolean): Model<T>;
     wrapCallback(cb?: ErrorCallback): ErrorCallback;
 
     __on: typeof EventEmitter.prototype.on;
