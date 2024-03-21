@@ -515,7 +515,7 @@ export class Query<T = {}> {
     return results;
   };
 
-  get() {
+  get(): Array<T> {
     var results = [];
     var data = this.model._get(this.segments);
     if (!data) {
@@ -534,11 +534,11 @@ export class Query<T = {}> {
     return results;
   };
 
-  getIds() {
+  getIds(): string[] {
     return this.model._get(this.idsSegments) || [];
   };
 
-  getExtra<T = {}>() {
+  getExtra<T = {}>(): T {
     return this.model._get(this.extraSegments) as T;
   };
 
@@ -607,6 +607,7 @@ export class Query<T = {}> {
     return serialized;
   };
 }
+
 function queryHash(contextId, collectionName, expression, options) {
   var args = [contextId, collectionName, expression, options];
   return JSON.stringify(args).replace(/\./g, '|');
