@@ -2,14 +2,14 @@ var expect = require('../util').expect;
 var util = require('../../lib/util');
 
 describe('util', function() {
-  describe('util.mergeInto', function() {
-    it('merges empty objects', function() {
+  describe('util.mergeInto', () => {
+    it('merges empty objects', () => {
       var a = {};
       var b = {};
       expect(util.mergeInto(a, b)).to.eql({});
     });
 
-    it('merges an empty object with a populated object', function() {
+    it('merges an empty object with a populated object', () => {
       var fn = function(x) {
         return x++;
       };
@@ -18,7 +18,7 @@ describe('util', function() {
       expect(util.mergeInto(a, b)).to.eql({x: 's', y: [1, 3], fn: fn});
     });
 
-    it('merges a populated object with a populated object', function() {
+    it('merges a populated object with a populated object', () => {
       var fn = function(x) {
         return x++;
       };
@@ -32,10 +32,10 @@ describe('util', function() {
     });
   });
 
-  describe('promisify', function() {
-    it('wrapped functions return promise', async function() {
+  describe('promisify', () => {
+    it('wrapped functions return promise', async () => {
       var targetFn = function(num, cb) {
-        setImmediate(function() {
+        setImmediate(() => {
           cb(undefined, num);
         });
       };
@@ -46,9 +46,9 @@ describe('util', function() {
       expect(result).to.equal(3);
     });
 
-    it('wrapped functions throw errors passed to callback', async function() {
+    it('wrapped functions throw errors passed to callback', async () => {
       var targetFn = function(num, cb) {
-        setImmediate(function() {
+        setImmediate(() => {
           cb(new Error(`Error ${num}`));
         });
       };
@@ -61,7 +61,7 @@ describe('util', function() {
       }
     });
 
-    it('wrapped functions throw on thrown error', async function() {
+    it('wrapped functions throw on thrown error', async () => {
       var targetFn = function(num) {
         throw new Error(`Error ${num}`);
       };
@@ -72,6 +72,27 @@ describe('util', function() {
       } catch (error) {
         expect(error).to.have.property('message', 'Error 3');
       }
+    });
+  });
+
+  describe('castSegments', () => {
+    it('passes non-numeric strings as-is', () => {
+      const segments = ['foo', 'bar'];
+      const actual = util.castSegments(segments);
+      expect(actual).to.eql(['foo', 'bar']);
+      expect(actual).to.not.equal(segments); // args not mutated
+    });
+
+    it('ensures numeric path segments are returned as numbers', () => {
+      const segments = ['foo', '3', 3];
+      const actual = util.castSegments(segments);
+      expect(actual).to.eql(['foo', 3, 3]);
+      expect(actual).to.not.equal(segments); // args not mutated
+    });
+
+    it('handles plain strings', () => {
+      expect(util.castSegments('foo.bar')).to.eql('foo.bar');
+      expect(util.castSegments('6')).to.eql(6);
     });
   });
 });
