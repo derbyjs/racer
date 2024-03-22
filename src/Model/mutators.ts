@@ -14,37 +14,37 @@ var promisify = util.promisify;
 declare module './Model' {
   interface Model<T> {
     _mutate(segments, fn, cb): void;
-    set(value: T): T | undefined;
+    set(value: T, cb?: ErrorCallback): T | undefined;
     set<S>(subpath: string, value: any, cb?: ErrorCallback): S | undefined;
     setPromised(value: T): Promise<T | undefined>;
     setPromised<S>(subpath: string, value: any): Promise<S | undefined>;
     _set<S>(segments: Segments, value: any, cb?: ErrorCallback): S | undefined;
 
-    setNull(value: T): T | undefined;
+    setNull(value: T, cb?: ErrorCallback): T | undefined;
     setNull<S>(subpath: string, value: S, cb?: ErrorCallback): S | undefined;
     setNullPromised(value: T): Promise<T | undefined>;
     setNullPromised<S>(subpath: string, value: S): Promise<S | undefined>;
     _setNull<S>(segments: Segments, value: S, cb?: ErrorCallback): S | undefined;
 
-    setEach(value: any): void;
+    setEach(value: any, cb?: ErrorCallback): void;
     setEach(subpath: string, value: any, cb?: ErrorCallback): void;
     setEachPromised(value: any): Promise<void>;
     setEachPromised(subpath: string, value: any): Promise<void>;
     _setEach(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    create(value: any): void;
+    create(value: any, cb?: ErrorCallback): void;
     create(subpath: string, value: any, cb?: ErrorCallback): void;
     createPromised(value: any): Promise<void>;
     createPromised(subpath: string, value: any): Promise<void>;
     _create(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    createNull(value: any): void;
+    createNull(value: any, cb?: ErrorCallback): void;
     createNull(subpath: string, value: any, cb?: ErrorCallback): void;
     createNullPromised(value: any): Promise<void>;
     createNullPromised(subpath: string, value: any): Promise<void>;
     _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    add(value: any): string;
+    add(value: any, cb?: ErrorCallback): string;
     add(subpath: string, value: any, cb?: ErrorCallback): string;
     addPromised(value: any): Promise<string>;
     addPromised(subpath: string, value: any): Promise<string>;
