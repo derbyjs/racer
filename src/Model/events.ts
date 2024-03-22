@@ -589,8 +589,8 @@ function createMutationListenerLegacy(type, pattern, eventContext, cb) {
 }
 
 export class ChangeEvent {
-  readonly type = 'change';
-  readonly _immediateType = 'changeImmediate';
+  declare type: 'change';
+  declare _immediateType: 'changeImmediate';
   value: any;
   previous: any;
   passed: any;
@@ -609,10 +609,12 @@ export class ChangeEvent {
     return [this.value, this.previous, this.passed];
   };
 }
+ChangeEvent.prototype.type = 'change';
+ChangeEvent.prototype._immediateType = 'changeImmediate';
 
 export class LoadEvent {
-  readonly type = 'load';
-  readonly _immediateType = 'loadImmediate';
+  declare type: 'load';
+  declare _immediateType: 'loadImmediate';
   value: any;
   document: any;
   passed: any;
@@ -636,10 +638,12 @@ export class LoadEvent {
     return [this.value, this.passed];
   };
 }
+LoadEvent.prototype.type = 'load';
+LoadEvent.prototype._immediateType = 'loadImmediate';
 
 export class UnloadEvent {
-  readonly type = 'unload';
-  readonly _immediateType = 'unloadImmediate';
+  declare type: 'unload';
+  declare _immediateType: 'unloadImmediate';
   previous: any;
   previousDocument: any;
   passed: any;
@@ -663,10 +667,12 @@ export class UnloadEvent {
     return [this.previous, this.passed];
   };
 }
+UnloadEvent.prototype.type = 'unload';
+UnloadEvent.prototype._immediateType = 'unloadImmediate';
 
 export class InsertEvent {
-  readonly type = 'insert';
-  readonly _immediateType = 'insertImmediate';
+  declare type: 'insert';
+  declare _immediateType: 'insertImmediate';
   index: number;
   values: any;
   passed: any;
@@ -685,10 +691,12 @@ export class InsertEvent {
     return [this.index, this.values, this.passed];
   };
 }
+InsertEvent.prototype.type = 'insert';
+InsertEvent.prototype._immediateType = 'insertImmediate';
 
 export class RemoveEvent {
-  readonly type = 'remove';
-  readonly _immediateType = 'removeImmediate';
+  declare type: 'remove';
+  declare _immediateType: 'removeImmediate';
   index: number;
   passed: any;
   removed: any;
@@ -714,10 +722,12 @@ export class RemoveEvent {
     return [this.index, this.values, this.passed];
   };
 }
+RemoveEvent.prototype.type = 'remove';
+RemoveEvent.prototype._immediateType = 'removeImmediate';
 
 export class MoveEvent {
-  readonly type = 'move';
-  readonly _immediateType = 'moveImmediate';
+  declare type: 'move';
+  declare _immediateType: 'moveImmediate';
   from: any;
   howMany: number;
   passed: any;
@@ -738,6 +748,8 @@ export class MoveEvent {
     return [this.from, this.to, this.howMany, this.passed];
   };
 }
+MoveEvent.prototype.type = 'move';
+MoveEvent.prototype._immediateType = 'moveImmediate';
 
 // DEPRECATED: Normalize pattern ending in '**' to '.**', since these are
 // treated equivalently. The '.**' form is preferred, and it should be enforced
