@@ -8,14 +8,14 @@ declare module './Model' {
   interface Model<T> {
     at(): ChildModel<T>;
     at<S = unknown>(subpath: Path): ChildModel<S>;
-    isPath(subpath: string): boolean;
+    isPath(subpath: Path): boolean;
     leaf(path: string): string;
     parent(levels?: number): Model;
     path(subpath?: PathLike): string;
     scope(): ChildModel<ModelData>;
     scope<S = unknown>(subpath: Path): ChildModel<S>;
     
-    _splitPath(subpath: string): string[];
+    _splitPath(subpath: Path): string[];
   }
 }
 

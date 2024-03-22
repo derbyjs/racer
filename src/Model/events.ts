@@ -5,7 +5,7 @@ import { EventListenerTree } from './EventListenerTree';
 import { type Segments } from './types';
 import { Model } from './Model';
 import { mergeInto } from '../util';
-import { PathLike } from '../types';
+import type { Path, PathLike } from '../types';
 
 export type ModelEvent =
   | ChangeEvent
@@ -145,7 +145,7 @@ declare module './Model' {
      */
     pass(object: object, invert?: boolean): Model<T>;
 
-    removeAllListeners(type: string, subpath: string): void;
+    removeAllListeners(type: string, subpath: Path): void;
     removeContextListeners(): void;
     
     removeListener(eventType: keyof ModelOnEventMap, listener: Function): void;

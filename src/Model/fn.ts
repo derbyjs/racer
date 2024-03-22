@@ -3,7 +3,7 @@ import { Model } from './Model';
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import * as defaultFns from './defaultFns';
-import { PathLike, ReadonlyDeep } from '../types';
+import type { Path, PathLike, ReadonlyDeep } from '../types';
 var util = require('../util');
 
 class NamedFns { }
@@ -134,8 +134,8 @@ declare module './Model' {
       fn: ModelFn<Ins, Out> | string
     ): Out;
     
-    stop(subpath: string): void;
-    stopAll(subpath: string): void;
+    stop(subpath: Path): void;
+    stopAll(subpath: Path): void;
 
     _fns: Fns;
     _namedFns: NamedFns;

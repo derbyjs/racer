@@ -4,7 +4,7 @@ import { Model } from './Model';
 import { type Segments } from './types';
 import { type Filter } from './filter';
 import { type Query } from './Query';
-import { PathLike } from '../types';
+import type { Path, PathLike } from '../types';
 
 type Refable = string | number | Model<any> | Query | Filter<unknown>;
 
@@ -66,7 +66,7 @@ declare module './Model' {
     removeAllRefs(subpath: PathLike): void;
     _removeAllRefs(segments: Segments): void;
 
-    dereference(subpath: string): Segments;
+    dereference(subpath: Path): Segments;
     _dereference(segments: Segments, forArrayMutator: any, ignore: boolean): Segments;
 
     _refs: any;

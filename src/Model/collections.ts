@@ -31,7 +31,7 @@ declare module './Model' {
     data: ModelData;
   }
   interface Model<T> {
-    destroy(subpath?: string): void;
+    destroy(subpath?: Path): void;
 
     /**
      * Gets the value located at this model's path or a relative subpath.

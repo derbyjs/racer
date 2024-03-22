@@ -15,39 +15,39 @@ declare module './Model' {
   interface Model<T> {
     _mutate(segments, fn, cb): void;
     set(value: T, cb?: ErrorCallback): T | undefined;
-    set<S>(subpath: string, value: any, cb?: ErrorCallback): S | undefined;
+    set<S>(subpath: Path, value: any, cb?: ErrorCallback): S | undefined;
     setPromised(value: T): Promise<T | undefined>;
-    setPromised<S>(subpath: string, value: any): Promise<S | undefined>;
+    setPromised<S>(subpath: Path, value: any): Promise<S | undefined>;
     _set<S>(segments: Segments, value: any, cb?: ErrorCallback): S | undefined;
 
     setNull(value: T, cb?: ErrorCallback): T | undefined;
-    setNull<S>(subpath: string, value: S, cb?: ErrorCallback): S | undefined;
+    setNull<S>(subpath: Path, value: S, cb?: ErrorCallback): S | undefined;
     setNullPromised(value: T): Promise<T | undefined>;
-    setNullPromised<S>(subpath: string, value: S): Promise<S | undefined>;
+    setNullPromised<S>(subpath: Path, value: S): Promise<S | undefined>;
     _setNull<S>(segments: Segments, value: S, cb?: ErrorCallback): S | undefined;
 
     setEach(value: any, cb?: ErrorCallback): void;
-    setEach(subpath: string, value: any, cb?: ErrorCallback): void;
+    setEach(subpath: Path, value: any, cb?: ErrorCallback): void;
     setEachPromised(value: any): Promise<void>;
-    setEachPromised(subpath: string, value: any): Promise<void>;
+    setEachPromised(subpath: Path, value: any): Promise<void>;
     _setEach(segments: Segments, value: any, cb?: ErrorCallback): void;
 
     create(value: any, cb?: ErrorCallback): void;
-    create(subpath: string, value: any, cb?: ErrorCallback): void;
+    create(subpath: Path, value: any, cb?: ErrorCallback): void;
     createPromised(value: any): Promise<void>;
-    createPromised(subpath: string, value: any): Promise<void>;
+    createPromised(subpath: Path, value: any): Promise<void>;
     _create(segments: Segments, value: any, cb?: ErrorCallback): void;
 
     createNull(value: any, cb?: ErrorCallback): void;
-    createNull(subpath: string, value: any, cb?: ErrorCallback): void;
+    createNull(subpath: Path, value: any, cb?: ErrorCallback): void;
     createNullPromised(value: any): Promise<void>;
-    createNullPromised(subpath: string, value: any): Promise<void>;
+    createNullPromised(subpath: Path, value: any): Promise<void>;
     _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
 
     add(value: any, cb?: ErrorCallback): string;
-    add(subpath: string, value: any, cb?: ErrorCallback): string;
+    add(subpath: Path, value: any, cb?: ErrorCallback): string;
     addPromised(value: any): Promise<string>;
-    addPromised(subpath: string, value: any): Promise<string>;
+    addPromised(subpath: Path, value: any): Promise<string>;
     _add(segments: Segments, value: any, cb?: ErrorCallback): string;
 
     /**
@@ -61,33 +61,33 @@ declare module './Model' {
      */
     del<S>(subpath: Path, cb?: Callback): S | undefined;
     del<T>(cb?: Callback): T | undefined;
-    delPromised<S>(subpath: string): Promise<S>;
+    delPromised<S>(subpath: Path): Promise<S>;
     _del<S>(segments: Segments, cb?: ErrorCallback): S;
 
     _delNoDereference(segments: Segments, cb?: ErrorCallback): void;
 
     increment(value?: number): number;
-    increment(subpath: string, value?: number, cb?: ErrorCallback): number;
+    increment(subpath: Path, value?: number, cb?: ErrorCallback): number;
     incrementPromised(value?: number): Promise<number>;
-    incrementPromised(subpath: string, value?: number): Promise<number>;
+    incrementPromised(subpath: Path, value?: number): Promise<number>;
     _increment(segments: Segments, value: number, cb?: ErrorCallback): number;
 
     push(value: any): number;
-    push(subpath: string, value: any, cb?: ErrorCallback): number;
+    push(subpath: Path, value: any, cb?: ErrorCallback): number;
     pushPromised(value: any): Promise<number>;
-    pushPromised(subpath: string, value: any): Promise<number>;
+    pushPromised(subpath: Path, value: any): Promise<number>;
     _push(segments: Segments, value: any, cb?: ErrorCallback): number;
 
     unshift(value: any): void;
-    unshift(subpath: string, value: any, cb?: ErrorCallback): void;
+    unshift(subpath: Path, value: any, cb?: ErrorCallback): void;
     unshiftPromised(value: any): Promise<void>;
-    unshiftPromised(subpath: string, value: any): Promise<void>;
+    unshiftPromised(subpath: Path, value: any): Promise<void>;
     _unshift(segments: Segments, value: any, cb?: ErrorCallback): void;
 
     insert(index: number, value: any): void;
-    insert(subpath: string, index: number, value: any, cb?: ErrorCallback): void;
+    insert(subpath: Path, index: number, value: any, cb?: ErrorCallback): void;
     insertPromised(value: any, index: number): Promise<void>;
-    insertPromised(subpath: string, index: number, value: any): Promise<void>;
+    insertPromised(subpath: Path, index: number, value: any): Promise<void>;
     _insert(segments: Segments, index: number, value: any, cb?: ErrorCallback): void;
 
     /**
@@ -103,11 +103,11 @@ declare module './Model' {
     pop<V>(subpath: Path, cb?: Callback): V | undefined;
     pop<V extends ArrayItemType<T>>(cb?: Callback): V | undefined;
     popPromised(value: any): Promise<void>;
-    popPromised(subpath: string, value: any): Promise<void>;
+    popPromised(subpath: Path, value: any): Promise<void>;
     _pop(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    shift<S>(subpath?: string, cb?: ErrorCallback): S;
-    shiftPromised<S>(subpath?: string): Promise<S>;
+    shift<S>(subpath?: Path, cb?: ErrorCallback): S;
+    shiftPromised<S>(subpath?: Path): Promise<S>;
     _shift<S>(segments: Segments, cb?: ErrorCallback): S;
 
     /**
@@ -128,40 +128,40 @@ declare module './Model' {
     // there a way to disallow that?
     remove<V extends ArrayItemType<T>>(index: number, howMany?: number, cb?: Callback): V[];
     removePromised(index: number): Promise<void>;
-    removePromised(subpath: string): Promise<void>;
+    removePromised(subpath: Path): Promise<void>;
     removePromised(index: number, howMany: number): Promise<void>;
-    removePromised(subpath: string, index: number): Promise<void>;
-    removePromised(subpath: string, index: number, howMany: number): void;
+    removePromised(subpath: Path, index: number): Promise<void>;
+    removePromised(subpath: Path, index: number, howMany: number): void;
     _remove(segments: Segments, index: number, howMany: number, cb?: ErrorCallback): void;
 
     move(from: number, to: number, cb?: ErrorCallback): void;
     move(from: number, to: number, howMany: number, cb?: ErrorCallback): void;
-    move(subpath: string, from: number, to: number, cb?: ErrorCallback): void;
-    move(subpath: string, from: number, to: number, howmany: number, cb?: ErrorCallback): void;
+    move(subpath: Path, from: number, to: number, cb?: ErrorCallback): void;
+    move(subpath: Path, from: number, to: number, howmany: number, cb?: ErrorCallback): void;
     movePromised(from: number, to: number): Promise<void>;
     movePromised(from: number, to: number, howMany: number): Promise<void>;
-    movePromised(subpath: string, from: number, to: number): Promise<void>;
-    movePromised(subpath: string, from: number, to: number, howmany: number): Promise<void>;
+    movePromised(subpath: Path, from: number, to: number): Promise<void>;
+    movePromised(subpath: Path, from: number, to: number, howmany: number): Promise<void>;
     _move(segments: Segments, from: number, to: number, owMany: number, cb?: ErrorCallback): void;
 
     stringInsert(index: number, text: string, cb?: ErrorCallback): void;
-    stringInsert(subpath: string, index: number, text: string, cb?: ErrorCallback): void;
+    stringInsert(subpath: Path, index: number, text: string, cb?: ErrorCallback): void;
     stringInsertPromised(index: number, text: string): Promise<void>;
-    stringInsertPromised(subpath: string, index: number, text: string): Promise<void>;
+    stringInsertPromised(subpath: Path, index: number, text: string): Promise<void>;
     _stringInsert(segments: Segments, index: number,text: string, cb?: ErrorCallback): void;
 
     stringRemove(index: number, howMany: number, cb?: ErrorCallback): void;
-    stringRemove(subpath: string, index: number, cb?: ErrorCallback): void;
-    stringRemove(subpath: string, index: number, howMany: number, cb?: ErrorCallback): void;
+    stringRemove(subpath: Path, index: number, cb?: ErrorCallback): void;
+    stringRemove(subpath: Path, index: number, howMany: number, cb?: ErrorCallback): void;
     stringRemovePromised(index: number, howMany: number): Promise<void>;
-    stringRemovePromised(subpath: string, index: number): Promise<void>;
-    stringRemovePromised(subpath: string, index: number, howMany: number): Promise<void>;
+    stringRemovePromised(subpath: Path, index: number): Promise<void>;
+    stringRemovePromised(subpath: Path, index: number, howMany: number): Promise<void>;
     _stringRemove(segments: Segments, index: number, howMany: number, cb?: ErrorCallback): void;
 
     subtypeSubmit(subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
-    subtypeSubmit(subpath: string, subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
+    subtypeSubmit(subpath: Path, subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
     subtypeSubmitPromised(subtype: any, subtypeOp: any): Promise<void>;
-    subtypeSubmitPromised(subpath: string, subtype: any, subtypeOp: any): Promise<void>;
+    subtypeSubmitPromised(subpath: Path, subtype: any, subtypeOp: any): Promise<void>;
     _subtypeSubmit(segments: Segments, subtype: any, subtypeOp: any, cb?: ErrorCallback): void;
   }
 }

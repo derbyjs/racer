@@ -2,7 +2,7 @@ var util = require('../util');
 import { Model } from './Model';
 import { type Segments } from './types';
 import * as defaultFns from './defaultFns';
-import { PathLike } from '../types';
+import type { Path, PathLike } from '../types';
 
 interface PaginationOptions {
   skip: number;
@@ -48,7 +48,7 @@ declare module './Model' {
       fn?: (item: S, key: string, object: { [key: string]: S }) => boolean
     ): Filter<S>;
 
-    removeAllFilters: (subpath: string) => void;
+    removeAllFilters: (subpath: Path) => void;
 
     /**
      * Creates a live-updating list from items in an object, which results in
