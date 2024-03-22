@@ -7,19 +7,19 @@ exports.mixin = {};
 declare module './Model' {
   interface Model<T> {
     at(): ChildModel<T>;
-    at<S = unknown>(subpath: Path): ChildModel<S>;
-    isPath(subpath: Path): boolean;
+    at<S = unknown>(subpath: PathLike): ChildModel<S>;
+    isPath(subpath: PathLike): boolean;
     leaf(path: string): string;
     parent(levels?: number): Model;
     path(subpath?: PathLike): string;
     scope(): ChildModel<ModelData>;
     scope<S = unknown>(subpath: Path): ChildModel<S>;
     
-    _splitPath(subpath: Path): string[];
+    _splitPath(subpath: PathLike): string[];
   }
 }
 
-Model.prototype._splitPath = function(subpath?: Path): string[] {
+Model.prototype._splitPath = function(subpath?: PathLike): string[] {
   var path = this.path(subpath);
   return (path && path.split('.')) || [];
 };
@@ -32,20 +32,19 @@ Model.prototype._splitPath = function(subpath?: Path): string[] {
  * @return {String} absolute path
  * @api public
  */
-Model.prototype.path = function(subpath?: Path): string {
+Model.prototype.path = function(subpath?: PathLike): string {
   if (subpath == null || subpath === '') return (this._at) ? this._at : '';
   if (typeof subpath === 'string' || typeof subpath === 'number') {
     return (this._at) ? this._at + '.' + subpath : '' + subpath;
   }
-  // @ts-ignore
   if (typeof subpath.path === 'function') return subpath.path();
 };
 
-Model.prototype.isPath = function(subpath?: Path): boolean {
+Model.prototype.isPath = function(subpath?: PathLike): boolean {
   return this.path(subpath) != null;
 };
 
-Model.prototype.scope = function<S>(path?: Path): ChildModel<S> {
+Model.prototype.scope = function<S>(path?: PathLike): ChildModel<S> {
   if (arguments.length > 1) {
     for (var i = 1; i < arguments.length; i++) {
       path = path + '.' + arguments[i];
