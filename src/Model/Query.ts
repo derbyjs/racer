@@ -11,7 +11,7 @@ var defaultType = require('sharedb/lib/client').types.defaultType;
 var util = require('../util');
 var promisify = util.promisify;
 
-export type QueryOptions = string | { db: any };
+export type QueryOptions = string | { db: any, [key: string]: unknown };
 
 interface QueryCtor {
   new (model: Model, collectionName: string, expression: any, options: QueryOptions): Query;
