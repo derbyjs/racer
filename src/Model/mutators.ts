@@ -72,6 +72,13 @@ declare module './Model' {
     incrementPromised(subpath: Path, value?: number): Promise<number>;
     _increment(segments: Segments, value: number, cb?: ErrorCallback): number;
 
+    /**
+     * Push a value to a model array
+     *
+     * @param subpath
+     * @param value
+     * @returns the length of the array
+     */
     push(value: any): number;
     push(subpath: Path, value: any, cb?: ErrorCallback): number;
     pushPromised(value: any): Promise<number>;
