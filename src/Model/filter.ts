@@ -9,6 +9,9 @@ interface PaginationOptions {
   limit: number;
 }
 
+type FilterFn<S> = ((item: S, key: string, object: { [key: string]: S }) => boolean) | null;
+type SortFn<S> = (a: S, B: S) => number;
+
 declare module './Model' {
   interface Model {
     /**
@@ -31,21 +34,21 @@ declare module './Model' {
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
       options: PaginationOptions,
-      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
-      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       options: PaginationOptions,
-      fn: (item: S, key: string, object: { [key: string]: S }) => boolean
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
-      fn?: (item: S, key: string, object: { [key: string]: S }) => boolean
+      fn: FilterFn<S>
     ): Filter<S>;
 
     removeAllFilters: (subpath: Path) => void;
@@ -69,15 +72,15 @@ declare module './Model' {
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
       options: PaginationOptions,
-      fn: (a: S, b: S) => number
+      fn: SortFn<S>
     ): Filter<S>;
     sort<S>(
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
-      fn: (a: S, b: S) => number
+      fn: SortFn<S>
     ): Filter<S>;
-    sort<S>(inputPath: PathLike, options: PaginationOptions, fn: (a: S, b: S) => number): Filter<S>;
-    sort<S>(inputPath: PathLike, fn: (a: S, b: S) => number): Filter<S>;
+    sort<S>(inputPath: PathLike, options: PaginationOptions, fn: SortFn<S>): Filter<S>;
+    sort<S>(inputPath: PathLike, fn: SortFn<S>): Filter<S>;
 
     _filters: Filters;
     _removeAllFilters: (segments: Segments) => void;
@@ -180,7 +183,7 @@ class Filters{
     this.fromMap = new FromMap();
   }
 
-  add(path, filterFn, sortFn, inputPaths, options) {
+  add(path: Path, filterFn, sortFn, inputPaths, options) {
     return new Filter(this, path, filterFn, sortFn, inputPaths, options);
   };
 
