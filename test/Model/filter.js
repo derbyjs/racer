@@ -3,6 +3,7 @@ var RootModel = require('../../lib/Model').RootModel;
 
 describe('filter', function() {
   describe('getting', function() {
+    // this isn't clear as unspported use
     it('does not support array', function() {
       var model = (new RootModel()).at('_page');
       model.set('numbers', [0, 3, 4, 1, 2, 3, 0]);
@@ -13,6 +14,7 @@ describe('filter', function() {
         filter.get();
       }).to.throw(Error);
     });
+
     it('supports filter of object', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -24,6 +26,8 @@ describe('filter', function() {
       });
       expect(filter.get()).to.eql([0, 4, 2, 0]);
     });
+
+    // sort keyword not supported by TS typedef
     it('supports sort of object', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -35,6 +39,9 @@ describe('filter', function() {
       filter = model.sort('numbers', 'desc');
       expect(filter.get()).to.eql([4, 3, 3, 2, 1, 0, 0]);
     });
+
+    // magic keyword 'even'?
+    // not supported by TS typdefs
     it('supports filter and sort of object', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -47,6 +54,10 @@ describe('filter', function() {
       var filter = model.filter('numbers', 'even').sort();
       expect(filter.get()).to.eql([0, 0, 2, 4]);
     });
+
+    // This case needs to go away
+    // vargs hard to deduce type
+    // hard to type callback fn args properly
     it('supports additional input paths as var-args', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -60,6 +71,9 @@ describe('filter', function() {
       });
       expect(filter.get()).to.eql([0, 3, 3, 0]);
     });
+
+    // supported by typescript typedefs as PathLike[]
+    // although filterfn not typed for vargs handling of this
     it('supports additional input paths as array', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -73,6 +87,7 @@ describe('filter', function() {
       });
       expect(filter.get()).to.eql([0, 3, 3, 0]);
     });
+
     it('supports a skip option', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -88,6 +103,7 @@ describe('filter', function() {
       expect(filter.get()).to.eql([3, 0]);
     });
   });
+
   describe('initial value set by ref', function() {
     it('supports filter of object', function() {
       var model = (new RootModel()).at('_page');
@@ -101,6 +117,7 @@ describe('filter', function() {
       filter.ref('_page.out');
       expect(model.get('out')).to.eql([0, 4, 2, 0]);
     });
+
     it('supports sort of object', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -113,6 +130,7 @@ describe('filter', function() {
       filter.ref('_page.out');
       expect(model.get('out')).to.eql([4, 3, 3, 2, 1, 0, 0]);
     });
+
     it('supports filter and sort of object', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -127,6 +145,7 @@ describe('filter', function() {
       expect(model.get('out')).to.eql([0, 0, 2, 4]);
     });
   });
+
   describe('ref updates as items are modified', function() {
     it('supports filter of object', function() {
       var model = (new RootModel()).at('_page');
@@ -181,6 +200,7 @@ describe('filter', function() {
         }
       ]);
     });
+
     it('supports additional dynamic inputs as var-args', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
@@ -198,6 +218,7 @@ describe('filter', function() {
       model.set('mod', 2);
       expect(filter.get()).to.eql([3, 1, 3]);
     });
+
     it('supports additional dynamic inputs as array', function() {
       var model = (new RootModel()).at('_page');
       var numbers = [0, 3, 4, 1, 2, 3, 0];
