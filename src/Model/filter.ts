@@ -5,8 +5,8 @@ import * as defaultFns from './defaultFns';
 import type { Path, PathLike } from '../types';
 
 interface PaginationOptions {
-  skip: number;
-  limit: number;
+  skip?: number;
+  limit?: number;
 }
 
 type FilterFn<S> = ((item: S, key: string, object: { [key: string]: S }) => boolean) | null;
