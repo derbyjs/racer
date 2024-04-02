@@ -9,7 +9,9 @@ interface PaginationOptions {
   limit?: number;
 }
 
-type FilterFn<S> = ((item: S, key: string, object: { [key: string]: S }) => boolean) | null;
+type FilterFn<S> =
+  | ((item: S, key: string, object: { [key: string]: S }) => boolean)
+  | null;
 type SortFn<S> = (a: S, B: S) => number;
 
 declare module './Model' {
@@ -34,21 +36,21 @@ declare module './Model' {
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
       options: PaginationOptions,
-      fn: FilterFn<S>
+      fn?: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
-      fn: FilterFn<S>
+      fn?: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       options: PaginationOptions,
-      fn: FilterFn<S>
+      fn?: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
-      fn: FilterFn<S>
+      fn?: FilterFn<S>
     ): Filter<S>;
 
     removeAllFilters: (subpath: Path) => void;
@@ -107,11 +109,28 @@ Model.INITS.push(function(model: Model) {
 });
 
 function parseFilterArguments(model, args) {
-  var fn = args.pop();
-  var options, inputPaths;
+  let fn, options, inputPaths;
+  // first arg always path
   var path = model.path(args.shift());
-
-  var last = args[args.length - 1];
+  if (!args.length) {
+    return {
+      path: path,
+      inputPaths: null,
+      options: options,
+      fn: () => true,
+    };
+  }
+  let last = args[args.length - 1];
+  if (typeof last === 'function') {
+    // fn null if optional
+    // filter can be string
+    fn = args.pop();
+  }
+  if  (args.length && fn == null) {
+    // named function
+    fn = args.pop();
+  }
+  last = args[args.length - 1];
   if (!model.isPath(last) && !Array.isArray(last)) {
     options = args.pop();
   }
