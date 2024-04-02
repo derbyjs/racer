@@ -385,11 +385,17 @@ Model.prototype.add = function() {
     }
   } else if (arguments.length === 2) {
     if (typeof arguments[1] === 'function') {
+      // (value, callback)
       value = arguments[0];
       cb = arguments[1];
-    } else {
+    } else if (typeof arguments[0] === 'string' && typeof arguments[1] === 'object') {
+      // (path, value)
       subpath = arguments[0];
       value = arguments[1];
+    } else {
+      // (value, null)
+      value = arguments[0];
+      cb = arguments[1];
     }
   } else {
     subpath = arguments[0];
