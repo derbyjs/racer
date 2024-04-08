@@ -9,7 +9,7 @@ const promisify = util.promisify;
 /**
  * A path string, a `Model`, or a `Query`.
  */
-export type Subscribable = string | Model<unknown> | Query;
+export type Subscribable = string | Model<unknown> | Query<unknown>;
 
 declare module './Model' {
   interface Model<T> {

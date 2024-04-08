@@ -27,7 +27,7 @@ export {
 
 export const racer = new Racer();
 
-export function createModel(data) {
+export function createModel(data?) {
   var model = new RootModel();
   if (data) {
     model.createConnection(data);

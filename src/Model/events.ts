@@ -653,7 +653,7 @@ export class InsertEvent {
   declare type: 'insert';
   declare _immediateType: 'insertImmediate';
   index: number;
-  values: any;
+  values: any[];
   passed: any;
 
   constructor(index, values, passed) {
@@ -678,8 +678,9 @@ export class RemoveEvent {
   declare _immediateType: 'removeImmediate';
   index: number;
   passed: any;
-  removed: any;
-  values: any;
+  removed: any[];
+  /** @deprecated Use `removed` instead */
+  values: any[];
 
   constructor(index, values, passed) {
     this.index = index;
