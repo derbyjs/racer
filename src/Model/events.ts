@@ -25,16 +25,6 @@ export interface ModelOnEventMap {
   all: ModelEvent;
 }
 
-export interface ModelOnEventLegacyListers {
-  change: (captures: string, currentValue, prevValue, passed) => void;
-  insert: (captures: string, howMany: number, items, passed) => void;
-  remove: (captures: string, howMany: number, items, passed) => void;
-  move: (captures: string, fromIndex: number, toIndex: number, howMany: number, passed) => void;
-  load: (capture: string, item) => void;
-  unload: (captures: string, item) => void;
-  all: (captures: string, eventName: string, ...args) => void;
-}
-
 /**
  * Racer emits captures like
  * 'foo.bar.1'
@@ -93,17 +83,6 @@ declare module './Model' {
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
 
-    // TODO review this calling w/o options if options useEventObjects should go away
-    // without any "legacy" events use case
-    on<T extends keyof ModelOnEventLegacyListers>(
-      eventType: T,
-      pathPattern: PathLike,
-      listener: ModelOnEventLegacyListers[T]
-    ): () => void;
-    on<T extends keyof ModelOnEventLegacyListers>(
-      eventType: T,
-      listener: ModelOnEventLegacyListers[T]
-    ): () => void;
     on(
       eventType: 'all',
       listener: (captures: EventCaptures, event: ModelOnEventMap[keyof ModelOnEventMap]) => void
