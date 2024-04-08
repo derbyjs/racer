@@ -25,7 +25,7 @@ declare module './Model' {
      */
     setDiff<S>(subpath: Path, value: S, cb?: Callback): ReadonlyDeep<S> | undefined;
     setDiff(value: T | undefined): ReadonlyDeep<T> | undefined;
-    setDiffPromised<S>(subpath: Path, value: S): Promise<S>;
+    setDiffPromised(subpath: Path, value: any): Promise<void>;
     _setDiff(segments: Segments, value: any, cb?: (err: Error) => void): void;
 
     /**

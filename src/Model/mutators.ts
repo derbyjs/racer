@@ -16,14 +16,14 @@ declare module './Model' {
     _mutate(segments, fn, cb): void;
     set(value: T, cb?: ErrorCallback): T | undefined;
     set<S>(subpath: Path, value: any, cb?: ErrorCallback): S | undefined;
-    setPromised(value: T): Promise<T | undefined>;
-    setPromised<S>(subpath: Path, value: any): Promise<S | undefined>;
+    setPromised(value: T): Promise<void>;
+    setPromised(subpath: Path, value: any): Promise<void>;
     _set<S>(segments: Segments, value: any, cb?: ErrorCallback): S | undefined;
 
     setNull(value: T, cb?: ErrorCallback): T | undefined;
     setNull<S>(subpath: Path, value: S, cb?: ErrorCallback): S | undefined;
-    setNullPromised(value: T): Promise<T | undefined>;
-    setNullPromised<S>(subpath: Path, value: S): Promise<S | undefined>;
+    setNullPromised(value: T): Promise<void>;
+    setNullPromised(subpath: Path, value: any): Promise<void>;
     _setNull<S>(segments: Segments, value: S, cb?: ErrorCallback): S | undefined;
 
     setEach(value: any, cb?: ErrorCallback): void;
@@ -61,7 +61,7 @@ declare module './Model' {
      */
     del<S>(subpath: Path, cb?: Callback): S | undefined;
     del<T>(cb?: Callback): T | undefined;
-    delPromised<S>(subpath: Path): Promise<S>;
+    delPromised(subpath: Path): Promise<void>;
     _del<S>(segments: Segments, cb?: ErrorCallback): S;
 
     _delNoDereference(segments: Segments, cb?: ErrorCallback): void;
@@ -114,7 +114,7 @@ declare module './Model' {
     _pop(segments: Segments, value: any, cb?: ErrorCallback): void;
 
     shift<S>(subpath?: Path, cb?: ErrorCallback): S;
-    shiftPromised<S>(subpath?: Path): Promise<S>;
+    shiftPromised(subpath?: Path): Promise<void>;
     _shift<S>(segments: Segments, cb?: ErrorCallback): S;
 
     /**
