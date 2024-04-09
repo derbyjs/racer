@@ -86,40 +86,37 @@ Model.prototype.sanitizeQuery = function(expression) {
 
 // Called during initialization of the bundle on page load.
 Model.prototype._initQueries = function(items: any[][]) {
-  for (var i = 0; i < items.length; i++) {
-    var item = items[i];
-    const [countsList, collectionName, expression, results=[], options, extra] = item;
-    // var countsList = item[0];
-    // var collectionName = item[1];
-    // var expression = item[2];
-    // var results = item[3] || [];
-    // var options = item[4];
-    // var extra = item[5];
-    const [counts] = countsList;
-    // var counts = countsList[0];
-    var [subscribed = 0, fetched = 0, contextId] = counts;
-    // var subscribed = counts[0] || 0;
-    // var fetched = counts[1] || 0;
-    // var contextId = counts[2];
+  for (let i = 0; i < items.length; i++) {
+    const [countsList, collectionName, expression, _results, options, extra] = items[i];
+    // const countsList = item[0];
+    // const collectionName = item[1];
+    // const expression = item[2];
+    const results = _results || [];
+    // const options = item[4];
+    // const extra = item[5];
+    const [_subscribed, _fetched, contextId] = countsList[0];
+    let subscribed = _subscribed || 0;
+    let fetched = _fetched || 0;
+    // const contextId = counts[2];
 
-    var model = (contextId) ? this.context(contextId) : this;
-    var query = model._getOrCreateQuery(collectionName, expression, options, Query);
+    const model = (contextId) ? this.context(contextId) : this;
+    const query = model._getOrCreateQuery(collectionName, expression, options, Query);
 
     query._setExtra(extra);
 
-    var ids = [];
+    const ids = [];
     for (var resultIndex = 0; resultIndex < results.length; resultIndex++) {
-      var result = results[resultIndex];
+      const result = results[resultIndex];
       if (typeof result === 'string') {
         ids.push(result);
         continue;
       }
-      var data = result[0];
-      var v = result[1];
-      var id = result[2] || data.id;
-      var type = result[3];
+      const data = result[0];
+      const v = result[1];
+      const id = result[2] || data.id;
+      const type = result[3];
       ids.push(id);
-      var snapshot = { data: data, v: v, type: type };
+      const snapshot = { data: data, v: v, type: type };
       this.getOrCreateDoc(collectionName, id, snapshot);
     }
     query._addMapIds(ids);
