@@ -38,19 +38,12 @@ export class RacerBackend extends Backend {
 
       // Create a new model for this request
       req.model = backend.createModel({ fetchOnly: true }, req);
-      // DEPRECATED:
-      req.getModel = function () {
-        console.warn('Warning: req.getModel() is deprecated. Please use req.model instead.');
-        return req.model;
-      };
 
       // Close the model when this request ends
       function closeModel() {
         res.removeListener('finish', closeModel);
         res.removeListener('close', closeModel);
         if (req.model) req.model.close();
-        // DEPRECATED:
-        req.getModel = getModelUndefined;
       }
       res.on('finish', closeModel);
       res.on('close', closeModel);
