@@ -21,7 +21,7 @@ declare module './Model' {
      *
      * @param contextId - context id
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     * @see https://derbyjs.github.io/derby/models/contexts
      */
     context(contextId: string): ChildModel<T>;
     getOrCreateContext(id: string): Context;
@@ -32,14 +32,14 @@ declare module './Model' {
      *
      * @param contextId - optional context to unload; defaults to this model's context
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     * @see https://derbyjs.github.io/derby/models/contexts
      */
     unload(contextId?: string): void;
 
     /**
      * Unloads data for all model contexts.
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/data-loading-contexts
+     * @see https://derbyjs.github.io/derby/models/contexts
      */
     unloadAll(): void;
 

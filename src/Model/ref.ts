@@ -30,7 +30,7 @@ declare module './Model' {
      *   collection will be deleted if the corresponding item is removed from
      *   the refList's output path
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     * @see https://derbyjs.github.io/derby/models/refs
      */
     refList<S>(outputPath: PathLike, collectionPath: PathLike, idsPath: PathLike, options?: { deleteRemoved?: boolean }): ChildModel<S>;
 
@@ -47,7 +47,7 @@ declare module './Model' {
      * @param to - Location that the reference points to
      * @return a model scoped to `path`
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     * @see https://derbyjs.github.io/derby/models/refs
      */
     ref<S>(to: PathLike): ChildModel<S>;
     ref<S>(path: PathLike, to: PathLike, options?: RefOptions): ChildModel<S>;
@@ -58,7 +58,7 @@ declare module './Model' {
      *
      * @param path - Location of the reference to remove
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/references
+     * @see https://derbyjs.github.io/derby/models/refs
      */
     removeRef(path: PathLike): void;
     _removeRef(segments: Segments): void;

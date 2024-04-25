@@ -31,7 +31,7 @@ declare module './Model' {
      * @param fn - A function or the name of a function defined via model.fn(). The function
      *   should have the arguments function(item, key, object, additionalInputs...)
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/filters-and-sorts
+     * @see https://derbyjs.github.io/derby/models/filters-sorts
      */
     filter<S>(
       inputPath: PathLike,
@@ -69,7 +69,7 @@ declare module './Model' {
      *   limit - The maximum number of results. A limit of zero is equivalent to no limit.
      * @param fn - A function or the name of a function defined via model.fn().
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/filters-and-sorts
+     * @see https://derbyjs.github.io/derby/models/filters-and-sorts
      */
     sort<S>(
       inputPath: PathLike,

@@ -85,7 +85,7 @@ declare module './Model' {
      * @param options
      * @param listener
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/events
+     * @see https://derbyjs.github.io/derby/models/events
      */
     on<T extends keyof ModelOnEventMap>(
       eventType: T,
@@ -108,7 +108,7 @@ declare module './Model' {
      * @param options
      * @param listener
      *
-     * @see https://derbyjs.com/docs/derby-0.10/components/events
+     * @see https://derbyjs.github.io/derby/components/events
      */
     once<T extends keyof ModelOnEventMap>(
       eventType: T,

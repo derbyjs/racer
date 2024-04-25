@@ -73,7 +73,7 @@ declare module './Model' {
      * @param options
      * @param fn
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/reactive-functions
+     * @see https://derbyjs.github.io/derby/models/reactive-functions
      */
     evaluate<Out, Ins extends StartFnParam[]>(
       inputPaths: PathLike[],
@@ -120,7 +120,7 @@ declare module './Model' {
      *   a `{ get: Function; set: Function }` object defining a two-way reactive function;
      *   or the name of a function defined via model.fn()
      * 
-     * @see https://derbyjs.com/docs/derby-0.10/models/reactive-functions
+     * @see https://derbyjs.github.io/derby/models/reactive-functions
      */
     start<Out, Ins extends StartFnParam[]>(
       outputPath: PathLike,

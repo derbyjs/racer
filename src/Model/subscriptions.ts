@@ -19,7 +19,7 @@ declare module './Model' {
      * @param items
      * @param cb
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     fetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
     fetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
@@ -43,7 +43,7 @@ declare module './Model' {
      * @param items
      * @param cb
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     subscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
     subscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
@@ -63,7 +63,7 @@ declare module './Model' {
      * @param items
      * @param cb
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     unfetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
     unfetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
@@ -85,7 +85,7 @@ declare module './Model' {
      * @param items
      * @param cb
      *
-     * @see https://derbyjs.com/docs/derby-0.10/models/backends#loading-data-into-a-model
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     unsubscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
     unsubscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
