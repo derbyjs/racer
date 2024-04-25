@@ -33,6 +33,18 @@ type EventObjectCaptures = string[];
 
 declare module './Model' {
   interface RootModel {
+    // duplicated w on signatures below due to how TS handles overrides
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      pathPattern: PathLike,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
+    ): () => void;
+    on<T extends keyof ModelOnEventMap>(
+      eventType: T,
+      options: { useEventObjects: true },
+      listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
+    ): () => void;
     on(
       eventType: 'all',
       listener: (pathSegments: string[], event: ModelOnEventMap[keyof ModelOnEventMap]) => void
@@ -145,7 +157,7 @@ declare module './Model' {
   }
 }
 
-Model.INITS.push(function(model: Model) {
+Model.INITS.push(function(model) {
   var root = model.root;
   EventEmitter.call(root);
 

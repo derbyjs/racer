@@ -1,5 +1,5 @@
 var util = require('../util');
-import { Model } from './Model';
+import { Model, RootModel } from './Model';
 import { type Segments } from './types';
 import * as defaultFns from './defaultFns';
 import type { Path, PathLike } from '../types';
@@ -89,7 +89,7 @@ declare module './Model' {
   }
 }
 
-Model.INITS.push(function(model: Model) {
+Model.INITS.push(function(model) {
   model.root._filters = new Filters(model);
   model.on('all', filterListener);
   function filterListener(segments, event) {
