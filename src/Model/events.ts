@@ -39,6 +39,17 @@ type EventCaptures = string | string[];
 type EventObjectCaptures = string[];
 
 declare module './Model' {
+  interface RootModel {
+    on(
+      eventType: 'all',
+      listener: (captures: EventCaptures, event: ModelOnEventMap[keyof ModelOnEventMap]) => void
+    ): () => void;
+    on(
+      eventType: 'error',
+      listener: (error: Error) => void
+    ): () => void;
+  }
+
   interface Model<T> {
     addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
     eventContext(id: string): ChildModel<T>;
@@ -82,16 +93,6 @@ declare module './Model' {
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
-
-    on(
-      eventType: 'all',
-      listener: (captures: EventCaptures, event: ModelOnEventMap[keyof ModelOnEventMap]) => void
-    ): () => void;
-    on(
-      eventType: 'error',
-      listener: (error: Error) => void
-    ): () => void;
-    
 
     /**
      * Listen to Racer events matching a certain path or path pattern, removing
