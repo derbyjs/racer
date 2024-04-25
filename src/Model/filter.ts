@@ -325,7 +325,7 @@ export class Filter<T> {
       this.filterFn.call(this.model, item, key, items);
   };
   
-  ids() {
+  ids(): string[] {
     var items = this.model._get(this.segments);
     var ids = [];
     if (!items) return ids;
@@ -351,7 +351,7 @@ export class Filter<T> {
     return this._slice(ids);
   };
   
-  get() {
+  get<S = unknown>(): S[] {
     var items = this.model._get(this.segments);
     var results = [];
     if (Array.isArray(items)) {
