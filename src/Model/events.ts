@@ -708,10 +708,10 @@ RemoveEvent.prototype._immediateType = 'removeImmediate';
 export class MoveEvent {
   declare type: 'move';
   declare _immediateType: 'moveImmediate';
-  from: any;
+  from: number;
   howMany: number;
   passed: any;
-  to: any;
+  to: number;
 
   constructor(from, to, howMany, passed) {
     this.from = from;
