@@ -16,7 +16,7 @@ declare module './Model' {
     /** Returns a child model where ShareDB operations are always composed. */
     allowCompose(): ChildModel<T>;
     close(cb?: (err?: Error) => void): void;
-    closePromised: Promise<void>;
+    closePromised: () => Promise<void>;
     disconnect(): void;
 
     /**
