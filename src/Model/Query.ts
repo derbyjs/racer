@@ -239,7 +239,7 @@ export class Query<T = {}> {
     this._maybeUnloadDocs(ids);
   };
 
-  fetch(cb: ErrorCallback) {
+  fetch(cb?: ErrorCallback) {
     cb = this.model.wrapCallback(cb);
     this.context.fetchQuery(this);
 
