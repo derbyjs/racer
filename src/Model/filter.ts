@@ -110,28 +110,10 @@ Model.INITS.push(function(model) {
 });
 
 function parseFilterArguments(model, args) {
-  let fn, options, inputPaths;
-  // first arg always path
+  var fn = args.pop();
+  var options, inputPaths;
   var path = model.path(args.shift());
-  if (!args.length) {
-    return {
-      path: path,
-      inputPaths: null,
-      options: options,
-      fn: () => true,
-    };
-  }
-  let last = args[args.length - 1];
-  if (typeof last === 'function') {
-    // fn null if optional
-    // filter can be string
-    fn = args.pop();
-  }
-  if  (args.length && fn == null) {
-    // named function
-    fn = args.pop();
-  }
-  last = args[args.length - 1];
+  var last = args[args.length - 1];
   if (!model.isPath(last) && !Array.isArray(last)) {
     options = args.pop();
   }
