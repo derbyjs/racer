@@ -3,7 +3,6 @@ import { type Segments } from './types';
 import { ChildModel, ErrorCallback, Model } from './Model';
 import { CollectionMap } from './CollectionMap';
 import { ModelData } from '.';
-import type { Doc } from './Doc';
 import type { Doc as ShareDBDoc } from 'sharedb';
 import type { RemoteDoc } from './RemoteDoc';
 
@@ -11,7 +10,7 @@ var defaultType = require('sharedb/lib/client').types.defaultType;
 var util = require('../util');
 var promisify = util.promisify;
 
-export type QueryOptions = string | { db: any, [key: string]: unknown };
+export type QueryOptions = string | { [key: string]: unknown };
 
 interface QueryCtor {
   new (model: Model, collectionName: string, expression: any, options: QueryOptions): Query;
