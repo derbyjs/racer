@@ -11,6 +11,7 @@ interface PaginationOptions {
 
 type FilterFn<S> =
   | ((item: S, key: string, object: { [key: string]: S }) => boolean)
+  | string
   | null;
 type SortFn<S> = (a: S, B: S) => number;
 
@@ -36,21 +37,21 @@ declare module './Model' {
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
       options: PaginationOptions,
-      fn?: FilterFn<S>
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       additionalInputPaths: PathLike[],
-      fn?: FilterFn<S>
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
       options: PaginationOptions,
-      fn?: FilterFn<S>
+      fn: FilterFn<S>
     ): Filter<S>;
     filter<S>(
       inputPath: PathLike,
-      fn?: FilterFn<S>
+      fn: FilterFn<S>
     ): Filter<S>;
 
     removeAllFilters: (subpath: Path) => void;
