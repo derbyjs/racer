@@ -26,13 +26,6 @@ export interface ModelOnEventMap {
 }
 
 /**
- * Racer emits captures like
- * 'foo.bar.1'
- * Derby emits captures like
- * ['foo', 'bar', '1']
- * */
-type EventCaptures = string | string[];
-/**
  * With `useEventObjects: true` captures are emmitted as
  * ['foo.bar.1']
  *  */
@@ -42,7 +35,7 @@ declare module './Model' {
   interface RootModel {
     on(
       eventType: 'all',
-      listener: (captures: EventCaptures, event: ModelOnEventMap[keyof ModelOnEventMap]) => void
+      listener: (pathSegments: string[], event: ModelOnEventMap[keyof ModelOnEventMap]) => void
     ): () => void;
     on(
       eventType: 'error',
