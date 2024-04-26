@@ -1,9 +1,8 @@
-import { type Segments } from './types';
 import { Model } from './Model';
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import * as defaultFns from './defaultFns';
-import type { Path, PathLike, ReadonlyDeep } from '../types';
+import type { Path, PathLike, ReadonlyDeep, Segments } from '../types';
 var util = require('../util');
 
 class NamedFns { }

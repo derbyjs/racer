@@ -1,5 +1,5 @@
 import { type Context } from './contexts';
-import { type Segments } from './types';
+import { type Segments } from '../types';
 import { ChildModel, ErrorCallback, Model } from './Model';
 import { CollectionMap } from './CollectionMap';
 import { ModelData } from '.';

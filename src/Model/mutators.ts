@@ -1,7 +1,6 @@
-import type { Callback, Path, ArrayItemType } from '../types';
+import type { Callback, Path, ArrayItemType, Segments } from '../types';
 import * as util from '../util';
 import { Model } from './Model';
-import { type Segments } from './types';
 
 var mutationEvents = require('./events').mutationEvents;
 

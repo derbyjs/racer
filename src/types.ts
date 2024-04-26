@@ -7,6 +7,7 @@ export type UUID = string;
 export type Path = string | number;
 export type PathSegment = string | number;
 export type PathLike = Path | Model<any>;
+export type Segments = Array<Path>;
 
 export type Primitive = boolean | number | string | null | undefined;
 

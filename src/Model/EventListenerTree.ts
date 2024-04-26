@@ -1,4 +1,4 @@
-import { type Segments } from './types';
+import { type Segments } from '../types';
 import { FastMap } from './FastMap';
 
 /**

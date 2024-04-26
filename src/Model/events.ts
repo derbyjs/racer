@@ -2,10 +2,9 @@
 
 import { EventEmitter } from 'events';
 import { EventListenerTree } from './EventListenerTree';
-import { type Segments } from './types';
 import { Model } from './Model';
 import { mergeInto } from '../util';
-import type { Path, PathLike } from '../types';
+import type { Path, PathLike, Segments } from '../types';
 
 export type ModelEvent =
   | ChangeEvent

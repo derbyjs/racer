@@ -24,7 +24,7 @@ class AsyncGroup {
   add() {
     this.count++;
     const self = this;
-    return function(err) {
+    return function(err?: Error) {
       self.count--;
       if (self.isDone) return;
       if (err) {

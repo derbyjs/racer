@@ -1,8 +1,7 @@
-import { type Segments } from './types';
 import { Doc } from './Doc';
 import { Model, RootModel } from './Model';
 import { JSONObject } from 'sharedb/lib/sharedb';
-import { Path, ReadonlyDeep, ShallowCopiedValue } from '../types';
+import type { Path, ReadonlyDeep, ShallowCopiedValue, Segments } from '../types';
 var LocalDoc = require('./LocalDoc');
 var util = require('../util');
 

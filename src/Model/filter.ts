@@ -1,8 +1,7 @@
 var util = require('../util');
-import { Model, RootModel } from './Model';
-import { type Segments } from './types';
+import { Model } from './Model';
 import * as defaultFns from './defaultFns';
-import type { Path, PathLike } from '../types';
+import type { Path, PathLike, Segments } from '../types';
 
 interface PaginationOptions {
   skip?: number;

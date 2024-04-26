@@ -1,10 +1,9 @@
 import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import { Model } from './Model';
-import { type Segments } from './types';
 import { type Filter } from './filter';
 import { type Query } from './Query';
-import type { Path, PathLike } from '../types';
+import type { Path, PathLike, Segments } from '../types';
 
 type Refable = string | number | Model<any> | Query | Filter<unknown>;
 

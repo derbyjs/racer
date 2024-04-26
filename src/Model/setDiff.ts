@@ -1,7 +1,8 @@
-var util = require('../util');
+import * as util from '../util';
 import { Callback, Path, ReadonlyDeep } from '../types';
 import { Model } from './Model';
-import { type Segments } from './types';
+import { type Segments } from '../types';
+
 var arrayDiff = require('arraydiff');
 var mutationEvents = require('./events').mutationEvents;
 var ChangeEvent = mutationEvents.ChangeEvent;
