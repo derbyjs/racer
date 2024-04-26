@@ -310,8 +310,8 @@ Model.prototype.create = function() {
     value = arguments[1];
     cb = arguments[2];
   }
-  var segments = this._splitPath(subpath);
-  return this._create(segments, value, cb);
+  const segments = this._splitPath(subpath);
+  this._create(segments, value, cb);
 };
 Model.prototype.createPromised = promisify(Model.prototype.create);
 
@@ -333,7 +333,7 @@ Model.prototype._create = function(segments, value, cb) {
     var event = new ChangeEvent(value, previous, model._pass);
     model._emitMutation(segments, event);
   }
-  return this._mutate(segments, create, cb);
+  this._mutate(segments, create, cb);
 };
 
 Model.prototype.createNull = function() {
@@ -361,7 +361,7 @@ Model.prototype.createNull = function() {
     cb = arguments[2];
   }
   var segments = this._splitPath(subpath);
-  return this._createNull(segments, value, cb);
+  this._createNull(segments, value, cb);
 };
 Model.prototype.createNullPromised = promisify(Model.prototype.createNull);
 
@@ -369,7 +369,7 @@ Model.prototype._createNull = function(segments, value, cb) {
   segments = this._dereference(segments);
   var doc = this.getDoc(segments[0], segments[1]);
   if (doc && doc.get() != null) return;
-  return this._create(segments, value, cb);
+  this._create(segments, value, cb);
 };
 
 Model.prototype.add = function() {
