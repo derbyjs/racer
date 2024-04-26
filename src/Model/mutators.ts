@@ -68,8 +68,8 @@ declare module './Model' {
 
     increment(value?: number): number;
     increment(subpath: Path, value?: number, cb?: ErrorCallback): number;
-    incrementPromised(value?: number): Promise<number>;
-    incrementPromised(subpath: Path, value?: number): Promise<number>;
+    incrementPromised(value?: number): Promise<void>;
+    incrementPromised(subpath: Path, value?: number): Promise<void>;
     _increment(segments: Segments, value: number, cb?: ErrorCallback): number;
 
     /**
@@ -81,8 +81,8 @@ declare module './Model' {
      */
     push(value: any): number;
     push(subpath: Path, value: any, cb?: ErrorCallback): number;
-    pushPromised(value: any): Promise<number>;
-    pushPromised(subpath: Path, value: any): Promise<number>;
+    pushPromised(value: any): Promise<void>;
+    pushPromised(subpath: Path, value: any): Promise<void>;
     _push(segments: Segments, value: any, cb?: ErrorCallback): number;
 
     unshift(value: any): void;
@@ -536,7 +536,7 @@ Model.prototype.push = function() {
   var segments = this._splitPath(subpath);
   return this._push(segments, value, cb);
 };
-Model.prototype.pushPromised = promisify<number>(Model.prototype.push);
+Model.prototype.pushPromised = promisify(Model.prototype.push);
 
 Model.prototype._push = function(segments, value, cb) {
   var forArrayMutator = true;
