@@ -39,22 +39,15 @@ class AsyncGroup {
   }
 }
 
-function castSegment(segment: string): string | number {
+function castSegment(segment: string | number): string | number {
   return (typeof segment === 'string' && isArrayIndex(segment))
     ? +segment // sneaky op to convert numeric string to number
     : segment;
 }
 
-export function castSegments(segments: Readonly<string | string[]>) {
-  if (typeof segments === 'string') {
-    return castSegment(segments);
-  }
+export function castSegments(segments: Readonly<Array<string | number>>) {
   // Cast number path segments from strings to numbers
-  return segments.map(segment =>
-    Array.isArray(segment)
-      ? castSegments(segment)
-      : castSegment(segment)
-  );
+  return segments.map(segment => castSegment(segment));
 }
 
 export function contains(segments, testSegments) {

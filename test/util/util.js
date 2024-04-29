@@ -89,10 +89,5 @@ describe('util', function() {
       expect(actual).to.eql(['foo', 3, 3]);
       expect(actual).to.not.equal(segments); // args not mutated
     });
-
-    it('handles plain strings', () => {
-      expect(util.castSegments('foo.bar')).to.eql('foo.bar');
-      expect(util.castSegments('6')).to.eql(6);
-    });
   });
 });
