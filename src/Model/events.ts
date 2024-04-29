@@ -14,15 +14,12 @@ export type ModelEvent =
   | LoadEvent
   | UnloadEvent;
 
-export interface ModelOnEventMap {
-  change: ChangeEvent;
-  insert: InsertEvent;
-  remove: RemoveEvent;
-  move: MoveEvent;
-  load: LoadEvent;
-  unload: UnloadEvent;
-  all: ModelEvent;
-}
+export type ModelOnEventMap = {
+  [eventName in ModelEvent['type']]: Extract<ModelEvent, { type: eventName }>;
+};
+export type ModelOnImmediateEventMap = {
+  [eventName in ModelEvent['_immediateType']]: Extract<ModelEvent, { _immediateType: eventName }>;
+};
 
 /**
  * With `useEventObjects: true` captures are emmitted as
@@ -39,10 +36,25 @@ declare module './Model' {
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
+    on(
+      eventType: 'all',
+      pathPattern: PathLike,
+      options: { useEventObjects: true },
+      listener: (event: ModelEvent, captures: EventObjectCaptures) => void
+    ): () => void;
     on<T extends keyof ModelOnEventMap>(
       eventType: T,
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
+    ): () => void;
+    on(
+      eventType: 'all',
+      options: { useEventObjects: true },
+      listener: (event: ModelEvent, captures: EventObjectCaptures) => void
+    ): () => void;
+    on<T extends keyof ModelOnImmediateEventMap>(
+      eventType: T,
+      listener: (pathSegments: string[], event: ModelOnImmediateEventMap[T]) => void
     ): () => void;
     on(
       eventType: 'all',
@@ -92,10 +104,21 @@ declare module './Model' {
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
     ): () => void;
+    on(
+      eventType: 'all',
+      pathPattern: PathLike,
+      options: { useEventObjects: true },
+      listener: (event: ModelEvent, captures: EventObjectCaptures) => void
+    ): () => void;
     on<T extends keyof ModelOnEventMap>(
       eventType: T,
       options: { useEventObjects: true },
       listener: (event: ModelOnEventMap[T], captures: EventObjectCaptures) => void
+    ): () => void;
+    on(
+      eventType: 'all',
+      options: { useEventObjects: true },
+      listener: (event: ModelEvent, captures: EventObjectCaptures) => void
     ): () => void;
 
     /**
@@ -132,7 +155,7 @@ declare module './Model' {
     removeAllListeners(type: string, subpath: Path): void;
     removeContextListeners(): void;
     
-    removeListener(eventType: keyof ModelOnEventMap, listener: Function): void;
+    removeListener(eventType: keyof ModelOnEventMap | keyof ModelOnImmediateEventMap | 'all', listener: Function): void;
 
     setMaxListeners(limit: number): void;
     silent(value?: boolean): Model<T>;
