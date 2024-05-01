@@ -1,10 +1,10 @@
 var expect = require('../util').expect;
-var Model = require('../../lib/Model');
+var RootModel = require('../../lib/Model').RootModel;
 
 describe('fn', function() {
   describe('evaluate', function() {
     it('supports fn with a getter function', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -14,7 +14,7 @@ describe('fn', function() {
       expect(result).to.equal(6);
     });
     it('supports fn with an object', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', {
         get: function(a, b) {
           return a + b;
@@ -26,7 +26,7 @@ describe('fn', function() {
       expect(result).to.equal(6);
     });
     it('supports fn with variable arguments', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function() {
         var sum = 0;
         var i = arguments.length;
@@ -42,7 +42,7 @@ describe('fn', function() {
       expect(result).to.equal(13);
     });
     it('supports scoped model paths', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -57,7 +57,7 @@ describe('fn', function() {
   });
   describe('start', function() {
     it('sets the output immediately on start', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
       var value = model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
@@ -67,7 +67,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(6);
     });
     it('supports function name argument', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -78,7 +78,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(6);
     });
     it('sets the output when an input changes', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
       model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
@@ -89,7 +89,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(9);
     });
     it('sets the output when a parent of the input changes', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.in', {
         a: 2,
         b: 4
@@ -105,7 +105,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(12);
     });
     it('does not set the output when a sibling of the input changes', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.in', {
         a: 2,
         b: 4
@@ -125,7 +125,7 @@ describe('fn', function() {
       expect(count).to.equal(2);
     });
     it('calling twice cleans up listeners for former function', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.in', {
         a: 2,
         b: 4
@@ -150,11 +150,11 @@ describe('fn', function() {
 
   describe('stop', function() {
     it('can call stop without start', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.stop('_nums.sum');
     });
     it('stops updating after calling stop', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
       model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
@@ -167,7 +167,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(5);
     });
     it('stops updating when start was called twice', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
       model.start('_nums.sum', '_nums.a', '_nums.b', function(a, b) {
@@ -185,11 +185,11 @@ describe('fn', function() {
   });
   describe('stopAll', function() {
     it('can call without start', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.stopAll('_nums.sum');
     });
     it('stops updating functions at matching paths', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -214,7 +214,7 @@ describe('fn', function() {
   });
   describe('start with array inputs', function() {
     it('array inputs and function name', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -225,7 +225,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(6);
     });
     it('array inputs and function argument', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.set('_nums.a', 2);
       model.set('_nums.b', 4);
       var value = model.start('_nums.sum', ['_nums.a', '_nums.b'], function(a, b) {
@@ -237,7 +237,7 @@ describe('fn', function() {
   });
   describe('start with async option', function() {
     it('sets the output immediately on start', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -248,7 +248,7 @@ describe('fn', function() {
       expect(model.get('_nums.sum')).to.equal(6);
     });
     it('async sets the output when an input changes', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -266,7 +266,7 @@ describe('fn', function() {
       });
     });
     it('debouncing gets reset', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('sum', function(a, b) {
         return a + b;
       });
@@ -289,7 +289,7 @@ describe('fn', function() {
       });
     });
     it('no async sets the output multiple times when an input changes multiple times', function() {
-      var model = new Model();
+      var model = new RootModel();
       var calls = 0;
       model.fn('sum', function(a, b) {
         calls++;
@@ -311,7 +311,7 @@ describe('fn', function() {
       expect(calls).to.equal(5);
     });
     it('async sets the output when an input changes multiple times', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       var calls = 0;
       model.fn('sum', function(a, b) {
         calls++;
@@ -340,7 +340,7 @@ describe('fn', function() {
   });
   describe('setter', function() {
     it('sets the input when the output changes', function() {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('fullName', {
         get: function(first, last) {
           return first + ' ' + last;
@@ -369,7 +369,7 @@ describe('fn', function() {
   });
   describe('event mirroring', function() {
     it('emits move event on output when input changes', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('unity', {
         get: function(value) {
           return value;
@@ -399,7 +399,7 @@ describe('fn', function() {
       expect(model.get('_test.out')).to.eql(model.get('_test.in'));
     });
     it('emits move event on input when output changes', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('unity', {
         get: function(value) {
           return value;
@@ -429,7 +429,7 @@ describe('fn', function() {
       expect(model.get('_test.out')).to.eql(model.get('_test.in'));
     });
     it('emits granular change event under an array when input changes', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('unity', {
         get: function(value) {
           return value;
@@ -459,7 +459,7 @@ describe('fn', function() {
       expect(model.get('_test.out')).to.eql(model.get('_test.in'));
     });
     it('emits granular change event under an array when output changes', function(done) {
-      var model = new Model();
+      var model = new RootModel();
       model.fn('unity', {
         get: function(value) {
           return value;

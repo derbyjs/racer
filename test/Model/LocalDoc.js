@@ -1,5 +1,5 @@
 var expect = require('../util').expect;
-var LocalDoc = require('../../lib/Model/LocalDoc');
+var {LocalDoc} = require('../../lib/Model/LocalDoc');
 var docs = require('./docs');
 
 describe('LocalDoc', function() {

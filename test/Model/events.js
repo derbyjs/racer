@@ -4,7 +4,7 @@ var racer = require('../../lib/index');
 describe('Model events without useEventObjects', function() {
   describe('mutator events', function() {
     it('calls earlier listeners in the order of mutations', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
       var expectedPaths = ['a', 'b', 'c'];
       model.on('change', '**', function(path) {
         expect(path).to.equal(expectedPaths.shift());
@@ -22,7 +22,7 @@ describe('Model events without useEventObjects', function() {
     });
 
     it('calls later listeners in the order of mutations', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
       model.on('change', 'a', function() {
         model.set('b', 2);
       });
@@ -40,7 +40,7 @@ describe('Model events without useEventObjects', function() {
     });
 
     it('can omit the path argument', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
 
       model.at('a').on('change', function(value, prev) {
         expect(value).to.equal(1);
@@ -139,7 +139,7 @@ describe('Model events without useEventObjects', function() {
 describe('Model events with {useEventObjects: true}', function() {
   describe('mutator events', function() {
     it('calls earlier listeners in the order of mutations', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
       var expectedPaths = ['a', 'b', 'c'];
       model.on('change', '**', {useEventObjects: true}, function(_event, captures) {
         expect(captures).to.eql([expectedPaths.shift()]);
@@ -157,7 +157,7 @@ describe('Model events with {useEventObjects: true}', function() {
     });
 
     it('calls later listeners in the order of mutations', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
       model.on('change', 'a', function() {
         model.set('b', 2);
       });
@@ -175,7 +175,7 @@ describe('Model events with {useEventObjects: true}', function() {
     });
 
     it('can omit the path argument when useEventObjects is true', function(done) {
-      var model = (new racer.Model()).at('_page');
+      var model = (new racer.RootModel()).at('_page');
 
       model.at('a').on('change', {useEventObjects: true}, function(_event, captures) {
         expect(_event.value).to.equal(1);
@@ -189,7 +189,7 @@ describe('Model events with {useEventObjects: true}', function() {
   describe('insert and remove', function() {
     var model;
     before('set up', function() {
-      model = (new racer.Model()).at('_page');
+      model = (new racer.RootModel()).at('_page');
     });
 
     it('insert has expected properties', function(done) {

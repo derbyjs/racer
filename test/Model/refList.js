@@ -1,9 +1,9 @@
 var expect = require('../util').expect;
-var Model = require('../../lib/Model');
+var RootModel = require('../../lib/Model').RootModel;
 
 describe('refList', function() {
   function setup(options) {
-    var model = (new Model()).at('_page');
+    var model = (new RootModel()).at('_page');
     model.set('colors', {
       green: {
         id: 'green',
@@ -38,7 +38,7 @@ describe('refList', function() {
   }
   describe('sets output on initial call', function() {
     it('sets the initial value to empty array if no inputs', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.refList('empty', 'colors', 'noIds');
       expect(model.get('empty')).to.eql([]);
     });
@@ -63,7 +63,7 @@ describe('refList', function() {
   });
   describe('updates on `ids` mutations', function() {
     it('updates the value when `ids` is set', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('colors', {
         green: {
           id: 'green',
@@ -96,7 +96,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `ids` is set', function(done) {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('colors', {
         green: {
           id: 'green',
@@ -335,7 +335,7 @@ describe('refList', function() {
   });
   describe('emits events involving multiple refLists', function() {
     it('removes data from a refList pointing to data in another refList', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       var tagId = model.add('tags', {
         text: 'hi'
       });
@@ -352,7 +352,7 @@ describe('refList', function() {
   });
   describe('updates on `to` mutations', function() {
     it('updates the value when `to` is set', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       expect(model.get('list')).to.eql([undefined, undefined, undefined]);
@@ -385,7 +385,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `to` is set', function(done) {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       expectFromEvents(model, done, [
@@ -429,7 +429,7 @@ describe('refList', function() {
       });
     });
     it('updates the value when `to` children are set', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       model.set('colors.green', {
@@ -478,7 +478,7 @@ describe('refList', function() {
       ]);
     });
     it('emits on `from` when `to` children are set', function(done) {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('ids', ['red', 'green', 'red']);
       model.refList('list', 'colors', 'ids');
       expectFromEvents(model, done, [
@@ -572,7 +572,7 @@ describe('refList', function() {
       model.set('colors.red.rgb.0', 238);
     });
     it('updates the value when inserting on `to` children', function() {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('nums', {
         even: [2, 4, 6],
         odd: [1, 3]
@@ -584,7 +584,7 @@ describe('refList', function() {
       expect(model.get('list')).to.eql([[2, 4, 6, 8], [1, 3], [2, 4, 6, 8]]);
     });
     it('emits on `from` when inserting on `to` children', function(done) {
-      var model = (new Model()).at('_page');
+      var model = (new RootModel()).at('_page');
       model.set('nums', {
         even: [2, 4, 6],
         odd: [1, 3]
