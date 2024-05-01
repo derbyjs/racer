@@ -1,4 +1,3 @@
-import { Model } from './Model';
 import * as path from 'path';
 import * as util from './util';
 import { ModelOptions, RootModel } from './Model/Model';

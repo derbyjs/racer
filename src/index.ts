@@ -2,7 +2,7 @@ import { Racer } from './Racer';
 import * as util from './util';
 import type { ShareDBOptions } from 'sharedb';
 
-import { RacerBackend } from './Backend';
+import { type RacerBackend } from './Backend';
 import { RootModel, type ModelOptions } from './Model';
 
 export { Query } from './Model/Query';
@@ -37,5 +37,9 @@ export function createModel(data?) {
 }
 
 export function createBackend(options?: BackendOptions) {
-  return new RacerBackend(racer, options);
+  const backendModule = util.serverRequire(module, './Backend');
+  if (backendModule == null) {
+    throw new Error('racer.createBackend can only be called in server node process');
+  }
+  return new backendModule.RacerBackend(racer, options);
 }
