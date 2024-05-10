@@ -60,7 +60,7 @@ declare module './Model' {
      */
     del<S>(subpath: Path, cb?: Callback): S | undefined;
     del<T>(cb?: Callback): T | undefined;
-    delPromised(subpath: Path): Promise<void>;
+    delPromised(subpath?: Path): Promise<void>;
     _del<S>(segments: Segments, cb?: ErrorCallback): S;
 
     _delNoDereference(segments: Segments, cb?: ErrorCallback): void;
