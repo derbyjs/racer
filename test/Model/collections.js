@@ -31,6 +31,7 @@ describe('collections', () => {
     it('thows if value undefined', () => {
       const model = new RootModel();
       expect(() => model.getOrThrow('_test_doc', {name: 'bar'})).to.throw(`No value at path _test_doc`);
+      expect(() => model.scope('_test').getOrThrow('doc.1', {name: 'bar'})).to.throw(`No value at path _test.doc.1`);
     });
   });
 });
