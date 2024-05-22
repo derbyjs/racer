@@ -2,6 +2,7 @@ import { Doc } from './Doc';
 import { Model, RootModel } from './Model';
 import { JSONObject } from 'sharedb/lib/sharedb';
 import type { Path, ReadonlyDeep, ShallowCopiedValue, Segments } from '../types';
+
 var LocalDoc = require('./LocalDoc');
 var util = require('../util');
 
@@ -74,6 +75,21 @@ declare module './Model' {
     getDoc(collecitonName: string, id: string): any | undefined;
     getOrCreateCollection(name: string): Collection;
     getOrCreateDoc(collectionName: string, id: string, data: any);
+
+    /**
+     * Get a value that may be undefined but ensure value is returned
+     *
+     * @param subpath
+     * @param defaultValue value to return if no value at subpath
+     */
+    getOrDefault<S>(subpath: Path, defaultValue: S): ReadonlyDeep<S>;
+
+    /**
+     * Get a value and throw error if undefined
+     *
+     * @param subpath
+     */
+    getOrThrow<S>(subpath: Path): ReadonlyDeep<S>;
 
     _get(segments: Segments): any;
     _getCopy(segments: Segments): any;
@@ -150,6 +166,18 @@ Model.prototype._getDocConstructor = function(name: string) {
 Model.prototype.getOrCreateDoc = function(collectionName, id, data) {
   var collection = this.getOrCreateCollection(collectionName);
   return collection.getOrCreateDoc(id, data);
+};
+
+Model.prototype.getOrDefault = function<S>(subpath: Path, defaultValue: S) {
+  return this.get(subpath) ?? defaultValue as ReadonlyDeep<S>;
+};
+
+Model.prototype.getOrThrow = function<S>(subpath?: Path) {
+  const value = this.get(subpath);
+  if (value === undefined) {
+    throw new Error(`No value at path ${subpath}`)
+  }
+  return value;
 };
 
 /**
