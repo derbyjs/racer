@@ -174,8 +174,8 @@ Model.prototype.getOrDefault = function<S>(subpath: Path, defaultValue: S) {
 
 Model.prototype.getOrThrow = function<S>(subpath?: Path) {
   const value = this.get(subpath);
-  if (value === undefined) {
-    const fullpath = [this._at, subpath].filter(Boolean).join('.');
+  if (value == null) {
+    const fullpath = this.path(subpath);
     throw new Error(`No value at path ${fullpath}`)
   }
   return value;
