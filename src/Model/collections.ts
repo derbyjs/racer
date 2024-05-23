@@ -81,7 +81,7 @@ declare module './Model' {
     _getDeepCopy(segments: Segments): any;
 
     /**
-     * Gets array of values of collection at this models path or relative subpath
+     * Gets array of values of collection at this model's path or relative subpath
      *
      * If no values exist at subpath, an empty array is returned
      * @param subpath
@@ -134,7 +134,14 @@ Model.prototype._getDeepCopy = function(segments) {
 };
 
 Model.prototype.getValues = function<S>(subpath?: Path) {
-  return this.filter(subpath, null).get();
+  const value = this.get(subpath);
+  if (value == null) {
+    return [];
+  }
+  if (typeof value !== 'object') {
+    throw new Error(`Found non-object type for getValues('${this.path(subpath)}')`);
+  }
+  return Object.values(value) as ReadonlyDeep<S>[];
 }
 
 Model.prototype.getOrCreateCollection = function(name) {
