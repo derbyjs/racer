@@ -10,7 +10,7 @@ var RemoveEvent = mutationEvents.RemoveEvent;
 var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
 
-type ValueCallback<T> = ((error: Error | null | undefined, value?: T) => void);
+type ValueCallback<T> = ((error: Error | null | undefined, value: T) => void);
 
 declare module './Model' {
   interface Model<T> {
@@ -411,8 +411,8 @@ Model.prototype.addPromised = promisify<string>(Model.prototype.add);
 Model.prototype._add = function(segments, value, cb) {
   if (typeof value !== 'object') {
     let message = 'add requires an object value. Invalid value: ' + value;
-    cb = this.wrapCallback(cb);
-    cb(new Error(message));
+    const errorCallback = this.wrapCallback(cb);
+    errorCallback(new Error(message));
     return;
   }
 
