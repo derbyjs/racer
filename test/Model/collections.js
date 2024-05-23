@@ -26,7 +26,7 @@ describe('collections', () => {
       const model = new RootModel();
       const id = model.add('_colors', {rgb: 3});
       expect(
-        () => model.getValues(`_colors.${id}.rgb`),
+        () => model.getValues(`_colors.${id}.rgb`)
       ).to.throw(`Found non-object type for getValues('_colors.${id}.rgb')`);
     });
   });
