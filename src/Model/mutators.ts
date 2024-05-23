@@ -410,7 +410,7 @@ Model.prototype.addPromised = promisify<string>(Model.prototype.add);
 
 Model.prototype._add = function(segments, value, cb) {
   if (typeof value !== 'object') {
-    var message = 'add requires an object value. Invalid value: ' + value;
+    let message = 'add requires an object value. Invalid value: ' + value;
     cb = this.wrapCallback(cb);
     cb(new Error(message));
     return;
