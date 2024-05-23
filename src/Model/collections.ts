@@ -77,7 +77,7 @@ declare module './Model' {
     getOrCreateDoc(collectionName: string, id: string, data: any);
 
     /**
-     * Get a value that may be undefined but ensure value is returned
+     * Gets value at the path if not nullish, otherwise returns provided default value
      *
      * @param subpath
      * @param defaultValue value to return if no value at subpath
