@@ -85,8 +85,9 @@ declare module './Model' {
     getOrDefault<S>(subpath: Path, defaultValue: S): ReadonlyDeep<S>;
 
     /**
-     * Get a value and throw error if undefined
+     * Gets the value located at this model's path or a relative subpath.
      *
+     * If no value exists at the path, or the value is nullish (null or undefined), this will throw an error.
      * @param subpath
      */
     getOrThrow<S>(subpath: Path): ReadonlyDeep<S>;
