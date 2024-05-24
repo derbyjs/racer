@@ -10,6 +10,8 @@ var RemoveEvent = mutationEvents.RemoveEvent;
 var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
 
+type ValueCallback<T> = ((error: Error | null | undefined, value: T) => void);
+
 declare module './Model' {
   interface Model<T> {
     _mutate(segments, fn, cb): void;
@@ -43,11 +45,11 @@ declare module './Model' {
     createNullPromised(subpath: Path, value: any): Promise<void>;
     _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
 
-    add(value: any, cb?: ErrorCallback): string;
-    add(subpath: Path, value: any, cb?: ErrorCallback): string;
+    add(value: any, cb?: ValueCallback<string>): string;
+    add(subpath: Path, value: any, cb?: ValueCallback<string>): string;
     addPromised(value: any): Promise<string>;
     addPromised(subpath: Path, value: any): Promise<string>;
-    _add(segments: Segments, value: any, cb?: ErrorCallback): string;
+    _add(segments: Segments, value: any, cb?: ValueCallback<string>): string;
 
     /**
      * Deletes the value at this model's path or a relative subpath.
@@ -404,20 +406,23 @@ Model.prototype.add = function() {
   var segments = this._splitPath(subpath);
   return this._add(segments, value, cb);
 };
-Model.prototype.addPromised = promisify(Model.prototype.add);
+Model.prototype.addPromised = promisify<string>(Model.prototype.add);
 
 Model.prototype._add = function(segments, value, cb) {
   if (typeof value !== 'object') {
-    var message = 'add requires an object value. Invalid value: ' + value;
-    cb = this.wrapCallback(cb);
-    return cb(new Error(message));
+    let message = 'add requires an object value. Invalid value: ' + value;
+    const errorCallback = this.wrapCallback(cb);
+    errorCallback(new Error(message));
+    return;
   }
-  var id = value.id || this.id();
+
+  const id = value.id || this.id();
   value.id = id;
   segments = this._dereference(segments.concat(id));
-  var model = this;
+  const model = this;
+
   function add(doc, docSegments, fnCb) {
-    var previous;
+    let previous;
     if (docSegments.length) {
       previous = doc.set(docSegments, value, fnCb);
     } else {
@@ -426,10 +431,15 @@ Model.prototype._add = function(segments, value, cb) {
       // it being stored in the database by ShareJS
       value = doc.get();
     }
-    var event = new ChangeEvent(value, previous, model._pass);
+    const event = new ChangeEvent(value, previous, model._pass);
     model._emitMutation(segments, event);
   }
-  this._mutate(segments, add, cb);
+
+  const callbackWithId = (cb != null)
+    ? (err: Error) => { cb(err, id); }
+    : null;
+
+    this._mutate(segments, add, callbackWithId);
   return id;
 };
 
