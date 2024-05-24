@@ -1,0 +1,25 @@
+{
+  "projectName": "racer",
+  "projectOwner": "derbyjs",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "none",
+  "contributors": [
+    {
+      "login": "craigbeck",
+      "name": "Craig Beck",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1620605?v=4",
+      "profile": "http://craigbeck.io/",
+      "contributions": [
+        "test",
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7
+}
