@@ -3,6 +3,9 @@ import * as util from './util';
 import { ModelOptions, RootModel } from './Model/Model';
 import Backend = require('sharedb');
 
+/**
+ * RacerBackend extends ShareDb Backend
+ */
 export class RacerBackend extends Backend {
   racer: any;
   modelOptions: any;
@@ -17,6 +20,13 @@ export class RacerBackend extends Backend {
     });
   }
 
+  /**
+   * Create new `RootModel`
+   *
+   * @param options - optional model options
+   * @param request - optional request context See {@link sharedb.listen} for details.
+   * @returns a new root model
+   */
   createModel(options?: ModelOptions, req?: any) {
     if (this.modelOptions) {
       options = (options) ?
@@ -29,6 +39,12 @@ export class RacerBackend extends Backend {
     return model;
   };
 
+  /**
+   * Model middleware that creates and attaches a `Model` to the `request`
+   * and attaches listeners to response for closing model on response completion
+   *
+   * @returns an Express middleware function
+   */
   modelMiddleware() {
     var backend = this;
     function modelMiddleware(req, res, next) {

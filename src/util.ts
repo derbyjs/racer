@@ -177,18 +177,40 @@ export function promisify<T = void>(original) {
   return fn;
 }
 
+/**
+ * Conditionally require module only if in server process. No-op when called in browser.
+ * 
+ * @param module 
+ * @param id 
+ * @returns module or undefined
+ */
 export function serverRequire(module, id) {
   if (!isServer) return;
   return module.require(id);
 }
 
+/**
+ * Use plugin only if invoked in server process.
+ * 
+ * @param module 
+ * @param id 
+ * @param options - Optional  
+ * @returns 
+ */
 export function serverUse(module, id: string, options?: unknown) {
   if (!isServer) return this;
   var plugin = module.require(id);
   return this.use(plugin, options);
 }
 
-export function use(plugin, options?: unknown) {
+/**
+ * Use plugin
+ * 
+ * @param plugin
+ * @param options - Optional options passed to plugin
+ * @returns 
+ */
+export function use(plugin: (arg0: unknown, options?: unknown) => void, options?: unknown) {
   // Don't include a plugin more than once
   var plugins = this._plugins || (this._plugins = []);
   if (plugins.indexOf(plugin) === -1) {

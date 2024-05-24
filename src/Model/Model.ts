@@ -28,6 +28,9 @@ declare module './Model' {
 
 type ModelInitFunction = (instance: RootModel, options: ModelOptions) => void;
 
+/**
+ * Base class for Racer models
+ */
 export class Model<T = DefualtType> {
   static INITS: ModelInitFunction[] = [];
 
@@ -45,7 +48,11 @@ export class Model<T = DefualtType> {
   _preventCompose: boolean;
   _silent: boolean;
 
-
+  /**
+   * Creates a new Racer UUID
+   * 
+   * @returns a new Racer UUID.
+   * */
   id(): UUID {
     return uuidv4();
   }
@@ -55,6 +62,9 @@ export class Model<T = DefualtType> {
   };
 }
 
+/**
+ * RootModel is the model that holds all data and maintains connection info
+ */
 export class RootModel extends Model<ModelData> {
   backend: RacerBackend;
   connection: Connection;
@@ -70,6 +80,9 @@ export class RootModel extends Model<ModelData> {
   }
 }
 
+/**
+ * Model for some subset of the data
+ */
 export class ChildModel<T = DefualtType> extends Model<T> {
   constructor(model: Model<T>) {
     super();

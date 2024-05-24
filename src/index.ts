@@ -27,6 +27,12 @@ export {
 
 export const racer = new Racer();
 
+/**
+ * Creates new RootModel
+ * 
+ * @param data - Optional Data to initialize model with
+ * @returns RootModel
+ */
 export function createModel(data?) {
   var model = new RootModel();
   if (data) {
@@ -36,6 +42,12 @@ export function createModel(data?) {
   return model;
 }
 
+/**
+ * Creates racer backend. Can only be called in server process and throws error if called in browser.
+ * 
+ * @param options - Optional
+ * @returns racer backend
+ */
 export function createBackend(options?: BackendOptions) {
   const backendModule = util.serverRequire(module, './Backend');
   if (backendModule == null) {

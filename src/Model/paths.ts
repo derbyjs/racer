@@ -6,8 +6,14 @@ exports.mixin = {};
 
 declare module './Model' {
   interface Model<T> {
+    /**
+     * Returns a ChildModel scoped to a relative subpath under this model's path.
+     *
+     * @param subpath
+     */
     at(): ChildModel<T>;
     at<S = unknown>(subpath: PathLike): ChildModel<S>;
+    
     isPath(subpath: PathLike): boolean;
     leaf(path: string): string;
     parent(levels?: number): Model;
