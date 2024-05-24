@@ -19,7 +19,7 @@ describe('collections', () => {
       expect(value).to.eql(defaultValue);
     });
 
-    it('returns defult value if null', () => {
+    it('returns default value if null', () => {
       const model = new RootModel();
       const id = model.add('_test_doc', {name: null});
       const defaultValue = 'bar';
