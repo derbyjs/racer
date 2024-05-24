@@ -76,6 +76,22 @@ declare module './Model' {
     getOrCreateCollection(name: string): Collection;
     getOrCreateDoc(collectionName: string, id: string, data: any);
 
+    /**
+     * Gets value at the path if not nullish, otherwise returns provided default value
+     *
+     * @param subpath
+     * @param defaultValue value to return if no value at subpath
+     */
+    getOrDefault<S>(subpath: Path, defaultValue: S): ReadonlyDeep<S>;
+
+    /**
+     * Gets the value located at this model's path or a relative subpath.
+     *
+     * If no value exists at the path, or the value is nullish (null or undefined), this will throw an error.
+     * @param subpath
+     */
+    getOrThrow<S>(subpath: Path): ReadonlyDeep<S>;
+
     _get(segments: Segments): any;
     _getCopy(segments: Segments): any;
     _getDeepCopy(segments: Segments): any;
@@ -170,6 +186,19 @@ Model.prototype._getDocConstructor = function(name: string) {
 Model.prototype.getOrCreateDoc = function(collectionName, id, data) {
   var collection = this.getOrCreateCollection(collectionName);
   return collection.getOrCreateDoc(id, data);
+};
+
+Model.prototype.getOrDefault = function<S>(subpath: Path, defaultValue: S) {
+  return this.get(subpath) ?? defaultValue as ReadonlyDeep<S>;
+};
+
+Model.prototype.getOrThrow = function<S>(subpath?: Path) {
+  const value = this.get(subpath);
+  if (value == null) {
+    const fullpath = this.path(subpath);
+    throw new Error(`No value at path ${fullpath}`)
+  }
+  return value;
 };
 
 /**
