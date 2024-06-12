@@ -10,7 +10,7 @@ var RemoveEvent = mutationEvents.RemoveEvent;
 var MoveEvent = mutationEvents.MoveEvent;
 var promisify = util.promisify;
 
-type ValueCallback<T> = ((error: Error | null | undefined, value: T) => void);
+type ValueCallback<T> = ((error: Error | undefined, value: T) => void);
 
 declare module './Model' {
   interface Model<T> {
