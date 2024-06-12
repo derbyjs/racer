@@ -7,6 +7,8 @@ export const deepEqual = require('fast-deep-equal');
  * 
  * Set as 'browser' via build tools (e.g. webpack) to package
  * browser specific code to bundle
+ * 
+ * see {@link https://github.com/derbyjs/derby-webpack/blob/main/createConfig.js#L95 | derby-webpack}
  */
 export const isServer = process.title !== 'browser';
 

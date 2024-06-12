@@ -11,14 +11,24 @@ export type DefualtType = unknown;
 
 declare module './Model' {
   interface DebugOptions {
+    /** Enables browser side logging of ShareDB operations */
     debugMutations?: boolean,
+    /** Disable submitting of local operations to remote backend */
     disableSubmit?: boolean,
     remoteMutations?: boolean,
   }
   
   interface ModelOptions {
+    /** see {@link DebugOptions} */
     debug?: DebugOptions;
+    /** Ensure read-only access of model data */
     fetchOnly?: boolean;
+    /**
+     * Delay in milliseconds before actuallyunloading data after `unload` called
+     * 
+     * Default ot 0 on server, and 1000ms for browser. Runtime value can be inspected
+     * on {@link RootModel.unloadDelay} 
+     */
     unloadDelay?: number;
     bundleTimeout?: number;
   }
