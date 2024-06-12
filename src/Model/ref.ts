@@ -8,7 +8,18 @@ import type { Path, PathLike, Segments } from '../types';
 type Refable = string | number | Model<any> | Query | Filter<unknown>;
 
 export interface RefOptions {
+  /**
+   * If true, indicies will be updated.
+   */
   updateIndices: boolean;
+}
+
+export interface RefListOptions {
+  /**
+   * If true, then objects from the source collection will be deleted if the
+   * corresponding item is removed from the refList's output path.
+   */
+  deleteRemoved: boolean,
 }
 
 declare module './Model' {
@@ -24,18 +35,26 @@ declare module './Model' {
      *   object, where each id string key maps to an object value with matching
      *   `id` property.
      * @param idsPath - Path to an array of string ids
-     * @param options
-     * @param options.deleteRemoved - If true, then objects from the source
-     *   collection will be deleted if the corresponding item is removed from
-     *   the refList's output path
+     * @param options - Optional
      *
      * @see https://derbyjs.github.io/derby/models/refs
      */
-    refList<S>(outputPath: PathLike, collectionPath: PathLike, idsPath: PathLike, options?: { deleteRemoved?: boolean }): ChildModel<S>;
+    refList<S>(outputPath: PathLike, collectionPath: PathLike, idsPath: PathLike, options?: RefListOptions): ChildModel<S>;
 
     _canRefTo(value: Refable): boolean;
     // _canRefTo(from: Segments, to: Segments, options: RefOptions): boolean;
 
+    /**
+     * Creates a reference for this model pointing to another path `to`. Like a
+     * symlink, any reads/writes on this `to` ref will work as if they were done on
+     * `path` directly.
+     *
+     * @param to - Location that the reference points to
+     * @return a model scoped to `path`
+     *
+     * @see https://derbyjs.github.io/derby/models/refs
+     */
+    ref<S>(to: PathLike): ChildModel<S>;
     /**
      * Creates a reference at `path` pointing to another path `to`. Like a
      * symlink, any reads/writes on `path` will work as if they were done on
@@ -44,11 +63,11 @@ declare module './Model' {
      * @param path - Location at which to create the reference. This must be
      *   under a local collection, typically `'_page'` or a component model.
      * @param to - Location that the reference points to
+     * @params options - Optional {@link RefOptions}
      * @return a model scoped to `path`
      *
      * @see https://derbyjs.github.io/derby/models/refs
      */
-    ref<S>(to: PathLike): ChildModel<S>;
     ref<S>(path: PathLike, to: PathLike, options?: RefOptions): ChildModel<S>;
     _ref<T>(from: Segments, to: Segments, options?: RefOptions): void;
 

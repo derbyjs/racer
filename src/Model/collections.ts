@@ -33,7 +33,19 @@ declare module './Model' {
     destroy(subpath?: Path): void;
 
     /**
-     * Gets the value located at this model's path or a relative subpath.
+     * Gets the value located at this model's path.
+     *
+     * If no value exists at the path, this returns `undefined`.
+     *
+     * _Note:_ The value is returned by reference, and object values should not
+     * be directly modified - use the Model mutator methods instead. The
+     * TypeScript compiler will enforce no direct modifications, but there are
+     * no runtime guards, which means JavaScript source code could still
+     * improperly make direct modifications.
+     */
+    get(): ReadonlyDeep<T> | undefined;
+    /**
+     * Gets the value located at a relative subpath.
      *
      * If no value exists at the path, this returns `undefined`.
      *
@@ -45,7 +57,6 @@ declare module './Model' {
      *
      * @param subpath
      */
-    get(): ReadonlyDeep<T> | undefined;
     get<S>(subpath?: Path): ReadonlyDeep<S> | undefined;
     
     getCollection(collectionName: string): Collection<JSONObject>;

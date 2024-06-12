@@ -65,7 +65,7 @@ declare module './Model' {
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
-     * @param path - Optional Collection under which to add the document
+     * @param subpath - Optional Collection under which to add the document
      * @param value - Document to add
      * @param cb - Optional callback
      */
@@ -80,6 +80,7 @@ declare module './Model' {
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
+     * @typeParam S - Type of the data returned by delete operation
      * @param subpath
      * @returns the old value at the path
      */
@@ -90,6 +91,7 @@ declare module './Model' {
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
+     * @typeParam T - Type of the data returned by delete operation
      * @returns the old value at the path
      */
     del<T>(cb?: Callback): T | undefined;
@@ -115,11 +117,17 @@ declare module './Model' {
     /**
      * Push a value to a model array
      *
-     * @param subpath
      * @param value
      * @returns the length of the array
      */
     push(value: any): number;
+    /**
+     * Push a value to a model array at subpath
+     *
+     * @param subpath
+     * @param value
+     * @returns the length of the array
+     */
     push(subpath: Path, value: any, cb?: ErrorCallback): number;
     pushPromised(value: any): Promise<void>;
     pushPromised(subpath: Path, value: any): Promise<void>;
@@ -143,7 +151,7 @@ declare module './Model' {
      *
      * If a callback is provided, it's called when the write is committed or
      * fails.
-     *
+     * @typeParam V - type of data at subpath
      * @param subpath
      * @returns the removed item
      */
@@ -164,7 +172,8 @@ declare module './Model' {
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
-     * @param subpath
+     * @typeParam - Type of data targeted by remove operation
+     * @param subpath - Subpath to remove
      * @param index - 0-based index at which to start removing items
      * @param howMany - Number of items to remove. Defaults to `1`.
      * @returns array of the removed items

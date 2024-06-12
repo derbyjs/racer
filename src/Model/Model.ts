@@ -30,6 +30,8 @@ type ModelInitFunction = (instance: RootModel, options: ModelOptions) => void;
 
 /**
  * Base class for Racer models
+ * 
+ * @typeParam T - Type of data the Model contains
  */
 export class Model<T = DefualtType> {
   static INITS: ModelInitFunction[] = [];
@@ -82,6 +84,8 @@ export class RootModel extends Model<ModelData> {
 
 /**
  * Model for some subset of the data
+ * 
+ * @typeParam T - type of data the ChildModel contains.
  */
 export class ChildModel<T = DefualtType> extends Model<T> {
   constructor(model: Model<T>) {

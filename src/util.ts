@@ -1,6 +1,16 @@
+
+/** @private */
 export const deepEqual = require('fast-deep-equal');
+
+/** 
+ * Checks process.title is not equal to 'browser'
+ * 
+ * Set as 'browser' via build tools (e.g. webpack) to package
+ * browser specific code to bundle
+ */
 export const isServer = process.title !== 'browser';
 
+/** @private */
 export function asyncGroup(cb) {
   var group = new AsyncGroup(cb);
   return function asyncGroupAdd() {
@@ -39,17 +49,20 @@ class AsyncGroup {
   }
 }
 
+/** @private */
 function castSegment(segment: string | number): string | number {
   return (typeof segment === 'string' && isArrayIndex(segment))
     ? +segment // sneaky op to convert numeric string to number
     : segment;
 }
 
+/** @private */
 export function castSegments(segments: Readonly<Array<string | number>>) {
   // Cast number path segments from strings to numbers
   return segments.map(segment => castSegment(segment));
 }
 
+/** @private */
 export function contains(segments, testSegments) {
   for (var i = 0; i < segments.length; i++) {
     if (segments[i] !== testSegments[i]) return false;
@@ -57,6 +70,7 @@ export function contains(segments, testSegments) {
   return true;
 }
 
+/** @private */
 export function copy(value) {
   if (value instanceof Date) return new Date(value);
   if (typeof value === 'object') {
@@ -67,6 +81,7 @@ export function copy(value) {
   return value;
 }
 
+/** @private */
 export function copyObject(object) {
   var out = new object.constructor();
   for (var key in object) {
@@ -77,6 +92,7 @@ export function copyObject(object) {
   return out;
 }
 
+/** @private */
 export function deepCopy(value) {
   if (value instanceof Date) return new Date(value);
   if (typeof value === 'object') {
@@ -99,19 +115,23 @@ export function deepCopy(value) {
   return value;
 }
 
+/** @private */
 export function equal(a, b) {
   return (a === b) || (equalsNaN(a) && equalsNaN(b));
 }
 
+/** @private */
 export function equalsNaN(x) {
   // eslint-disable-next-line no-self-compare
   return x !== x;
 }
 
+/** @private */
 export function isArrayIndex(segment: string): boolean {
   return (/^[0-9]+$/).test(segment);
 }
 
+/** @private */
 export function lookup(segments: string[], value: unknown): unknown {
   if (!segments) return value;
 
@@ -122,6 +142,7 @@ export function lookup(segments: string[], value: unknown): unknown {
   return value;
 }
 
+/** @private */
 export function mayImpactAny(segmentsList: string[][], testSegments: string[]) {
   for (var i = 0, len = segmentsList.length; i < len; i++) {
     if (mayImpact(segmentsList[i], testSegments)) return true;
@@ -129,6 +150,7 @@ export function mayImpactAny(segmentsList: string[][], testSegments: string[]) {
   return false;
 }
 
+/** @private */
 export function mayImpact(segments: string[], testSegments: string[]): boolean {
   var len = Math.min(segments.length, testSegments.length);
   for (var i = 0; i < len; i++) {
@@ -137,6 +159,7 @@ export function mayImpact(segments: string[], testSegments: string[]): boolean {
   return true;
 }
 
+/** @private */
 export function mergeInto(to, from) {
   for (var key in from) {
     to[key] = from[key];
@@ -144,6 +167,7 @@ export function mergeInto(to, from) {
   return to;
 }
 
+/** @private */
 export function promisify<T = void>(original) {
   if (typeof original !== 'function') {
     throw new TypeError('The "original" argument must be of type Function');

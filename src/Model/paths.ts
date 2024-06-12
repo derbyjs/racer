@@ -7,20 +7,59 @@ exports.mixin = {};
 declare module './Model' {
   interface Model<T> {
     /**
-     * Returns a ChildModel scoped to a relative subpath under this model's path.
-     *
-     * @param subpath
+     * Returns a ChildModel scoped to the root path.
      */
     at(): ChildModel<T>;
-    at<S = unknown>(subpath: PathLike): ChildModel<S>;
     
+    /**
+     * Returns a ChildModel scoped to a relative subpath under this model's path.
+     *
+     * @typeParam S - type of data at subpath
+     * @param subpath
+     */
+    at<S = unknown>(subpath: PathLike): ChildModel<S>;
+
+    /**
+     * Check if subpath is a PathLike
+     * 
+     * @param subpath 
+     * @returns boolean
+     */
     isPath(subpath: PathLike): boolean;
+    
     leaf(path: string): string;
+    
+    /**
+     * Get the parent {levels} up from current model or root model
+     * @param levels - number of levels to traverse the tree
+     * @returns parent or root model
+     */
     parent(levels?: number): Model;
+    
+    /**
+     * Get full path to given subpath
+     * 
+     * @param subpath - PathLike subpath
+     */
     path(subpath?: PathLike): string;
+
+    /**
+     * Returns a ChildModel scoped to the root path.
+     * 
+     * @returns ChildModel
+     */
     scope(): ChildModel<ModelData>;
+
+    /**
+     * Returns a ChildModel scoped to an absolute path.
+     *
+     * @typeParam S - Type of data at subpath
+     * @param subpath - Path of GhildModel to scope to
+     * @returns ChildModel
+     */
     scope<S = unknown>(subpath: Path): ChildModel<S>;
     
+    /** @private */
     _splitPath(subpath: PathLike): string[];
   }
 }
