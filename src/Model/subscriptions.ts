@@ -7,7 +7,7 @@ const UnloadEvent = mutationEvents.UnloadEvent;
 const promisify = util.promisify;
 
 /**
- * A path string, a `Model`, or a `Query`.
+ * A path string, a {@link Model}, or a {@link Query}.
  */
 export type Subscribable = string | Model<unknown> | Query<unknown>;
 
