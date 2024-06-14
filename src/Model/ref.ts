@@ -4,6 +4,7 @@ import { Model } from './Model';
 import { type Filter } from './filter';
 import { type Query } from './Query';
 import type { Path, PathLike, Segments } from '../types';
+import { type RefListOptions } from './refList';
 
 type Refable = string | number | Model<any> | Query | Filter<unknown>;
 
@@ -12,14 +13,6 @@ export interface RefOptions {
    * If true, indicies will be updated.
    */
   updateIndices: boolean;
-}
-
-export interface RefListOptions {
-  /**
-   * If true, then objects from the source collection will be deleted if the
-   * corresponding item is removed from the refList's output path.
-   */
-  deleteRemoved: boolean,
 }
 
 declare module './Model' {

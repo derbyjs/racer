@@ -47,7 +47,7 @@ export class RacerBackend extends Backend {
   };
 
   /**
-   * Model middleware that creates and attaches a `Model` to the `request`
+   * Model middleware that creates and attaches a {@link Model} to the `request`
    * and attaches listeners to response for closing model on response completion
    *
    * @returns an Express middleware function

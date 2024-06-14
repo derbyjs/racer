@@ -24,9 +24,9 @@ declare module './Model' {
     /** Ensure read-only access of model data */
     fetchOnly?: boolean;
     /**
-     * Delay in milliseconds before actuallyunloading data after `unload` called
+     * Delay in milliseconds before actually unloading data after `unload` called
      * 
-     * Default ot 0 on server, and 1000ms for browser. Runtime value can be inspected
+     * Default to 0 on server, and 1000ms for browser. Runtime value can be inspected
      * on {@link RootModel.unloadDelay} 
      */
     unloadDelay?: number;
