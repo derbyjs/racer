@@ -2,7 +2,7 @@
 /// <reference path="./connection.server.ts" />
 
 import { serverRequire } from '../util';
-export { Model, ChildModel, RootModel, ModelOptions, type UUID, type DefualtType } from './Model';
+export { Model, ChildModel, RootModel, type ModelOptions, type UUID, type DefualtType } from './Model';
 export { ModelData } from './collections';
 export { type Subscribable } from './subscriptions';
 

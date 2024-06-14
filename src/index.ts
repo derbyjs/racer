@@ -2,8 +2,9 @@ import { Racer } from './Racer';
 import * as util from './util';
 import type { ShareDBOptions } from 'sharedb';
 
-import { type RacerBackend } from './Backend';
-import { RootModel, type ModelOptions } from './Model';
+export { type RacerBackend, type BackendOptions } from './Backend';
+import { RootModel } from './Model';
+import { type BackendOptions } from './Backend';
 
 export { Query } from './Model/Query';
 export { Model, ChildModel, ModelData, type UUID, type Subscribable, type DefualtType, type ModelOptions } from './Model';
@@ -15,11 +16,8 @@ export * as util from './util';
 
 const { use, serverUse } = util;
 
-export type BackendOptions = { modelOptions?: ModelOptions } & ShareDBOptions;
-
 export {
   Racer,
-  RacerBackend,
   RootModel,
   use,
   serverUse,
@@ -27,6 +25,12 @@ export {
 
 export const racer = new Racer();
 
+/**
+ * Creates new RootModel
+ * 
+ * @param data - Optional Data to initialize model with
+ * @returns RootModel
+ */
 export function createModel(data?) {
   var model = new RootModel();
   if (data) {
@@ -36,6 +40,12 @@ export function createModel(data?) {
   return model;
 }
 
+/**
+ * Creates racer backend. Can only be called in server process and throws error if called in browser.
+ * 
+ * @param options - Optional
+ * @returns racer backend
+ */
 export function createBackend(options?: BackendOptions) {
   const backendModule = util.serverRequire(module, './Backend');
   if (backendModule == null) {

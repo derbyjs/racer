@@ -44,24 +44,65 @@ declare module './Model' {
     createNullPromised(value: any): Promise<void>;
     createNullPromised(subpath: Path, value: any): Promise<void>;
     _createNull(segments: Segments, value: any, cb?: ErrorCallback): void;
-
+    
+    /**
+     * Adds a document to the collection, under an id subpath corresponding
+     * to either the document's `id` property if present, or else a new randomly
+     * generated id.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param value - Document to add
+     * @param cb - Optional callback
+     */
     add(value: any, cb?: ValueCallback<string>): string;
+    /**
+     * Adds a document to the collection, under an id subpath corresponding
+     * to either the document's `id` property if present, or else a new randomly
+     * generated id.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @param subpath - Optional Collection under which to add the document
+     * @param value - Document to add
+     * @param cb - Optional callback
+     */
     add(subpath: Path, value: any, cb?: ValueCallback<string>): string;
     addPromised(value: any): Promise<string>;
     addPromised(subpath: Path, value: any): Promise<string>;
     _add(segments: Segments, value: any, cb?: ValueCallback<string>): string;
 
     /**
-     * Deletes the value at this model's path or a relative subpath.
+     * Deletes the value at this relative subpath.
      *
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
+     * @typeParam S - Type of the data returned by delete operation
      * @param subpath
      * @returns the old value at the path
      */
     del<S>(subpath: Path, cb?: Callback): S | undefined;
+    /**
+     * Deletes the value at this model's path.
+     *
+     * If a callback is provided, it's called when the write is committed or
+     * fails.
+     *
+     * @typeParam T - Type of the data returned by delete operation
+     * @returns the old value at the path
+     */
     del<T>(cb?: Callback): T | undefined;
+    /**
+     * Deletes the value at this relative subpath. If not provided deletes at model path
+     *
+     * Promise resolves when commit succeeds, rejected on commit failure.
+     *
+     * @param subpath - Optional subpath to delete
+     * @returns promise
+     */
     delPromised(subpath?: Path): Promise<void>;
     _del<S>(segments: Segments, cb?: ErrorCallback): S;
 
@@ -76,11 +117,17 @@ declare module './Model' {
     /**
      * Push a value to a model array
      *
-     * @param subpath
      * @param value
      * @returns the length of the array
      */
     push(value: any): number;
+    /**
+     * Push a value to a model array at subpath
+     *
+     * @param subpath
+     * @param value
+     * @returns the length of the array
+     */
     push(subpath: Path, value: any, cb?: ErrorCallback): number;
     pushPromised(value: any): Promise<void>;
     pushPromised(subpath: Path, value: any): Promise<void>;
@@ -104,7 +151,7 @@ declare module './Model' {
      *
      * If a callback is provided, it's called when the write is committed or
      * fails.
-     *
+     * @typeParam V - type of data at subpath
      * @param subpath
      * @returns the removed item
      */
@@ -125,7 +172,8 @@ declare module './Model' {
      * If a callback is provided, it's called when the write is committed or
      * fails.
      *
-     * @param subpath
+     * @typeParam - Type of data targeted by remove operation
+     * @param subpath - Subpath to remove
      * @param index - 0-based index at which to start removing items
      * @param howMany - Number of items to remove. Defaults to `1`.
      * @returns array of the removed items

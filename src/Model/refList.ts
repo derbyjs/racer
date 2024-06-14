@@ -2,10 +2,18 @@ import { EventListenerTree } from './EventListenerTree';
 import { EventMapTree } from './EventMapTree';
 import { Model } from './Model';
 
+export interface RefListOptions {
+  /**
+   * If true, then objects from the source collection will be deleted if the
+   * corresponding item is removed from the refList's output path.
+   */
+  deleteRemoved: boolean,
+}
+
 declare module './Model' {
   interface Model {
-    refList(to: any, ids: any, options?: any): RefList;
-    refList(from: any, to: any, ids: any, options?: any): RefList;
+    refList(to: any, ids: any, options?: RefListOptions): RefList;
+    refList(from: any, to: any, ids: any, options?: RefListOptions): RefList;
   }
 }
 
@@ -385,10 +393,10 @@ export class RefList{
   fromSegments: any;
   toSegments: any;
   idsSegments: any;
-  options: any;
+  options?: RefListOptions;
   deleteRemoved: boolean;
 
-  constructor(model: Model, from, to, ids, options) {
+  constructor(model: Model, from, to, ids, options?: RefListOptions) {
     this.model = model && model.pass({$refList: this});
     this.from = from;
     this.to = to;

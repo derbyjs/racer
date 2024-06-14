@@ -24,8 +24,22 @@ declare module './Model' {
      * @see https://derbyjs.github.io/derby/models/contexts
      */
     context(contextId: string): ChildModel<T>;
-    getOrCreateContext(id: string): Context;
-    setContext(id: string): void;
+    /**
+     * Get the named context or create a new named context if it doesnt exist.
+     * 
+     * @param contextId context id
+     * 
+     * @see https://derbyjs.github.io/derby/models/contexts
+     */
+    getOrCreateContext(contextId: string): Context;
+    /**
+     * Set the named context to use for this model.
+     * 
+     * @param contextId context id
+     * 
+     * @see https://derbyjs.github.io/derby/models/contexts
+     */
+    setContext(contextId: string): void;
     
     /**
      * Unloads data for this model's context, or for a specific named context.
@@ -52,24 +66,24 @@ Model.INITS.push(function(model) {
   model.root.setContext('root');
 });
 
-Model.prototype.context = function(id) {
+Model.prototype.context = function(contextId) {
   var model = this._child();
-  model.setContext(id);
+  model.setContext(contextId);
   return model;
 };
 
-Model.prototype.setContext = function(id) {
-  this._context = this.getOrCreateContext(id);
+Model.prototype.setContext = function(contextId) {
+  this._context = this.getOrCreateContext(contextId);
 };
 
-Model.prototype.getOrCreateContext = function(id) {
-  var context = this.root._contexts[id] ||
-    (this.root._contexts[id] = new Context(this, id));
+Model.prototype.getOrCreateContext = function(contextId) {
+  var context = this.root._contexts[contextId] ||
+    (this.root._contexts[contextId] = new Context(this, contextId));
   return context;
 };
 
-Model.prototype.unload = function(id) {
-  var context = (id) ? this.root._contexts[id] : this._context;
+Model.prototype.unload = function(contextId) {
+  var context = (contextId) ? this.root._contexts[contextId] : this._context;
   context && context.unload();
 };
 

@@ -7,7 +7,7 @@ const UnloadEvent = mutationEvents.UnloadEvent;
 const promisify = util.promisify;
 
 /**
- * A path string, a `Model`, or a `Query`.
+ * A path string, a {@link Model}, or a {@link Query}.
  */
 export type Subscribable = string | Model<unknown> | Query<unknown>;
 
@@ -16,21 +16,69 @@ declare module './Model' {
     /**
      * Retrieve data from the server, loading it into the model.
      *
-     * @param items
-     * @param cb
+     * @param items - Items to fetch
+     * @param cb - Callback called when operation completed
      *
      * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     fetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    /**
+     * Retrieve data from the server, loading it into the model.
+     *
+     * @param item - Item to fetch
+     * @param cb - Callback called when operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     fetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    /**
+     * Retrieve data from the server, loading it into the model.
+     *
+     * @param cb - Callback called when operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     fetch(cb?: ErrorCallback): Model<T>;
     
+    /**
+     * Promised version of {@link Model.fetch}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     *
+     * @param items
+     */
     fetchPromised(items: Subscribable[]): Promise<void>;
+    /**
+     * Promised version of {@link Model.fetch}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     *
+     * @param item
+     */
     fetchPromised(item: Subscribable): Promise<void>;
+    /**
+     * Promised version of {@link Model.fetch}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     */
     fetchPromised(): Promise<void>;
 
+    /**
+     * Retrieve data from the server, loading it into the model.
+     *
+     * @param collecitonName - Name of colleciton to load item to
+     * @param id - Id of doc to load
+     * @param callback - Callback called when operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     fetchDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
+    /**
+     * Promised version of {@link Model.fetchDoc}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     *
+     * @param collecitonName - Name of colleciton to load item to
+     * @param id - Id of doc to load
+     */
     fetchDocPromised(collecitonName: string, id: string): Promise<void>;
+
     fetchOnly: boolean;
 
     /**
@@ -40,60 +88,186 @@ declare module './Model' {
      *
      * Any item that's already subscribed will not result in a network call.
      *
-     * @param items
-     * @param cb
+     * @param items - Item to subscribe to
+     * @param cb - Callback called when operation completed
      *
      * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     subscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    /**
+     * Retrieve data from the server, loading it into the model. In addition,
+     * subscribe to the items, such that updates from any other client will
+     * automatically get reflected in this client's model.
+     *
+     * Any item that's already subscribed will not result in a network call.
+     *
+     * @param item - Item to subscribe to
+     * @param cb - Callback called when operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     subscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    /**
+     * Retrieve data from the server, loading it into the model. In addition,
+     * subscribe to the items, such that updates from any other client will
+     * automatically get reflected in this client's model.
+     *
+     * Any item that's already subscribed will not result in a network call.
+     *
+     * @param cb - Callback called when operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     subscribe(cb?: ErrorCallback): Model<T>;
-
+    /**
+     * Promised version of {@link Model.subscribe}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     *
+     * @param items - Items to subscribe to
+     */
     subscribePromised(items: Subscribable[]): Promise<void>;
+    /**
+     * Promised version of {@link Model.subscribe}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     *
+     * @param item - Item to subscribe to
+     */
     subscribePromised(item: Subscribable): Promise<void>;
+    /**
+     * Promised version of {@link Model.subscribe}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     */
     subscribePromised(): Promise<void>;
 
     subscribeDoc(collecitonName: string, id: string, callback?: ErrorCallback): void;
     subscribeDocPromised(collecitonName: string, id: string): Promise<void>;
 
     /**
-     * The reverse of `#fetch`, marking the items as no longer needed in the
+     * The reverse of {@link Model.fetch}, marking the items as no longer needed in the
      * model.
      *
-     * @param items
-     * @param cb
+     * @param items - Items to unfetch
+     * @param cb  - Optional Called after operation completed
      *
      * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     unfetch(items: Subscribable[], cb?: ErrorCallback): Model<T>;
-    unfetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
-    unfetch(cb?: ErrorCallback): Model<T>;
-
-    unfetchPromised(items: Subscribable[]): Promise<void>;
-    unfetchPromised(item: Subscribable): Promise<void>;
-    unfetchPromised(): Promise<void>;
-    
-    unfetchDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unfetchDocPromised(collecitonName: string, id: string): Promise<void>;
-    unloadDelay: number;
-
-
     /**
-     * The reverse of `#subscribe`, marking the items as no longer needed in the
+     * The reverse of {@link Model.fetch}, marking the items as no longer needed in the
      * model.
      *
-     * @param items
-     * @param cb
+     * @param item - Item to unfetch
+     * @param cb  - Optional Called after operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
+    unfetch(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    /**
+     * The reverse of {@link Model.fetch}, marking the items as no longer needed in the
+     * model.
+     *
+     * @param cb  - Optional Called after operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
+    unfetch(cb?: ErrorCallback): Model<T>;
+
+    /**
+     * Promised unfetch. See {@link Model.unfetch}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     * 
+     * @param items - Items to unfetch
+     * @returns Promise<void>
+     */
+    unfetchPromised(items: Subscribable[]): Promise<void>;
+    /**
+     * Promised unfetch. See {@link Model.unfetch}. Instead of a callback, returns a promise
+     * that is resolved when operation completed
+     * 
+     * @param item - Item to unfetch
+     * @returns Promise<void>
+     */
+    unfetchPromised(item: Subscribable): Promise<void>;
+    /**
+     * Promised {@link Model.unfetch}. Instead of taking a callback, returns a promise
+     * that is resolved when operation completed
+     * 
+     * @returns Promise<void>
+     */
+    unfetchPromised(): Promise<void>;
+    
+    /**
+     * Unfetch a document give collection name and document id
+     * 
+     * @param collectionName - Collection name
+     * @param id - Document id to be unfeched
+     */
+    unfetchDoc(collectionName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
+    /**
+     * Promised {@link Model.unfetchDoc}. Instead of taking a callback, returns a promise
+     * that is resolved when operation completed
+     * 
+     * @param collectionName - Collection name
+     * @param id - Document id to be unfeched
+     * @returns  Promise<void>
+     */
+    unfetchDocPromised(collectionName: string, id: string): Promise<void>;
+    /**
+     * Delay in milliseconds before model data actually unloaded after call to {@link Model.unload}
+     */
+    unloadDelay: number;
+
+    /**
+     * The reverse of {@link Model.subscribe}, marking the items as no longer needed in the
+     * model.
+     *
+     * @param items - The items to unsubscribe
+     * @param cb  - Optional Called after operation completed
      *
      * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
      */
     unsubscribe(items: Subscribable[], cb?: ErrorCallback): Model<T>;
+    /**
+     * The reverse of {@link Model.subscribe}, marking the items as no longer needed in the
+     * model.
+     *
+     * @param item - The item to unsubscribe
+     * @param cb  - Optional Called after operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     unsubscribe(item: Subscribable, cb?: ErrorCallback): Model<T>;
+    /**
+     * The reverse of {@link Model.subscribe}, marking the items as no longer needed in the
+     * model.
+     *
+     * @param cb  - Optional Called after operation completed
+     *
+     * @see https://derbyjs.github.io/derby/models/backends#loading-data-into-a-model
+     */
     unsubscribe(cb?: ErrorCallback): Model<T>;
 
+    /**
+     * Promised version of {@link Model.unsubscribe}. Instead of taking a callback, returns a promise
+     * that is resolved when operation completed
+     */
     unsubscribePromised(): Promise<void>;
-    unsubscribeDoc(collecitonName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
-    unsubscribeDocPromised(collecitonName: string, id: string): Promise<void>;
+
+    /**
+     * Unsubscribe document by collection name and id
+     * 
+     * @param collectionName - Name of collection containting document
+     * @param id - Document id to unsubscribe
+     * @param callback  - Optional Called after operation completed
+     */
+    unsubscribeDoc(collectionName: string, id: string, callback?: (err?: Error, count?: number) => void): void;
+    /**
+     * Promised version of {@link Model.unsubscribeDoc}
+     * 
+     * @param collectionName - Name of collection containting document
+     * @param id - Document id to unsbscribe
+     */
+    unsubscribeDocPromised(collectionName: string, id: string): Promise<void>;
 
     _fetchedDocs: CollectionCounter;
     _forSubscribable(argumentsObject: any, method: any): void;

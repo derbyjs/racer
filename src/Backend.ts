@@ -1,13 +1,23 @@
 import * as path from 'path';
 import * as util from './util';
-import { ModelOptions, RootModel } from './Model/Model';
+import { type ModelOptions, RootModel } from './Model/Model';
 import Backend = require('sharedb');
 
+export type BackendOptions = { modelOptions?: ModelOptions } & Backend.ShareDBOptions;
+
+/**
+ * RacerBackend extends ShareDb Backend
+ */
 export class RacerBackend extends Backend {
   racer: any;
-  modelOptions: any;
+  modelOptions: ModelOptions;
 
-  constructor(racer: any, options?: { modelOptions?: ModelOptions } & Backend.ShareDBOptions) {
+  /**
+   * 
+   * @param racer - Racer instance
+   * @param options - Model and SharedB options 
+   */
+  constructor(racer: any, options?: BackendOptions) {
     super(options);
     this.racer = racer;
     this.modelOptions = options && options.modelOptions;
@@ -17,7 +27,14 @@ export class RacerBackend extends Backend {
     });
   }
 
-  createModel(options?: ModelOptions, req?: any) {
+  /**
+   * Create new `RootModel`
+   *
+   * @param options - Optional model options
+   * @param request - Optional request context See {@link Backend.listen} for details.
+   * @returns a new root model
+   */
+  createModel(options?: ModelOptions, request?: any) {
     if (this.modelOptions) {
       options = (options) ?
         util.mergeInto(options, this.modelOptions) :
@@ -25,10 +42,16 @@ export class RacerBackend extends Backend {
     }
     var model = new RootModel(options);
     this.emit('model', model);
-    model.createConnection(this, req);
+    model.createConnection(this, request);
     return model;
   };
 
+  /**
+   * Model middleware that creates and attaches a {@link Model} to the `request`
+   * and attaches listeners to response for closing model on response completion
+   *
+   * @returns an Express middleware function
+   */
   modelMiddleware() {
     var backend = this;
     function modelMiddleware(req, res, next) {

@@ -11,14 +11,24 @@ export type DefualtType = unknown;
 
 declare module './Model' {
   interface DebugOptions {
+    /** Enables browser side logging of ShareDB operations */
     debugMutations?: boolean,
+    /** Disable submitting of local operations to remote backend */
     disableSubmit?: boolean,
     remoteMutations?: boolean,
   }
   
   interface ModelOptions {
+    /** see {@link DebugOptions} */
     debug?: DebugOptions;
+    /** Ensure read-only access of model data */
     fetchOnly?: boolean;
+    /**
+     * Delay in milliseconds before actually unloading data after `unload` called
+     * 
+     * Default to 0 on server, and 1000ms for browser. Runtime value can be inspected
+     * on {@link RootModel.unloadDelay} 
+     */
     unloadDelay?: number;
     bundleTimeout?: number;
   }
@@ -28,6 +38,11 @@ declare module './Model' {
 
 type ModelInitFunction = (instance: RootModel, options: ModelOptions) => void;
 
+/**
+ * Base class for Racer models
+ * 
+ * @typeParam T - Type of data the Model contains
+ */
 export class Model<T = DefualtType> {
   static INITS: ModelInitFunction[] = [];
 
@@ -45,7 +60,11 @@ export class Model<T = DefualtType> {
   _preventCompose: boolean;
   _silent: boolean;
 
-
+  /**
+   * Creates a new Racer UUID
+   * 
+   * @returns a new Racer UUID.
+   * */
   id(): UUID {
     return uuidv4();
   }
@@ -55,6 +74,9 @@ export class Model<T = DefualtType> {
   };
 }
 
+/**
+ * RootModel is the model that holds all data and maintains connection info
+ */
 export class RootModel extends Model<ModelData> {
   backend: RacerBackend;
   connection: Connection;
@@ -70,6 +92,11 @@ export class RootModel extends Model<ModelData> {
   }
 }
 
+/**
+ * Model for some subset of the data
+ * 
+ * @typeParam T - type of data the ChildModel contains.
+ */
 export class ChildModel<T = DefualtType> extends Model<T> {
   constructor(model: Model<T>) {
     super();
