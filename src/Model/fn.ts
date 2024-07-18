@@ -7,7 +7,7 @@ var util = require('../util');
 
 class NamedFns { }
 
-type StartFnParam = string | number | boolean | null | undefined | ReadonlyDeep<unknown>;
+type StartFnParam = unknown;
 
 type ModelFn<Ins extends unknown[], Out> =
   (...inputs: Ins) => Out |
@@ -89,6 +89,10 @@ declare module './Model' {
      *
      * It's not recommended to use this in most cases. Instead, to share reactive functions,
      * have the components import a shared function to pass to `model.start`.
+     *
+     * @deprecated The use of named funcitons is deprecated. With typescript and modern tooling
+     * you get better type information, code navigation, and refactoring support that is lost
+     * when using named functions.
      *
      * @param name name of the function to define
      * @param fn either a reactive function that accepts inputs and returns output, or
