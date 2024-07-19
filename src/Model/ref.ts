@@ -47,7 +47,7 @@ declare module './Model' {
      *
      * @see https://derbyjs.github.io/derby/models/refs
      */
-    ref<S>(to: PathLike): ChildModel<S>;
+    ref<S>(to: Refable): ChildModel<S>;
     /**
      * Creates a reference at `path` pointing to another path `to`. Like a
      * symlink, any reads/writes on `path` will work as if they were done on
@@ -61,7 +61,7 @@ declare module './Model' {
      *
      * @see https://derbyjs.github.io/derby/models/refs
      */
-    ref<S>(path: PathLike, to: PathLike, options?: RefOptions): ChildModel<S>;
+    ref<S>(path: PathLike, to: Refable, options?: RefOptions): ChildModel<S>;
     _ref<T>(from: Segments, to: Segments, options?: RefOptions): void;
 
     /**
