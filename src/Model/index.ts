@@ -1,5 +1,5 @@
-/// <reference path="./bundle.ts" />
-/// <reference path="./connection.server.ts" />
+/// <reference path="./bundle.ts" preserve="true" />
+/// <reference path="./connection.server.ts" preserve="true" />
 
 import { serverRequire } from '../util';
 export { Model, ChildModel, RootModel, type ModelOptions, type UUID, type DefualtType } from './Model';

@@ -229,6 +229,8 @@ export function serverUse(module, id: string, options?: unknown) {
   return this.use(plugin, options);
 }
 
+type Plugin<T extends {}, O> = (pluginHost: T, options: O) => void;
+
 /**
  * Use plugin
  * 
@@ -236,9 +238,9 @@ export function serverUse(module, id: string, options?: unknown) {
  * @param options - Optional options passed to plugin
  * @returns 
  */
-export function use(plugin: (arg0: unknown, options?: unknown) => void, options?: unknown) {
+export function use<T extends {}, O>(this: T, plugin: Plugin<T, O>, options?: O) {
   // Don't include a plugin more than once
-  var plugins = this._plugins || (this._plugins = []);
+  var plugins = (this as any)._plugins || ((this as any)._plugins = []);
   if (plugins.indexOf(plugin) === -1) {
     plugins.push(plugin);
     plugin(this, options);
