@@ -12,8 +12,8 @@ type StartFnParam = unknown;
 type ModelFn<Ins extends unknown[], Out> =
   ((...inputs: Ins) => Out) |
   {
-    get(...inputs: Ins): Out;
-    set(output: Out, ...inputs: Ins): {[key: number] : Ins[number]} | Ins[] | null;
+    get(...inputs: Ins): Out,
+    set(output: Out, ...inputs: Ins): {[key: number] : Ins[number]} | Ins[] | null,
   };
 
 interface ModelStartOptions {
