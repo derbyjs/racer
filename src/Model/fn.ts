@@ -9,11 +9,20 @@ class NamedFns { }
 
 type StartFnParam = unknown;
 
+// From type-fest: https://github.com/sindresorhus/type-fest
+type ArrayIndices<Element extends readonly unknown[]> =
+  Exclude<Partial<Element>['length'], Element['length']>;
+
+type TwoWayReactiveFnSetReturnType<Ins extends readonly unknown[]> =
+  Partial<Ins> |
+  Partial<{ [K in Extract<ArrayIndices<Ins>, number>]: Ins[K] }> |
+  null;
+
 type ModelFn<Ins extends unknown[], Out> =
   ((...inputs: Ins) => Out) |
   {
-    get(...inputs: Ins): Out,
-    set(output: Out, ...inputs: Ins): {[key: number] : Ins[number]} | Ins[] | null,
+    get(...inputs: Ins): Out;
+    set(output: Out, ...inputs: Ins): TwoWayReactiveFnSetReturnType<Ins>;
   };
 
 interface ModelStartOptions {
@@ -99,11 +108,7 @@ declare module './Model' {
      */
     fn<Ins extends unknown[], Out>(
       name: string,
-      fn: (...inputs: Ins) => Out |
-        {
-          get(...inputs: Ins): Out;
-          set(output: Out, ...inputs: Ins): void
-        }
+      fn: ModelFn<Ins, Out>
     ): void;
 
     /**
