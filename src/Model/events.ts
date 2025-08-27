@@ -68,6 +68,17 @@ declare module './Model' {
 
   interface Model<T> {
     addListener(event: string, listener: any, arg2?: any, arg3?: any): any;
+    /**
+     * Returns a child model based off the current model, with the specified "event context" tag
+     * applied to all event listeners registered using that child model.
+     *
+     * `removeContextListeners()` can later be used to remove all listeners that were added with
+     * that model's event context.
+     *
+     * Note that this has nothing to do with the `context(contextId)` method.
+     *
+     * @param id event context tag 
+     */
     eventContext(id: string): ChildModel<T>;
     
     /**
@@ -153,6 +164,11 @@ declare module './Model' {
     pass(object: object, invert?: boolean): Model<T>;
 
     removeAllListeners(type: string, subpath: Path): void;
+    /**
+     * Remove all listeners that were registered with this model's event context.
+     *
+     * @see {@link eventContext}
+     */
     removeContextListeners(): void;
     
     removeListener(eventType: keyof ModelOnEventMap | keyof ModelOnImmediateEventMap | 'all', listener: Function): void;
@@ -171,8 +187,16 @@ declare module './Model' {
     _emitError(err: Error, context?: any): void;
     _emitMutation(segments: Segments, event: any): void;
     _emittingMutation: boolean;
-    _eventContextListeners: Record<string, any>;
+    /**
+     * Map of "event context" name to an array of listeners with that event context
+     *
+     * @see {@link _eventContext}
+     */
+    _eventContextListeners: Record<string, MutationListener[]>;
     _mutationEventQueue: null;
+    /**
+     * Map of event type to mutation listener tree for that type
+     */
     _mutationListeners: Record<string, EventListenerTree>;
     _removeAllListeners(type: string, segments: Segments): void;
     _removeMutationListener(listener: MutationListener): void;

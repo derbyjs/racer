@@ -53,7 +53,17 @@ export class Model<T = DefualtType> {
 
   _at: string;
   _context: Context;
-  _eventContext: number | null;
+  /**
+   * Optional "event context" tag applied to event listeners registered using this model, allowing
+   * `removeContextListeners` to later remove all listeners with this model's "event context".
+   *
+   * Every Derby component instance uses its component id ("_1", "_b", etc.) as the event context
+   * for its component model, so that the component can deregister all its listeners when the
+   * component is destroyed.
+   *
+   * Note that this has nothing to do with `model._context`.
+   */
+  _eventContext: string | null;
   _events: [];
   _maxListeners: number;
   _pass: any;
